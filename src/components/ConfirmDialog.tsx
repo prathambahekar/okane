@@ -1,0 +1,32 @@
+import CloseIcon from '@mui/icons-material/Close';
+
+interface Props {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  danger?: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}
+
+export default function ConfirmDialog({ title, message, confirmLabel = 'Delete', danger = true, onConfirm, onClose }: Props) {
+  return (
+    <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal confirm-modal">
+        <div className="modal-header">
+          <span className="modal-title">{title}</span>
+          <button className="btn-icon" onClick={onClose}><CloseIcon fontSize="small" /></button>
+        </div>
+        <div className="confirm-body">
+          <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.6 }}>{message}</p>
+        </div>
+        <div className="confirm-actions">
+          <button className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
+          <button className={`btn btn-sm ${danger ? 'btn-danger' : 'btn-primary'}`} onClick={() => { onConfirm(); onClose(); }}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
