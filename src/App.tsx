@@ -66,9 +66,7 @@ function AppInner() {
     <div className="app-layout">
       <nav className="sidebar">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">
-            
-          </div>
+         
           <div>
             <div className="sidebar-logo-text">Okane</div>
             <div className="sidebar-logo-sub">おかね · Personal Finance</div>
