@@ -104,7 +104,7 @@ function AppInner() {
         </div>
 
         <div className="sidebar-footer">
-          <span style={{ fontSize: 16 }}>💾</span>
+          <span style={{ fontSize: 16 }}>🎯</span>
           <span className="nav-item-label">{db.expenses.length} records</span>
         </div>
       </nav>
