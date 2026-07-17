@@ -1,25 +1,25 @@
 :root {
-  --bg: #0B0D12;
-  --surface: #141821;
-  --surface2: #1B202D;
-  --surface3: #242A3A;
-  --border: rgba(255,255,255,0.06);
-  --border2: rgba(255,255,255,0.11);
-  --text: #F0F2F6;
-  --text-2: #A4ADBE;
-  --text-3: #68718A;
-  --accent: #7B89F5;
-  --accent-soft: rgba(123,137,245,0.13);
-  --accent-dark: #5B6BE0;
-  --credit: #34D399;
-  --debit: #F87171;
-  --info: #60A5FA;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --radius-sm: 6px;
-  --shadow: 0 2px 16px rgba(0,0,0,.32);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,.48);
-  --sidebar-w: 228px;
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface2: #f4f4f5;
+  --surface3: #ececef;
+  --border: #e8e8ea;
+  --border2: #dadada;
+  --text: #111111;
+  --text-2: #6b7280;
+  --text-3: #9ca3af;
+  --accent: #5b4eff;
+  --accent-soft: rgba(91,78,255,0.10);
+  --accent-dark: #4a3de0;
+  --credit: #16a34a;
+  --debit: #dc2626;
+  --info: #2563eb;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,.12);
+  --sidebar-w: 240px;
   --transition: 0.18s ease;
 }
 
@@ -75,6 +75,10 @@ html, body, #root {
   display: grid;
   place-items: center;
   flex-shrink: 0;
+}
+.sidebar-logo-icon svg [stroke], .sidebar-logo-icon svg [fill] {
+  stroke: #fff !important;
+  fill: #fff !important;
 }
 .sidebar-logo-text {
   font-size: 17px;
@@ -241,7 +245,7 @@ html, body, #root {
 }
 .btn-primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color: #111;
+  color: #fff;
 }
 .btn-primary:hover { filter: brightness(1.08); }
 .btn-secondary {
@@ -349,7 +353,7 @@ html, body, #root {
   vertical-align: middle;
 }
 .data-table tr:last-child td { border-bottom: none; }
-.data-table tr:hover td { background: rgba(255,255,255,0.025); }
+.data-table tr:hover td { background: var(--surface2); }
 
 /* Empty state */
 .empty-state {
@@ -377,13 +381,14 @@ html, body, #root {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.6);
+  background: rgba(17,17,17,0.4);
   z-index: 1300;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
   animation: fadein 0.15s ease;
+  backdrop-filter: blur(4px);
 }
 @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
 
@@ -630,13 +635,61 @@ html, body, #root {
 .muted { color: var(--text-3); }
 .text-accent { color: var(--accent); }
 
-/* Responsive */
+/* Responsive — sidebar becomes bottom bar on mobile */
 @media (max-width: 768px) {
-  :root { --sidebar-w: 60px; }
-  .sidebar-logo-text, .sidebar-logo-sub, .nav-item-label, .nav-section-label { display: none; }
-  .nav-item { justify-content: center; padding: 10px; }
-  .view-container { padding: 16px; }
+  .app-layout { flex-direction: column; }
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    flex-direction: row;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    z-index: 1100;
+    box-shadow: 0 -2px 12px rgba(0,0,0,.06);
+    padding: 0;
+    overflow-x: auto;
+  }
+  .sidebar-logo, .sidebar-footer { display: none; }
+  .sidebar-nav {
+    flex-direction: row;
+    flex: 1;
+    padding: 0;
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    justify-content: space-around;
+  }
+  .nav-section-label { display: none; }
+  .nav-item {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 6px;
+    border-radius: 0;
+    min-width: 56px;
+    font-size: 10px;
+  }
+  .nav-item-label { font-size: 10px; }
+  .nav-item-icon { width: 22px; height: 22px; font-size: 20px; }
+  .nav-item .nav-item-label { display: inline; }
+  .sidebar-nav .btn { display: none; }
+  .main-content {
+    height: auto;
+    min-height: 100vh;
+    padding-bottom: 72px;
+    overflow-y: visible;
+  }
+  .view-container { padding: 16px; padding-bottom: 84px; }
   .form-row { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
 }
 
 /* Insight cards */

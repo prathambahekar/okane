@@ -68,10 +68,10 @@ function AppInner() {
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <rect x="1" y="3" width="16" height="12" rx="2" stroke="#0B0D12" strokeWidth="1.5" fill="none"/>
-              <path d="M1 7h16" stroke="#0B0D12" strokeWidth="1.5"/>
-              <circle cx="9" cy="11" r="1.5" fill="#0B0D12"/>
-              <path d="M5 11h1M12 11h1" stroke="#0B0D12" strokeWidth="1.5" strokeLinecap="round"/>
+              <rect x="1" y="3" width="16" height="12" rx="2" stroke="#fff" strokeWidth="1.5" fill="none"/>
+              <path d="M1 7h16" stroke="#fff" strokeWidth="1.5"/>
+              <circle cx="9" cy="11" r="1.5" fill="#fff"/>
+              <path d="M5 11h1M12 11h1" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </div>
           <div>
