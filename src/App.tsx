@@ -69,7 +69,7 @@ function AppInner() {
          
           <div>
             <div className="sidebar-logo-text">Okane</div>
-            <div className="sidebar-logo-sub">おかね · Personal Finance</div>
+            <div className="sidebar-logo-sub">おかね</div>
           </div>
         </div>
 
