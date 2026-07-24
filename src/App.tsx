@@ -88,7 +88,7 @@ function AppInner() {
                   {item.id === 'settlements' && pendingSettlements > 0 && (
                     <span style={{
                       marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '1px 6px',
-                      background: 'rgba(201,162,39,0.2)', color: 'var(--accent)', borderRadius: 99,
+                      background: 'rgba(25,118,210,0.12)', color: 'var(--accent)', borderRadius: 99,
                     }}>{pendingSettlements}</span>
                   )}
                 </button>
