@@ -657,17 +657,20 @@ html, body, #root {
 
 /* Mobile layout — sidebar hidden, top AppBar + BottomNavigation via MUI */
 @media (max-width: 900px) {
+  html, body, #root { height: 100%; overflow: hidden; }
   .sidebar { display: none; }
+  .app-layout { height: 100%; }
   .main-content.mobile-layout {
-    height: auto;
-    min-height: 100vh;
+    height: 100%;
     padding-top: 52px;
-    overflow-y: visible;
+    padding-bottom: 56px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
-  .view-container { padding: 16px 14px 16px; }
+  .view-container { padding: 16px 14px 24px; }
   .form-row { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: 1fr 1fr; }
-  .toast-container { bottom: 76px; }
+  .toast-container { bottom: 68px; }
 }
 
 /* Insight cards */
