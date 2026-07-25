@@ -1237,8 +1237,126 @@ table.desktop-only { display: table !important; }
   .stat-grid {
     grid-template-columns: 1fr;
   }
-  .filter-select-grid {
+}
+
+/* Category Management Design System */
+.category-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  transition: all var(--transition);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.category-chip:hover {
+  border-color: var(--border2);
+  background: var(--surface3);
+  transform: translateY(-1px);
+}
+
+.category-chip-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.category-chip-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 50%;
+  transition: all var(--transition);
+}
+
+.category-chip-delete:hover {
+  color: var(--debit);
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.category-add-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.category-add-header {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-3);
+}
+
+.category-add-form {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.category-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.color-swatch-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition);
+  padding: 0;
+  outline: none;
+}
+
+.color-swatch-btn:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch-btn.selected {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px var(--surface2), 0 0 0 4px var(--accent);
+}
+
+@media (max-width: 640px) {
+  .category-add-form {
     grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .category-add-form .btn {
+    width: 100%;
+  }
+  .color-swatch-btn {
+    width: 32px;
+    height: 32px;
   }
 }
+
 

@@ -4,6 +4,9 @@ import Switch from '@mui/material/Switch';
 import AddIcon from '@mui/icons-material/Add';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
+import CloseIcon from '@mui/icons-material/Close';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CategoryIcon from '@mui/icons-material/Category';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE } from '../db';
 import type { Category, AppDB } from '../types';
@@ -213,33 +216,87 @@ export default function Settings() {
 
         {/* Categories */}
         <div className="card">
-          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Categories</h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CategoryIcon style={{ fontSize: 18, color: 'var(--accent)' }} />
+              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Categories</h2>
+              <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, border: '1px solid var(--border)' }}>
+                {settings.categories.length}
+              </span>
+            </div>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize: 12, gap: 4, padding: '4px 8px' }}
+              onClick={() => {
+                updateSettings({ categories: [...DEFAULT_CATEGORIES] });
+                showToast('Reset categories to default');
+              }}
+            >
+              <RefreshIcon style={{ fontSize: 15 }} /> Reset Defaults
+            </button>
+          </div>
+
+          <p style={{ fontSize: 12.5, color: 'var(--text-3)', marginBottom: 16 }}>
+            Manage category tags used for organizing your spending.
+          </p>
+
+          {/* Chips Grid */}
+          <div className="category-chip-list">
             {settings.categories.map((c: Category) => (
-              <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-                <span className="cat-dot" style={{ background: c.color }} />
-                <span style={{ fontSize: 12.5 }}>{c.name}</span>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', padding: 0, display: 'flex', fontSize: 14 }}
-                  onClick={() => handleDeleteCategory(c.name)}>×</button>
+              <div key={c.name} className="category-chip">
+                <span className="category-chip-dot" style={{ background: c.color }} />
+                <span>{c.name}</span>
+                <button
+                  type="button"
+                  className="category-chip-delete"
+                  title={`Remove ${c.name}`}
+                  onClick={() => handleDeleteCategory(c.name)}
+                >
+                  <CloseIcon style={{ fontSize: 14 }} />
+                </button>
               </div>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input className="form-input" style={{ flex: 1 }} value={newCatName} onChange={e => setNewCatName(e.target.value)}
-              placeholder="New category name" onKeyDown={e => e.key === 'Enter' && handleAddCategory()} />
-            <div className="color-swatch-grid" style={{ flexWrap: 'nowrap' }}>
-              {FRIEND_PALETTE.slice(0, 6).map(c => (
-                <button key={c} type="button" className={`color-swatch ${newCatColor === c ? 'selected' : ''}`}
-                  style={{ background: c }} onClick={() => setNewCatColor(c)} />
-              ))}
+
+          {/* Add Category Section */}
+          <div className="category-add-box">
+            <div className="category-add-header">Add New Category</div>
+            <div className="category-add-form">
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontSize: 11.5 }}>Category Name</label>
+                <input
+                  className="form-input"
+                  value={newCatName}
+                  onChange={e => setNewCatName(e.target.value)}
+                  placeholder="e.g. Subscriptions, Fuel, Food..."
+                  onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontSize: 11.5 }}>Color Tag</label>
+                <div className="category-color-picker">
+                  {FRIEND_PALETTE.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`color-swatch-btn ${newCatColor === c ? 'selected' : ''}`}
+                      style={{ background: c }}
+                      onClick={() => setNewCatColor(c)}
+                      aria-label={`Select color ${c}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <button
+                className="btn btn-primary"
+                onClick={handleAddCategory}
+                style={{ padding: '9px 16px', gap: 6, justifyContent: 'center' }}
+              >
+                <AddIcon style={{ fontSize: 18 }} /> Add Category
+              </button>
             </div>
-            <button className="btn btn-primary btn-sm" onClick={handleAddCategory}><AddIcon fontSize="small" /> Add</button>
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <button className="btn btn-ghost btn-sm" style={{ fontSize: 12 }}
-              onClick={() => updateSettings({ categories: [...DEFAULT_CATEGORIES] })}>
-              Reset to defaults
-            </button>
           </div>
         </div>
 
