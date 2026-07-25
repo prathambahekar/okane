@@ -58,71 +58,169 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
   if (!friend) {
     return (
       <div className="view-container">
-        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('friends')}><ArrowBackIcon fontSize="small" /> Back to Friends</button>
-        <div className="card" style={{ marginTop: 20 }}><div className="empty-state"><p>Friend not found.</p></div></div>
+        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('friends')}>
+          <ArrowBackIcon fontSize="small" /> Back to Friends
+        </button>
+        <div className="card" style={{ marginTop: 20 }}>
+          <div className="empty-state"><p>Friend not found.</p></div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="view-container">
-      <div style={{ marginBottom: 20 }}>
-        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('friends')}>
-          <ArrowBackIcon fontSize="small" /> Back to Friends
+      {/* Back Button & Secondary Action Bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('friends')} style={{ gap: 6 }}>
+          <ArrowBackIcon style={{ fontSize: 18 }} /> Back to Friends
         </button>
+
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {Math.abs(bal.net) > 0.004 && (
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: 11.5, padding: '4px 10px', gap: 4 }}
+              onClick={handleShareReminder}
+              title="Copy Payment Reminder Message for WhatsApp/SMS"
+            >
+              <ShareIcon style={{ fontSize: 14 }} /> Share Request
+            </button>
+          )}
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ padding: 6 }}
+            onClick={() => setShowEdit(true)}
+            title="Edit Friend Profile"
+          >
+            <EditIcon style={{ fontSize: 18 }} />
+          </button>
+        </div>
       </div>
 
-      {/* Profile */}
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <div className="avatar avatar-lg" style={{ background: friend.color, width: 56, height: 56, fontSize: 22 }}>
+      {/* Profile & Net Balance Hero Card */}
+      <div
+        className="card"
+        style={{
+          padding: '18px 20px',
+          marginBottom: 16,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 20,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+          <div
+            className="avatar"
+            style={{
+              background: friend.color,
+              width: 50,
+              height: 50,
+              fontSize: 20,
+              fontWeight: 700,
+              flexShrink: 0,
+            }}
+          >
             {friendInitial(friend.name)}
           </div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontSize: 20, fontWeight: 700 }}>{friend.name}</div>
-            {friend.email && <div style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 2 }}>{friend.email}</div>}
-            {friend.phone && <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{friend.phone}</div>}
-            {friend.notes && <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4, fontStyle: 'italic' }}>{friend.notes}</div>}
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 420 }}>
-            <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => setShowEdit(true)}><EditIcon fontSize="small" /> Edit</button>
-            <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={() => setShowAddExp(true)}><AddIcon fontSize="small" /> Add Expense</button>
-            {Math.abs(bal.net) > 0.004 && (
-              <button className="btn btn-secondary btn-sm" onClick={handleShareReminder} title="Copy Payment Reminder for WhatsApp/SMS">
-                <ShareIcon fontSize="small" /> Share Request
-              </button>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ fontSize: 19, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{friend.name}</h2>
+            {(friend.email || friend.phone) && (
+              <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>
+                {friend.email}{friend.email && friend.phone ? ' · ' : ''}{friend.phone}
+              </div>
             )}
-            {activeExps.length > 0 && (
-              <button className="btn btn-primary btn-sm" onClick={() => setShowSettle(true)} style={{ flex: '1 1 100%', background: 'linear-gradient(135deg, #34D399, #10B981)' }}>
-                <HandshakeIcon fontSize="small" /> Settle Up
-              </button>
+            {friend.notes && (
+              <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, fontStyle: 'italic' }}>
+                {friend.notes}
+              </div>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Balance Summary */}
-      <div className="stat-grid" style={{ marginBottom: 16 }}>
-        <div className="stat-card">
-          <div className="stat-label">Owes You</div>
-          <div className="stat-value credit">{fmtMoney(bal.owedToMe, currency)}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">You Owe</div>
-          <div className="stat-value debit">{fmtMoney(bal.owedByMe, currency)}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Net Balance</div>
-          <div className={`stat-value ${bal.net > 0 ? 'credit' : bal.net < 0 ? 'debit' : ''}`}>
-            {bal.net >= 0 ? '+' : ''}{fmtMoney(bal.net, currency)}
+        {/* Hero Net Balance Banner Box */}
+        <div
+          style={{
+            background: bal.net > 0.004
+              ? 'rgba(34, 197, 94, 0.08)'
+              : bal.net < -0.004
+              ? 'rgba(239, 68, 68, 0.08)'
+              : 'var(--surface2)',
+            border: `1px solid ${
+              bal.net > 0.004
+                ? 'rgba(34, 197, 94, 0.22)'
+                : bal.net < -0.004
+                ? 'rgba(239, 68, 68, 0.22)'
+                : 'var(--border2)'
+            }`,
+            borderRadius: 14,
+            padding: '14px 16px',
+            marginBottom: 16,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <div>
+            <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)' }}>
+              Net Balance Status
+            </span>
+            <div style={{ fontSize: 24, fontWeight: 700, color: bal.net > 0.004 ? 'var(--credit)' : bal.net < -0.004 ? 'var(--debit)' : 'var(--text-2)', marginTop: 2 }}>
+              {bal.net > 0.004 ? `+${fmtMoney(bal.net, currency)}` : bal.net < -0.004 ? `-${fmtMoney(-bal.net, currency)}` : 'Settled Up ✓'}
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1 }}>
+              {bal.net > 0.004 ? `${friend.name} owes you in total` : bal.net < -0.004 ? `You owe ${friend.name} in total` : 'All shared bills are settled'}
+            </div>
           </div>
-          <div className="stat-sub">{bal.net > 0.004 ? `${friend.name} owes you` : bal.net < -0.004 ? 'You owe' : 'Settled'}</div>
+
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>Owes You</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--credit)', marginTop: 1 }}>{fmtMoney(bal.owedToMe, currency)}</div>
+            </div>
+            <div style={{ width: 1, background: 'var(--border)', height: 26 }} />
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>You Owe</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--debit)', marginTop: 1 }}>{fmtMoney(bal.owedByMe, currency)}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Primary Action Buttons */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            className="btn btn-primary"
+            style={{ flex: 1, padding: '9px 14px', fontSize: 13, gap: 6, justifyContent: 'center' }}
+            onClick={() => setShowAddExp(true)}
+          >
+            <AddIcon style={{ fontSize: 16 }} /> Add Shared Expense
+          </button>
+
+          {activeExps.length > 0 && (
+            <button
+              className="btn btn-primary"
+              style={{
+                flex: 1,
+                padding: '9px 14px',
+                fontSize: 13,
+                gap: 6,
+                justifyContent: 'center',
+                background: 'linear-gradient(135deg, #2e7d32, #1b5e20)',
+              }}
+              onClick={() => setShowSettle(true)}
+            >
+              <HandshakeIcon style={{ fontSize: 16 }} /> Settle Up
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Transactions */}
+      {/* Transactions List */}
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: '14px 20px 0', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ padding: '12px 18px 0', borderBottom: '1px solid var(--border)' }}>
           <div className="tab-list" style={{ marginBottom: 0 }}>
             <button className={`tab-btn ${tab === 'active' ? 'active' : ''}`} onClick={() => setTab('active')}>
               Active ({activeExps.length})
@@ -132,6 +230,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             </button>
           </div>
         </div>
+
         {shown.length === 0 ? (
           <div className="empty-state" style={{ padding: '32px' }}>
             <p>{tab === 'active' ? 'No active expenses with this friend.' : 'No settled expenses yet.'}</p>
@@ -140,7 +239,16 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           <>
             {/* Desktop Table View */}
             <table className="data-table desktop-only">
-              <thead><tr><th>Description</th><th>Amount</th><th>Date</th><th>Type</th><th>Category</th><th>Status</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
               <tbody>
                 {shown.map(e => {
                   const cat = db.settings.categories.find(c => c.name === e.category);
@@ -159,7 +267,11 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <span style={{ fontSize: 12 }}>{e.category}</span>
                         </div>
                       </td>
-                      <td><span className={`badge badge-${e.settled ? 'settled' : e.status}`}>{e.settled ? 'Settled' : e.status.charAt(0).toUpperCase() + e.status.slice(1)}</span></td>
+                      <td>
+                        <span className={`badge badge-${e.settled ? 'settled' : e.status}`}>
+                          {e.settled ? 'Settled' : e.status.charAt(0).toUpperCase() + e.status.slice(1)}
+                        </span>
+                      </td>
                     </tr>
                   );
                 })}
@@ -251,4 +363,3 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
     </div>
   );
 }
-

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import AppBar from '@mui/material/AppBar';
@@ -25,9 +25,13 @@ import AddIcon from '@mui/icons-material/Add';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { StoreProvider, useStore } from './store';
 import { useColorMode } from './theme';
 import type { ViewName } from './types';
+import { expenseFlow, friendBalance, totalWalletBalance } from './db';
+import { fmtMoney } from './utils';
 import Dashboard from './views/Dashboard';
 import Expenses from './views/Expenses';
 import Wallets from './views/Wallets';
@@ -51,6 +55,18 @@ function AppInner() {
   const { mode, toggleMode: toggleDark } = useColorMode();
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+
+  const { expenses, friends, currency } = useMemo(() => ({
+    expenses: db.expenses,
+    friends: db.friends,
+    currency: db.settings.currency,
+  }), [db]);
+
+  const expOut = useMemo(() => expenses.filter(e => expenseFlow(e) === 'out' && e.type === 'personal').reduce((s, e) => s + Number(e.amount), 0), [expenses]);
+  const expIn = useMemo(() => expenses.filter(e => expenseFlow(e) === 'in' && e.type === 'personal').reduce((s, e) => s + Number(e.amount), 0), [expenses]);
+  const friendCredit = useMemo(() => friends.reduce((s, f) => s + Math.max(0, friendBalance(db, f.id).net), 0), [friends, db]);
+  const friendDebt = useMemo(() => friends.reduce((s, f) => s + Math.max(0, -friendBalance(db, f.id).net), 0), [friends, db]);
+  const totalBal = useMemo(() => totalWalletBalance(db), [db]);
 
   const navigate = (v: ViewName, arg?: string) => {
     setView(v);
@@ -167,27 +183,58 @@ function AppInner() {
             color: 'text.primary',
           }}
         >
-          <Toolbar variant="dense" sx={{ minHeight: 52, px: 2 }}>
-            <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-              <Typography variant="h6" component="span" sx={{ fontWeight: 700, fontSize: '1.05rem', letterSpacing: '-0.2px' }}>
-                {view === 'dashboard' ? 'Dashboard' :
-                 view === 'expenses' ? 'Expenses' :
-                 view === 'friends' ? 'Friends' :
-                 view === 'friend-detail' ? 'Friend Details' :
-                 view === 'wallets' ? 'Wallets' :
-                 view === 'analytics' ? 'Analytics' :
-                 view === 'settlements' ? 'Settlements' :
-                 view === 'settings' ? 'Settings' : 'Dashboard'}
-              </Typography>
+          <Toolbar variant="dense" sx={{ minHeight: 52, px: 2, justifyContent: 'space-between' }}>
+            <Typography variant="h6" component="span" sx={{ fontWeight: 700, fontSize: '1.05rem', letterSpacing: '-0.2px', flexShrink: 0 }}>
+              {view === 'dashboard' ? 'Dashboard' :
+               view === 'expenses' ? 'Expenses' :
+               view === 'friends' ? 'Friends' :
+               view === 'friend-detail' ? 'Friend Details' :
+               view === 'wallets' ? 'Wallets' :
+               view === 'analytics' ? 'Analytics' :
+               view === 'settlements' ? 'Settlements' :
+               view === 'settings' ? 'Settings' : 'Dashboard'}
+            </Typography>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              {view === 'expenses' && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mr: 0.5 }}>
+                  <Typography component="span" sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'error.main', display: 'inline-flex', alignItems: 'center', gap: 0.2 }}>
+                    <TrendingDownIcon sx={{ fontSize: 14 }} /> -{fmtMoney(expOut, currency)}
+                  </Typography>
+                  <Typography component="span" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>·</Typography>
+                  <Typography component="span" sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'success.main', display: 'inline-flex', alignItems: 'center', gap: 0.2 }}>
+                    <TrendingUpIcon sx={{ fontSize: 14 }} /> +{fmtMoney(expIn, currency)}
+                  </Typography>
+                </Box>
+              )}
+
+              {view === 'friends' && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mr: 0.5 }}>
+                  <Typography component="span" sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'success.main', display: 'inline-flex', alignItems: 'center', gap: 0.2 }}>
+                    <TrendingUpIcon sx={{ fontSize: 14 }} /> +{fmtMoney(friendCredit, currency)}
+                  </Typography>
+                  <Typography component="span" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>·</Typography>
+                  <Typography component="span" sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'error.main', display: 'inline-flex', alignItems: 'center', gap: 0.2 }}>
+                    <TrendingDownIcon sx={{ fontSize: 14 }} /> -{fmtMoney(friendDebt, currency)}
+                  </Typography>
+                </Box>
+              )}
+
+              {(view === 'dashboard' || view === 'wallets') && (
+                <Typography component="span" sx={{ fontSize: '0.82rem', fontWeight: 700, color: totalBal < 0 ? 'error.main' : 'text.primary', mr: 0.5 }}>
+                  {fmtMoney(totalBal, currency)}
+                </Typography>
+              )}
+
+              <IconButton size="small" color="primary" onClick={() => setShowAddExpense(true)}>
+                <AddIcon />
+              </IconButton>
+              <IconButton size="small" onClick={toggleDark} sx={{ color: 'text.secondary' }}>
+                {mode === 'dark'
+                  ? <LightModeIcon sx={{ fontSize: 20 }} />
+                  : <DarkModeIcon sx={{ fontSize: 20 }} />}
+              </IconButton>
             </Box>
-            <IconButton size="small" color="primary" onClick={() => setShowAddExpense(true)} sx={{ mr: 0.5 }}>
-              <AddIcon />
-            </IconButton>
-            <IconButton size="small" onClick={toggleDark} sx={{ color: 'text.secondary' }}>
-              {mode === 'dark'
-                ? <LightModeIcon sx={{ fontSize: 20 }} />
-                : <DarkModeIcon sx={{ fontSize: 20 }} />}
-            </IconButton>
           </Toolbar>
         </AppBar>
       )}

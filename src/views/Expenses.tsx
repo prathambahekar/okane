@@ -6,8 +6,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { useStore } from '../store';
 import type { Expense } from '../types';
 import { expenseFlow } from '../db';
@@ -63,9 +61,6 @@ export default function Expenses() {
     return arr;
   }, [expenses, search, catFilter, typeFilter, statusFilter, flowFilter, walletFilter, sort]);
 
-  const totalOut = filtered.filter(e => expenseFlow(e) === 'out' && e.type === 'personal').reduce((s, e) => s + Number(e.amount), 0);
-  const totalIn = filtered.filter(e => expenseFlow(e) === 'in' && e.type === 'personal').reduce((s, e) => s + Number(e.amount), 0);
-
   const handleDelete = (id: string) => {
     deleteExpense(id);
     setDelId(null);
@@ -78,20 +73,9 @@ export default function Expenses() {
         <div>
           <h1 className="page-title">Expenses</h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--debit)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-              <TrendingDownIcon style={{ fontSize: 16 }} /> Out {fmtMoney(totalOut, currency)}
-            </span>
-            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>·</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--credit)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-              <TrendingUpIcon style={{ fontSize: 16 }} /> In {fmtMoney(totalIn, currency)}
-            </span>
-          </div>
-          <button className="btn btn-primary desktop-only" onClick={() => setShowAdd(true)}>
-            <AddIcon fontSize="small" /> Add Expense
-          </button>
-        </div>
+        <button className="btn btn-primary desktop-only" onClick={() => setShowAdd(true)}>
+          <AddIcon fontSize="small" /> Add Expense
+        </button>
       </div>
 
       {/* Spent / Received Main Tabs */}
