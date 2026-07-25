@@ -5,6 +5,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { useStore } from '../store';
 import type { Expense } from '../types';
 import { expenseFlow } from '../db';
@@ -23,11 +24,14 @@ export default function Expenses() {
   const [flowFilter, setFlowFilter] = useState('');
   const [walletFilter, setWalletFilter] = useState('');
   const [sort, setSort] = useState('date-desc');
+  const [showFilters, setShowFilters] = useState(false);
 
   const [editExp, setEditExp] = useState<Expense | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [delId, setDelId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+
+  const activeFilterCount = (catFilter ? 1 : 0) + (typeFilter ? 1 : 0) + (walletFilter ? 1 : 0) + (sort !== 'date-desc' ? 1 : 0);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
@@ -73,58 +77,87 @@ export default function Expenses() {
           <h1 className="page-title">Expenses</h1>
           <p className="page-subtitle">{filtered.length} record{filtered.length !== 1 ? 's' : ''} · Out {fmtMoney(totalOut, currency)} / In {fmtMoney(totalIn, currency)}</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+        <button className="btn btn-primary desktop-only" onClick={() => setShowAdd(true)}>
           <AddIcon fontSize="small" /> Add Expense
         </button>
       </div>
 
       {/* Spent / Received Main Tabs */}
-      <div className="tab-list" style={{ marginBottom: 16 }}>
+      <div className="tab-list" style={{ marginBottom: 14 }}>
         <button className={`tab-btn ${flowFilter === '' ? 'active' : ''}`} onClick={() => setFlowFilter('')}>
           All
         </button>
         <button className={`tab-btn ${flowFilter === 'out' ? 'active' : ''}`} onClick={() => setFlowFilter('out')}
           style={{ color: flowFilter === 'out' ? 'var(--debit)' : undefined, borderBottomColor: flowFilter === 'out' ? 'var(--debit)' : undefined }}>
-          💸 Spent
+          Spent
         </button>
         <button className={`tab-btn ${flowFilter === 'in' ? 'active' : ''}`} onClick={() => setFlowFilter('in')}
           style={{ color: flowFilter === 'in' ? 'var(--credit)' : undefined, borderBottomColor: flowFilter === 'in' ? 'var(--credit)' : undefined }}>
-          💰 Received
+          Received
         </button>
       </div>
 
+      {/* Merged Search & Filter Bar */}
       <div className="filter-bar">
         <div className="search-input-wrap">
           <SearchIcon className="search-icon" />
-          <input className="form-input" placeholder="Search expenses…" value={search} onChange={e => setSearch(e.target.value)} />
+          <input
+            className="form-input"
+            placeholder="Search expenses…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <button
+            type="button"
+            className={`filter-toggle-btn ${showFilters || activeFilterCount > 0 ? 'active' : ''}`}
+            onClick={() => setShowFilters(prev => !prev)}
+            title="Toggle filters"
+          >
+            <FilterListIcon fontSize="small" />
+            {activeFilterCount > 0 && <span className="filter-badge">{activeFilterCount}</span>}
+          </button>
         </div>
-        <div className="filter-select-grid">
-          <select className="filter-select" value={catFilter} onChange={e => setCatFilter(e.target.value)}>
-            <option value="">All categories</option>
-            {db.settings.categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-          </select>
-          <select className="filter-select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-            <option value="">All types</option>
-            <option value="personal">Personal</option>
-            <option value="for_friend">For Friend</option>
-            <option value="by_friend">By Friend</option>
-          </select>
-          <select className="filter-select" value={walletFilter} onChange={e => setWalletFilter(e.target.value)}>
-            <option value="">All wallets</option>
-            {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </select>
-          <select className="filter-select" value={sort} onChange={e => setSort(e.target.value)}>
-            <option value="date-desc">Latest first</option>
-            <option value="date-asc">Oldest first</option>
-            <option value="amount-desc">Highest amount</option>
-            <option value="amount-asc">Lowest amount</option>
-          </select>
-          {(search || catFilter || typeFilter || statusFilter || flowFilter || walletFilter) && (
-            <button className="btn btn-ghost btn-sm" onClick={() => { setSearch(''); setCatFilter(''); setTypeFilter(''); setStatusFilter(''); setFlowFilter(''); setWalletFilter(''); }}>
-              Clear
-            </button>
-          )}
-        </div>
+
+        {(showFilters || activeFilterCount > 0) && (
+          <div className="filter-scroll-row" style={{ animation: 'fadein 0.15s ease' }}>
+            <select className="filter-pill-select" value={catFilter} onChange={e => setCatFilter(e.target.value)}>
+              <option value="">Category: All</option>
+              {db.settings.categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+            </select>
+
+            <select className="filter-pill-select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+              <option value="">Type: All</option>
+              <option value="personal">Personal</option>
+              <option value="for_friend">For Friend</option>
+              <option value="by_friend">By Friend</option>
+            </select>
+
+            <select className="filter-pill-select" value={walletFilter} onChange={e => setWalletFilter(e.target.value)}>
+              <option value="">Wallet: All</option>
+              {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+
+            <select className="filter-pill-select" value={sort} onChange={e => setSort(e.target.value)}>
+              <option value="date-desc">Sort: Latest</option>
+              <option value="date-asc">Sort: Oldest</option>
+              <option value="amount-desc">Sort: Highest</option>
+              <option value="amount-asc">Sort: Lowest</option>
+            </select>
+
+            {(search || catFilter || typeFilter || statusFilter || flowFilter || walletFilter || sort !== 'date-desc') && (
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: 11.5, padding: '4px 10px', whiteSpace: 'nowrap' }}
+                onClick={() => {
+                  setSearch(''); setCatFilter(''); setTypeFilter('');
+                  setStatusFilter(''); setFlowFilter(''); setWalletFilter(''); setSort('date-desc');
+                }}
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="card" style={{ padding: 0 }}>
