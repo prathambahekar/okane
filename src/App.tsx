@@ -194,7 +194,18 @@ function AppInner() {
 
       {/* Mobile bottom navigation */}
       {isMobile && (
-        <Paper elevation={3} sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100 }}>
+        <Paper
+          elevation={3}
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1100,
+            pb: 'env(safe-area-inset-bottom, 0px)',
+            bgcolor: 'background.paper',
+          }}
+        >
           <BottomNavigation
             value={bottomNavValue}
             onChange={(_, val) => {
@@ -202,6 +213,16 @@ function AppInner() {
               else navigate(val as ViewName);
             }}
             showLabels
+            sx={{
+              height: 60,
+              '& .MuiBottomNavigationAction-root': {
+                minWidth: 'auto',
+                padding: '6px 0',
+                '& .MuiBottomNavigationAction-label': {
+                  fontSize: '0.72rem',
+                },
+              },
+            }}
           >
             <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} value="dashboard" />
             <BottomNavigationAction label="Expenses" icon={<ReceiptLongIcon />} value="expenses" />

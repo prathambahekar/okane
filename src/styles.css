@@ -669,7 +669,7 @@ input[type="number"] {
   .modal {
     max-width: 100%;
     border-radius: 20px 20px 0 0;
-    max-height: 90vh;
+    max-height: 88vh;
     animation: slideup 0.24s cubic-bezier(0.16, 1, 0.3, 1);
     border-bottom: none;
   }
@@ -686,28 +686,36 @@ input[type="number"] {
     background: var(--border2);
   }
   .modal-header {
-    padding: 12px 18px 14px;
+    padding: 12px 16px;
   }
   .modal-body {
-    padding: 16px 18px 20px;
+    padding: 14px 16px 18px;
   }
   .modal-footer {
-    padding: 14px 18px 20px;
+    padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
     position: sticky;
     bottom: 0;
     z-index: 10;
   }
   .modal-footer .btn {
     flex: 1;
-    padding: 12px;
-    font-size: 14px;
+    padding: 11px;
+    font-size: 13.5px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .form-row {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
+  }
+  .segment-btn {
+    font-size: 12px;
+    padding: 7px 4px;
+    min-height: 38px;
+  }
+  .hero-amount-input {
+    font-size: 26px;
   }
 }
 @keyframes slideup {
@@ -859,14 +867,14 @@ input[type="number"] {
   .main-content.mobile-layout {
     height: 100%;
     padding-top: 52px;
-    padding-bottom: 56px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .view-container { padding: 16px 14px 24px; }
+  .view-container { padding: 14px 12px calc(24px + env(safe-area-inset-bottom, 0px)); }
   .form-row { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: 1fr 1fr; }
-  .toast-container { bottom: 68px; }
+  .toast-container { bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* Insight cards */
