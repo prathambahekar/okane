@@ -178,7 +178,7 @@ export default function Friends({ onNavigate }: Props) {
                 style={{
                   background: 'var(--surface)',
                   border: '1px solid var(--border)',
-                  borderRadius: 16,
+                  borderRadius: 8,
                   overflow: 'hidden',
                   transition: 'all var(--transition)',
                   boxShadow: isExpanded ? 'var(--shadow)' : 'none',
@@ -330,7 +330,7 @@ export default function Friends({ onNavigate }: Props) {
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button
                           className="btn btn-secondary btn-sm"
-                          style={{ fontSize: 12, padding: '5px 11px', borderRadius: 8, gap: 4 }}
+                          style={{ fontSize: 12, padding: '5px 11px', borderRadius: 4, gap: 4 }}
                           onClick={() => setAddExpFriend(f)}
                         >
                           <AddIcon style={{ fontSize: 14 }} /> Add Expense
@@ -341,7 +341,7 @@ export default function Friends({ onNavigate }: Props) {
                             style={{
                               fontSize: 12,
                               padding: '5px 11px',
-                              borderRadius: 8,
+                              borderRadius: 4,
                               gap: 4,
                               background: 'linear-gradient(135deg, #2e7d32, #1b5e20)',
                             }}

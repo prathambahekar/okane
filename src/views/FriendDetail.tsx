@@ -76,26 +76,8 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           <ArrowBackIcon style={{ fontSize: 18 }} /> Back to Friends
         </button>
 
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {Math.abs(bal.net) > 0.004 && (
-            <button
-              className="btn btn-secondary btn-sm"
-              style={{ fontSize: 11.5, padding: '4px 10px', gap: 4 }}
-              onClick={handleShareReminder}
-              title="Copy Payment Reminder Message for WhatsApp/SMS"
-            >
-              <ShareIcon style={{ fontSize: 14 }} /> Share Request
-            </button>
-          )}
-          <button
-            className="btn btn-ghost btn-sm"
-            style={{ padding: 6 }}
-            onClick={() => setShowEdit(true)}
-            title="Edit Friend Profile"
-          >
-            <EditIcon style={{ fontSize: 18 }} />
-          </button>
-        </div>
+
+
       </div>
 
       {/* Profile & Net Balance Hero Card */}
@@ -106,7 +88,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           marginBottom: 16,
           background: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: 20,
+          borderRadius: 8,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
@@ -145,16 +127,15 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             background: bal.net > 0.004
               ? 'rgba(34, 197, 94, 0.08)'
               : bal.net < -0.004
-              ? 'rgba(239, 68, 68, 0.08)'
-              : 'var(--surface2)',
-            border: `1px solid ${
-              bal.net > 0.004
-                ? 'rgba(34, 197, 94, 0.22)'
-                : bal.net < -0.004
+                ? 'rgba(239, 68, 68, 0.08)'
+                : 'var(--surface2)',
+            border: `1px solid ${bal.net > 0.004
+              ? 'rgba(34, 197, 94, 0.22)'
+              : bal.net < -0.004
                 ? 'rgba(239, 68, 68, 0.22)'
                 : 'var(--border2)'
-            }`,
-            borderRadius: 14,
+              }`,
+            borderRadius: 8,
             padding: '14px 16px',
             marginBottom: 16,
             display: 'flex',

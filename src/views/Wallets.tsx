@@ -89,7 +89,7 @@ export default function Wallets() {
               style={{
                 background: isSelected ? 'var(--surface2)' : 'var(--surface)',
                 border: `1.5px solid ${isSelected ? (w.color || 'var(--accent)') : 'var(--border)'}`,
-                borderRadius: 16,
+                borderRadius: 8,
                 padding: '14px 16px',
                 cursor: 'pointer',
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',

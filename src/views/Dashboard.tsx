@@ -148,7 +148,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
 
             {/* 3 Metric Cards Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
-              <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.18)', borderRadius: 12, padding: '10px 12px' }}>
+              <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.18)', borderRadius: 4, padding: '10px 12px' }}>
                 <div style={{ fontSize: 10.5, color: 'var(--text-3)', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <TrendingDownIcon style={{ fontSize: 13, color: 'var(--debit)' }} /> {monthName} Spend
                 </div>
@@ -157,7 +157,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.18)', borderRadius: 12, padding: '10px 12px' }}>
+              <div style={{ background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.18)', borderRadius: 4, padding: '10px 12px' }}>
                 <div style={{ fontSize: 10.5, color: 'var(--text-3)', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <TrendingUpIcon style={{ fontSize: 13, color: 'var(--credit)' }} /> {monthName} Income
                 </div>
@@ -166,7 +166,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 </div>
               </div>
 
-              <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 12px' }}>
+              <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '10px 12px' }}>
                 <div style={{ fontSize: 10.5, color: 'var(--text-3)', textTransform: 'uppercase', fontWeight: 700 }}>
                   Friends Net
                 </div>
@@ -176,44 +176,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               </div>
             </div>
 
-            {/* Bottom Visual Cash Flow & Friends Breakdown Bar */}
-            {monthIncome > 0 ? (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, marginBottom: 6 }}>
-                  <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>
-                    {monthName} Cash Flow Progress
-                  </span>
-                  <span style={{ fontWeight: 600, color: (monthIncome - monthSpend) >= 0 ? 'var(--credit)' : 'var(--debit)' }}>
-                    Net Savings: {fmtMoney(monthIncome - monthSpend, currency)} ({Math.max(0, Math.round(((monthIncome - monthSpend) / monthIncome) * 100))}%)
-                  </span>
-                </div>
-                <div style={{ height: 8, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden', display: 'flex' }}>
-                  <div
-                    style={{
-                      width: `${Math.min(100, Math.max(0, (monthSpend / monthIncome) * 100))}%`,
-                      background: 'var(--debit)',
-                      borderRadius: '99px 0 0 99px',
-                      transition: 'width 0.4s ease'
-                    }}
-                    title={`Spent: ${fmtMoney(monthSpend, currency)}`}
-                  />
-                  <div
-                    style={{
-                      flex: 1,
-                      background: 'var(--credit)',
-                      borderRadius: '0 99px 99px 0',
-                      opacity: 0.85
-                    }}
-                    title={`Saved: ${fmtMoney(monthIncome - monthSpend, currency)}`}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, color: 'var(--text-3)', background: 'var(--surface2)', padding: '8px 12px', borderRadius: 8 }}>
-                <span>Friends owe you: <strong style={{ color: 'var(--credit)' }}>+{fmtMoney(overallCredit, currency)}</strong></span>
-                <span>You owe: <strong style={{ color: 'var(--debit)' }}>-{fmtMoney(overallDebt, currency)}</strong></span>
-              </div>
-            )}
+
 
           </div>
         </div>
