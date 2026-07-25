@@ -7,6 +7,11 @@ import UploadIcon from '@mui/icons-material/Upload';
 import CloseIcon from '@mui/icons-material/Close';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CategoryIcon from '@mui/icons-material/Category';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
+import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE } from '../db';
 import type { Category, AppDB } from '../types';
@@ -301,22 +306,42 @@ export default function Settings() {
         </div>
 
         {/* Data Management */}
-        <div className="card">
-          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Data Management</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 16 }}>All data is stored locally in your browser.</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <button className="btn btn-secondary btn-sm" onClick={handleExport}><DownloadIcon fontSize="small" /> Export JSON</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => fileRef.current?.click()}><UploadIcon fontSize="small" /> Import JSON</button>
-            <button className="btn btn-secondary btn-sm" onClick={handleLoadSample}>Load Sample Data</button>
+        <div className="card" style={{ padding: '20px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Data</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-3)' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+              <span>On this device only</span>
+            </div>
+          </div>
+          <p style={{ fontSize: 13.5, color: 'var(--text-3)', margin: 0 }}>
+            Nothing leaves your browser.
+          </p>
+
+          <div className="data-action-grid">
+            <button type="button" className="data-action-card" onClick={handleExport}>
+              <FileDownloadOutlinedIcon style={{ fontSize: 26 }} />
+              <span className="data-action-label">Export</span>
+            </button>
+
+            <button type="button" className="data-action-card" onClick={() => fileRef.current?.click()}>
+              <FileUploadOutlinedIcon style={{ fontSize: 26 }} />
+              <span className="data-action-label">Import</span>
+            </button>
+
+            <button type="button" className="data-action-card" onClick={handleLoadSample}>
+              <ScienceOutlinedIcon style={{ fontSize: 26 }} />
+              <span className="data-action-label">Sample</span>
+            </button>
             <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
           </div>
 
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--debit)', marginBottom: 6 }}>Danger Zone</h3>
-            <p style={{ fontSize: 12.5, color: 'var(--text-3)', marginBottom: 10 }}>
-              This will permanently delete all expenses, friends, wallets, and settlements.
-            </p>
-            <button className="btn btn-danger btn-sm" onClick={() => setShowReset(true)}>Reset All Data</button>
+          <div className="data-reset-row" onClick={() => setShowReset(true)} role="button" tabIndex={0}>
+            <div className="data-reset-left">
+              <DeleteOutlineIcon style={{ fontSize: 20 }} />
+              <span>Reset all data</span>
+            </div>
+            <ChevronRightIcon style={{ fontSize: 20, color: 'var(--text-3)' }} />
           </div>
         </div>
 

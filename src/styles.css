@@ -1359,4 +1359,65 @@ table.desktop-only { display: table !important; }
   }
 }
 
+/* Data Management Card */
+.data-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 18px;
+  margin-bottom: 20px;
+}
+
+.data-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  font-family: inherit;
+}
+
+.data-action-card:hover {
+  background: var(--surface3);
+  border-color: var(--border2);
+}
+
+.data-action-label {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.data-reset-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  transition: opacity var(--transition);
+}
+
+.data-reset-row:hover {
+  opacity: 0.8;
+}
+
+.data-reset-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--debit);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+
 
