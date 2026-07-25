@@ -78,6 +78,21 @@ export default function Expenses() {
         </button>
       </div>
 
+      {/* Spent / Received Main Tabs */}
+      <div className="tab-list" style={{ marginBottom: 16 }}>
+        <button className={`tab-btn ${flowFilter === '' ? 'active' : ''}`} onClick={() => setFlowFilter('')}>
+          All
+        </button>
+        <button className={`tab-btn ${flowFilter === 'out' ? 'active' : ''}`} onClick={() => setFlowFilter('out')}
+          style={{ color: flowFilter === 'out' ? 'var(--debit)' : undefined, borderBottomColor: flowFilter === 'out' ? 'var(--debit)' : undefined }}>
+          💸 Spent
+        </button>
+        <button className={`tab-btn ${flowFilter === 'in' ? 'active' : ''}`} onClick={() => setFlowFilter('in')}
+          style={{ color: flowFilter === 'in' ? 'var(--credit)' : undefined, borderBottomColor: flowFilter === 'in' ? 'var(--credit)' : undefined }}>
+          💰 Received
+        </button>
+      </div>
+
       <div className="filter-bar">
         <div className="search-input-wrap">
           <SearchIcon className="search-icon" />
@@ -93,11 +108,6 @@ export default function Expenses() {
             <option value="personal">Personal</option>
             <option value="for_friend">For Friend</option>
             <option value="by_friend">By Friend</option>
-          </select>
-          <select className="filter-select" value={flowFilter} onChange={e => setFlowFilter(e.target.value)}>
-            <option value="">Any flow</option>
-            <option value="out">Out / Spent</option>
-            <option value="in">In / Received</option>
           </select>
           <select className="filter-select" value={walletFilter} onChange={e => setWalletFilter(e.target.value)}>
             <option value="">All wallets</option>

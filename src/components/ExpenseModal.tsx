@@ -58,84 +58,183 @@ export default function ExpenseModal({ expense, onClose }: Props) {
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal">
         <div className="modal-header">
-          <span className="modal-title">{expense ? 'Edit Expense' : 'Add Expense'}</span>
+          <span className="modal-title">{expense ? 'Edit Transaction' : flow === 'out' ? 'Record Expense' : 'Record Income'}</span>
           <button className="btn-icon" onClick={onClose}><CloseIcon fontSize="small" /></button>
         </div>
+
+        {/* Spent / Received Tabs */}
+        <div className="tab-list" style={{ margin: 0, padding: '0 20px', borderBottom: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex' }}>
+          <button
+            type="button"
+            className={`tab-btn ${flow === 'out' ? 'active' : ''}`}
+            onClick={() => {
+              setFlow('out');
+              setError('');
+            }}
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              padding: '12px 16px',
+              fontSize: 14,
+              fontWeight: 600,
+              color: flow === 'out' ? 'var(--debit)' : 'var(--text-3)',
+              borderBottom: flow === 'out' ? '2.5px solid var(--debit)' : '2.5px solid transparent',
+              transition: 'all 0.18s ease',
+            }}
+          >
+            💸 Spent (Expense)
+          </button>
+          <button
+            type="button"
+            className={`tab-btn ${flow === 'in' ? 'active' : ''}`}
+            onClick={() => {
+              setFlow('in');
+              setError('');
+            }}
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              padding: '12px 16px',
+              fontSize: 14,
+              fontWeight: 600,
+              color: flow === 'in' ? 'var(--credit)' : 'var(--text-3)',
+              borderBottom: flow === 'in' ? '2.5px solid var(--credit)' : '2.5px solid transparent',
+              transition: 'all 0.18s ease',
+            }}
+          >
+            💰 Received (Income)
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="form-grid">
-              <div className="form-group">
-                <label className="form-label">Type</label>
-                <div className="segment-control">
-                  {(['personal', 'for_friend', 'by_friend'] as ExpenseType[]).map(t => (
-                    <button key={t} type="button" className={`segment-btn ${type === t ? 'active' : ''}`}
-                      onClick={() => setType(t)}>
-                      {t === 'personal' ? 'Personal' : t === 'for_friend' ? 'For Friend' : 'By Friend'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Flow</label>
-                <div className="segment-control">
-                  <button type="button" className={`segment-btn ${flow === 'out' ? 'active' : ''}`} onClick={() => setFlow('out')}>Spent / Out</button>
-                  <button type="button" className={`segment-btn ${flow === 'in' ? 'active' : ''}`} onClick={() => setFlow('in')}>Received / In</button>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Description *</label>
-                  <input className="form-input" value={desc} onChange={e => setDesc(e.target.value)} placeholder="What was this for?" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Amount *</label>
-                  <input className="form-input" type="number" min="0" step="0.01" value={amount}
-                    onChange={e => setAmount(e.target.value)} placeholder="0.00" />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <select className="form-select" value={category} onChange={e => setCategory(e.target.value)}>
-                    {s.categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Date</label>
-                  <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
-                </div>
-              </div>
-
-              {type !== 'personal' && (
-                <div className="form-group">
-                  <label className="form-label">Friend *</label>
-                  <select className="form-select" value={friendId} onChange={e => setFriendId(e.target.value)}>
-                    <option value="">— select friend —</option>
-                    {db.friends.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                  </select>
-                </div>
-              )}
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Wallet</label>
-                  <select className="form-select" value={walletId} onChange={e => setWalletId(e.target.value)}>
-                    {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                  </select>
-                </div>
-                {type === 'personal' && (
+              {/* SPENT TAB INPUTS */}
+              {flow === 'out' ? (
+                <>
                   <div className="form-group">
-                    <label className="form-label">Status</label>
-                    <select className="form-select" value={status} onChange={e => setStatus(e.target.value as ExpenseStatus)}>
-                      <option value="paid">Paid</option>
-                      <option value="unpaid">Unpaid</option>
-                    </select>
+                    <label className="form-label">Expense Type</label>
+                    <div className="segment-control">
+                      {(['personal', 'for_friend', 'by_friend'] as ExpenseType[]).map(t => (
+                        <button key={t} type="button" className={`segment-btn ${type === t ? 'active' : ''}`}
+                          onClick={() => setType(t)}>
+                          {t === 'personal' ? 'Personal' : t === 'for_friend' ? 'For Friend' : 'By Friend'}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Description / Item *</label>
+                      <input className="form-input" value={desc} onChange={e => setDesc(e.target.value)}
+                        placeholder="What did you spend on?" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Amount Spent *</label>
+                      <input className="form-input" type="number" min="0" step="0.01" value={amount}
+                        onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Category</label>
+                      <select className="form-select" value={category} onChange={e => setCategory(e.target.value)}>
+                        {s.categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Date Spent</label>
+                      <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
+                    </div>
+                  </div>
+
+                  {type !== 'personal' && (
+                    <div className="form-group">
+                      <label className="form-label">Friend Involved *</label>
+                      <select className="form-select" value={friendId} onChange={e => setFriendId(e.target.value)}>
+                        <option value="">— select friend —</option>
+                        {db.friends.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Paid From (Wallet)</label>
+                      <select className="form-select" value={walletId} onChange={e => setWalletId(e.target.value)}>
+                        {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                      </select>
+                    </div>
+                    {type === 'personal' && (
+                      <div className="form-group">
+                        <label className="form-label">Status</label>
+                        <select className="form-select" value={status} onChange={e => setStatus(e.target.value as ExpenseStatus)}>
+                          <option value="paid">Paid</option>
+                          <option value="unpaid">Unpaid</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* RECEIVED TAB INPUTS */
+                <>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Source / Received From *</label>
+                      <input className="form-input" value={desc} onChange={e => setDesc(e.target.value)}
+                        placeholder="e.g. Salary, Client, Gift, Refund" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Amount Received *</label>
+                      <input className="form-input" type="number" min="0" step="0.01" value={amount}
+                        onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Income Category</label>
+                      <select className="form-select" value={category} onChange={e => setCategory(e.target.value)}>
+                        <option value="Income">Income</option>
+                        {s.categories.filter(c => c.name !== 'Income').map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Date Received</label>
+                      <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Deposited To (Wallet)</label>
+                      <select className="form-select" value={walletId} onChange={e => setWalletId(e.target.value)}>
+                        {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Transaction Context</label>
+                      <select className="form-select" value={type} onChange={e => setType(e.target.value as ExpenseType)}>
+                        <option value="personal">Personal Income</option>
+                        <option value="by_friend">Received From Friend</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {type === 'by_friend' && (
+                    <div className="form-group">
+                      <label className="form-label">Select Friend *</label>
+                      <select className="form-select" value={friendId} onChange={e => setFriendId(e.target.value)}>
+                        <option value="">— select friend —</option>
+                        {db.friends.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
 
               <div className="form-group">
                 <label className="form-label">Notes</label>
@@ -147,7 +246,17 @@ export default function ExpenseModal({ expense, onClose }: Props) {
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary btn-sm">{expense ? 'Save Changes' : 'Add Expense'}</button>
+            <button
+              type="submit"
+              className="btn btn-primary btn-sm"
+              style={{
+                background: flow === 'in'
+                  ? 'linear-gradient(135deg, #2e7d32, #1b5e20)'
+                  : undefined
+              }}
+            >
+              {expense ? 'Save Changes' : flow === 'out' ? 'Record Expense' : 'Record Income'}
+            </button>
           </div>
         </form>
       </div>

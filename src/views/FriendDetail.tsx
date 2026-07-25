@@ -3,6 +3,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import AddIcon from '@mui/icons-material/Add';
+import ShareIcon from '@mui/icons-material/Share';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useStore } from '../store';
@@ -19,7 +20,7 @@ interface Props {
 }
 
 export default function FriendDetail({ friendId, onNavigate }: Props) {
-  const { db } = useStore();
+  const { db, showToast } = useStore();
   const { settings: { currency } } = db;
   const friend = db.friends.find(f => f.id === friendId);
 
@@ -43,6 +44,16 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
   const activeExps = allExps.filter(e => !e.settled);
   const settledExps = allExps.filter(e => e.settled);
   const shown = tab === 'active' ? activeExps : settledExps;
+
+  const handleShareReminder = () => {
+    if (!friend) return;
+    const msg = bal.net > 0
+      ? `Hey ${friend.name}! Quick reminder: You owe me ${fmtMoney(bal.owedToMe, currency)} on Okane for shared expenses. Let me know when you settle up!`
+      : `Hey ${friend.name}! I owe you ${fmtMoney(bal.owedByMe, currency)} on Okane. Let me know how you'd like to get paid!`;
+
+    navigator.clipboard.writeText(msg);
+    showToast('Payment request copied to clipboard!');
+  };
 
   if (!friend) {
     return (
@@ -73,9 +84,14 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             {friend.phone && <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{friend.phone}</div>}
             {friend.notes && <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4, fontStyle: 'italic' }}>{friend.notes}</div>}
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 360 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 420 }}>
             <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => setShowEdit(true)}><EditIcon fontSize="small" /> Edit</button>
             <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={() => setShowAddExp(true)}><AddIcon fontSize="small" /> Add Expense</button>
+            {Math.abs(bal.net) > 0.004 && (
+              <button className="btn btn-secondary btn-sm" onClick={handleShareReminder} title="Copy Payment Reminder for WhatsApp/SMS">
+                <ShareIcon fontSize="small" /> Share Request
+              </button>
+            )}
             {activeExps.length > 0 && (
               <button className="btn btn-primary btn-sm" onClick={() => setShowSettle(true)} style={{ flex: '1 1 100%', background: 'linear-gradient(135deg, #34D399, #10B981)' }}>
                 <HandshakeIcon fontSize="small" /> Settle Up

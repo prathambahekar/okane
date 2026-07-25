@@ -82,30 +82,52 @@ export default function SettleModal({ friend, onClose }: Props) {
                 })}
               </div>
 
-              <div style={{ background: 'var(--surface2)', borderRadius: 'var(--radius)', padding: '12px 14px', marginBottom: 14 }}>
+              <div style={{
+                background: net >= 0 ? 'rgba(46, 125, 50, 0.12)' : 'rgba(211, 47, 47, 0.12)',
+                borderRadius: 'var(--radius)',
+                padding: '14px 16px',
+                marginBottom: 14,
+                border: net >= 0 ? '1px solid rgba(46, 125, 50, 0.25)' : '1px solid rgba(211, 47, 47, 0.25)'
+              }}>
                 {owedToMe > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                    <span style={{ color: 'var(--text-3)' }}>{friend.name} owes you</span>
-                    <span className="credit">{fmtMoney(owedToMe, currency)}</span>
+                    <span style={{ color: 'var(--text-2)' }}>{friend.name} owes you</span>
+                    <span className="credit" style={{ fontWeight: 600 }}>{fmtMoney(owedToMe, currency)}</span>
                   </div>
                 )}
                 {owedByMe > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                    <span style={{ color: 'var(--text-3)' }}>You owe {friend.name}</span>
-                    <span className="debit">{fmtMoney(owedByMe, currency)}</span>
+                    <span style={{ color: 'var(--text-2)' }}>You owe {friend.name}</span>
+                    <span className="debit" style={{ fontWeight: 600 }}>{fmtMoney(owedByMe, currency)}</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 600, borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
-                  <span>Net settlement</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14.5, fontWeight: 700, borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
+                  <span>Net Settlement</span>
                   <span className={net >= 0 ? 'credit' : 'debit'}>
-                    {net >= 0 ? `${friend.name} pays ` : `You pay `}{fmtMoney(Math.abs(net), currency)}
+                    {net >= 0 ? `${friend.name} pays You ` : `You pay ${friend.name} `}{fmtMoney(Math.abs(net), currency)}
                   </span>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 10 }}>
+                <label className="form-label">Payment Method</label>
+                <div className="segment-control">
+                  {['UPI / GPay', 'Cash', 'Bank Transfer'].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`segment-btn ${note.includes(m) ? 'active' : ''}`}
+                      onClick={() => setNote(prev => prev ? `${prev} · ${m}` : `Paid via ${m}`)}
+                    >
+                      {m}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Note (optional)</label>
-                <input className="form-input" value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Paid via UPI" />
+                <input className="form-input" value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Paid via UPI / GPay" />
               </div>
             </>
           )}
@@ -113,8 +135,9 @@ export default function SettleModal({ friend, onClose }: Props) {
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
           {unsettled.length > 0 && (
-            <button className="btn btn-primary btn-sm" disabled={!selected.size} onClick={handleSettle}>
-              Record Settlement ({selected.size})
+            <button className="btn btn-primary btn-sm" disabled={!selected.size} onClick={handleSettle}
+              style={{ background: net >= 0 ? 'linear-gradient(135deg, #34D399, #10B981)' : undefined }}>
+              Confirm Settlement ({selected.size})
             </button>
           )}
         </div>
