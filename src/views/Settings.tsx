@@ -8,6 +8,9 @@ import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE } from '../db';
 import type { Category, AppDB } from '../types';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 
 export default function Settings() {
   const { db, updateSettings, resetDB, restoreDB, loadSampleData, showToast } = useStore();
@@ -37,14 +40,55 @@ export default function Settings() {
     });
   };
 
-  const handleExport = () => {
-    const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `ledger-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    showToast('Data exported successfully');
+
+
+  const handleExport = async () => {
+    try {
+      const json = JSON.stringify(db, null, 2);
+      const fileName = `ledger-backup-${new Date()
+        .toISOString()
+        .slice(0, 10)}.json`;
+
+      // Web
+      if (Capacitor.getPlatform() === "web") {
+        const blob = new Blob([json], {
+          type: "application/json",
+        });
+
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.click();
+
+        URL.revokeObjectURL(url);
+
+        showToast("Backup downloaded successfully");
+        return;
+      }
+
+      // Android / iOS
+      const result = await Filesystem.writeFile({
+        path: fileName,
+        data: json,
+        directory: Directory.Documents,
+        encoding: Encoding.UTF8,
+        recursive: true,
+      });
+
+      await Share.share({
+        title: "Ledger Backup",
+        text: "Ledger backup file",
+        url: result.uri,
+        dialogTitle: "Save or Share Backup",
+      });
+
+      showToast("Backup created successfully");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to export data");
+    }
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
