@@ -757,3 +757,226 @@ html, body, #root {
   justify-content: flex-end;
   padding: 12px 20px 18px;
 }
+
+/* Responsive Visibility Helpers */
+.mobile-only { display: none !important; }
+.desktop-only { display: block !important; }
+table.desktop-only { display: table !important; }
+
+/* Dashboard grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+/* Filter bar grid container */
+.filter-select-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex: 1;
+}
+
+/* Mobile Expense Cards (Collapsible) */
+.mobile-expense-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-expense-card {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  transition: background var(--transition);
+}
+.mobile-expense-card:last-child {
+  border-bottom: none;
+}
+.mobile-expense-card.is-expanded {
+  background: var(--surface2);
+}
+
+.mobile-expense-header {
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: background var(--transition);
+}
+.mobile-expense-header:active {
+  background: var(--surface3);
+}
+
+.mobile-expense-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobile-expense-desc-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mobile-expense-title {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.mobile-expense-amount {
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.mobile-expense-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.mobile-expense-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mobile-expense-expand-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11.5px;
+  color: var(--accent);
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.mobile-expense-details {
+  padding: 12px 14px 14px;
+  border-top: 1px dashed var(--border2);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadein 0.15s ease;
+}
+
+.mobile-expense-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.mobile-expense-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobile-expense-detail-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-3);
+}
+
+.mobile-expense-detail-val {
+  font-size: 12.5px;
+  color: var(--text);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  word-break: break-word;
+}
+
+.mobile-expense-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.mobile-expense-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+/* Screen Breakpoints */
+@media (max-width: 768px) {
+  .mobile-only { display: block !important; }
+  .desktop-only { display: none !important; }
+  table.desktop-only { display: none !important; }
+
+  .dashboard-grid { grid-template-columns: 1fr; }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .page-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .filter-bar .search-input-wrap {
+    width: 100%;
+    min-width: 100%;
+  }
+  .filter-select-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+  .filter-select {
+    width: 100%;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .stat-card {
+    padding: 12px 14px;
+  }
+  .stat-value {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+  .filter-select-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

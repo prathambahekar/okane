@@ -101,7 +101,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+      <div className="dashboard-grid">
         {/* Recent Expenses */}
         <div className="card" style={{ gridColumn: '1 / -1' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -113,30 +113,34 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               <p>No expenses yet. Add your first one!</p>
             </div>
           ) : (
-            <table className="data-table">
-              <tbody>
-                {recentExpenses.map(e => {
-                  const cat = db.settings.categories.find(c => c.name === e.category);
-                  const friend = e.friendId ? db.friends.find(f => f.id === e.friendId) : null;
-                  const isIn = expenseFlow(e) === 'in';
-                  return (
-                    <tr key={e.id}>
-                      <td style={{ width: 36 }}>
-                        <span className="cat-dot" style={{ background: cat?.color ?? '#6B7280', display: 'block', width: 8, height: 8, borderRadius: '50%' }} />
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 500, fontSize: 13 }}>{e.description}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{e.category}{friend ? ` · ${friend.name}` : ''}</div>
-                      </td>
-                      <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 500, color: isIn ? 'var(--credit)' : undefined }}>
-                        {isIn ? '+' : ''}{fmtMoney(e.amount, currency)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {recentExpenses.map((e, idx) => {
+                const cat = db.settings.categories.find(c => c.name === e.category);
+                const friend = e.friendId ? db.friends.find(f => f.id === e.friendId) : null;
+                const isIn = expenseFlow(e) === 'in';
+                return (
+                  <div key={e.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 0',
+                    borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
+                    gap: 10,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                      <span className="cat-dot" style={{ background: cat?.color ?? '#6B7280', display: 'block', width: 8, height: 8, borderRadius: '50%', flexShrink: 0 }} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 500, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{e.category}{friend ? ` · ${friend.name}` : ''} · {fmtDate(e.date)}</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', fontWeight: 600, fontSize: 13, flexShrink: 0, color: isIn ? 'var(--credit)' : undefined }}>
+                      {isIn ? '+' : ''}{fmtMoney(e.amount, currency)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 

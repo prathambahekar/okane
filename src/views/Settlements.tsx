@@ -69,48 +69,86 @@ export default function Settlements() {
             <p>When you settle up with friends, the records will appear here.</p>
           </div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Friend</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Expenses</th>
-                <th>Note</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <table className="data-table desktop-only">
+              <thead>
+                <tr>
+                  <th>Friend</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Expenses</th>
+                  <th>Note</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map(s => {
+                  const friend = db.friends.find(f => f.id === s.friendId);
+                  return (
+                    <tr key={s.id}>
+                      <td>
+                        {friend ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div className="avatar avatar-sm" style={{ background: friend.color }}>{friendInitial(friend.name)}</div>
+                            <span style={{ fontSize: 13, fontWeight: 500 }}>{friend.name}</span>
+                          </div>
+                        ) : <span style={{ color: 'var(--text-3)' }}>Deleted friend</span>}
+                      </td>
+                      <td style={{ fontWeight: 500, color: s.amount >= 0 ? 'var(--credit)' : 'var(--debit)' }}>
+                        {fmtMoney(Math.abs(s.amount), currency)}
+                      </td>
+                      <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(s.date)}</td>
+                      <td style={{ fontSize: 12, color: 'var(--text-3)' }}>{s.expenseIds.length} expense{s.expenseIds.length !== 1 ? 's' : ''}</td>
+                      <td style={{ fontSize: 12, color: 'var(--text-2)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {s.note || '—'}
+                      </td>
+                      <td>
+                        <button className="btn-icon" onClick={() => setDelId(s.id)} title="Undo settlement" style={{ color: 'var(--debit)' }}>
+                          <DeleteIcon fontSize="small" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* Mobile View for Settlements */}
+            <div className="mobile-expense-list mobile-only">
               {sorted.map(s => {
                 const friend = db.friends.find(f => f.id === s.friendId);
                 return (
-                  <tr key={s.id}>
-                    <td>
-                      {friend ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div className="avatar avatar-sm" style={{ background: friend.color }}>{friendInitial(friend.name)}</div>
-                          <span style={{ fontSize: 13, fontWeight: 500 }}>{friend.name}</span>
+                  <div key={s.id} className="mobile-expense-card">
+                    <div className="mobile-expense-header" style={{ cursor: 'default' }}>
+                      <div className="mobile-expense-top">
+                        <div className="mobile-expense-desc-wrap">
+                          {friend ? (
+                            <div className="avatar avatar-sm" style={{ background: friend.color, width: 22, height: 22, fontSize: 10 }}>{friendInitial(friend.name)}</div>
+                          ) : null}
+                          <span className="mobile-expense-title">{friend ? friend.name : 'Deleted friend'}</span>
                         </div>
-                      ) : <span style={{ color: 'var(--text-3)' }}>Deleted friend</span>}
-                    </td>
-                    <td style={{ fontWeight: 500, color: s.amount >= 0 ? 'var(--credit)' : 'var(--debit)' }}>
-                      {fmtMoney(Math.abs(s.amount), currency)}
-                    </td>
-                    <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(s.date)}</td>
-                    <td style={{ fontSize: 12, color: 'var(--text-3)' }}>{s.expenseIds.length} expense{s.expenseIds.length !== 1 ? 's' : ''}</td>
-                    <td style={{ fontSize: 12, color: 'var(--text-2)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {s.note || '—'}
-                    </td>
-                    <td>
-                      <button className="btn-icon" onClick={() => setDelId(s.id)} title="Undo settlement" style={{ color: 'var(--debit)' }}>
-                        <DeleteIcon fontSize="small" />
-                      </button>
-                    </td>
-                  </tr>
+                        <div className="mobile-expense-amount" style={{ color: s.amount >= 0 ? 'var(--credit)' : 'var(--debit)' }}>
+                          {fmtMoney(Math.abs(s.amount), currency)}
+                        </div>
+                      </div>
+
+                      <div className="mobile-expense-meta">
+                        <div className="mobile-expense-meta-left">
+                          <span>{fmtDate(s.date)}</span>
+                          <span>·</span>
+                          <span>{s.expenseIds.length} expense{s.expenseIds.length !== 1 ? 's' : ''}</span>
+                          {s.note && <span>· {s.note}</span>}
+                        </div>
+                        <button className="btn-icon" onClick={() => setDelId(s.id)} title="Undo settlement" style={{ color: 'var(--debit)', padding: 4, marginLeft: 'auto' }}>
+                          <DeleteIcon fontSize="small" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 

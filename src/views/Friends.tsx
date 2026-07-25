@@ -52,7 +52,7 @@ export default function Friends({ onNavigate }: Props) {
       </div>
 
       {friends.length > 0 && (
-        <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 20 }}>
+        <div className="stat-grid" style={{ marginBottom: 20 }}>
           <div className="stat-card">
             <div className="stat-label">Friends</div>
             <div className="stat-value">{friends.length}</div>
