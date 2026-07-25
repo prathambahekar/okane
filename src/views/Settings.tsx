@@ -309,10 +309,7 @@ export default function Settings() {
         <div className="card" style={{ padding: '20px 22px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Data</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-3)' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-              <span>On this device only</span>
-            </div>
+
           </div>
           <p style={{ fontSize: 13.5, color: 'var(--text-3)', margin: 0 }}>
             Nothing leaves your browser.
