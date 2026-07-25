@@ -49,6 +49,8 @@ export interface Settlement {
   note: string;
   expenseIds: string[];
   createdAt: number;
+  walletId?: string;
+  paymentMethod?: string;
 }
 
 export interface Settings {

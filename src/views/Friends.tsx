@@ -85,19 +85,16 @@ export default function Friends({ onNavigate }: Props) {
   return (
     <div className="view-container">
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ marginBottom: 16 }}>
         <div>
           <h1 className="page-title">Friends</h1>
         </div>
-        <button className="btn btn-primary desktop-only" onClick={() => setShowAdd(true)}>
-          <AddIcon fontSize="small" /> Add Friend
-        </button>
       </div>
 
-      {/* Search Bar & Status Filter Pills */}
-      {friends.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-          <div className="search-input-wrap">
+      {/* Search Bar & Add Friend merged row + Status Filter Pills */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="search-input-wrap" style={{ flex: 1 }}>
             <SearchIcon className="search-icon" />
             <input
               className="form-input"
@@ -106,7 +103,16 @@ export default function Friends({ onNavigate }: Props) {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
+          <button
+            className="btn btn-primary"
+            style={{ whiteSpace: 'nowrap', flexShrink: 0, height: 42, padding: '0 14px', gap: 6 }}
+            onClick={() => setShowAdd(true)}
+          >
+            <AddIcon fontSize="small" /> Add Friend
+          </button>
+        </div>
 
+        {friends.length > 0 && (
           <div className="tab-list" style={{ marginBottom: 0 }}>
             <button className={`tab-btn ${statusFilter === 'all' ? 'active' : ''}`} onClick={() => setStatusFilter('all')}>
               All ({friends.length})
@@ -129,8 +135,8 @@ export default function Friends({ onNavigate }: Props) {
               Settled Up
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Friends Compact Expandable Cards */}
       {friends.length === 0 ? (

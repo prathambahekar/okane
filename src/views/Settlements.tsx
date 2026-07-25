@@ -76,6 +76,7 @@ export default function Settlements() {
                   <th>Friend</th>
                   <th>Amount</th>
                   <th>Date</th>
+                  <th>Payment Method</th>
                   <th>Expenses</th>
                   <th>Note</th>
                   <th></th>
@@ -84,6 +85,8 @@ export default function Settlements() {
               <tbody>
                 {sorted.map(s => {
                   const friend = db.friends.find(f => f.id === s.friendId);
+                  const wallet = db.wallets.find(w => w.id === s.walletId);
+                  const walletName = wallet?.name || s.paymentMethod;
                   return (
                     <tr key={s.id}>
                       <td>
@@ -98,6 +101,16 @@ export default function Settlements() {
                         {fmtMoney(Math.abs(s.amount), currency)}
                       </td>
                       <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(s.date)}</td>
+                      <td>
+                        {wallet ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span className="cat-dot" style={{ background: wallet.color }} />
+                            <span style={{ fontSize: 12 }}>{wallet.name}</span>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{walletName || '—'}</span>
+                        )}
+                      </td>
                       <td style={{ fontSize: 12, color: 'var(--text-3)' }}>{s.expenseIds.length} expense{s.expenseIds.length !== 1 ? 's' : ''}</td>
                       <td style={{ fontSize: 12, color: 'var(--text-2)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {s.note || '—'}
@@ -117,6 +130,8 @@ export default function Settlements() {
             <div className="mobile-expense-list mobile-only">
               {sorted.map(s => {
                 const friend = db.friends.find(f => f.id === s.friendId);
+                const wallet = db.wallets.find(w => w.id === s.walletId);
+                const walletName = wallet?.name || s.paymentMethod;
                 return (
                   <div key={s.id} className="mobile-expense-card">
                     <div className="mobile-expense-header" style={{ cursor: 'default' }}>
@@ -135,6 +150,7 @@ export default function Settlements() {
                       <div className="mobile-expense-meta">
                         <div className="mobile-expense-meta-left">
                           <span>{fmtDate(s.date)}</span>
+                          {walletName && <span>· {walletName}</span>}
                           <span>·</span>
                           <span>{s.expenseIds.length} expense{s.expenseIds.length !== 1 ? 's' : ''}</span>
                           {s.note && <span>· {s.note}</span>}

@@ -43,14 +43,25 @@ export default function Wallets() {
     ? [...expenses.filter(e => e.walletId === activeWallet.id)].sort((a, b) => b.date.localeCompare(a.date))
     : [];
 
+  const walletSettlements = activeWallet
+    ? [...db.settlements.filter(s => s.walletId === activeWallet.id)].sort((a, b) => b.date.localeCompare(a.date))
+    : [];
+
   const now = new Date();
   const thisKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
   const walletMonthSpend = walletExpenses
     .filter(e => monthKey(e.date) === thisKey && expenseFlow(e) === 'out' && e.status !== 'unpaid')
-    .reduce((s, e) => s + Number(e.amount), 0);
+    .reduce((s, e) => s + Number(e.amount), 0) +
+    walletSettlements
+      .filter(s => monthKey(s.date) === thisKey && s.amount < 0)
+      .reduce((acc, s) => acc + Math.abs(s.amount), 0);
+
   const walletMonthIn = walletExpenses
     .filter(e => monthKey(e.date) === thisKey && expenseFlow(e) === 'in' && e.status !== 'unpaid')
-    .reduce((s, e) => s + Number(e.amount), 0);
+    .reduce((s, e) => s + Number(e.amount), 0) +
+    walletSettlements
+      .filter(s => monthKey(s.date) === thisKey && s.amount > 0)
+      .reduce((acc, s) => acc + s.amount, 0);
 
   return (
     <div className="view-container">
@@ -59,7 +70,7 @@ export default function Wallets() {
         <div>
           <h1 className="page-title">Wallets</h1>
         </div>
-        <button className="btn btn-primary desktop-only" onClick={() => setShowAdd(true)}>
+        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
           <AddIcon fontSize="small" /> Add Wallet
         </button>
       </div>
@@ -69,7 +80,7 @@ export default function Wallets() {
         {wallets.map(w => {
           const bal = walletBalance(db, w.id);
           const isSelected = activeTab === w.id;
-          const wExpCount = expenses.filter(e => e.walletId === w.id).length;
+          const wExpCount = expenses.filter(e => e.walletId === w.id).length + db.settlements.filter(s => s.walletId === w.id).length;
 
           return (
             <div

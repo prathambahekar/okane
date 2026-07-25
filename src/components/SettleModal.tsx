@@ -12,10 +12,13 @@ interface Props {
 
 export default function SettleModal({ friend, onClose }: Props) {
   const { db, recordSettlement, showToast } = useStore();
-  const { settings: { currency } } = db;
+  const { wallets, settings: { currency } } = db;
 
   const unsettled = useMemo(() => unsettledExpensesForFriend(db, friend.id), [db, friend.id]);
   const [selected, setSelected] = useState<Set<string>>(new Set(unsettled.map(e => e.id)));
+  const [selectedWalletId, setSelectedWalletId] = useState<string>(
+    db.settings.defaultWalletId || wallets[0]?.id || ''
+  );
   const [note, setNote] = useState('');
 
   const selectedArr = unsettled.filter(e => selected.has(e.id));
@@ -33,7 +36,7 @@ export default function SettleModal({ friend, onClose }: Props) {
 
   const handleSettle = () => {
     if (!selected.size) return;
-    recordSettlement(friend.id, Array.from(selected), note);
+    recordSettlement(friend.id, Array.from(selected), note, selectedWalletId);
     showToast('Settlement recorded');
     onClose();
   };
@@ -110,24 +113,39 @@ export default function SettleModal({ friend, onClose }: Props) {
               </div>
 
               <div className="form-group" style={{ marginBottom: 10 }}>
-                <label className="form-label">Payment Method</label>
-                <div className="segment-control">
-                  {['UPI / GPay', 'Cash', 'Bank Transfer'].map(m => (
-                    <button
-                      key={m}
-                      type="button"
-                      className={`segment-btn ${note.includes(m) ? 'active' : ''}`}
-                      onClick={() => setNote(prev => prev ? `${prev} · ${m}` : `Paid via ${m}`)}
-                    >
-                      {m}
-                    </button>
-                  ))}
+                <label className="form-label">Payment Method (Wallet)</label>
+                <div className="segment-control" style={{ flexWrap: 'wrap' }}>
+                  {wallets.map(w => {
+                    const isSelected = selectedWalletId === w.id;
+                    return (
+                      <button
+                        key={w.id}
+                        type="button"
+                        className={`segment-btn ${isSelected ? 'active' : ''}`}
+                        onClick={() => {
+                          setSelectedWalletId(w.id);
+                          if (!note || note.startsWith('Paid via ') || note.startsWith('Settled via ')) {
+                            setNote(`Paid via ${w.name}`);
+                          }
+                        }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      >
+                        <span className="cat-dot" style={{ background: w.color || 'var(--accent)' }} />
+                        {w.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Note (optional)</label>
-                <input className="form-input" value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Paid via UPI / GPay" />
+                <input
+                  className="form-input"
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  placeholder={`e.g. Paid via ${wallets.find(w => w.id === selectedWalletId)?.name || 'Cash'}`}
+                />
               </div>
             </>
           )}

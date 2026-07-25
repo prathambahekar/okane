@@ -36,7 +36,7 @@ interface StoreContextType {
   updateWallet: (id: string, data: Partial<Wallet>) => void;
   deleteWallet: (id: string) => boolean;
 
-  recordSettlement: (friendId: string, expenseIds: string[], note: string) => void;
+  recordSettlement: (friendId: string, expenseIds: string[], note: string, walletId?: string) => void;
   deleteSettlement: (id: string) => void;
 
   updateSettings: (data: Partial<AppDB['settings']>) => void;
@@ -166,9 +166,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return success;
   }, [pushUndo, persist]);
 
-  const recordSettlement = useCallback((friendId: string, expenseIds: string[], note: string) => {
+  const recordSettlement = useCallback((friendId: string, expenseIds: string[], note: string, walletId?: string) => {
     setDB(current => {
-      const next = dbRecordSettlement(current, friendId, expenseIds, note);
+      const next = dbRecordSettlement(current, friendId, expenseIds, note, walletId);
       saveDB(next);
       return next;
     });

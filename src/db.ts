@@ -109,6 +109,9 @@ export function walletBalance(db: AppDB, walletId: string): number {
   db.expenses.forEach(e => {
     if (e.walletId === walletId) bal += expenseWalletDelta(e);
   });
+  (db.settlements || []).forEach(s => {
+    if (s.walletId === walletId) bal += Number(s.amount) || 0;
+  });
   return bal;
 }
 
@@ -242,11 +245,12 @@ export function deleteWallet(db: AppDB, id: string): AppDB | null {
     ...db,
     wallets: db.wallets.filter(w => w.id !== id),
     expenses: db.expenses.map(e => e.walletId === id ? { ...e, walletId: fallback.id } : e),
+    settlements: (db.settlements || []).map(s => s.walletId === id ? { ...s, walletId: fallback.id, paymentMethod: fallback.name } : s),
     settings: { ...db.settings, defaultWalletId: db.settings.defaultWalletId === id ? fallback.id : db.settings.defaultWalletId },
   };
 }
 
-export function recordSettlement(db: AppDB, friendId: string, expenseIds: string[], note: string): AppDB {
+export function recordSettlement(db: AppDB, friendId: string, expenseIds: string[], note: string, walletId?: string): AppDB {
   const exps = db.expenses.filter(e => expenseIds.includes(e.id));
   let owedToMe = 0, owedByMe = 0;
   exps.forEach(e => {
@@ -255,6 +259,7 @@ export function recordSettlement(db: AppDB, friendId: string, expenseIds: string
     else if (e.type === 'by_friend') owedByMe += Number(e.amount) || 0;
   });
   const amount = owedToMe - owedByMe;
+  const wallet = walletId ? db.wallets.find(w => w.id === walletId) : undefined;
   const s: Settlement = {
     id: uid('stl'),
     friendId, amount,
@@ -262,6 +267,8 @@ export function recordSettlement(db: AppDB, friendId: string, expenseIds: string
     note: note || '',
     expenseIds: expenseIds.slice(),
     createdAt: Date.now(),
+    walletId: walletId || undefined,
+    paymentMethod: wallet?.name || undefined,
   };
   const expenses = db.expenses.map(e =>
     expenseIds.includes(e.id) ? { ...e, settled: true, settlementId: s.id } : e
