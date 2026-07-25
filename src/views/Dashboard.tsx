@@ -215,7 +215,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       <span className="cat-dot" style={{ background: cat?.color ?? '#6B7280', display: 'block', width: 8, height: 8, borderRadius: '50%', flexShrink: 0 }} />
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 500, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{e.category}{friend ? ` · ${friend.name}` : ''} · {fmtDate(e.date)}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{fmtDate(e.date)} · {e.category}{friend ? ` · ${friend.name}` : ''}</div>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', fontWeight: 600, fontSize: 13, flexShrink: 0, color: isIn ? 'var(--credit)' : undefined }}>

@@ -250,9 +250,9 @@ export default function Expenses() {
 
                       <div className="mobile-expense-meta">
                         <div className="mobile-expense-meta-left">
-                          <span>{e.category}</span>
-                          <span>·</span>
                           <span>{fmtDate(e.date)}</span>
+                          <span>·</span>
+                          <span>{e.category}</span>
                           {friend && (
                             <>
                               <span>·</span>

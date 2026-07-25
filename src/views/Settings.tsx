@@ -68,23 +68,56 @@ export default function Settings() {
         return;
       }
 
-      // Android / iOS
+      // Android / iOS native
+      try {
+        await Filesystem.requestPermissions();
+      } catch {
+        // Ignore if permissions request isn't implemented/supported
+      }
+
+      let savedToDownloadFolder = false;
+
+      // On Android, attempt writing directly to the Download folder on external storage
+      if (Capacitor.getPlatform() === "android") {
+        try {
+          await Filesystem.writeFile({
+            path: `Download/${fileName}`,
+            data: json,
+            directory: Directory.ExternalStorage,
+            encoding: Encoding.UTF8,
+            recursive: true,
+          });
+          savedToDownloadFolder = true;
+        } catch (e) {
+          console.warn("Direct write to ExternalStorage Download folder failed:", e);
+        }
+      }
+
+      // Write to Cache directory so Share plugin can share the file via FileProvider
       const result = await Filesystem.writeFile({
         path: fileName,
         data: json,
-        directory: Directory.Documents,
+        directory: Directory.Cache,
         encoding: Encoding.UTF8,
         recursive: true,
       });
 
-      await Share.share({
-        title: "Ledger Backup",
-        text: "Ledger backup file",
-        url: result.uri,
-        dialogTitle: "Save or Share Backup",
-      });
+      try {
+        await Share.share({
+          title: "Ledger Backup",
+          text: "Ledger backup file",
+          url: result.uri,
+          dialogTitle: "Save or Share Backup",
+        });
+      } catch (shareErr) {
+        console.warn("Share sheet dismissed or skipped:", shareErr);
+      }
 
-      showToast("Backup created successfully");
+      if (savedToDownloadFolder) {
+        showToast("Backup saved to Download folder!");
+      } else {
+        showToast("Backup created successfully");
+      }
     } catch (err) {
       console.error(err);
       showToast("Failed to export data");

@@ -283,9 +283,9 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
                       <div className="mobile-expense-meta">
                         <div className="mobile-expense-meta-left">
-                          <span>{e.category}</span>
-                          <span>·</span>
                           <span>{fmtDate(e.date)}</span>
+                          <span>·</span>
+                          <span>{e.category}</span>
                         </div>
                         <div className="mobile-expense-expand-btn">
                           {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
