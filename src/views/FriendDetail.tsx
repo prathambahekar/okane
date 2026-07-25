@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import EditIcon from '@mui/icons-material/Edit';
+// import EditIcon from '@mui/icons-material/Edit';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import AddIcon from '@mui/icons-material/Add';
-import ShareIcon from '@mui/icons-material/Share';
+// import ShareIcon from '@mui/icons-material/Share';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useStore } from '../store';
@@ -20,7 +20,7 @@ interface Props {
 }
 
 export default function FriendDetail({ friendId, onNavigate }: Props) {
-  const { db, showToast } = useStore();
+  const { db } = useStore();
   const { settings: { currency } } = db;
   const friend = db.friends.find(f => f.id === friendId);
 
@@ -45,15 +45,15 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
   const settledExps = allExps.filter(e => e.settled);
   const shown = tab === 'active' ? activeExps : settledExps;
 
-  const handleShareReminder = () => {
-    if (!friend) return;
-    const msg = bal.net > 0
-      ? `Hey ${friend.name}! Quick reminder: You owe me ${fmtMoney(bal.owedToMe, currency)} on Okane for shared expenses. Let me know when you settle up!`
-      : `Hey ${friend.name}! I owe you ${fmtMoney(bal.owedByMe, currency)} on Okane. Let me know how you'd like to get paid!`;
+  // const handleShareReminder = () => {
+  //   if (!friend) return;
+  //   const msg = bal.net > 0
+  //     ? `Hey ${friend.name}! Quick reminder: You owe me ${fmtMoney(bal.owedToMe, currency)} on Okane for shared expenses. Let me know when you settle up!`
+  //     : `Hey ${friend.name}! I owe you ${fmtMoney(bal.owedByMe, currency)} on Okane. Let me know how you'd like to get paid!`;
 
-    navigator.clipboard.writeText(msg);
-    showToast('Payment request copied to clipboard!');
-  };
+  //   navigator.clipboard.writeText(msg);
+  //   showToast('Payment request copied to clipboard!');
+  // };
 
   if (!friend) {
     return (
