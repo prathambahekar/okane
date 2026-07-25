@@ -926,7 +926,9 @@ input[type="number"] {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .view-container { padding: 14px 12px calc(24px + env(safe-area-inset-bottom, 0px)); }
+  .view-container { padding: 12px 12px calc(24px + env(safe-area-inset-bottom, 0px)); }
+  .page-title { display: none; }
+  .page-header { margin-bottom: 10px; }
   .form-row { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: 1fr 1fr; }
   .toast-container { bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }

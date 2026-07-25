@@ -6,6 +6,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { useStore } from '../store';
 import type { Expense } from '../types';
 import { expenseFlow } from '../db';
@@ -75,11 +77,21 @@ export default function Expenses() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Expenses</h1>
-          <p className="page-subtitle">{filtered.length} record{filtered.length !== 1 ? 's' : ''} · Out {fmtMoney(totalOut, currency)} / In {fmtMoney(totalIn, currency)}</p>
         </div>
-        <button className="btn btn-primary desktop-only" onClick={() => setShowAdd(true)}>
-          <AddIcon fontSize="small" /> Add Expense
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--debit)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <TrendingDownIcon style={{ fontSize: 16 }} /> Out {fmtMoney(totalOut, currency)}
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>·</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--credit)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <TrendingUpIcon style={{ fontSize: 16 }} /> In {fmtMoney(totalIn, currency)}
+            </span>
+          </div>
+          <button className="btn btn-primary desktop-only" onClick={() => setShowAdd(true)}>
+            <AddIcon fontSize="small" /> Add Expense
+          </button>
+        </div>
       </div>
 
       {/* Spent / Received Main Tabs */}

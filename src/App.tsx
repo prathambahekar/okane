@@ -168,12 +168,16 @@ function AppInner() {
           }}
         >
           <Toolbar variant="dense" sx={{ minHeight: 52, px: 2 }}>
-            <Box sx={{ flexGrow: 1 }}>
+            <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
               <Typography variant="h6" component="span" sx={{ fontWeight: 700, fontSize: '1.05rem', letterSpacing: '-0.2px' }}>
-                Okane
-              </Typography>
-              <Typography component="span" sx={{ fontSize: 11, color: 'text.secondary', ml: 1 }}>
-                おかね
+                {view === 'dashboard' ? 'Dashboard' :
+                 view === 'expenses' ? 'Expenses' :
+                 view === 'friends' ? 'Friends' :
+                 view === 'friend-detail' ? 'Friend Details' :
+                 view === 'wallets' ? 'Wallets' :
+                 view === 'analytics' ? 'Analytics' :
+                 view === 'settlements' ? 'Settlements' :
+                 view === 'settings' ? 'Settings' : 'Dashboard'}
               </Typography>
             </Box>
             <IconButton size="small" color="primary" onClick={() => setShowAddExpense(true)} sx={{ mr: 0.5 }}>
