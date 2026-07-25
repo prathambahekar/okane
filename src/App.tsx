@@ -1,4 +1,19 @@
 import { useState } from 'react';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import Paper from '@mui/material/Paper';
+import BottomNavigation from '@mui/material/BottomNavigation';
+import BottomNavigationAction from '@mui/material/BottomNavigationAction';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Box from '@mui/material/Box';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -7,7 +22,11 @@ import HandshakeIcon from '@mui/icons-material/Handshake';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AddIcon from '@mui/icons-material/Add';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
 import { StoreProvider, useStore } from './store';
+import { useColorMode } from './theme';
 import type { ViewName } from './types';
 import Dashboard from './views/Dashboard';
 import Expenses from './views/Expenses';
@@ -21,18 +40,25 @@ import ExpenseModal from './components/ExpenseModal';
 import Toast from './components/Toast';
 import './styles.css';
 
+const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'analytics', 'settings'];
+
 function AppInner() {
   const { db } = useStore();
   const [view, setView] = useState<ViewName>('dashboard');
   const [friendDetailId, setFriendDetailId] = useState<string>('');
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const { mode, toggleMode: toggleDark } = useColorMode();
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
 
   const navigate = (v: ViewName, arg?: string) => {
     setView(v);
     if (v === 'friend-detail' && arg) setFriendDetailId(arg);
+    setMoreOpen(false);
   };
 
-  const navItems: { id: ViewName; label: string; icon: React.ReactNode; section?: string }[] = [
+  const sidebarNavItems: { id: ViewName; label: string; icon: React.ReactNode; section?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon fontSize="inherit" />, section: 'Main' },
     { id: 'expenses', label: 'Expenses', icon: <ReceiptLongIcon fontSize="inherit" /> },
     { id: 'wallets', label: 'Wallets', icon: <AccountBalanceWalletIcon fontSize="inherit" /> },
@@ -42,7 +68,19 @@ function AppInner() {
     { id: 'settings', label: 'Settings', icon: <SettingsIcon fontSize="inherit" />, section: 'System' },
   ];
 
+  const moreItems: { id: ViewName; label: string; icon: React.ReactNode }[] = [
+    { id: 'wallets', label: 'Wallets', icon: <AccountBalanceWalletIcon /> },
+    { id: 'settlements', label: 'Settlements', icon: <HandshakeIcon /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChartIcon /> },
+    { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
+  ];
+
   const activeView = view === 'friend-detail' ? 'friends' : view;
+  const bottomNavValue = MORE_IDS.includes(activeView) ? 'more' : activeView;
+
+  const pendingSettlements = db.friends.filter(f =>
+    db.expenses.some(e => e.friendId === f.id && !e.settled && e.type !== 'personal')
+  ).length;
 
   const renderView = () => {
     switch (view) {
@@ -58,60 +96,153 @@ function AppInner() {
     }
   };
 
-  const pendingSettlements = db.friends.filter(f =>
-    db.expenses.some(e => e.friendId === f.id && !e.settled && e.type !== 'personal')
-  ).length;
-
   return (
     <div className="app-layout">
-      <nav className="sidebar">
-        <div className="sidebar-logo">
-         
-          <div>
-            <div className="sidebar-logo-text">Okane</div>
-            <div className="sidebar-logo-sub">おかね</div>
+      {/* Desktop sidebar */}
+      {!isMobile && (
+        <nav className="sidebar">
+          <div className="sidebar-logo">
+            <div>
+              <div className="sidebar-logo-text">Okane</div>
+              <div className="sidebar-logo-sub">おかね</div>
+            </div>
           </div>
-        </div>
 
-        <div className="sidebar-nav">
-          {navItems.map((item, i) => {
-            const showSection = item.section && (i === 0 || navItems[i - 1]?.section !== item.section);
-            return (
-              <div key={item.id}>
-                {showSection && <div className="nav-section-label">{item.section}</div>}
-                <button
-                  className={`nav-item ${activeView === item.id ? 'active' : ''}`}
-                  onClick={() => navigate(item.id)}
-                >
-                  <span className="nav-item-icon">{item.icon}</span>
-                  <span className="nav-item-label">{item.label}</span>
-                  {item.id === 'settlements' && pendingSettlements > 0 && (
-                    <span style={{
-                      marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '1px 6px',
-                      background: 'rgba(25,118,210,0.12)', color: 'var(--accent)', borderRadius: 99,
-                    }}>{pendingSettlements}</span>
-                  )}
-                </button>
-              </div>
-            );
-          })}
+          <div className="sidebar-nav">
+            {sidebarNavItems.map((item, i) => {
+              const showSection = item.section && (i === 0 || sidebarNavItems[i - 1]?.section !== item.section);
+              return (
+                <div key={item.id}>
+                  {showSection && <div className="nav-section-label">{item.section}</div>}
+                  <button
+                    className={`nav-item ${activeView === item.id ? 'active' : ''}`}
+                    onClick={() => navigate(item.id)}
+                  >
+                    <span className="nav-item-icon">{item.icon}</span>
+                    <span className="nav-item-label">{item.label}</span>
+                    {item.id === 'settlements' && pendingSettlements > 0 && (
+                      <span style={{
+                        marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '1px 6px',
+                        background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 99,
+                      }}>{pendingSettlements}</span>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
 
-          <div style={{ flex: 1 }} />
-          <button className="btn btn-primary btn-sm" style={{ margin: '8px 0', width: '100%' }} onClick={() => setShowAddExpense(true)}>
-            <AddIcon fontSize="small" />
-            <span className="nav-item-label">Add Expense</span>
-          </button>
-        </div>
+            <div style={{ flex: 1 }} />
+            <button className="btn btn-primary btn-sm" style={{ margin: '8px 0', width: '100%' }} onClick={() => setShowAddExpense(true)}>
+              <AddIcon fontSize="small" />
+              <span className="nav-item-label">Add Expense</span>
+            </button>
+          </div>
 
-        <div className="sidebar-footer">
-          <span style={{ fontSize: 16 }}>🎯</span>
-          <span className="nav-item-label">{db.expenses.length} records</span>
-        </div>
-      </nav>
+          <div className="sidebar-footer">
+            <span style={{ fontSize: 16 }}>🎯</span>
+            <span className="nav-item-label">{db.expenses.length} records</span>
+            <IconButton
+              size="small"
+              onClick={toggleDark}
+              sx={{ ml: 'auto', color: 'text.secondary' }}
+              title={mode === 'dark' ? 'Switch to light' : 'Switch to dark'}
+            >
+              {mode === 'dark'
+                ? <LightModeIcon sx={{ fontSize: 18 }} />
+                : <DarkModeIcon sx={{ fontSize: 18 }} />}
+            </IconButton>
+          </div>
+        </nav>
+      )}
 
-      <main className="main-content">
+      {/* Mobile top AppBar */}
+      {isMobile && (
+        <AppBar
+          position="fixed"
+          elevation={0}
+          sx={{
+            bgcolor: 'background.paper',
+            borderBottom: 1,
+            borderColor: 'divider',
+            color: 'text.primary',
+          }}
+        >
+          <Toolbar variant="dense" sx={{ minHeight: 52, px: 2 }}>
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography variant="h6" component="span" sx={{ fontWeight: 700, fontSize: '1.05rem', letterSpacing: '-0.2px' }}>
+                Okane
+              </Typography>
+              <Typography component="span" sx={{ fontSize: 11, color: 'text.secondary', ml: 1 }}>
+                おかね
+              </Typography>
+            </Box>
+            <IconButton size="small" color="primary" onClick={() => setShowAddExpense(true)} sx={{ mr: 0.5 }}>
+              <AddIcon />
+            </IconButton>
+            <IconButton size="small" onClick={toggleDark} sx={{ color: 'text.secondary' }}>
+              {mode === 'dark'
+                ? <LightModeIcon sx={{ fontSize: 20 }} />
+                : <DarkModeIcon sx={{ fontSize: 20 }} />}
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+      )}
+
+      <main className={`main-content${isMobile ? ' mobile-layout' : ''}`}>
         {renderView()}
       </main>
+
+      {/* Mobile bottom navigation */}
+      {isMobile && (
+        <Paper elevation={3} sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100 }}>
+          <BottomNavigation
+            value={bottomNavValue}
+            onChange={(_, val) => {
+              if (val === 'more') setMoreOpen(true);
+              else navigate(val as ViewName);
+            }}
+            showLabels
+          >
+            <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} value="dashboard" />
+            <BottomNavigationAction label="Expenses" icon={<ReceiptLongIcon />} value="expenses" />
+            <BottomNavigationAction label="Friends" icon={<PeopleIcon />} value="friends" />
+            <BottomNavigationAction label="More" icon={<MoreHorizIcon />} value="more" />
+          </BottomNavigation>
+        </Paper>
+      )}
+
+      {/* More drawer */}
+      <Drawer
+        anchor="bottom"
+        open={moreOpen && isMobile}
+        onClose={() => setMoreOpen(false)}
+        PaperProps={{ sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16 } }}
+      >
+        <Box sx={{ pt: 1, pb: 3 }}>
+          <Box sx={{ width: 36, height: 4, bgcolor: 'divider', borderRadius: 99, mx: 'auto', mb: 1.5 }} />
+          <List disablePadding>
+            {moreItems.map(item => (
+              <ListItemButton
+                key={item.id}
+                onClick={() => navigate(item.id)}
+                selected={activeView === item.id}
+                sx={{ py: 1.5, px: 3 }}
+              >
+                <ListItemIcon sx={{ minWidth: 44 }}>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 500 }} />
+                {item.id === 'settlements' && pendingSettlements > 0 && (
+                  <Box sx={{
+                    fontSize: 11, fontWeight: 700, px: 0.75, py: 0.25,
+                    bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: 99,
+                  }}>
+                    {pendingSettlements}
+                  </Box>
+                )}
+              </ListItemButton>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
 
       {showAddExpense && <ExpenseModal onClose={() => setShowAddExpense(false)} />}
       <Toast />

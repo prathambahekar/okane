@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react';
+import { useColorMode } from '../theme';
+import Switch from '@mui/material/Switch';
 import AddIcon from '@mui/icons-material/Add';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -14,6 +16,8 @@ export default function Settings() {
   const [showReset, setShowReset] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatColor, setNewCatColor] = useState(FRIEND_PALETTE[0]);
+  const { mode, toggleMode } = useColorMode();
+  const isDark = mode === 'dark';
 
   const handleAddCategory = () => {
     if (!newCatName.trim()) return;
@@ -82,6 +86,22 @@ export default function Settings() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Appearance */}
+        <div className="card">
+          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Appearance</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 500 }}>Dark Mode</div>
+              <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>Use dark theme for the interface</div>
+            </div>
+            <Switch
+              checked={isDark}
+              onChange={() => toggleMode()}
+              color="primary"
+              inputProps={{ 'aria-label': 'dark mode toggle' }}
+            />
+          </div>
+        </div>
         {/* Preferences */}
         <div className="card">
           <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Preferences</h2>
