@@ -5,8 +5,15 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
+import Drawer from '@mui/material/Drawer';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
 import { useStore } from '../store';
 import type { Wallet } from '../types';
 import { walletBalance, expenseFlow, monthKey } from '../db';
@@ -22,23 +29,21 @@ export default function Wallets() {
   const [showAdd, setShowAdd] = useState(false);
   const [showAddExp, setShowAddExp] = useState(false);
   const [delId, setDelId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>(wallets[0]?.id ?? '');
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
-
-  const toggleExpand = (id: string) => {
-    setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+  const [selectedWalletForTx, setSelectedWalletForTx] = useState<Wallet | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleDelete = (id: string) => {
     if (!deleteWallet(id)) {
       showToast('Cannot delete the only wallet.');
       return;
     }
-    if (activeTab === id) setActiveTab(db.wallets.find(w => w.id !== id)?.id ?? '');
+    if (selectedWalletForTx?.id === id) {
+      setSelectedWalletForTx(null);
+    }
     setDelId(null);
   };
 
-  const activeWallet = wallets.find(w => w.id === activeTab) || wallets[0];
+  const activeWallet = selectedWalletForTx;
   const walletExpenses = activeWallet
     ? [...expenses.filter(e => e.walletId === activeWallet.id)].sort((a, b) => b.date.localeCompare(a.date))
     : [];
@@ -46,6 +51,11 @@ export default function Wallets() {
   const walletSettlements = activeWallet
     ? [...db.settlements.filter(s => s.walletId === activeWallet.id)].sort((a, b) => b.date.localeCompare(a.date))
     : [];
+
+  const filteredExpenses = walletExpenses.filter(e =>
+    e.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    e.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const now = new Date();
   const thisKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
@@ -69,260 +79,304 @@ export default function Wallets() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Wallets</h1>
+          <p className="page-subtitle">Manage your accounts & view wallet activity</p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
           <AddIcon fontSize="small" /> Add Wallet
         </button>
       </div>
 
-      {/* Wallet Cards Selector Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14, marginBottom: 20 }}>
+      {/* Wallet Cards Grid Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16, marginBottom: 28 }}>
         {wallets.map(w => {
           const bal = walletBalance(db, w.id);
-          const isSelected = activeTab === w.id;
-          const wExpCount = expenses.filter(e => e.walletId === w.id).length + db.settlements.filter(s => s.walletId === w.id).length;
+          const wExpenses = expenses.filter(e => e.walletId === w.id);
+          const wSettlements = db.settlements.filter(s => s.walletId === w.id);
+          const wExpCount = wExpenses.length + wSettlements.length;
+
+          const wSpend = wExpenses
+            .filter(e => monthKey(e.date) === thisKey && expenseFlow(e) === 'out' && e.status !== 'unpaid')
+            .reduce((s, e) => s + Number(e.amount), 0);
 
           return (
             <div
               key={w.id}
-              onClick={() => setActiveTab(w.id)}
               style={{
-                background: isSelected ? 'var(--surface2)' : 'var(--surface)',
-                border: `1.5px solid ${isSelected ? (w.color || 'var(--accent)') : 'var(--border)'}`,
-                borderRadius: 8,
-                padding: '14px 16px',
-                cursor: 'pointer',
+                background: 'var(--surface)',
+                border: `1.5px solid var(--border)`,
+                borderRadius: 12,
+                padding: '18px 20px',
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: isSelected ? `0 0 0 3px ${w.color}22` : 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                boxShadow: 'var(--shadow)',
                 position: 'relative',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 10,
-                      background: `${w.color}22`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <AccountBalanceWalletIcon style={{ color: w.color, fontSize: 18 }} />
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 10,
+                        background: `${w.color}22`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <AccountBalanceWalletIcon style={{ color: w.color, fontSize: 20 }} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15.5 }}>{w.name}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Opening: {fmtMoney(w.openingBalance, currency)}</div>
+                    </div>
                   </div>
-                  <span style={{ fontWeight: 600, fontSize: 14.5 }}>{w.name}</span>
+
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    <button className="btn-icon" style={{ padding: 5 }} onClick={() => setEditW(w)} title="Edit Wallet">
+                      <EditIcon style={{ fontSize: 16 }} />
+                    </button>
+                    <button
+                      className="btn-icon"
+                      style={{ padding: 5, color: 'var(--debit)' }}
+                      onClick={() => setDelId(w.id)}
+                      disabled={wallets.length <= 1}
+                      title="Delete Wallet"
+                    >
+                      <DeleteIcon style={{ fontSize: 16 }} />
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 2 }} onClick={e => e.stopPropagation()}>
-                  <button className="btn-icon" style={{ padding: 4 }} onClick={() => setEditW(w)} title="Edit Wallet">
-                    <EditIcon style={{ fontSize: 15 }} />
-                  </button>
-                  <button
-                    className="btn-icon"
-                    style={{ padding: 4, color: 'var(--debit)' }}
-                    onClick={() => setDelId(w.id)}
-                    disabled={wallets.length <= 1}
-                    title="Delete Wallet"
-                  >
-                    <DeleteIcon style={{ fontSize: 15 }} />
-                  </button>
+
+                <div style={{ fontSize: 24, fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)', marginBottom: 14 }}>
+                  {fmtMoney(bal, currency)}
                 </div>
               </div>
 
-              <div style={{ fontSize: 22, fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)', marginBottom: 6 }}>
-                {fmtMoney(bal, currency)}
-              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-2)', marginBottom: 14, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                  <span>Monthly Spend</span>
+                  <span style={{ fontWeight: 600, color: 'var(--debit)' }}>-{fmtMoney(wSpend, currency)}</span>
+                </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, color: 'var(--text-3)' }}>
-                <span>Opening: {fmtMoney(w.openingBalance, currency)}</span>
-                <span>{wExpCount} transaction{wExpCount !== 1 ? 's' : ''}</span>
+                <button
+                  className="btn btn-secondary"
+                  style={{ width: '100%', justifyContent: 'center', gap: 6, fontSize: 12.5, fontWeight: 600 }}
+                  onClick={() => {
+                    setSelectedWalletForTx(w);
+                    setSearchQuery('');
+                  }}
+                >
+                  <ReceiptLongIcon style={{ fontSize: 16 }} />
+                  View Transactions ({wExpCount})
+                </button>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Active Wallet Transactions Section */}
-      {activeWallet && (
-        <div className="card" style={{ padding: 0 }}>
-          <div
-            style={{
-              padding: '14px 18px',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 10,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div
-                style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: 3,
-                  background: activeWallet.color,
-                }}
-              />
-              <span style={{ fontWeight: 600, fontSize: 14.5 }}>{activeWallet.name} Transactions</span>
-            </div>
+      {/* Wallet Transactions Slide-over Drawer */}
+      <Drawer
+        anchor={window.innerWidth < 600 ? 'bottom' : 'right'}
+        open={Boolean(activeWallet)}
+        onClose={() => setSelectedWalletForTx(null)}
+        PaperProps={{
+          sx: {
+            width: { xs: '100%', sm: 540 },
+            maxHeight: { xs: '85vh', sm: '100vh' },
+            borderTopLeftRadius: { xs: 20, sm: 0 },
+            borderTopRightRadius: { xs: 20, sm: 0 },
+            bgcolor: 'var(--surface)',
+            color: 'var(--text)',
+            p: 0,
+            backgroundImage: 'none',
+            boxShadow: 'var(--shadow-lg)',
+          }
+        }}
+      >
+        {activeWallet && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'var(--surface)' }}>
+            {/* Mobile Handle Indicator */}
+            <Box sx={{ display: { xs: 'block', sm: 'none' }, width: 36, height: 4, bgcolor: 'var(--border2)', borderRadius: 99, mx: 'auto', mt: 1.2, mb: 0.5 }} />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
-                <span style={{ color: 'var(--debit)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                  <TrendingDownIcon style={{ fontSize: 14 }} /> -{fmtMoney(walletMonthSpend, currency)}
-                </span>
-                <span style={{ color: 'var(--text-3)' }}>·</span>
-                <span style={{ color: 'var(--credit)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                  <TrendingUpIcon style={{ fontSize: 14 }} /> +{fmtMoney(walletMonthIn, currency)}
-                </span>
-              </div>
+            {/* Drawer Header */}
+            <Box sx={{ p: 2.5, borderBottom: '1px solid var(--border)', bgcolor: 'var(--surface)' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 2.5,
+                      bgcolor: `${activeWallet.color}18`,
+                      border: `1px solid ${activeWallet.color}33`,
+                      display: 'grid',
+                      placeItems: 'center',
+                    }}
+                  >
+                    <AccountBalanceWalletIcon sx={{ color: activeWallet.color, fontSize: 20 }} />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem', leading: 1.2, color: 'var(--text)' }}>
+                      {activeWallet.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'var(--text-2)' }}>
+                      Current Balance: <strong style={{ color: walletBalance(db, activeWallet.id) < 0 ? 'var(--debit)' : 'var(--text)' }}>
+                        {fmtMoney(walletBalance(db, activeWallet.id), currency)}
+                      </strong>
+                    </Typography>
+                  </Box>
+                </Box>
+                <IconButton size="small" onClick={() => setSelectedWalletForTx(null)} sx={{ color: 'var(--text-2)' }}>
+                  <CloseIcon />
+                </IconButton>
+              </Box>
 
-              <button
-                className="btn btn-primary btn-sm"
-                style={{ fontSize: 11.5, padding: '4px 10px', gap: 4 }}
-                onClick={() => setShowAddExp(true)}
-              >
-                <AddIcon style={{ fontSize: 14 }} /> Add
-              </button>
-            </div>
-          </div>
+              {/* Monthly Stats Bar */}
+              <Box sx={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                mt: 2, p: '12px 16px', borderRadius: 2.5,
+                bgcolor: 'var(--surface2)', border: '1px solid var(--border)'
+              }}>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'var(--text-2)', display: 'block', fontSize: '0.72rem', fontWeight: 500, mb: 0.3 }}>
+                    This Month Spent
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--debit)', display: 'inline-flex', alignItems: 'center', gap: 0.4, fontSize: '0.92rem' }}>
+                    <TrendingDownIcon sx={{ fontSize: 16 }} /> -{fmtMoney(walletMonthSpend, currency)}
+                  </Typography>
+                </Box>
 
-          {walletExpenses.length === 0 ? (
-            <div className="empty-state" style={{ padding: '32px' }}>
-              <p>No transactions in {activeWallet.name} yet.</p>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowAddExp(true)}>
-                <AddIcon fontSize="small" /> Record First Transaction
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Desktop Table View */}
-              <table className="data-table desktop-only">
-                <thead>
-                  <tr>
-                    <th>Description</th>
-                    <th>Amount</th>
-                    <th>Date</th>
-                    <th>Category</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {walletExpenses.slice(0, 40).map(e => {
+                <Box sx={{ height: 28, width: '1px', bgcolor: 'var(--border)' }} />
+
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="caption" sx={{ color: 'var(--text-2)', display: 'block', fontSize: '0.72rem', fontWeight: 500, mb: 0.3 }}>
+                    This Month Inflow
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--credit)', display: 'inline-flex', alignItems: 'center', gap: 0.4, fontSize: '0.92rem' }}>
+                    <TrendingUpIcon sx={{ fontSize: 16 }} /> +{fmtMoney(walletMonthIn, currency)}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Search & Action Bar */}
+              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  placeholder="Search wallet transactions..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ fontSize: 18, color: 'var(--text-3)' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      fontSize: '0.85rem',
+                      color: 'var(--text)',
+                      bgcolor: 'var(--surface2)',
+                      '& fieldset': { borderColor: 'var(--border)' },
+                      '&:hover fieldset': { borderColor: 'var(--border2)' },
+                      '&.Mui-focused fieldset': { borderColor: 'var(--accent)' },
+                    }
+                  }}
+                />
+                <button
+                  className="btn btn-primary"
+                  style={{ fontSize: 12, padding: '0 14px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                  onClick={() => setShowAddExp(true)}
+                >
+                  <AddIcon fontSize="small" /> Add
+                </button>
+              </Box>
+            </Box>
+
+            {/* Transactions Content */}
+            <Box sx={{ flex: 1, overflowY: 'auto', p: 2, bgcolor: 'var(--surface)' }}>
+              {filteredExpenses.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 6, color: 'var(--text-2)' }}>
+                  <Typography variant="body2">No matching transactions found.</Typography>
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {filteredExpenses.map(e => {
                     const cat = db.settings.categories.find(c => c.name === e.category);
                     const isIn = expenseFlow(e) === 'in';
+                    const statusKey = e.settled ? 'settled' : e.status;
+
                     return (
-                      <tr key={e.id}>
-                        <td style={{ fontWeight: 500, fontSize: 13 }}>{e.description}</td>
-                        <td style={{ fontWeight: 500, color: isIn ? 'var(--credit)' : undefined }}>
-                          {isIn ? '+' : ''}{fmtMoney(e.amount, currency)}
-                        </td>
-                        <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {cat && <span className="cat-dot" style={{ background: cat.color }} />}
-                            <span style={{ fontSize: 12 }}>{e.category}</span>
-                          </div>
-                        </td>
-                        <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type)}</td>
-                        <td>
-                          <span className={`badge badge-${e.settled ? 'settled' : e.status}`}>
-                            {statusLabel(e.settled ? 'settled' : e.status)}
+                      <Box
+                        key={e.id}
+                        sx={{
+                          p: 1.75,
+                          borderRadius: 2.5,
+                          border: '1px solid var(--border)',
+                          bgcolor: 'var(--surface2)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 1.5,
+                          '&:hover': { bgcolor: 'var(--surface3)', borderColor: 'var(--border2)' },
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                          {cat && (
+                            <Box
+                              sx={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                bgcolor: cat.color,
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)' }}>
+                              {e.description}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.2 }}>
+                              <span>{fmtDate(e.date)}</span>
+                              <span>·</span>
+                              <span>{e.category}</span>
+                              <span>·</span>
+                              <span>{typeLabel(e.type)}</span>
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: isIn ? 'var(--credit)' : 'var(--text)', fontSize: '0.92rem' }}>
+                            {isIn ? '+' : ''}{fmtMoney(e.amount, currency)}
+                          </Typography>
+                          <span className={`badge badge-${statusKey}`} style={{ fontSize: 10, marginTop: 4 }}>
+                            {statusLabel(statusKey)}
                           </span>
-                        </td>
-                      </tr>
+                        </Box>
+                      </Box>
                     );
                   })}
-                </tbody>
-              </table>
-
-              {/* Mobile Expandable Cards View */}
-              <div className="mobile-expense-list mobile-only">
-                {walletExpenses.slice(0, 40).map(e => {
-                  const cat = db.settings.categories.find(c => c.name === e.category);
-                  const isIn = expenseFlow(e) === 'in';
-                  const statusKey = e.settled ? 'settled' : e.status;
-                  const isExpanded = !!expandedIds[e.id];
-
-                  return (
-                    <div key={e.id} className={`mobile-expense-card ${isExpanded ? 'is-expanded' : ''}`}>
-                      <div className="mobile-expense-header" onClick={() => toggleExpand(e.id)}>
-                        <div className="mobile-expense-top">
-                          <div className="mobile-expense-desc-wrap">
-                            {cat && <span className="cat-dot" style={{ background: cat.color }} />}
-                            <span className="mobile-expense-title">{e.description}</span>
-                          </div>
-                          <div className="mobile-expense-amount" style={{ color: isIn ? 'var(--credit)' : undefined }}>
-                            {isIn ? '+' : ''}{fmtMoney(e.amount, currency)}
-                          </div>
-                        </div>
-
-                        <div className="mobile-expense-meta">
-                          <div className="mobile-expense-meta-left">
-                            <span>{fmtDate(e.date)}</span>
-                            <span>·</span>
-                            <span>{e.category}</span>
-                          </div>
-                          <div className="mobile-expense-expand-btn">
-                            {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                          </div>
-                        </div>
-                      </div>
-
-                      {isExpanded && (
-                        <div className="mobile-expense-details">
-                          <div className="mobile-expense-detail-grid">
-                            <div className="mobile-expense-detail-item">
-                              <span className="mobile-expense-detail-label">Category</span>
-                              <span className="mobile-expense-detail-val">
-                                {cat && <span className="cat-dot" style={{ background: cat.color }} />}
-                                {e.category}
-                              </span>
-                            </div>
-
-                            <div className="mobile-expense-detail-item">
-                              <span className="mobile-expense-detail-label">Type</span>
-                              <span className="mobile-expense-detail-val">{typeLabel(e.type)}</span>
-                            </div>
-
-                            <div className="mobile-expense-detail-item">
-                              <span className="mobile-expense-detail-label">Status</span>
-                              <span className="mobile-expense-detail-val">
-                                <span className={`badge badge-${statusKey}`}>{statusLabel(statusKey)}</span>
-                              </span>
-                            </div>
-
-                            {e.notes && (
-                              <div className="mobile-expense-detail-item" style={{ gridColumn: '1 / -1' }}>
-                                <span className="mobile-expense-detail-label">Notes</span>
-                                <span className="mobile-expense-detail-val" style={{ fontWeight: 400, fontStyle: 'italic' }}>{e.notes}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {walletExpenses.length > 40 && (
-            <div style={{ padding: '10px 18px', fontSize: 12, color: 'var(--text-3)', borderTop: '1px solid var(--border)' }}>
-              Showing 40 of {walletExpenses.length} transactions
-            </div>
-          )}
-        </div>
-      )}
+                </Box>
+              )}
+            </Box>
+          </Box>
+        )}
+      </Drawer>
 
       {showAdd && <WalletModal onClose={() => setShowAdd(false)} />}
       {editW && <WalletModal wallet={editW} onClose={() => setEditW(null)} />}
-      {showAddExp && <ExpenseModal expense={{ walletId: activeWallet.id } as never} onClose={() => setShowAddExp(false)} />}
+      {showAddExp && activeWallet && <ExpenseModal expense={{ walletId: activeWallet.id } as never} onClose={() => setShowAddExp(false)} />}
       {delId && (
         <ConfirmDialog
           title="Delete Wallet"
