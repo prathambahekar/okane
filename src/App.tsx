@@ -189,8 +189,21 @@ function AppInner() {
             transition: 'background-color 0.2s ease, border-color 0.2s ease',
           }}
         >
-          <Toolbar variant="dense" sx={{ minHeight: 56, px: 2, justifyContent: 'space-between' }}>
-            <Typography variant="h6" component="span" sx={{ fontWeight: 700, fontSize: '1.05rem', letterSpacing: '-0.3px', flexShrink: 0 }}>
+          <Toolbar variant="dense" sx={{ minHeight: 56, px: 1.5, gap: 1, justifyContent: 'space-between' }}>
+            <Typography
+              variant="h6"
+              component="span"
+              sx={{
+                fontWeight: 700,
+                fontSize: { xs: '0.95rem', sm: '1.05rem' },
+                letterSpacing: '-0.3px',
+                flexShrink: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
+              }}
+            >
               {view === 'dashboard' ? 'Dashboard' :
                view === 'expenses' ? 'Expenses' :
                view === 'friends' ? 'Friends' :
@@ -201,57 +214,57 @@ function AppInner() {
                view === 'settings' ? 'Settings' : 'Dashboard'}
             </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, flexShrink: 0 }}>
               {view === 'expenses' && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mr: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                   <Box sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.3,
-                    px: 1, py: 0.3, borderRadius: 99,
+                    display: 'inline-flex', alignItems: 'center', gap: 0.2,
+                    px: 0.8, py: 0.25, borderRadius: 99,
                     bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
-                    color: 'error.main', fontSize: '0.75rem', fontWeight: 600
+                    color: 'error.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingDownIcon sx={{ fontSize: 13 }} /> -{fmtMoney(expOut, currency)}
+                    <TrendingDownIcon sx={{ fontSize: 12 }} /> -{fmtMoney(expOut, currency)}
                   </Box>
                   <Box sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.3,
-                    px: 1, py: 0.3, borderRadius: 99,
+                    display: 'inline-flex', alignItems: 'center', gap: 0.2,
+                    px: 0.8, py: 0.25, borderRadius: 99,
                     bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
-                    color: 'success.main', fontSize: '0.75rem', fontWeight: 600
+                    color: 'success.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingUpIcon sx={{ fontSize: 13 }} /> +{fmtMoney(expIn, currency)}
+                    <TrendingUpIcon sx={{ fontSize: 12 }} /> +{fmtMoney(expIn, currency)}
                   </Box>
                 </Box>
               )}
 
               {view === 'friends' && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mr: 0.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                   <Box sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.3,
-                    px: 1, py: 0.3, borderRadius: 99,
+                    display: 'inline-flex', alignItems: 'center', gap: 0.2,
+                    px: 0.8, py: 0.25, borderRadius: 99,
                     bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
-                    color: 'success.main', fontSize: '0.75rem', fontWeight: 600
+                    color: 'success.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingUpIcon sx={{ fontSize: 13 }} /> +{fmtMoney(friendCredit, currency)}
+                    <TrendingUpIcon sx={{ fontSize: 12 }} /> +{fmtMoney(friendCredit, currency)}
                   </Box>
                   <Box sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.3,
-                    px: 1, py: 0.3, borderRadius: 99,
+                    display: 'inline-flex', alignItems: 'center', gap: 0.2,
+                    px: 0.8, py: 0.25, borderRadius: 99,
                     bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
-                    color: 'error.main', fontSize: '0.75rem', fontWeight: 600
+                    color: 'error.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingDownIcon sx={{ fontSize: 13 }} /> -{fmtMoney(friendDebt, currency)}
+                    <TrendingDownIcon sx={{ fontSize: 12 }} /> -{fmtMoney(friendDebt, currency)}
                   </Box>
                 </Box>
               )}
 
               {(view === 'dashboard' || view === 'wallets') && (
                 <Box sx={{
-                  display: 'inline-flex', alignItems: 'center', px: 1.2, py: 0.35, borderRadius: 99,
+                  display: 'inline-flex', alignItems: 'center', px: 1, py: 0.3, borderRadius: 99,
                   bgcolor: totalBal < 0
                     ? (mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)')
                     : (mode === 'dark' ? 'rgba(66, 165, 245, 0.15)' : 'rgba(25, 118, 210, 0.08)'),
                   color: totalBal < 0 ? 'error.main' : 'primary.main',
-                  fontSize: '0.8rem', fontWeight: 700, mr: 0.5
+                  fontSize: { xs: '0.75rem', sm: '0.8rem' }, fontWeight: 700
                 }}>
                   {fmtMoney(totalBal, currency)}
                 </Box>
@@ -263,20 +276,20 @@ function AppInner() {
                 sx={{
                   bgcolor: 'primary.main',
                   color: 'primary.contrastText',
-                  width: 32,
-                  height: 32,
+                  width: 30,
+                  height: 30,
                   '&:hover': { bgcolor: 'primary.dark' },
                   boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
                 }}
                 title="Add Expense"
               >
-                <AddIcon sx={{ fontSize: 18 }} />
+                <AddIcon sx={{ fontSize: 17 }} />
               </IconButton>
 
-              <IconButton size="small" onClick={toggleDark} sx={{ color: 'text.secondary', ml: 0.2 }}>
+              <IconButton size="small" onClick={toggleDark} sx={{ color: 'text.secondary', p: 0.5 }}>
                 {mode === 'dark'
-                  ? <LightModeIcon sx={{ fontSize: 19 }} />
-                  : <DarkModeIcon sx={{ fontSize: 19 }} />}
+                  ? <LightModeIcon sx={{ fontSize: 18 }} />
+                  : <DarkModeIcon sx={{ fontSize: 18 }} />}
               </IconButton>
             </Box>
           </Toolbar>
