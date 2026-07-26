@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import CloseIcon from '@mui/icons-material/Close';
+import { X } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend } from '../types';
 import { FRIEND_PALETTE } from '../db';
@@ -15,18 +15,20 @@ export default function FriendModal({ friend, onClose }: Props) {
   const [email, setEmail] = useState(friend?.email ?? '');
   const [phone, setPhone] = useState(friend?.phone ?? '');
   const [notes, setNotes] = useState(friend?.notes ?? '');
-  const [color, setColor] = useState(friend?.color ?? FRIEND_PALETTE[db.friends.length % FRIEND_PALETTE.length]);
+  const [color, setColor] = useState(friend?.color ?? FRIEND_PALETTE[Math.floor(Math.random() * FRIEND_PALETTE.length)]);
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) { setError('Name is required.'); return; }
-    setError('');
+    if (!name.trim()) { setError('Name is required'); return; }
+    if (!friend && db.friends.some(f => f.name.toLowerCase() === name.trim().toLowerCase())) {
+      setError('A friend with this name already exists.'); return;
+    }
     if (friend) {
-      updateFriend(friend.id, { name: name.trim(), email, phone, notes, color });
+      updateFriend(friend.id, { name: name.trim(), email: email.trim(), phone: phone.trim(), notes: notes.trim(), color });
       showToast('Friend updated');
     } else {
-      addFriend({ name: name.trim(), email, phone, notes, color });
+      addFriend({ name: name.trim(), email: email.trim(), phone: phone.trim(), notes: notes.trim(), color });
       showToast('Friend added');
     }
     onClose();
@@ -37,7 +39,7 @@ export default function FriendModal({ friend, onClose }: Props) {
       <div className="modal">
         <div className="modal-header">
           <span className="modal-title">{friend ? 'Edit Friend' : 'Add Friend'}</span>
-          <button className="btn-icon" onClick={onClose}><CloseIcon fontSize="small" /></button>
+          <button className="btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">

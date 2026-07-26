@@ -1,5 +1,5 @@
 import { useStore } from '../store';
-import CloseIcon from '@mui/icons-material/Close';
+import { X } from 'lucide-react';
 
 export default function Toast() {
   const { toasts, dismissToast } = useStore();
@@ -15,7 +15,7 @@ export default function Toast() {
             </button>
           )}
           <button className="toast-close" onClick={() => dismissToast(t.id)}>
-            <CloseIcon fontSize="inherit" />
+            <X size={14} />
           </button>
         </div>
       ))}

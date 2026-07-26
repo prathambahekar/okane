@@ -1,4 +1,4 @@
-import CloseIcon from '@mui/icons-material/Close';
+import { X } from 'lucide-react';
 
 interface Props {
   title: string;
@@ -15,7 +15,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
       <div className="modal confirm-modal">
         <div className="modal-header">
           <span className="modal-title">{title}</span>
-          <button className="btn-icon" onClick={onClose}><CloseIcon fontSize="small" /></button>
+          <button className="btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <div className="confirm-body">
           <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.6 }}>{message}</p>

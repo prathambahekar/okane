@@ -1,17 +1,7 @@
 import { useState, useRef } from 'react';
 import { useColorMode } from '../theme';
 import Switch from '@mui/material/Switch';
-import AddIcon from '@mui/icons-material/Add';
-// import DownloadIcon from '@mui/icons-material/Download';
-// import UploadIcon from '@mui/icons-material/Upload';
-import CloseIcon from '@mui/icons-material/Close';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import CategoryIcon from '@mui/icons-material/Category';
-import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
-import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
-import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { Plus, X, RotateCcw, Tag, Download, Upload, FlaskConical, Trash2, ChevronRight } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE } from '../db';
 import type { Category, AppDB } from '../types';
@@ -223,7 +213,7 @@ export default function Settings() {
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <CategoryIcon style={{ fontSize: 18, color: 'var(--accent)' }} />
+              <Tag size={18} style={{ color: 'var(--accent)' }} />
               <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Categories</h2>
               <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, border: '1px solid var(--border)' }}>
                 {settings.categories.length}
@@ -237,7 +227,7 @@ export default function Settings() {
                 showToast('Reset categories to default');
               }}
             >
-              <RefreshIcon style={{ fontSize: 15 }} /> Reset Defaults
+              <RotateCcw size={15} /> Reset Defaults
             </button>
           </div>
 
@@ -257,7 +247,7 @@ export default function Settings() {
                   title={`Remove ${c.name}`}
                   onClick={() => handleDeleteCategory(c.name)}
                 >
-                  <CloseIcon style={{ fontSize: 14 }} />
+                  <X size={14} />
                 </button>
               </div>
             ))}
@@ -299,7 +289,7 @@ export default function Settings() {
                 onClick={handleAddCategory}
                 style={{ padding: '9px 16px', gap: 6, justifyContent: 'center' }}
               >
-                <AddIcon style={{ fontSize: 18 }} /> Add Category
+                <Plus size={18} /> Add Category
               </button>
             </div>
           </div>
@@ -317,17 +307,17 @@ export default function Settings() {
 
           <div className="data-action-grid">
             <button type="button" className="data-action-card" onClick={handleExport}>
-              <FileDownloadOutlinedIcon style={{ fontSize: 26 }} />
+              <Download size={26} />
               <span className="data-action-label">Export</span>
             </button>
 
             <button type="button" className="data-action-card" onClick={() => fileRef.current?.click()}>
-              <FileUploadOutlinedIcon style={{ fontSize: 26 }} />
+              <Upload size={26} />
               <span className="data-action-label">Import</span>
             </button>
 
             <button type="button" className="data-action-card" onClick={handleLoadSample}>
-              <ScienceOutlinedIcon style={{ fontSize: 26 }} />
+              <FlaskConical size={26} />
               <span className="data-action-label">Sample</span>
             </button>
             <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
@@ -335,10 +325,10 @@ export default function Settings() {
 
           <div className="data-reset-row" onClick={() => setShowReset(true)} role="button" tabIndex={0}>
             <div className="data-reset-left">
-              <DeleteOutlineIcon style={{ fontSize: 20 }} />
+              <Trash2 size={20} />
               <span>Reset all data</span>
             </div>
-            <ChevronRightIcon style={{ fontSize: 20, color: 'var(--text-3)' }} />
+            <ChevronRight size={20} style={{ color: 'var(--text-3)' }} />
           </div>
         </div>
 

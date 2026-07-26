@@ -1,12 +1,5 @@
 import { useState, useMemo } from 'react';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import HandshakeIcon from '@mui/icons-material/Handshake';
-import SearchIcon from '@mui/icons-material/Search';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { Plus, Edit2, Trash2, Handshake, Search, ChevronDown, ChevronUp, MoreVertical } from 'lucide-react';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -95,7 +88,7 @@ export default function Friends({ onNavigate }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <div className="search-input-wrap" style={{ flex: 1 }}>
-            <SearchIcon className="search-icon" />
+            <Search size={16} className="search-icon" />
             <input
               className="form-input"
               placeholder="Search friends by name, email, phone…"
@@ -108,7 +101,7 @@ export default function Friends({ onNavigate }: Props) {
             style={{ whiteSpace: 'nowrap', flexShrink: 0, height: 42, padding: '0 14px', gap: 6 }}
             onClick={() => setShowAdd(true)}
           >
-            <AddIcon fontSize="small" /> Add Friend
+            <Plus size={16} /> Add Friend
           </button>
         </div>
 
@@ -146,7 +139,7 @@ export default function Friends({ onNavigate }: Props) {
             <div className="empty-state-title">No friends added yet</div>
             <p>Add friends to split bills, track shared expenses, and settle up easily.</p>
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
-              <AddIcon fontSize="small" /> Add Friend
+              <Plus size={16} /> Add Friend
             </button>
           </div>
         </div>
@@ -270,12 +263,12 @@ export default function Friends({ onNavigate }: Props) {
                       onClick={(e) => handleMenuOpen(e, f)}
                       sx={{ color: 'text.secondary', p: 0.5 }}
                     >
-                      <MoreVertIcon style={{ fontSize: 18 }} />
+                      <MoreVertical size={18} />
                     </IconButton>
 
                     {/* Chevron */}
                     <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center' }}>
-                      {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
                   </div>
                 </div>
@@ -333,7 +326,7 @@ export default function Friends({ onNavigate }: Props) {
                           style={{ fontSize: 12, padding: '5px 11px', borderRadius: 4, gap: 4 }}
                           onClick={() => setAddExpFriend(f)}
                         >
-                          <AddIcon style={{ fontSize: 14 }} /> Add Expense
+                          <Plus size={14} /> Add Expense
                         </button>
                         {unsettledCount > 0 && (
                           <button
@@ -347,7 +340,7 @@ export default function Friends({ onNavigate }: Props) {
                             }}
                             onClick={() => setSettleFriend(f)}
                           >
-                            <HandshakeIcon style={{ fontSize: 14 }} /> Settle Up
+                            <Handshake size={14} /> Settle Up
                           </button>
                         )}
                       </div>
@@ -391,7 +384,7 @@ export default function Friends({ onNavigate }: Props) {
           }}
           sx={{ fontSize: 13, gap: 1.5 }}
         >
-          <ListItemIcon><EditIcon fontSize="small" /></ListItemIcon>
+          <ListItemIcon><Edit2 size={16} /></ListItemIcon>
           <ListItemText primary="Edit Friend" primaryTypographyProps={{ fontSize: 13 }} />
         </MenuItem>
         <MenuItem
@@ -401,7 +394,7 @@ export default function Friends({ onNavigate }: Props) {
           }}
           sx={{ fontSize: 13, gap: 1.5, color: 'error.main' }}
         >
-          <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon>
+          <ListItemIcon><Trash2 size={16} style={{ color: 'var(--debit)' }} /></ListItemIcon>
           <ListItemText primary="Delete Friend" primaryTypographyProps={{ fontSize: 13, color: 'error.main' }} />
         </MenuItem>
       </Menu>

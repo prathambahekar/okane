@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import SearchIcon from '@mui/icons-material/Search';
-import CloseIcon from '@mui/icons-material/Close';
+import { Plus, Edit2, Trash2, Wallet as WalletIcon, TrendingDown, TrendingUp, ReceiptText, Search, X } from 'lucide-react';
 import Drawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
@@ -82,7 +74,7 @@ export default function Wallets() {
           <p className="page-subtitle">Manage your accounts & view wallet activity</p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          <AddIcon fontSize="small" /> Add Wallet
+          <Plus size={16} /> Add Wallet
         </button>
       </div>
 
@@ -128,7 +120,7 @@ export default function Wallets() {
                         justifyContent: 'center',
                       }}
                     >
-                      <AccountBalanceWalletIcon style={{ color: w.color, fontSize: 20 }} />
+                      <WalletIcon style={{ color: w.color }} size={20} />
                     </div>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 15.5 }}>{w.name}</div>
@@ -138,7 +130,7 @@ export default function Wallets() {
 
                   <div style={{ display: 'flex', gap: 2 }}>
                     <button className="btn-icon" style={{ padding: 5 }} onClick={() => setEditW(w)} title="Edit Wallet">
-                      <EditIcon style={{ fontSize: 16 }} />
+                      <Edit2 size={16} />
                     </button>
                     <button
                       className="btn-icon"
@@ -147,7 +139,7 @@ export default function Wallets() {
                       disabled={wallets.length <= 1}
                       title="Delete Wallet"
                     >
-                      <DeleteIcon style={{ fontSize: 16 }} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
@@ -171,7 +163,7 @@ export default function Wallets() {
                     setSearchQuery('');
                   }}
                 >
-                  <ReceiptLongIcon style={{ fontSize: 16 }} />
+                  <ReceiptText size={16} />
                   View Transactions ({wExpCount})
                 </button>
               </div>
@@ -219,7 +211,7 @@ export default function Wallets() {
                       placeItems: 'center',
                     }}
                   >
-                    <AccountBalanceWalletIcon sx={{ color: activeWallet.color, fontSize: 20 }} />
+                    <WalletIcon style={{ color: activeWallet.color }} size={20} />
                   </Box>
                   <Box>
                     <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem', leading: 1.2, color: 'var(--text)' }}>
@@ -233,7 +225,7 @@ export default function Wallets() {
                   </Box>
                 </Box>
                 <IconButton size="small" onClick={() => setSelectedWalletForTx(null)} sx={{ color: 'var(--text-2)' }}>
-                  <CloseIcon />
+                  <X size={18} />
                 </IconButton>
               </Box>
 
@@ -248,7 +240,7 @@ export default function Wallets() {
                     This Month Spent
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--debit)', display: 'inline-flex', alignItems: 'center', gap: 0.4, fontSize: '0.92rem' }}>
-                    <TrendingDownIcon sx={{ fontSize: 16 }} /> -{fmtMoney(walletMonthSpend, currency)}
+                    <TrendingDown size={16} /> -{fmtMoney(walletMonthSpend, currency)}
                   </Typography>
                 </Box>
 
@@ -259,7 +251,7 @@ export default function Wallets() {
                     This Month Inflow
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--credit)', display: 'inline-flex', alignItems: 'center', gap: 0.4, fontSize: '0.92rem' }}>
-                    <TrendingUpIcon sx={{ fontSize: 16 }} /> +{fmtMoney(walletMonthIn, currency)}
+                    <TrendingUp size={16} /> +{fmtMoney(walletMonthIn, currency)}
                   </Typography>
                 </Box>
               </Box>
@@ -275,7 +267,7 @@ export default function Wallets() {
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <SearchIcon sx={{ fontSize: 18, color: 'var(--text-3)' }} />
+                        <Search size={18} style={{ color: 'var(--text-3)' }} />
                       </InputAdornment>
                     ),
                   }}
@@ -296,7 +288,7 @@ export default function Wallets() {
                   style={{ fontSize: 12, padding: '0 14px', flexShrink: 0, whiteSpace: 'nowrap' }}
                   onClick={() => setShowAddExp(true)}
                 >
-                  <AddIcon fontSize="small" /> Add
+                  <Plus size={16} /> Add
                 </button>
               </Box>
             </Box>

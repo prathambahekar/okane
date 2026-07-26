@@ -1,10 +1,5 @@
 import { useState, useEffect } from 'react';
-import CloseIcon from '@mui/icons-material/Close';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import PersonIcon from '@mui/icons-material/Person';
-import PeopleIcon from '@mui/icons-material/People';
-import HandshakeIcon from '@mui/icons-material/Handshake';
+import { X, TrendingDown, TrendingUp, User, Users, Handshake } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types';
 import { todayISO } from '../db';
@@ -131,7 +126,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
 
         <div className="modal-header">
           <span className="modal-title">{expense ? 'Edit Transaction' : flow === 'out' ? 'Record Expense' : 'Record Income'}</span>
-          <button className="btn-icon" onClick={onClose} aria-label="Close dialog"><CloseIcon fontSize="small" /></button>
+          <button className="btn-icon" onClick={onClose} aria-label="Close dialog"><X size={18} /></button>
         </div>
 
         {/* Expense / Income Flow Switcher */}
@@ -144,7 +139,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
               setError('');
             }}
           >
-            <TrendingDownIcon style={{ fontSize: 18 }} /> Expense
+            <TrendingDown size={18} /> Expense
           </button>
           <button
             type="button"
@@ -154,7 +149,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
               setError('');
             }}
           >
-            <TrendingUpIcon style={{ fontSize: 18 }} /> Income
+            <TrendingUp size={18} /> Income
           </button>
         </div>
 
@@ -199,14 +194,14 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                         className={`segment-btn ${whoPaid === 'me' ? 'active' : ''}`}
                         onClick={() => { setWhoPaid('me'); setError(''); }}
                       >
-                        <PersonIcon style={{ fontSize: 16 }} /> I Paid
+                        <User size={16} /> I Paid
                       </button>
                       <button
                         type="button"
                         className={`segment-btn ${whoPaid === 'other' ? 'active' : ''}`}
                         onClick={() => { setWhoPaid('other'); setError(''); }}
                       >
-                        <PeopleIcon style={{ fontSize: 16 }} /> Someone Else Paid
+                        <Users size={16} /> Someone Else Paid
                       </button>
                     </div>
                   </div>
@@ -221,7 +216,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                           className={`segment-btn ${splitMode === 'just_me' ? 'active' : ''}`}
                           onClick={() => setSplitMode('just_me')}
                         >
-                          <PersonIcon style={{ fontSize: 16 }} /> Just For Me
+                          <User size={16} /> Just For Me
                         </button>
                         <button
                           type="button"
@@ -231,7 +226,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                             if (!friendShare && amount) setFriendShare(amount);
                           }}
                         >
-                          <HandshakeIcon style={{ fontSize: 16 }} /> Split with Friend
+                          <Handshake size={16} /> Split with Friend
                         </button>
                       </div>
                     </div>

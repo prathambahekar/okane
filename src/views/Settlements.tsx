@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import DeleteIcon from '@mui/icons-material/Delete';
-import HandshakeIcon from '@mui/icons-material/Handshake';
+import { Trash2, Handshake } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend } from '../types';
 import { fmtMoney, fmtDate, friendInitial } from '../utils';
@@ -50,7 +49,7 @@ export default function Settlements() {
                   </div>
                   <button className="btn btn-primary btn-sm" style={{ fontSize: 11.5, padding: '5px 10px' }}
                     onClick={() => setSettleFriend(f)}>
-                    <HandshakeIcon style={{ fontSize: 13 }} /> Settle
+                    <Handshake size={13} /> Settle
                   </button>
                 </div>
               );
@@ -117,7 +116,7 @@ export default function Settlements() {
                       </td>
                       <td>
                         <button className="btn-icon" onClick={() => setDelId(s.id)} title="Undo settlement" style={{ color: 'var(--debit)' }}>
-                          <DeleteIcon fontSize="small" />
+                          <Trash2 size={15} />
                         </button>
                       </td>
                     </tr>
@@ -156,7 +155,7 @@ export default function Settlements() {
                           {s.note && <span>· {s.note}</span>}
                         </div>
                         <button className="btn-icon" onClick={() => setDelId(s.id)} title="Undo settlement" style={{ color: 'var(--debit)', padding: 4, marginLeft: 'auto' }}>
-                          <DeleteIcon fontSize="small" />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     </div>

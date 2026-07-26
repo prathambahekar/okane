@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import CloseIcon from '@mui/icons-material/Close';
+import { X } from 'lucide-react';
 import { useStore } from '../store';
 import type { Wallet } from '../types';
 import { FRIEND_PALETTE } from '../db';
@@ -13,20 +13,18 @@ export default function WalletModal({ wallet, onClose }: Props) {
   const { addWallet, updateWallet, showToast } = useStore();
   const [name, setName] = useState(wallet?.name ?? '');
   const [openingBalance, setOpeningBalance] = useState(wallet ? String(wallet.openingBalance) : '0');
-  const [color, setColor] = useState(wallet?.color ?? FRIEND_PALETTE[0]);
+  const [color, setColor] = useState(wallet?.color ?? FRIEND_PALETTE[Math.floor(Math.random() * FRIEND_PALETTE.length)]);
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) { setError('Name is required.'); return; }
-    setError('');
-    const bal = parseFloat(openingBalance) || 0;
+    if (!name.trim()) { setError('Name is required'); return; }
     if (wallet) {
-      updateWallet(wallet.id, { name: name.trim(), openingBalance: bal, color });
+      updateWallet(wallet.id, { name: name.trim(), openingBalance: Number(openingBalance) || 0, color });
       showToast('Wallet updated');
     } else {
-      addWallet({ name: name.trim(), openingBalance: bal, color });
-      showToast('Wallet added');
+      addWallet({ name: name.trim(), openingBalance: Number(openingBalance) || 0, color });
+      showToast('Wallet created');
     }
     onClose();
   };
@@ -35,8 +33,8 @@ export default function WalletModal({ wallet, onClose }: Props) {
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal">
         <div className="modal-header">
-          <span className="modal-title">{wallet ? 'Edit Wallet' : 'Add Wallet'}</span>
-          <button className="btn-icon" onClick={onClose}><CloseIcon fontSize="small" /></button>
+          <span className="modal-title">{wallet ? 'Edit Wallet' : 'New Wallet'}</span>
+          <button className="btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-body">

@@ -1,11 +1,5 @@
 import { useState, useMemo } from 'react';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-// import EditIcon from '@mui/icons-material/Edit';
-import HandshakeIcon from '@mui/icons-material/Handshake';
-import AddIcon from '@mui/icons-material/Add';
-// import ShareIcon from '@mui/icons-material/Share';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { ArrowLeft, Handshake, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, expenseFlow } from '../db';
 import { fmtMoney, fmtDate, friendInitial, typeLabel, statusLabel } from '../utils';
@@ -59,7 +53,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
     return (
       <div className="view-container">
         <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('friends')}>
-          <ArrowBackIcon fontSize="small" /> Back to Friends
+          <ArrowLeft size={16} /> Back to Friends
         </button>
         <div className="card" style={{ marginTop: 20 }}>
           <div className="empty-state"><p>Friend not found.</p></div>
@@ -73,7 +67,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
       {/* Back Button & Secondary Action Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('friends')} style={{ gap: 6 }}>
-          <ArrowBackIcon style={{ fontSize: 18 }} /> Back to Friends
+          <ArrowLeft size={18} /> Back to Friends
         </button>
 
 
@@ -177,7 +171,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             style={{ flex: 1, padding: '9px 14px', fontSize: 13, gap: 6, justifyContent: 'center' }}
             onClick={() => setShowAddExp(true)}
           >
-            <AddIcon style={{ fontSize: 16 }} /> Add Shared Expense
+            <Plus size={16} /> Add Shared Expense
           </button>
 
           {activeExps.length > 0 && (
@@ -193,7 +187,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
               }}
               onClick={() => setShowSettle(true)}
             >
-              <HandshakeIcon style={{ fontSize: 16 }} /> Settle Up
+              <Handshake size={16} /> Settle Up
             </button>
           )}
         </div>
@@ -288,7 +282,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <span>{e.category}</span>
                         </div>
                         <div className="mobile-expense-expand-btn">
-                          {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </div>
                       </div>
                     </div>

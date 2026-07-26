@@ -1,11 +1,5 @@
 import { useState, useMemo } from 'react';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SearchIcon from '@mui/icons-material/Search';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import FilterListIcon from '@mui/icons-material/FilterList';
+import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense } from '../types';
 import { expenseFlow } from '../db';
@@ -74,7 +68,7 @@ export default function Expenses() {
           <h1 className="page-title">Expenses</h1>
         </div>
         <button className="btn btn-primary desktop-only" onClick={() => setShowAdd(true)}>
-          <AddIcon fontSize="small" /> Add Expense
+          <Plus size={16} /> Add Expense
         </button>
       </div>
 
@@ -96,7 +90,7 @@ export default function Expenses() {
       {/* Merged Search & Filter Bar */}
       <div className="filter-bar">
         <div className="search-input-wrap">
-          <SearchIcon className="search-icon" />
+          <Search size={16} className="search-icon" />
           <input
             className="form-input"
             placeholder="Search expenses…"
@@ -109,7 +103,7 @@ export default function Expenses() {
             onClick={() => setShowFilters(prev => !prev)}
             title="Toggle filters"
           >
-            <FilterListIcon fontSize="small" />
+            <Filter size={16} />
             {activeFilterCount > 0 && <span className="filter-badge">{activeFilterCount}</span>}
           </button>
         </div>
@@ -162,7 +156,7 @@ export default function Expenses() {
             <div className="empty-state-icon">📋</div>
             <div className="empty-state-title">No expenses found</div>
             <p>Try adjusting your filters or add a new expense.</p>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}><AddIcon fontSize="small" /> Add Expense</button>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}><Plus size={16} /> Add Expense</button>
           </div>
         ) : (
           <>
@@ -215,8 +209,8 @@ export default function Expenses() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <button className="btn-icon" onClick={() => setEditExp(e)} title="Edit"><EditIcon fontSize="small" /></button>
-                          <button className="btn-icon" onClick={() => setDelId(e.id)} title="Delete" style={{ color: 'var(--debit)' }}><DeleteIcon fontSize="small" /></button>
+                          <button className="btn-icon" onClick={() => setEditExp(e)} title="Edit"><Edit2 size={15} /></button>
+                          <button className="btn-icon" onClick={() => setDelId(e.id)} title="Delete" style={{ color: 'var(--debit)' }}><Trash2 size={15} /></button>
                         </div>
                       </td>
                     </tr>
@@ -264,7 +258,7 @@ export default function Expenses() {
                           )}
                         </div>
                         <div className="mobile-expense-expand-btn">
-                          {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </div>
                       </div>
                     </div>
@@ -317,10 +311,10 @@ export default function Expenses() {
 
                         <div className="mobile-expense-actions">
                           <button className="btn btn-secondary btn-sm" onClick={() => setEditExp(e)}>
-                            <EditIcon fontSize="small" /> Edit
+                            <Edit2 size={14} /> Edit
                           </button>
                           <button className="btn btn-danger btn-sm" onClick={() => setDelId(e.id)}>
-                            <DeleteIcon fontSize="small" /> Delete
+                            <Trash2 size={14} /> Delete
                           </button>
                         </div>
                       </div>

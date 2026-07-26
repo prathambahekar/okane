@@ -14,19 +14,21 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Box from '@mui/material/Box';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import PeopleIcon from '@mui/icons-material/People';
-import HandshakeIcon from '@mui/icons-material/Handshake';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import SettingsIcon from '@mui/icons-material/Settings';
-import AddIcon from '@mui/icons-material/Add';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import {
+  LayoutDashboard,
+  ReceiptText,
+  Wallet,
+  Users,
+  Handshake,
+  BarChart3,
+  Settings as SettingsIconLucide,
+  Plus,
+  MoreHorizontal,
+  Moon,
+  Sun,
+  TrendingUp,
+  TrendingDown
+} from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import { useColorMode } from './theme';
 import type { ViewName } from './types';
@@ -75,20 +77,20 @@ function AppInner() {
   };
 
   const sidebarNavItems: { id: ViewName; label: string; icon: React.ReactNode; section?: string }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon fontSize="inherit" />, section: 'Main' },
-    { id: 'expenses', label: 'Expenses', icon: <ReceiptLongIcon fontSize="inherit" /> },
-    { id: 'wallets', label: 'Wallets', icon: <AccountBalanceWalletIcon fontSize="inherit" /> },
-    { id: 'friends', label: 'Friends', icon: <PeopleIcon fontSize="inherit" />, section: 'Social' },
-    { id: 'settlements', label: 'Settlements', icon: <HandshakeIcon fontSize="inherit" /> },
-    { id: 'analytics', label: 'Analytics', icon: <BarChartIcon fontSize="inherit" />, section: 'Insights' },
-    { id: 'settings', label: 'Settings', icon: <SettingsIcon fontSize="inherit" />, section: 'System' },
+    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, section: 'Main' },
+    { id: 'expenses', label: 'Expenses', icon: <ReceiptText size={18} /> },
+    { id: 'wallets', label: 'Wallets', icon: <Wallet size={18} /> },
+    { id: 'friends', label: 'Friends', icon: <Users size={18} />, section: 'Social' },
+    { id: 'settlements', label: 'Settlements', icon: <Handshake size={18} /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} />, section: 'Insights' },
+    { id: 'settings', label: 'Settings', icon: <SettingsIconLucide size={18} />, section: 'System' },
   ];
 
   const moreItems: { id: ViewName; label: string; icon: React.ReactNode }[] = [
-    { id: 'wallets', label: 'Wallets', icon: <AccountBalanceWalletIcon /> },
-    { id: 'settlements', label: 'Settlements', icon: <HandshakeIcon /> },
-    { id: 'analytics', label: 'Analytics', icon: <BarChartIcon /> },
-    { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
+    { id: 'wallets', label: 'Wallets', icon: <Wallet size={20} /> },
+    { id: 'settlements', label: 'Settlements', icon: <Handshake size={20} /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+    { id: 'settings', label: 'Settings', icon: <SettingsIconLucide size={20} /> },
   ];
 
   const activeView = view === 'friend-detail' ? 'friends' : view;
@@ -146,10 +148,9 @@ function AppInner() {
                 </div>
               );
             })}
-
             <div style={{ flex: 1 }} />
             <button className="btn btn-primary btn-sm" style={{ margin: '8px 0', width: '100%' }} onClick={() => setShowAddExpense(true)}>
-              <AddIcon fontSize="small" />
+              <Plus size={16} />
               <span className="nav-item-label">Add Expense</span>
             </button>
           </div>
@@ -164,8 +165,8 @@ function AppInner() {
               title={mode === 'dark' ? 'Switch to light' : 'Switch to dark'}
             >
               {mode === 'dark'
-                ? <LightModeIcon sx={{ fontSize: 18 }} />
-                : <DarkModeIcon sx={{ fontSize: 18 }} />}
+                ? <Sun size={18} />
+                : <Moon size={18} />}
             </IconButton>
           </div>
         </nav>
@@ -223,7 +224,7 @@ function AppInner() {
                     bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
                     color: 'error.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingDownIcon sx={{ fontSize: 12 }} /> -{fmtMoney(expOut, currency)}
+                    <TrendingDown size={12} /> -{fmtMoney(expOut, currency)}
                   </Box>
                   <Box sx={{
                     display: 'inline-flex', alignItems: 'center', gap: 0.2,
@@ -231,7 +232,7 @@ function AppInner() {
                     bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
                     color: 'success.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingUpIcon sx={{ fontSize: 12 }} /> +{fmtMoney(expIn, currency)}
+                    <TrendingUp size={12} /> +{fmtMoney(expIn, currency)}
                   </Box>
                 </Box>
               )}
@@ -244,7 +245,7 @@ function AppInner() {
                     bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
                     color: 'success.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingUpIcon sx={{ fontSize: 12 }} /> +{fmtMoney(friendCredit, currency)}
+                    <TrendingUp size={12} /> +{fmtMoney(friendCredit, currency)}
                   </Box>
                   <Box sx={{
                     display: 'inline-flex', alignItems: 'center', gap: 0.2,
@@ -252,7 +253,7 @@ function AppInner() {
                     bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
                     color: 'error.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingDownIcon sx={{ fontSize: 12 }} /> -{fmtMoney(friendDebt, currency)}
+                    <TrendingDown size={12} /> -{fmtMoney(friendDebt, currency)}
                   </Box>
                 </Box>
               )}
@@ -283,13 +284,13 @@ function AppInner() {
                 }}
                 title="Add Expense"
               >
-                <AddIcon sx={{ fontSize: 17 }} />
+                <Plus size={17} />
               </IconButton>
 
               <IconButton size="small" onClick={toggleDark} sx={{ color: 'text.secondary', p: 0.5 }}>
                 {mode === 'dark'
-                  ? <LightModeIcon sx={{ fontSize: 18 }} />
-                  : <DarkModeIcon sx={{ fontSize: 18 }} />}
+                  ? <Sun size={18} />
+                  : <Moon size={18} />}
               </IconButton>
             </Box>
           </Toolbar>
@@ -332,10 +333,10 @@ function AppInner() {
               },
             }}
           >
-            <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} value="dashboard" />
-            <BottomNavigationAction label="Expenses" icon={<ReceiptLongIcon />} value="expenses" />
-            <BottomNavigationAction label="Friends" icon={<PeopleIcon />} value="friends" />
-            <BottomNavigationAction label="More" icon={<MoreHorizIcon />} value="more" />
+            <BottomNavigationAction label="Dashboard" icon={<LayoutDashboard size={20} />} value="dashboard" />
+            <BottomNavigationAction label="Expenses" icon={<ReceiptText size={20} />} value="expenses" />
+            <BottomNavigationAction label="Friends" icon={<Users size={20} />} value="friends" />
+            <BottomNavigationAction label="More" icon={<MoreHorizontal size={20} />} value="more" />
           </BottomNavigation>
         </Paper>
       )}

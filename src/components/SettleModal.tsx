@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import CloseIcon from '@mui/icons-material/Close';
+import { X } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend } from '../types';
 import { expenseFlow, unsettledExpensesForFriend } from '../db';
@@ -52,7 +52,7 @@ export default function SettleModal({ friend, onClose }: Props) {
               <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>{unsettled.length} unsettled expense{unsettled.length !== 1 ? 's' : ''}</div>
             </div>
           </div>
-          <button className="btn-icon" onClick={onClose}><CloseIcon fontSize="small" /></button>
+          <button className="btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
         <div className="modal-body">
           {unsettled.length === 0 ? (

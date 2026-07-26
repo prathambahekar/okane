@@ -1,10 +1,5 @@
 import { useMemo } from 'react';
-import AddIcon from '@mui/icons-material/Add';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import PeopleIcon from '@mui/icons-material/People';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey } from '../db';
 import { fmtMoney, fmtDate, friendInitial, generateInsights } from '../utils';
@@ -74,7 +69,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
           <p className="page-subtitle">{now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
         <button className="btn btn-primary desktop-only" onClick={onAddExpense}>
-          <AddIcon fontSize="small" /> Add Expense
+          <Plus size={16} /> Add Expense
         </button>
       </div>
 
@@ -150,16 +145,16 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
               <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.18)', borderRadius: 4, padding: '10px 12px' }}>
                 <div style={{ fontSize: 10.5, color: 'var(--text-3)', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <TrendingDownIcon style={{ fontSize: 13, color: 'var(--debit)' }} /> {monthName} Spend
+                  <TrendingDown size={13} style={{ color: 'var(--debit)' }} /> {monthName} Spend
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--debit)', marginTop: 4 }}>
                   {fmtMoney(monthSpend, currency)}
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.18)', borderRadius: 4, padding: '10px 12px' }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.18)', borderRadius: 4, padding: '10px 12px' }}>
                 <div style={{ fontSize: 10.5, color: 'var(--text-3)', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <TrendingUpIcon style={{ fontSize: 13, color: 'var(--credit)' }} /> {monthName} Income
+                  <TrendingUp size={13} style={{ color: 'var(--credit)' }} /> {monthName} Income
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--credit)', marginTop: 4 }}>
                   {fmtMoney(monthIncome, currency)}
@@ -187,7 +182,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         <div className="card" style={{ gridColumn: '1 / -1' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ReceiptLongIcon style={{ fontSize: 18, color: 'var(--accent)' }} />
+              <ReceiptText size={18} style={{ color: 'var(--accent)' }} />
               <h2 style={{ fontSize: 14, fontWeight: 600 }}>Recent Expenses</h2>
             </div>
             <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('expenses')} style={{ fontSize: 12, padding: '2px 8px' }}>View all →</button>
@@ -232,7 +227,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <PeopleIcon style={{ fontSize: 18, color: 'var(--accent)' }} />
+              <Users size={18} style={{ color: 'var(--accent)' }} />
               <h2 style={{ fontSize: 14, fontWeight: 600 }}>Friends</h2>
             </div>
             <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('friends')} style={{ fontSize: 12, padding: '2px 8px' }}>View all →</button>
@@ -261,7 +256,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <AccountBalanceWalletIcon style={{ fontSize: 18, color: 'var(--accent)' }} />
+              <Wallet size={18} style={{ color: 'var(--accent)' }} />
               <h2 style={{ fontSize: 14, fontWeight: 600 }}>Wallets</h2>
             </div>
             <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('wallets')} style={{ fontSize: 12, padding: '2px 8px' }}>Manage →</button>
