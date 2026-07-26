@@ -190,17 +190,20 @@ html, body, #root {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
   gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
 .page-title {
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
   color: var(--text);
+  letter-spacing: -0.4px;
 }
 .page-subtitle {
   font-size: 13px;
-  color: var(--text-3);
+  color: var(--text-2);
   margin-top: 2px;
 }
 
