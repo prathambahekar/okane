@@ -271,22 +271,6 @@ function AppInner() {
                 </Box>
               )}
 
-              <IconButton
-                size="small"
-                onClick={() => setShowAddExpense(true)}
-                sx={{
-                  bgcolor: 'primary.main',
-                  color: 'primary.contrastText',
-                  width: 30,
-                  height: 30,
-                  '&:hover': { bgcolor: 'primary.dark' },
-                  boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
-                }}
-                title="Add Expense"
-              >
-                <Plus size={17} />
-              </IconButton>
-
               <IconButton size="small" onClick={toggleDark} sx={{ color: 'text.secondary', p: 0.5 }}>
                 {mode === 'dark'
                   ? <Sun size={18} />
@@ -318,7 +302,8 @@ function AppInner() {
           <BottomNavigation
             value={bottomNavValue}
             onChange={(_, val) => {
-              if (val === 'more') setMoreOpen(true);
+              if (val === 'add') setShowAddExpense(true);
+              else if (val === 'more') setMoreOpen(true);
               else navigate(val as ViewName);
             }}
             showLabels
@@ -335,6 +320,37 @@ function AppInner() {
           >
             <BottomNavigationAction label="Dashboard" icon={<LayoutDashboard size={20} />} value="dashboard" />
             <BottomNavigationAction label="Expenses" icon={<ReceiptText size={20} />} value="expenses" />
+            <BottomNavigationAction
+              value="add"
+              icon={
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: mode === 'dark'
+                      ? '0 3px 12px rgba(66, 165, 245, 0.45)'
+                      : '0 3px 10px rgba(25, 118, 210, 0.35)',
+                    transition: 'transform 0.15s ease, background-color 0.2s ease',
+                    '&:active': {
+                      transform: 'scale(0.92)',
+                    },
+                  }}
+                >
+                  <Plus size={22} strokeWidth={2.5} />
+                </Box>
+              }
+              sx={{
+                '& .MuiBottomNavigationAction-label': {
+                  display: 'none !important',
+                },
+              }}
+            />
             <BottomNavigationAction label="Friends" icon={<Users size={20} />} value="friends" />
             <BottomNavigationAction label="More" icon={<MoreHorizontal size={20} />} value="more" />
           </BottomNavigation>
