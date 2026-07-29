@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useStore } from '../store';
 import { expenseFlow, friendBalance } from '../db';
 import { fmtMoney, fmtMonth, friendInitial } from '../utils';
+import { CategoryBadge } from '../components/CategoryIcon';
 
 type TimeFrame = 'this_month' | '3_months' | '6_months' | 'this_year' | 'all';
 
@@ -274,8 +275,7 @@ export default function Analytics() {
                   <div key={cat}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12.5 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <span className="cat-dot" style={{ background: catColor }} />
-                        <span style={{ fontWeight: 500 }}>{cat}</span>
+                        <CategoryBadge category={cat} color={catColor} size={14} />
                       </div>
                       <div style={{ display: 'flex', gap: 10 }}>
                         <span style={{ color: 'var(--text-3)' }}>{Math.round(pct)}%</span>
@@ -317,10 +317,7 @@ export default function Analytics() {
                   return (
                     <tr key={cat}>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span className="cat-dot" style={{ background: catColor }} />
-                          <span style={{ fontSize: 13, fontWeight: 500 }}>{cat}</span>
-                        </div>
+                        <CategoryBadge category={cat} color={catColor} />
                       </td>
                       <td style={{ fontWeight: 600 }}>{fmtMoney(amount, currency)}</td>
                       <td style={{ color: 'var(--text-2)', fontSize: 12 }}>{Math.round(pct)}%</td>

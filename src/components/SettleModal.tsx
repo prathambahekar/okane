@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { X } from 'lucide-react';
+import CategoryIcon from './CategoryIcon';
 import { useStore } from '../store';
 import type { Friend } from '../types';
 import { expenseFlow, unsettledExpensesForFriend } from '../db';
@@ -74,7 +75,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                   return (
                     <label key={e.id} className="settle-check-row">
                       <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggle(e.id)} />
-                      {cat && <span className="cat-dot" style={{ background: cat.color }} />}
+                      <CategoryIcon category={e.category} size={15} style={{ color: cat?.color ?? 'var(--accent)', flexShrink: 0 }} />
                       <span style={{ flex: 1 }}>{e.description}</span>
                       <span style={{ fontSize: 12, color: 'var(--text-3)', marginRight: 10 }}>{fmtDate(e.date)}</span>
                       <span style={{ fontWeight: 500, color: e.type === 'for_friend' ? 'var(--credit)' : 'var(--debit)' }}>

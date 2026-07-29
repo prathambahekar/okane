@@ -78,7 +78,9 @@ export function loadDB(): AppDB {
     const defaultWal = db.settings.defaultWalletId;
     db.expenses.forEach(e => {
       if (!e.flow) e.flow = 'out';
-      if (!e.walletId || !db.wallets.some(w => w.id === e.walletId)) e.walletId = defaultWal;
+      if (e.type !== 'by_friend' && (!e.walletId || !db.wallets.some(w => w.id === e.walletId))) {
+        e.walletId = defaultWal;
+      }
     });
     db.version = 3;
     return db;
@@ -98,6 +100,7 @@ export function expenseFlow(e: Expense): ExpenseFlow {
 
 export function expenseWalletDelta(e: Expense): number {
   if (e.status === 'unpaid') return 0;
+  if (e.type === 'by_friend') return 0;
   const amt = Number(e.amount) || 0;
   return expenseFlow(e) === 'in' ? amt : -amt;
 }
@@ -170,7 +173,7 @@ export function addExpense(db: AppDB, data: Partial<Expense>): AppDB {
     type: (data.type as ExpenseType) || 'personal',
     flow: data.flow === 'in' ? 'in' : 'out',
     friendId: data.type === 'personal' ? null : (data.friendId || null),
-    walletId: data.walletId || db.settings.defaultWalletId || db.wallets[0]?.id,
+    walletId: data.type === 'by_friend' ? (data.walletId || '') : (data.walletId || db.settings.defaultWalletId || db.wallets[0]?.id),
     status: (data.status as ExpenseStatus) || db.settings.defaultStatus,
     settled: false,
     settlementId: null,

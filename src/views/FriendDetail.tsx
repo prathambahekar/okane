@@ -5,6 +5,7 @@ import { friendBalance, expenseFlow } from '../db';
 import { fmtMoney, fmtDate, friendInitial, typeLabel, statusLabel } from '../utils';
 import type { ViewName } from '../types';
 import FriendModal from '../components/FriendModal';
+import { CategoryBadge } from '../components/CategoryIcon';
 import SettleModal from '../components/SettleModal';
 import ExpenseModal from '../components/ExpenseModal';
 
@@ -237,10 +238,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
                       <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type)}</td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {cat && <span className="cat-dot" style={{ background: cat.color }} />}
-                          <span style={{ fontSize: 12 }}>{e.category}</span>
-                        </div>
+                        <CategoryBadge category={e.category} color={cat?.color} />
                       </td>
                       <td>
                         <span className={`badge badge-${e.settled ? 'settled' : e.status}`}>
@@ -267,7 +265,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     <div className="mobile-expense-header" onClick={() => toggleExpand(e.id)}>
                       <div className="mobile-expense-top">
                         <div className="mobile-expense-desc-wrap">
-                          {cat && <span className="cat-dot" style={{ background: cat.color }} />}
+                          <CategoryBadge category={e.category} color={cat?.color} size={13} showLabel={false} />
                           <span className="mobile-expense-title">{e.description}</span>
                         </div>
                         <div className="mobile-expense-amount" style={{ color: isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined }}>
@@ -293,8 +291,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <div className="mobile-expense-detail-item">
                             <span className="mobile-expense-detail-label">Category</span>
                             <span className="mobile-expense-detail-val">
-                              {cat && <span className="cat-dot" style={{ background: cat.color }} />}
-                              {e.category}
+                              <CategoryBadge category={e.category} color={cat?.color} size={13} />
                             </span>
                           </div>
 

@@ -4,6 +4,7 @@ import { useStore } from '../store';
 import { friendBalance, walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey } from '../db';
 import { fmtMoney, fmtDate, friendInitial, generateInsights } from '../utils';
 import type { Friend, ViewName } from '../types';
+import { CategoryBadge } from '../components/CategoryIcon';
 
 interface Props {
   onNavigate: (v: ViewName, arg?: string) => void;
@@ -207,7 +208,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     gap: 10,
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-                      <span className="cat-dot" style={{ background: cat?.color ?? '#6B7280', display: 'block', width: 8, height: 8, borderRadius: '50%', flexShrink: 0 }} />
+                      <CategoryBadge category={e.category} color={cat?.color} size={14} showLabel={false} />
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 500, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description}</div>
                         <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{fmtDate(e.date)} · {e.category}{friend ? ` · ${friend.name}` : ''}</div>
@@ -287,8 +288,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 <div key={cat}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12.5 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="cat-dot" style={{ background: catColor }} />
-                      <span>{cat}</span>
+                      <CategoryBadge category={cat} color={catColor} size={14} />
                     </div>
                     <span style={{ fontWeight: 600 }}>{fmtMoney(total, currency)}</span>
                   </div>

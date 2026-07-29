@@ -6,6 +6,7 @@ import { expenseFlow } from '../db';
 import { fmtMoney, fmtDate, typeLabel, statusLabel, friendInitial } from '../utils';
 import ExpenseModal from '../components/ExpenseModal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import CategoryIcon, { CategoryBadge } from '../components/CategoryIcon';
 
 export default function Expenses() {
   const { db, deleteExpense, showToast } = useStore();
@@ -197,10 +198,7 @@ export default function Expenses() {
                       </td>
                       <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {cat && <span className="cat-dot" style={{ background: cat.color }} />}
-                          <span style={{ fontSize: 12 }}>{e.category}</span>
-                        </div>
+                        <CategoryBadge category={e.category} color={cat?.color} />
                       </td>
                       <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type)}</td>
                       <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{wallet?.name ?? '—'}</td>
@@ -234,7 +232,7 @@ export default function Expenses() {
                     <div className="mobile-expense-header" onClick={() => toggleExpand(e.id)}>
                       <div className="mobile-expense-top">
                         <div className="mobile-expense-desc-wrap">
-                          {cat && <span className="cat-dot" style={{ background: cat.color }} />}
+                          <CategoryIcon category={e.category} size={15} style={{ color: cat?.color ?? 'var(--accent)', flexShrink: 0 }} />
                           <span className="mobile-expense-title">{e.description}</span>
                         </div>
                         <div className="mobile-expense-amount" style={{ color: isIn ? 'var(--credit)' : undefined }}>
@@ -269,8 +267,7 @@ export default function Expenses() {
                           <div className="mobile-expense-detail-item">
                             <span className="mobile-expense-detail-label">Category</span>
                             <span className="mobile-expense-detail-val">
-                              {cat && <span className="cat-dot" style={{ background: cat.color }} />}
-                              {e.category}
+                              <CategoryBadge category={e.category} color={cat?.color} size={13} />
                             </span>
                           </div>
 
