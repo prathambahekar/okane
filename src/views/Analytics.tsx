@@ -270,12 +270,13 @@ export default function Analytics() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {categoryBreakdown.slice(0, 6).map(({ cat, amount, pct }) => {
-                const catColor = db.settings.categories.find(c => c.name === cat)?.color ?? '#6B7280';
+                const catObj = db.settings.categories.find(c => c.name === cat);
+                const catColor = catObj?.color ?? '#6B7280';
                 return (
                   <div key={cat}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12.5 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <CategoryBadge category={cat} color={catColor} size={14} />
+                        <CategoryBadge category={cat} color={catColor} icon={catObj?.icon} size={14} />
                       </div>
                       <div style={{ display: 'flex', gap: 10 }}>
                         <span style={{ color: 'var(--text-3)' }}>{Math.round(pct)}%</span>
@@ -313,11 +314,12 @@ export default function Analytics() {
               </thead>
               <tbody>
                 {categoryBreakdown.map(({ cat, amount, pct, count, avg }) => {
-                  const catColor = db.settings.categories.find(c => c.name === cat)?.color ?? '#6B7280';
+                  const catObj = db.settings.categories.find(c => c.name === cat);
+                  const catColor = catObj?.color ?? '#6B7280';
                   return (
                     <tr key={cat}>
                       <td>
-                        <CategoryBadge category={cat} color={catColor} />
+                        <CategoryBadge category={cat} color={catColor} icon={catObj?.icon} />
                       </td>
                       <td style={{ fontWeight: 600 }}>{fmtMoney(amount, currency)}</td>
                       <td style={{ color: 'var(--text-2)', fontSize: 12 }}>{Math.round(pct)}%</td>

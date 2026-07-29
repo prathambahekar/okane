@@ -208,7 +208,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     gap: 10,
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-                      <CategoryBadge category={e.category} color={cat?.color} size={14} showLabel={false} />
+                      <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={14} showLabel={false} />
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 500, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description}</div>
                         <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{fmtDate(e.date)} · {e.category}{friend ? ` · ${friend.name}` : ''}</div>
@@ -283,12 +283,13 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
           <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Top Categories — {monthName}</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {catTotals.map(([cat, total]) => {
-              const catColor = db.settings.categories.find(c => c.name === cat)?.color ?? '#6B7280';
+              const catObj = db.settings.categories.find(c => c.name === cat);
+              const catColor = catObj?.color ?? '#6B7280';
               return (
                 <div key={cat}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12.5 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CategoryBadge category={cat} color={catColor} size={14} />
+                      <CategoryBadge category={cat} color={catColor} icon={catObj?.icon} size={14} />
                     </div>
                     <span style={{ fontWeight: 600 }}>{fmtMoney(total, currency)}</span>
                   </div>

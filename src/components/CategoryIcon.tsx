@@ -23,7 +23,29 @@ import {
 
 interface CategoryIconProps extends LucideProps {
   category?: string;
+  icon?: string;
 }
+
+export const AVAILABLE_ICONS = [
+  { id: 'food', label: 'Food / Dining', Icon: Utensils },
+  { id: 'groceries', label: 'Groceries', Icon: ShoppingCart },
+  { id: 'transport', label: 'Transport / Fuel', Icon: Car },
+  { id: 'rent', label: 'Rent / Home', Icon: Home },
+  { id: 'utilities', label: 'Utilities / Bills', Icon: Zap },
+  { id: 'entertainment', label: 'Entertainment / Movies', Icon: Film },
+  { id: 'shopping', label: 'Shopping', Icon: ShoppingBag },
+  { id: 'travel', label: 'Travel / Flights', Icon: Plane },
+  { id: 'health', label: 'Health / Medical', Icon: HeartPulse },
+  { id: 'income', label: 'Income / Salary', Icon: TrendingUp },
+  { id: 'refund', label: 'Refund / Cashback', Icon: RotateCcw },
+  { id: 'education', label: 'Education', Icon: GraduationCap },
+  { id: 'gift', label: 'Gift', Icon: Gift },
+  { id: 'investment', label: 'Investment', Icon: LineChart },
+  { id: 'tv', label: 'Subscriptions / TV', Icon: Tv },
+  { id: 'cafe', label: 'Coffee / Cafe', Icon: Coffee },
+  { id: 'work', label: 'Work / Business', Icon: Briefcase },
+  { id: 'other', label: 'Other / Tag', Icon: Tag },
+];
 
 const iconMap: Record<string, React.ElementType> = {
   food: Utensils,
@@ -67,9 +89,10 @@ const iconMap: Record<string, React.ElementType> = {
   other: Tag,
 };
 
-export default function CategoryIcon({ category = '', size = 16, className = '', style, ...props }: CategoryIconProps) {
-  const key = (category || '').trim().toLowerCase();
-  const IconComponent = iconMap[key] || Tag;
+export default function CategoryIcon({ category = '', icon = '', size = 16, className = '', style, ...props }: CategoryIconProps) {
+  const iconKey = (icon || '').trim().toLowerCase();
+  const categoryKey = (category || '').trim().toLowerCase();
+  const IconComponent = iconMap[iconKey] || iconMap[categoryKey] || Tag;
   
   return <IconComponent size={size} className={className} style={{ flexShrink: 0, ...style }} {...props} />;
 }
@@ -77,11 +100,12 @@ export default function CategoryIcon({ category = '', size = 16, className = '',
 interface CategoryBadgeProps {
   category?: string;
   color?: string;
+  icon?: string;
   size?: number;
   showLabel?: boolean;
 }
 
-export function CategoryBadge({ category = '', color, size = 14, showLabel = true }: CategoryBadgeProps) {
+export function CategoryBadge({ category = '', color, icon = '', size = 14, showLabel = true }: CategoryBadgeProps) {
   const iconColor = color || 'var(--accent)';
   
   // Safe background tint calculation
@@ -112,7 +136,7 @@ export function CategoryBadge({ category = '', color, size = 14, showLabel = tru
           flexShrink: 0,
         }}
       >
-        <CategoryIcon category={category} size={size} style={{ color: iconColor }} />
+        <CategoryIcon category={category} icon={icon} size={size} style={{ color: iconColor }} />
       </span>
       {showLabel && <span>{category}</span>}
     </span>

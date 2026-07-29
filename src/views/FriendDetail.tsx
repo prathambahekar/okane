@@ -238,7 +238,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
                       <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type)}</td>
                       <td>
-                        <CategoryBadge category={e.category} color={cat?.color} />
+                        <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} />
                       </td>
                       <td>
                         <span className={`badge badge-${e.settled ? 'settled' : e.status}`}>
@@ -265,7 +265,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     <div className="mobile-expense-header" onClick={() => toggleExpand(e.id)}>
                       <div className="mobile-expense-top">
                         <div className="mobile-expense-desc-wrap">
-                          <CategoryBadge category={e.category} color={cat?.color} size={13} showLabel={false} />
+                          <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={13} showLabel={false} />
                           <span className="mobile-expense-title">{e.description}</span>
                         </div>
                         <div className="mobile-expense-amount" style={{ color: isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined }}>
@@ -291,7 +291,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <div className="mobile-expense-detail-item">
                             <span className="mobile-expense-detail-label">Category</span>
                             <span className="mobile-expense-detail-val">
-                              <CategoryBadge category={e.category} color={cat?.color} size={13} />
+                              <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={13} />
                             </span>
                           </div>
 

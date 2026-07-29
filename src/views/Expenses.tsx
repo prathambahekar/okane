@@ -198,7 +198,7 @@ export default function Expenses() {
                       </td>
                       <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
                       <td>
-                        <CategoryBadge category={e.category} color={cat?.color} />
+                        <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} />
                       </td>
                       <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type)}</td>
                       <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{wallet?.name ?? '—'}</td>
@@ -232,7 +232,7 @@ export default function Expenses() {
                     <div className="mobile-expense-header" onClick={() => toggleExpand(e.id)}>
                       <div className="mobile-expense-top">
                         <div className="mobile-expense-desc-wrap">
-                          <CategoryIcon category={e.category} size={15} style={{ color: cat?.color ?? 'var(--accent)', flexShrink: 0 }} />
+                          <CategoryIcon category={e.category} icon={cat?.icon} size={15} style={{ color: cat?.color ?? 'var(--accent)', flexShrink: 0 }} />
                           <span className="mobile-expense-title">{e.description}</span>
                         </div>
                         <div className="mobile-expense-amount" style={{ color: isIn ? 'var(--credit)' : undefined }}>
@@ -267,7 +267,7 @@ export default function Expenses() {
                           <div className="mobile-expense-detail-item">
                             <span className="mobile-expense-detail-label">Category</span>
                             <span className="mobile-expense-detail-val">
-                              <CategoryBadge category={e.category} color={cat?.color} size={13} />
+                              <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={13} />
                             </span>
                           </div>
 

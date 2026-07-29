@@ -3,18 +3,18 @@ import type { AppDB, Wallet, Friend, Expense, Settlement, ExpenseFlow, ExpenseTy
 const DB_KEY = 'ledger_app_db_v2';
 
 export const DEFAULT_CATEGORIES = [
-  { name: 'Food', color: '#F97362' },
-  { name: 'Groceries', color: '#4ADE80' },
-  { name: 'Transport', color: '#38BDF8' },
-  { name: 'Rent', color: '#FBBF24' },
-  { name: 'Utilities', color: '#A78BFA' },
-  { name: 'Entertainment', color: '#F472B6' },
-  { name: 'Shopping', color: '#FB7185' },
-  { name: 'Travel', color: '#22D3EE' },
-  { name: 'Health', color: '#F87171' },
-  { name: 'Income', color: '#34D399' },
-  { name: 'Refund', color: '#2DD4BF' },
-  { name: 'Other', color: '#94A3B8' },
+  { name: 'Food', color: '#F97362', icon: 'food' },
+  { name: 'Groceries', color: '#4ADE80', icon: 'groceries' },
+  { name: 'Transport', color: '#38BDF8', icon: 'transport' },
+  { name: 'Rent', color: '#FBBF24', icon: 'rent' },
+  { name: 'Utilities', color: '#A78BFA', icon: 'utilities' },
+  { name: 'Entertainment', color: '#F472B6', icon: 'entertainment' },
+  { name: 'Shopping', color: '#FB7185', icon: 'shopping' },
+  { name: 'Travel', color: '#22D3EE', icon: 'travel' },
+  { name: 'Health', color: '#F87171', icon: 'health' },
+  { name: 'Income', color: '#34D399', icon: 'income' },
+  { name: 'Refund', color: '#2DD4BF', icon: 'refund' },
+  { name: 'Other', color: '#94A3B8', icon: 'other' },
 ];
 
 export const DEFAULT_WALLETS: Wallet[] = [
@@ -213,6 +213,28 @@ export function addFriend(db: AppDB, data: Partial<Friend>): { db: AppDB; friend
 
 export function updateFriend(db: AppDB, id: string, data: Partial<Friend>): AppDB {
   return { ...db, friends: db.friends.map(f => f.id === id ? { ...f, ...data } : f) };
+}
+
+export function updateCategory(db: AppDB, oldName: string, data: { name: string; color: string; icon?: string }): AppDB {
+  const newName = data.name.trim();
+  const categories = db.settings.categories.map(c =>
+    c.name === oldName ? { name: newName, color: data.color, icon: data.icon } : c
+  );
+  let expenses = db.expenses;
+  let defaultCategory = db.settings.defaultCategory;
+  if (newName !== oldName) {
+    expenses = expenses.map(e => e.category === oldName ? { ...e, category: newName } : e);
+    if (defaultCategory === oldName) defaultCategory = newName;
+  }
+  return {
+    ...db,
+    expenses,
+    settings: {
+      ...db.settings,
+      categories,
+      defaultCategory,
+    },
+  };
 }
 
 export function deleteFriend(db: AppDB, id: string): AppDB {

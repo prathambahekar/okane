@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useColorMode } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Download, Upload, FlaskConical, Trash2, ChevronRight } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Download, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE } from '../db';
 import type { Category, AppDB } from '../types';
@@ -10,24 +10,108 @@ import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 
+import CategoryIcon, { AVAILABLE_ICONS } from '../components/CategoryIcon';
+
+function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeColor: (c: string) => void }) {
+  const isCustom = !FRIEND_PALETTE.includes(color);
+  return (
+    <div className="category-color-picker">
+      {FRIEND_PALETTE.map(c => (
+        <button
+          key={c}
+          type="button"
+          className={`color-swatch-btn ${color === c ? 'selected' : ''}`}
+          style={{ background: c }}
+          onClick={() => onChangeColor(c)}
+          aria-label={`Select color ${c}`}
+        />
+      ))}
+      <label
+        className={`color-swatch-btn ${isCustom ? 'selected' : ''}`}
+        style={{
+          background: color,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          position: 'relative',
+          overflow: 'hidden',
+          border: '1.5px dashed rgba(255,255,255,0.4)',
+        }}
+        title="Choose Custom Color"
+      >
+        <Palette size={13} style={{ color: '#fff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />
+        <input
+          type="color"
+          value={color}
+          onChange={e => onChangeColor(e.target.value)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            opacity: 0,
+            cursor: 'pointer',
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
 export default function Settings() {
-  const { db, updateSettings, resetDB, restoreDB, loadSampleData, showToast } = useStore();
+  const { db, updateSettings, updateCategory, resetDB, restoreDB, loadSampleData, showToast } = useStore();
   const { settings } = db;
   const fileRef = useRef<HTMLInputElement>(null);
   const [showReset, setShowReset] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatColor, setNewCatColor] = useState(FRIEND_PALETTE[0]);
+  const [newCatIcon, setNewCatIcon] = useState('other');
+
+  const [editingCat, setEditingCat] = useState<Category | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editColor, setEditColor] = useState('#F97362');
+  const [editIcon, setEditIcon] = useState('other');
+
   const { mode, toggleMode } = useColorMode();
   const isDark = mode === 'dark';
 
+  const startEditCategory = (c: Category) => {
+    setEditingCat(c);
+    setEditName(c.name);
+    setEditColor(c.color);
+    setEditIcon(c.icon || 'other');
+  };
+
+  const handleSaveEditCategory = () => {
+    if (!editingCat) return;
+    const trimmed = editName.trim();
+    if (!trimmed) {
+      showToast('Category name cannot be empty.');
+      return;
+    }
+    const oldName = editingCat.name;
+    if (trimmed.toLowerCase() !== oldName.toLowerCase() && settings.categories.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
+      showToast('Category with this name already exists.');
+      return;
+    }
+    updateCategory(oldName, { name: trimmed, color: editColor, icon: editIcon });
+    setEditingCat(null);
+    showToast(`Updated category "${trimmed}"`);
+  };
+
   const handleAddCategory = () => {
-    if (!newCatName.trim()) return;
-    if (settings.categories.some(c => c.name.toLowerCase() === newCatName.trim().toLowerCase())) {
+    const trimmed = newCatName.trim();
+    if (!trimmed) return;
+    if (settings.categories.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
       showToast('Category already exists.');
       return;
     }
-    updateSettings({ categories: [...settings.categories, { name: newCatName.trim(), color: newCatColor }] });
+    updateSettings({ categories: [...settings.categories, { name: trimmed, color: newCatColor, icon: newCatIcon }] });
     setNewCatName('');
+    setNewCatIcon('other');
+    showToast(`Category "${trimmed}" added!`);
   };
 
   const handleDeleteCategory = (name: string) => {
@@ -237,26 +321,53 @@ export default function Settings() {
 
           {/* Chips Grid */}
           <div className="category-chip-list">
-            {settings.categories.map((c: Category) => (
-              <div key={c.name} className="category-chip">
-                <span className="category-chip-dot" style={{ background: c.color }} />
-                <span>{c.name}</span>
-                <button
-                  type="button"
-                  className="category-chip-delete"
-                  title={`Remove ${c.name}`}
-                  onClick={() => handleDeleteCategory(c.name)}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
+            {settings.categories.map((c: Category) => {
+              const bgTint = c.color.startsWith('#') && c.color.length === 7 ? `${c.color}20` : 'var(--accent-soft)';
+              return (
+                <div key={c.name} className="category-chip">
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      background: bgTint,
+                      color: c.color,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <CategoryIcon category={c.name} icon={c.icon} size={13} style={{ color: c.color }} />
+                  </span>
+                  <span>{c.name}</span>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, marginLeft: 2 }}>
+                    <button
+                      type="button"
+                      className="category-chip-edit"
+                      title={`Edit ${c.name}`}
+                      onClick={() => startEditCategory(c)}
+                    >
+                      <Edit2 size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className="category-chip-delete"
+                      title={`Remove ${c.name}`}
+                      onClick={() => handleDeleteCategory(c.name)}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Add Category Section */}
           <div className="category-add-box">
             <div className="category-add-header">Add New Category</div>
-            <div className="category-add-form">
+            <div className="category-add-form" style={{ gridTemplateColumns: '1fr', gap: 16 }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontSize: 11.5 }}>Category Name</label>
                 <input
@@ -270,30 +381,112 @@ export default function Settings() {
 
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontSize: 11.5 }}>Color Tag</label>
-                <div className="category-color-picker">
-                  {FRIEND_PALETTE.map(c => (
-                    <button
-                      key={c}
-                      type="button"
-                      className={`color-swatch-btn ${newCatColor === c ? 'selected' : ''}`}
-                      style={{ background: c }}
-                      onClick={() => setNewCatColor(c)}
-                      aria-label={`Select color ${c}`}
-                    />
-                  ))}
+                <ColorPickerSection color={newCatColor} onChangeColor={setNewCatColor} />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontSize: 11.5 }}>Category Icon</label>
+                <div className="category-icon-picker">
+                  {AVAILABLE_ICONS.map(({ id, label, Icon }) => {
+                    const isSelected = newCatIcon === id;
+                    const bgStyle = isSelected
+                      ? (newCatColor.startsWith('#') && newCatColor.length === 7 ? `${newCatColor}20` : 'var(--accent-soft)')
+                      : undefined;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        className={`icon-picker-btn ${isSelected ? 'selected' : ''}`}
+                        onClick={() => setNewCatIcon(id)}
+                        title={label}
+                        style={{
+                          color: isSelected ? newCatColor : 'var(--text-2)',
+                          borderColor: isSelected ? newCatColor : undefined,
+                          background: bgStyle,
+                        }}
+                      >
+                        <Icon size={16} />
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               <button
                 className="btn btn-primary"
                 onClick={handleAddCategory}
-                style={{ padding: '9px 16px', gap: 6, justifyContent: 'center' }}
+                style={{ padding: '9px 16px', gap: 6, justifyContent: 'center', justifySelf: 'start', marginTop: 4 }}
               >
                 <Plus size={18} /> Add Category
               </button>
             </div>
           </div>
         </div>
+
+        {/* Edit Category Modal */}
+        {editingCat && (
+          <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) setEditingCat(null); }}>
+            <div className="modal" style={{ maxWidth: 460 }}>
+              <div className="modal-header">
+                <span className="modal-title">Edit Category</span>
+                <button className="btn-icon" onClick={() => setEditingCat(null)} aria-label="Close dialog"><X size={18} /></button>
+              </div>
+              <form onSubmit={e => { e.preventDefault(); handleSaveEditCategory(); }}>
+                <div className="modal-body">
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label className="form-label">Category Name *</label>
+                      <input
+                        className="form-input"
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        placeholder="Category name..."
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Color Tag</label>
+                      <ColorPickerSection color={editColor} onChangeColor={setEditColor} />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Category Icon</label>
+                      <div className="category-icon-picker">
+                        {AVAILABLE_ICONS.map(({ id, label, Icon }) => {
+                          const isSelected = editIcon === id;
+                          const bgStyle = isSelected
+                            ? (editColor.startsWith('#') && editColor.length === 7 ? `${editColor}20` : 'var(--accent-soft)')
+                            : undefined;
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              className={`icon-picker-btn ${isSelected ? 'selected' : ''}`}
+                              onClick={() => setEditIcon(id)}
+                              title={label}
+                              style={{
+                                color: isSelected ? editColor : 'var(--text-2)',
+                                borderColor: isSelected ? editColor : undefined,
+                                background: bgStyle,
+                              }}
+                            >
+                              <Icon size={16} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingCat(null)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary btn-sm">Save Changes</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Data Management */}
         <div className="card" style={{ padding: '20px 22px' }}>

@@ -1,6 +1,7 @@
 export interface Category {
   name: string;
   color: string;
+  icon?: string;
 }
 
 export interface Wallet {

@@ -5,6 +5,7 @@ import {
   addExpense as dbAddExpense, updateExpense as dbUpdateExpense, deleteExpense as dbDeleteExpense,
   addFriend as dbAddFriend, updateFriend as dbUpdateFriend, deleteFriend as dbDeleteFriend,
   addWallet as dbAddWallet, updateWallet as dbUpdateWallet, deleteWallet as dbDeleteWallet,
+  updateCategory as dbUpdateCategory,
   recordSettlement as dbRecordSettlement, deleteSettlement as dbDeleteSettlement,
   seedSampleData,
 } from './db';
@@ -39,6 +40,7 @@ interface StoreContextType {
   recordSettlement: (friendId: string, expenseIds: string[], note: string, walletId?: string) => void;
   deleteSettlement: (id: string) => void;
 
+  updateCategory: (oldName: string, data: { name: string; color: string; icon?: string }) => void;
   updateSettings: (data: Partial<AppDB['settings']>) => void;
   resetDB: () => void;
   restoreDB: (data: AppDB) => void;
@@ -184,6 +186,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   }, [pushUndo, persist]);
 
+  const updateCategory = useCallback((oldName: string, data: { name: string; color: string; icon?: string }) => {
+    setDB(current => {
+      const next = dbUpdateCategory(current, oldName, data);
+      saveDB(next);
+      return next;
+    });
+  }, []);
+
   const updateSettings = useCallback((data: Partial<AppDB['settings']>) => {
     setDB(current => {
       const next = { ...current, settings: { ...current.settings, ...data } };
@@ -229,7 +239,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     addFriend, updateFriend, deleteFriend,
     addWallet, updateWallet, deleteWallet: deleteWalletFn,
     recordSettlement, deleteSettlement,
-    updateSettings, resetDB, restoreDB, loadSampleData, bulkAddExpenses,
+    updateCategory, updateSettings, resetDB, restoreDB, loadSampleData, bulkAddExpenses,
     showToast, dismissToast,
   };
 

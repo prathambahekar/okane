@@ -1278,6 +1278,24 @@ table.desktop-only { display: table !important; }
   flex-shrink: 0;
 }
 
+.category-chip-edit {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 50%;
+  transition: all var(--transition);
+}
+
+.category-chip-edit:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .category-chip-delete {
   background: none;
   border: none;
@@ -1346,6 +1364,40 @@ table.desktop-only { display: table !important; }
 .color-swatch-btn.selected {
   transform: scale(1.15);
   box-shadow: 0 0 0 2px var(--surface2), 0 0 0 4px var(--accent);
+}
+
+.category-icon-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.icon-picker-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  padding: 0;
+  outline: none;
+}
+
+.icon-picker-btn:hover {
+  border-color: var(--border2);
+  background: var(--surface3);
+  transform: translateY(-1px);
+}
+
+.icon-picker-btn.selected {
+  border-width: 1.5px;
+  box-shadow: 0 0 0 2px var(--surface2);
 }
 
 @media (max-width: 640px) {
