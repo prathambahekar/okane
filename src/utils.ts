@@ -67,6 +67,113 @@ export function expenseAmountClass(e: Expense): string {
   return '';
 }
 
+export interface GroupedExpense {
+  id: string;
+  groupId?: string | null;
+  description: string;
+  totalAmount: number;
+  date: string;
+  category: string;
+  walletId: string;
+  flow: ExpenseFlow;
+  createdAt: number;
+  items: Expense[];
+  isSplit: boolean;
+  personalShare: number;
+  friendShare: number;
+  friendIds: string[];
+}
+
+export function groupExpenses(expenses: Expense[]): GroupedExpense[] {
+  const groupedMap = new Map<string, Expense[]>();
+  const singles: Expense[] = [];
+
+  for (const e of expenses) {
+    if (e.groupId) {
+      if (!groupedMap.has(e.groupId)) {
+        groupedMap.set(e.groupId, []);
+      }
+      groupedMap.get(e.groupId)!.push(e);
+    } else {
+      singles.push(e);
+    }
+  }
+
+  const result: GroupedExpense[] = [];
+
+  groupedMap.forEach((items, gId) => {
+    if (items.length <= 1) {
+      const e = items[0];
+      const friendIds = e.friendId ? [e.friendId] : [];
+      result.push({
+        id: e.id,
+        groupId: e.groupId,
+        description: e.description.replace(/\s*\(Friend share\)$/i, '').trim(),
+        totalAmount: e.amount,
+        date: e.date,
+        category: e.category,
+        walletId: e.walletId,
+        flow: e.flow,
+        createdAt: e.createdAt,
+        items: [e],
+        isSplit: e.type !== 'personal',
+        personalShare: e.type === 'personal' ? e.amount : 0,
+        friendShare: e.type !== 'personal' ? e.amount : 0,
+        friendIds,
+      });
+    } else {
+      items.sort((a) => (a.type === 'personal' ? -1 : 1));
+      const first = items[0];
+      const totalAmount = items.reduce((sum, item) => sum + Number(item.amount), 0);
+      const personalShare = items.filter(i => i.type === 'personal').reduce((sum, item) => sum + Number(item.amount), 0);
+      const friendShare = items.filter(i => i.type !== 'personal').reduce((sum, item) => sum + Number(item.amount), 0);
+      const friendIds = Array.from(new Set(items.map(i => i.friendId).filter(Boolean) as string[]));
+      const maxCreatedAt = Math.max(...items.map(i => i.createdAt || 0));
+      const cleanDesc = first.description.replace(/\s*\(Friend share\)$/i, '').trim();
+
+      result.push({
+        id: gId,
+        groupId: gId,
+        description: cleanDesc,
+        totalAmount,
+        date: first.date,
+        category: first.category,
+        walletId: first.walletId,
+        flow: first.flow,
+        createdAt: maxCreatedAt,
+        items,
+        isSplit: true,
+        personalShare,
+        friendShare,
+        friendIds,
+      });
+    }
+  });
+
+  for (const e of singles) {
+    const friendIds = e.friendId ? [e.friendId] : [];
+    result.push({
+      id: e.id,
+      groupId: null,
+      description: e.description.replace(/\s*\(Friend share\)$/i, '').trim(),
+      totalAmount: e.amount,
+      date: e.date,
+      category: e.category,
+      walletId: e.walletId,
+      flow: e.flow,
+      createdAt: e.createdAt,
+      items: [e],
+      isSplit: false,
+      personalShare: e.type === 'personal' ? e.amount : 0,
+      friendShare: e.type !== 'personal' ? e.amount : 0,
+      friendIds,
+    });
+  }
+
+  result.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+  return result;
+}
+
 export function friendInitial(name: string): string {
   return (name || '?').trim().charAt(0).toUpperCase();
 }

@@ -13,7 +13,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
   const { addWallet, updateWallet, showToast } = useStore();
   const [name, setName] = useState(wallet?.name ?? '');
   const [openingBalance, setOpeningBalance] = useState(wallet ? String(wallet.openingBalance) : '0');
-  const [color, setColor] = useState(wallet?.color ?? FRIEND_PALETTE[Math.floor(Math.random() * FRIEND_PALETTE.length)]);
+  const [color, setColor] = useState(() => wallet?.color ?? FRIEND_PALETTE[Math.floor(Math.random() * FRIEND_PALETTE.length)]);
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -11,7 +11,7 @@ export default function Analytics() {
   const { expenses, friends, settings: { currency } } = db;
   const [timeframe, setTimeframe] = useState<TimeFrame>('6_months');
 
-  const now = new Date();
+  const now = useMemo(() => new Date(), []);
 
   // Date filtering logic
   const filteredExpenses = useMemo(() => {

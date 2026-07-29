@@ -82,6 +82,35 @@ export function loadDB(): AppDB {
         e.walletId = defaultWal;
       }
     });
+
+    // Migrate un-grouped split expenses (e.g. "Poha" & "Poha (Friend share)")
+    const processedIds = new Set<string>();
+    db.expenses.forEach((e1) => {
+      if (e1.groupId || processedIds.has(e1.id)) return;
+      if (e1.type === 'for_friend' && e1.description.includes('(Friend share)')) {
+        const baseDesc = e1.description.replace(/\s*\(Friend share\)$/i, '').trim();
+        const match = db.expenses.find(e2 =>
+          e2.id !== e1.id &&
+          !e2.groupId &&
+          !processedIds.has(e2.id) &&
+          e2.type === 'personal' &&
+          e2.category === e1.category &&
+          e2.date === e1.date &&
+          (e2.description.trim() === baseDesc || e2.description.trim() === e1.description.trim()) &&
+          Math.abs((e2.createdAt || 0) - (e1.createdAt || 0)) < 120000
+        );
+        if (match) {
+          const newGrpId = uid('grp');
+          e1.groupId = newGrpId;
+          e1.description = baseDesc;
+          match.groupId = newGrpId;
+          match.description = baseDesc;
+          processedIds.add(e1.id);
+          processedIds.add(match.id);
+        }
+      }
+    });
+
     db.version = 3;
     return db;
   } catch (e) {
@@ -166,6 +195,7 @@ export function unsettledExpensesForFriend(db: AppDB, friendId: string): Expense
 export function addExpense(db: AppDB, data: Partial<Expense>): AppDB {
   const e: Expense = {
     id: uid('exp'),
+    groupId: data.groupId || null,
     description: data.description || 'Untitled expense',
     amount: Number(data.amount) || 0,
     category: data.category || db.settings.defaultCategory,
@@ -196,6 +226,10 @@ export function updateExpense(db: AppDB, id: string, data: Partial<Expense>): Ap
 
 export function deleteExpense(db: AppDB, id: string): AppDB {
   return { ...db, expenses: db.expenses.filter(x => x.id !== id) };
+}
+
+export function deleteExpenseGroup(db: AppDB, groupId: string): AppDB {
+  return { ...db, expenses: db.expenses.filter(x => x.groupId !== groupId) };
 }
 
 export function addFriend(db: AppDB, data: Partial<Friend>): { db: AppDB; friend: Friend } {

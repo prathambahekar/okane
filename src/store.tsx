@@ -1,8 +1,9 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { AppDB, Expense, Friend, Wallet } from './types';
 import {
   loadDB, saveDB, defaultDB,
-  addExpense as dbAddExpense, updateExpense as dbUpdateExpense, deleteExpense as dbDeleteExpense,
+  addExpense as dbAddExpense, updateExpense as dbUpdateExpense, deleteExpense as dbDeleteExpense, deleteExpenseGroup as dbDeleteExpenseGroup,
   addFriend as dbAddFriend, updateFriend as dbUpdateFriend, deleteFriend as dbDeleteFriend,
   addWallet as dbAddWallet, updateWallet as dbUpdateWallet, deleteWallet as dbDeleteWallet,
   updateCategory as dbUpdateCategory,
@@ -55,7 +56,7 @@ const StoreContext = createContext<StoreContextType | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [db, setDB] = useState<AppDB>(() => loadDB());
-  const [_undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  const [, setUndoStack] = useState<UndoEntry[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const persist = useCallback((next: AppDB) => {
@@ -98,7 +99,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const deleteExpense = useCallback((id: string) => {
     setDB(current => {
       const snapshot = current;
-      const next = dbDeleteExpense(current, id);
+      const target = current.expenses.find(x => x.id === id);
+      const next = target?.groupId
+        ? dbDeleteExpenseGroup(current, target.groupId)
+        : dbDeleteExpense(current, id);
       saveDB(next);
       pushUndo('Expense deleted', snapshot, () => persist(snapshot));
       return next;

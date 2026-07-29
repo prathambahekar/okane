@@ -27,6 +27,7 @@ export type ExpenseStatus = 'paid' | 'unpaid' | 'unsettled';
 
 export interface Expense {
   id: string;
+  groupId?: string | null;
   description: string;
   amount: number;
   category: string;

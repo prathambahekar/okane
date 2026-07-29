@@ -15,7 +15,7 @@ export default function FriendModal({ friend, onClose }: Props) {
   const [email, setEmail] = useState(friend?.email ?? '');
   const [phone, setPhone] = useState(friend?.phone ?? '');
   const [notes, setNotes] = useState(friend?.notes ?? '');
-  const [color, setColor] = useState(friend?.color ?? FRIEND_PALETTE[Math.floor(Math.random() * FRIEND_PALETTE.length)]);
+  const [color, setColor] = useState(() => friend?.color ?? FRIEND_PALETTE[Math.floor(Math.random() * FRIEND_PALETTE.length)]);
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {

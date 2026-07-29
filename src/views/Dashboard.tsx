@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey } from '../db';
-import { fmtMoney, fmtDate, friendInitial, generateInsights } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, generateInsights, groupExpenses } from '../utils';
 import type { Friend, ViewName } from '../types';
 import { CategoryBadge } from '../components/CategoryIcon';
 
@@ -32,7 +32,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
     return s + b.owedByMe;
   }, 0);
 
-  const recentExpenses = [...expenses].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+  const recentExpenses = useMemo(() => groupExpenses(expenses).slice(0, 5), [expenses]);
 
   const balancedFriends = useMemo(() =>
     friends
@@ -194,12 +194,12 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {recentExpenses.map((e, idx) => {
-                const cat = db.settings.categories.find(c => c.name === e.category);
-                const friend = e.friendId ? db.friends.find(f => f.id === e.friendId) : null;
-                const isIn = expenseFlow(e) === 'in';
+              {recentExpenses.map((ge, idx) => {
+                const cat = db.settings.categories.find(c => c.name === ge.category);
+                const isIn = ge.flow === 'in';
+                const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
                 return (
-                  <div key={e.id} style={{
+                  <div key={ge.id} style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -208,14 +208,31 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     gap: 10,
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-                      <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={14} showLabel={false} />
+                      <CategoryBadge category={ge.category} color={cat?.color} icon={cat?.icon} size={14} showLabel={false} />
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 500, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{fmtDate(e.date)} · {e.category}{friend ? ` · ${friend.name}` : ''}</div>
+                        <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ge.description}</span>
+                          {ge.isSplit && (
+                            <span style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                              padding: '1px 5px',
+                              borderRadius: 4,
+                              background: 'rgba(56, 189, 248, 0.12)',
+                              color: 'var(--accent)',
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0
+                            }}>Split</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
+                          {fmtDate(ge.date)} · {ge.category}
+                          {friendsInGroup.length > 0 ? ` · ${friendsInGroup.map(f => f?.name).join(', ')}` : ''}
+                        </div>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', fontWeight: 600, fontSize: 13, flexShrink: 0, color: isIn ? 'var(--credit)' : undefined }}>
-                      {isIn ? '+' : ''}{fmtMoney(e.amount, currency)}
+                      {isIn ? '+' : ''}{fmtMoney(ge.totalAmount, currency)}
                     </div>
                   </div>
                 );

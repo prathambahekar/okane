@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, TrendingDown, TrendingUp, User, Users, Handshake } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types';
-import { todayISO } from '../db';
+import { todayISO, uid } from '../db';
 import { currencySymbol, fmtMoney } from '../utils';
 
 interface Props {
@@ -11,38 +11,56 @@ interface Props {
 }
 
 export default function ExpenseModal({ expense, onClose }: Props) {
-  const { db, addExpense, updateExpense, showToast } = useStore();
+  const { db, addExpense, updateExpense, deleteExpense, showToast } = useStore();
   const s = db.settings;
 
-  const [desc, setDesc] = useState(expense?.description ?? '');
-  const [amount, setAmount] = useState(expense ? String(expense.amount) : '');
-  const [friendShare, setFriendShare] = useState(expense ? String(expense.amount) : '');
+  const grpItems = expense?.groupId
+    ? db.expenses.filter(e => e.groupId === expense.groupId)
+    : (expense ? [expense] : []);
+
+  const isGrp = grpItems.length > 1;
+  const forFriendItem = grpItems.find(e => e.type === 'for_friend');
+
+  const initialTotalAmount = isGrp
+    ? String(grpItems.reduce((sum, e) => sum + Number(e.amount), 0))
+    : (expense ? String(expense.amount) : '');
+
+  const initialFriendShare = forFriendItem
+    ? String(forFriendItem.amount)
+    : (expense ? String(expense.amount) : '');
+
+  const initialDesc = expense
+    ? expense.description.replace(/\s*\(Friend share\)$/i, '').trim()
+    : '';
+
+  const initialWhoPaid = expense?.type === 'by_friend' ? 'other' : 'me';
+  const initialSplitMode = (isGrp || expense?.type === 'for_friend') ? 'for_friend' : 'just_me';
+  const initialFriendId = forFriendItem?.friendId ?? expense?.friendId ?? '';
+
+  const [desc, setDesc] = useState(initialDesc);
+  const [amount, setAmount] = useState(initialTotalAmount);
+  const [friendShare, setFriendShare] = useState(initialFriendShare);
   const [category, setCategory] = useState(expense?.category ?? s.defaultCategory);
   const [date, setDate] = useState(expense?.date ?? todayISO());
   const [type, setType] = useState<ExpenseType>(expense?.type ?? 'personal');
-  const [whoPaid, setWhoPaid] = useState<'me' | 'other'>(
-    expense?.type === 'by_friend' ? 'other' : 'me'
-  );
-  const [splitMode, setSplitMode] = useState<'just_me' | 'for_friend'>(
-    expense?.type === 'for_friend' ? 'for_friend' : 'just_me'
-  );
+  const [whoPaid, setWhoPaid] = useState<'me' | 'other'>(initialWhoPaid);
+  const [splitMode, setSplitMode] = useState<'just_me' | 'for_friend'>(initialSplitMode);
   const [flow, setFlow] = useState<ExpenseFlow>(expense?.flow ?? 'out');
-  const [friendId, setFriendId] = useState(expense?.friendId ?? '');
+  const [friendId, setFriendId] = useState(initialFriendId);
   const [walletId, setWalletId] = useState(expense?.walletId ?? s.defaultWalletId);
   const [status, setStatus] = useState<ExpenseStatus>(expense?.status ?? s.defaultStatus);
   const [notes, setNotes] = useState(expense?.notes ?? '');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const calculatedType: ExpenseType = whoPaid === 'other'
-      ? 'by_friend'
-      : splitMode === 'for_friend'
-      ? 'for_friend'
-      : 'personal';
-    setType(calculatedType);
-    if (calculatedType === 'personal') setStatus(s.defaultStatus);
-    else setStatus('unsettled');
-  }, [whoPaid, splitMode, s.defaultStatus]);
+  const calculatedType: ExpenseType = flow === 'in'
+    ? type
+    : whoPaid === 'other'
+    ? 'by_friend'
+    : splitMode === 'for_friend'
+    ? 'for_friend'
+    : 'personal';
+
+  const calculatedStatus: ExpenseStatus = calculatedType === 'personal' ? status : 'unsettled';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +68,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
     const totalAmt = parseFloat(amount);
     if (!amount || isNaN(totalAmt) || totalAmt <= 0) { setError('Enter a valid amount.'); return; }
 
-    if (whoPaid === 'me' && splitMode === 'for_friend') {
+    if (whoPaid === 'me' && splitMode === 'for_friend' && flow === 'out') {
       if (!friendId) { setError('Select a friend.'); return; }
       const fShare = parseFloat(friendShare);
       if (!friendShare || isNaN(fShare) || fShare <= 0 || fShare > totalAmt) {
@@ -60,52 +78,59 @@ export default function ExpenseModal({ expense, onClose }: Props) {
       setError('');
 
       const myShare = totalAmt - fShare;
+      const targetGroupId = expense?.groupId || uid('grp');
 
       if (expense) {
-        updateExpense(expense.id, {
-          description: desc.trim(),
-          amount: fShare,
-          category, date, type: 'for_friend',
-          flow, friendId, walletId, status: 'unsettled', notes,
-        });
-        showToast('Expense updated');
-      } else {
-        // Record friend portion
-        addExpense({
-          description: `${desc.trim()} (Friend share)`,
-          amount: fShare,
-          category, date, type: 'for_friend',
-          flow, friendId, walletId, status: 'unsettled', notes,
-        });
-
-        // Record personal portion if myShare > 0
-        if (myShare > 0) {
-          addExpense({
-            description: desc.trim(),
-            amount: myShare,
-            category, date, type: 'personal',
-            flow, friendId: null, walletId, status: 'paid', notes,
-          });
+        if (expense.groupId) {
+          const existing = db.expenses.filter(ex => ex.groupId === expense.groupId);
+          existing.forEach(ex => deleteExpense(ex.id));
+        } else {
+          deleteExpense(expense.id);
         }
-        showToast('Split expense recorded');
       }
+
+      addExpense({
+        groupId: targetGroupId,
+        description: desc.trim(),
+        amount: fShare,
+        category, date, type: 'for_friend',
+        flow, friendId, walletId, status: 'unsettled', notes,
+      });
+
+      if (myShare > 0) {
+        addExpense({
+          groupId: targetGroupId,
+          description: desc.trim(),
+          amount: myShare,
+          category, date, type: 'personal',
+          flow, friendId: null, walletId, status: 'paid', notes,
+        });
+      }
+      showToast(expense ? 'Split expense updated' : 'Split expense recorded');
     } else {
-      if (type !== 'personal' && !friendId) { setError('Select a friend.'); return; }
+      if (calculatedType !== 'personal' && !friendId) { setError('Select a friend.'); return; }
       setError('');
 
       const data: Partial<Expense> = {
         description: desc.trim(),
         amount: totalAmt,
-        category, date, type,
+        category, date, type: calculatedType,
         flow,
-        friendId: type === 'personal' ? null : (friendId || null),
+        friendId: calculatedType === 'personal' ? null : (friendId || null),
         walletId: whoPaid === 'other' ? '' : walletId,
-        status: type === 'personal' ? status : 'unsettled',
+        status: calculatedStatus,
         notes,
+        groupId: null,
       };
 
       if (expense) {
-        updateExpense(expense.id, data);
+        if (expense.groupId) {
+          const existing = db.expenses.filter(ex => ex.groupId === expense.groupId);
+          existing.forEach(ex => deleteExpense(ex.id));
+          addExpense(data);
+        } else {
+          updateExpense(expense.id, data);
+        }
         showToast('Expense updated');
       } else {
         addExpense(data);
