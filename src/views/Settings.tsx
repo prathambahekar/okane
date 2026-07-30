@@ -538,7 +538,7 @@ export default function Settings() {
                 color: 'var(--accent)', 
                 border: '1px solid var(--border)' 
               }}>
-                v1.0.0
+                v0.5
               </span>
             </div>
 
