@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, RefreshCw } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey } from '../db';
-import { fmtMoney, fmtDate, friendInitial, generateInsights, groupExpenses } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, groupExpenses } from '../utils';
 import type { Friend, ViewName } from '../types';
 import { CategoryBadge } from '../components/CategoryIcon';
 
@@ -41,11 +41,6 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
       .sort((a, b) => Math.abs(b.net) - Math.abs(a.net))
       .slice(0, 4),
     [db, friends]
-  );
-
-  const insights = useMemo(() =>
-    generateInsights(expenses, friends, (id) => friendBalance(db, id), currency),
-    [expenses, friends, db, currency]
   );
 
   const catTotals = useMemo(() => {
@@ -318,21 +313,6 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Insights */}
-      {insights.length > 0 && (
-        <div className="card">
-          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Insights</h2>
-          <div className="insight-list">
-            {insights.map((ins, i) => (
-              <div key={i} className="insight-item">
-                <span className="insight-dot" style={{ background: ins.tone === 'up' ? 'var(--debit)' : ins.tone === 'down' ? 'var(--credit)' : 'var(--info)' }} />
-                <span dangerouslySetInnerHTML={{ __html: ins.html }} />
-              </div>
-            ))}
           </div>
         </div>
       )}
