@@ -29,7 +29,6 @@ export default function Settlements() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Settlements</h1>
-          <p className="page-subtitle">{settlements.length} settlement{settlements.length !== 1 ? 's' : ''} recorded</p>
         </div>
       </div>
 

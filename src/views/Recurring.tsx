@@ -56,38 +56,12 @@ export default function Recurring() {
       }, 0);
   }, [autopayRules]);
 
-  const totalMonthlyLogsCost = useMemo(() => {
-    return quickLogRules
-      .filter(r => r.status === 'active')
-      .reduce((sum, r) => {
-        let amt = Number(r.amount) || 0;
-        const val = r.intervalValue || 1;
-        if (r.frequency === 'daily') amt *= 30;
-        else if (r.frequency === 'weekly') amt *= 4.33;
-        else if (r.frequency === 'custom_months') amt = amt / val;
-        else if (r.frequency === 'custom_days') amt = (amt / val) * 30;
-        return sum + amt;
-      }, 0);
-  }, [quickLogRules]);
-
   const handlePayDeduct = (rule: RecurringRule) => {
     triggerAutopayDeduct(rule.id);
-    const friend = rule.friendId ? db.friends.find(f => f.id === rule.friendId) : null;
-    if (rule.type !== 'personal' && friend) {
-      showToast(`Deducted ${fmtMoney(rule.amount, currency)} for "${rule.title}" → Added to ${friend.name}'s debt!`);
-    } else {
-      showToast(`Deducted ${fmtMoney(rule.amount, currency)} for "${rule.title}"`);
-    }
   };
 
   const handleQuickLogToday = (rule: RecurringRule) => {
     quickLogRecurringRule(rule.id);
-    const friend = rule.friendId ? db.friends.find(f => f.id === rule.friendId) : null;
-    if (rule.type !== 'personal' && friend) {
-      showToast(`Logged ${fmtMoney(rule.amount, currency)} for "${rule.title}" → Added to ${friend.name}'s debt!`);
-    } else {
-      showToast(`Logged ${fmtMoney(rule.amount, currency)} for "${rule.title}"`);
-    }
   };
 
   const handleDelete = (rule: RecurringRule) => {
@@ -156,8 +130,8 @@ export default function Recurring() {
         </div>
       </div>
 
-      {/* 2 Header Metric Cards: Subscription Spend & Log Spend */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 16 }}>
+      {/* Header Metric Card: Subscription Spend */}
+      <div style={{ marginBottom: 16 }}>
         <div
           className="card"
           style={{
@@ -181,29 +155,6 @@ export default function Recurring() {
               <AlertTriangle size={11} /> {dueAutopays.length} bill{dueAutopays.length > 1 ? 's' : ''} due
             </div>
           )}
-        </div>
-
-        <div
-          className="card"
-          style={{
-            padding: '12px 14px',
-            background: 'var(--surface)',
-            borderLeft: '3px solid #d97706',
-            cursor: 'pointer'
-          }}
-          onClick={() => setActiveTab('logs')}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-3)', fontSize: 11, fontWeight: 700, letterSpacing: '0.4px' }}>
-            <span>LOG SPEND</span>
-            <Zap size={13} style={{ color: '#d97706' }} />
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, color: 'var(--text)' }}>
-            {fmtMoney(totalMonthlyLogsCost, currency)}
-            <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-3)', marginLeft: 3 }}>/mo</span>
-          </div>
-          <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 2 }}>
-            {quickLogRules.length} shortcut{quickLogRules.length === 1 ? '' : 's'}
-          </div>
         </div>
       </div>
 

@@ -113,14 +113,12 @@ export default function Friends({ onNavigate }: Props) {
             <button
               className={`tab-btn ${statusFilter === 'owes_me' ? 'active' : ''}`}
               onClick={() => setStatusFilter('owes_me')}
-              style={{ color: statusFilter === 'owes_me' ? 'var(--credit)' : undefined, borderBottomColor: statusFilter === 'owes_me' ? 'var(--credit)' : undefined }}
             >
               Owes You
             </button>
             <button
               className={`tab-btn ${statusFilter === 'i_owe' ? 'active' : ''}`}
               onClick={() => setStatusFilter('i_owe')}
-              style={{ color: statusFilter === 'i_owe' ? 'var(--debit)' : undefined, borderBottomColor: statusFilter === 'i_owe' ? 'var(--debit)' : undefined }}
             >
               You Owe
             </button>

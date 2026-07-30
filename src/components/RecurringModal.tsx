@@ -15,18 +15,13 @@ const PRESETS: { label: string; kind: RecurringKind; amount: number; category: s
   { label: 'Netflix', kind: 'autopay', amount: 199, category: 'Entertainment', frequency: 'monthly', notes: 'Monthly HD plan' },
   { label: 'Spotify', kind: 'autopay', amount: 119, category: 'Entertainment', frequency: 'monthly', notes: 'Music subscription' },
   { label: 'YouTube Premium', kind: 'autopay', amount: 149, category: 'Entertainment', frequency: 'monthly', notes: 'Ad-free video & music' },
-  { label: 'Prime Video', kind: 'autopay', amount: 299, category: 'Entertainment', frequency: 'monthly', notes: 'Amazon Prime subscription' },
-  { label: 'Wi-Fi / Broadband', kind: 'autopay', amount: 799, category: 'Utilities', frequency: 'monthly', notes: 'Fiber internet' },
+  { label: 'Wi-Fi', kind: 'autopay', amount: 799, category: 'Utilities', frequency: 'monthly', notes: 'Fiber internet' },
   { label: 'Gym Membership', kind: 'autopay', amount: 1500, category: 'Health', frequency: 'monthly', notes: 'Fitness center' },
-  { label: 'iCloud Storage', kind: 'autopay', amount: 75, category: 'Utilities', frequency: 'monthly', notes: 'Cloud storage' },
 
   // Quick Daily / Custom Logs
-  { label: 'Daily Tiffin', kind: 'quick_log', amount: 80, category: 'Food', frequency: 'daily', notes: 'Lunch tiffin service' },
+  { label: 'Daily Tiffin', kind: 'quick_log', amount: 75, category: 'Food', frequency: 'daily', notes: 'Lunch tiffin service' },
   { label: 'Daily Milk', kind: 'quick_log', amount: 50, category: 'Groceries', frequency: 'daily', notes: 'Daily 1L milk' },
-  { label: 'Mobile Recharge', kind: 'quick_log', amount: 479, category: 'Utilities', frequency: 'custom_months', intervalValue: 2, notes: 'Prepaid mobile pack' },
-  { label: 'Newspaper', kind: 'quick_log', amount: 15, category: 'Utilities', frequency: 'daily', notes: 'Daily newspaper' },
-  { label: 'Maid / House Help', kind: 'quick_log', amount: 150, category: 'Services', frequency: 'daily', notes: 'Daily cleaning / cooking' },
-  { label: 'Bus / Metro Pass', kind: 'quick_log', amount: 100, category: 'Transport', frequency: 'daily', notes: 'Daily commute' },
+  { label: 'Bus / Metro', kind: 'quick_log', amount: 100, category: 'Transport', frequency: 'daily', notes: 'Daily commute' },
 ];
 
 export default function RecurringModal({ rule, defaultKind = 'autopay', onClose }: Props) {
@@ -129,9 +124,9 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               {kind === 'autopay' ? <RefreshCw size={18} /> : <Zap size={18} />}
             </div>
             <div>
-              <h2 className="modal-title">{rule ? 'Edit Recurring Rule' : 'New Autopay or Recurring'}</h2>
+              <h2 className="modal-title">{rule ? 'Edit' : 'Autopay'}</h2>
               <p style={{ fontSize: 12, color: 'var(--text-3)', margin: 0 }}>
-                {kind === 'autopay' ? 'Track & auto-deduct subscriptions/bills' : '1-tap quick log for daily/regular expenses'}
+                {kind === 'autopay' ? 'Manage Subscription and Logs' : '1-tap quick log for daily/regular expenses'}
               </p>
             </div>
           </div>
@@ -202,7 +197,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
             {/* Title & Amount */}
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label" style={{ fontSize: 12 }}>Name *</label>
+                <label className="form-label" style={{ fontSize: 12 }}>Name</label>
                 <input
                   type="text"
                   className="form-control"
@@ -215,7 +210,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               </div>
 
               <div className="form-group">
-                <label className="form-label" style={{ fontSize: 12 }}>Amount ({s.currency}) *</label>
+                <label className="form-label" style={{ fontSize: 12 }}>Amount</label>
                 <input
                   type="number"
                   step="any"
@@ -402,7 +397,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                         }
                       }}
                     >
-                      <option value="">-- No Friend (Personal Only) --</option>
+                      <option value="">No Friend</option>
                       {db.friends.map(f => (
                         <option key={f.id} value={f.id}>{f.name}</option>
                       ))}
@@ -472,7 +467,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               <input
                 type="text"
                 className="form-control"
-                placeholder="e.g. Account ID, Plan details, or memo"
+                placeholder="e.g. add more details"
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
               />
@@ -484,7 +479,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary">
               <Check size={16} />
-              {rule ? 'Save Changes' : 'Create Rule'}
+              {rule ? 'Save Changes' : 'Create'}
             </button>
           </div>
         </form>

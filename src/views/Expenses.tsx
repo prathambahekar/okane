@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, Filter, Users } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, Filter, Users, Layers, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense } from '../types';
 import { fmtMoney, fmtDate, typeLabel, statusLabel, friendInitial, groupExpenses } from '../utils';
@@ -87,15 +87,13 @@ export default function Expenses() {
       {/* Spent / Received Main Tabs */}
       <div className="tab-list" style={{ marginBottom: 14 }}>
         <button className={`tab-btn ${flowFilter === '' ? 'active' : ''}`} onClick={() => setFlowFilter('')}>
-          All
+          <Layers size={14} /> All
         </button>
-        <button className={`tab-btn ${flowFilter === 'out' ? 'active' : ''}`} onClick={() => setFlowFilter('out')}
-          style={{ color: flowFilter === 'out' ? 'var(--debit)' : undefined, borderBottomColor: flowFilter === 'out' ? 'var(--debit)' : undefined }}>
-          Spent
+        <button className={`tab-btn ${flowFilter === 'out' ? 'active' : ''}`} onClick={() => setFlowFilter('out')}>
+          <ArrowUpRight size={14} /> Spent
         </button>
-        <button className={`tab-btn ${flowFilter === 'in' ? 'active' : ''}`} onClick={() => setFlowFilter('in')}
-          style={{ color: flowFilter === 'in' ? 'var(--credit)' : undefined, borderBottomColor: flowFilter === 'in' ? 'var(--credit)' : undefined }}>
-          Received
+        <button className={`tab-btn ${flowFilter === 'in' ? 'active' : ''}`} onClick={() => setFlowFilter('in')}>
+          <ArrowDownLeft size={14} /> Received
         </button>
       </div>
 

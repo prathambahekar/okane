@@ -74,8 +74,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const showToast = useCallback((message: string, onUndo?: () => void) => {
     const id = 'toast_' + Date.now() + Math.random().toString(36).slice(2);
-    setToasts(t => [...t, { id, message, onUndo }]);
-    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 6000);
+    setToasts([{ id, message, onUndo }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500);
   }, []);
 
   const dismissToast = useCallback((id: string) => {

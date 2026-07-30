@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
-import { Bell, RefreshCw, Zap, CheckCircle2, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Bell, RefreshCw, Zap, CheckCircle2, ArrowRight, X } from 'lucide-react';
 import { useStore } from '../store';
 import { todayISO } from '../db';
 import { fmtMoney } from '../utils';
@@ -10,10 +11,9 @@ interface Props {
   placement?: 'bottom-right' | 'bottom-left' | 'top-left' | 'top-right';
 }
 
-export default function NotificationBell({ onNavigate, placement = 'bottom-right' }: Props) {
-  const { db, triggerAutopayDeduct, quickLogRecurringRule, showToast } = useStore();
+export default function NotificationBell({ onNavigate }: Props) {
+  const { db, triggerAutopayDeduct, quickLogRecurringRule } = useStore();
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const today = todayISO();
   const currency = db.settings.currency;
@@ -30,64 +30,22 @@ export default function NotificationBell({ onNavigate, placement = 'bottom-right
   const totalCount = dueAutopays.length + unloggedQuickLogs.length;
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const getPopoverStyle = (): React.CSSProperties => {
-    const base: React.CSSProperties = {
-      position: 'absolute',
-      width: 320,
-      maxWidth: 'calc(100vw - 24px)',
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-lg)',
-      boxShadow: '0 12px 32px rgba(0, 0, 0, 0.25)',
-      zIndex: 1200,
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
-      animation: 'fadeIn 0.15s ease-out',
-    };
-
-    if (placement === 'top-left') {
-      return {
-        ...base,
-        bottom: 'calc(100% + 10px)',
-        left: 0,
-      };
-    } else if (placement === 'top-right') {
-      return {
-        ...base,
-        bottom: 'calc(100% + 10px)',
-        right: 0,
-      };
-    } else if (placement === 'bottom-left') {
-      return {
-        ...base,
-        top: 'calc(100% + 8px)',
-        left: 0,
-      };
+    if (open) {
+      document.body.style.overflow = 'hidden';
     } else {
-      return {
-        ...base,
-        top: 'calc(100% + 8px)',
-        right: 0,
-      };
+      document.body.style.overflow = '';
     }
-  };
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
+    <>
       <button
         type="button"
         className="btn-icon"
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen(true)}
         style={{
           position: 'relative',
           width: 36,
@@ -101,7 +59,7 @@ export default function NotificationBell({ onNavigate, placement = 'bottom-right
           justifyContent: 'center',
           color: totalCount > 0 ? 'var(--text)' : 'var(--text-2)',
         }}
-        title="Notifications & Prompts"
+        title="Notifications"
       >
         <Bell size={18} />
         {totalCount > 0 && (
@@ -131,224 +89,250 @@ export default function NotificationBell({ onNavigate, placement = 'bottom-right
         )}
       </button>
 
-      {open && (
-        <div style={getPopoverStyle()}>
-          {/* Header */}
+      {open &&
+        createPortal(
           <div
-            style={{
-              padding: '12px 14px',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: 'var(--surface2)',
+            className="modal-backdrop"
+            onClick={e => {
+              if (e.target === e.currentTarget) setOpen(false);
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Bell size={15} style={{ color: 'var(--accent)' }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-                Action Prompts
-              </span>
+            <div className="modal" style={{ maxWidth: 460 }}>
+              {/* Drag Handle Indicator for Mobile Bottom Sheet */}
+              <div className="modal-handle-bar">
+                <div className="modal-handle" />
+              </div>
+
+              {/* Header */}
+              <div className="modal-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: '50%',
+                      background: 'var(--accent-soft)',
+                      color: 'var(--accent)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Bell size={18} />
+                  </div>
+                  <div>
+                    <div className="modal-title" style={{ fontSize: 16, lineHeight: 1.2 }}>
+                      Notifications
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      {totalCount > 0
+                        ? `${totalCount} pending item${totalCount > 1 ? 's' : ''} require attention`
+                        : 'All caught up!'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-icon"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close dialog"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                {totalCount === 0 ? (
+                  <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-3)' }}>
+                    <div
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: '50%',
+                        background: 'rgba(102, 187, 106, 0.12)',
+                        color: '#66bb6a',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 12,
+                      }}
+                    >
+                      <CheckCircle2 size={26} />
+                    </div>
+                    <p style={{ fontSize: 14, margin: 0, fontWeight: 600, color: 'var(--text)' }}>
+                      No pending prompts!
+                    </p>
+                    <p style={{ fontSize: 12.5, margin: '6px 0 0 0', opacity: 0.85, color: 'var(--text-2)' }}>
+                      All subscriptions and quick logs are up to date.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {/* Due Autopays Section */}
+                    {dueAutopays.length > 0 && (
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: '#ef5350',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.6px',
+                            marginBottom: 8,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                          }}
+                        >
+                          <RefreshCw size={13} />
+                          <span>Due Subscriptions ({dueAutopays.length})</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {dueAutopays.map(r => (
+                            <div
+                              key={r.id}
+                              style={{
+                                padding: '10px 12px',
+                                background: 'rgba(239, 83, 80, 0.08)',
+                                border: '1px solid rgba(239, 83, 80, 0.25)',
+                                borderRadius: 'var(--radius-lg)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 12,
+                              }}
+                            >
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                                  {r.title}
+                                </div>
+                                <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>
+                                  <span style={{ fontWeight: 700, color: '#ef5350' }}>{fmtMoney(r.amount, currency)}</span> · Due Today
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                style={{
+                                  background: '#ef5350',
+                                  color: '#ffffff',
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  padding: '6px 14px',
+                                  height: 32,
+                                  borderRadius: 16,
+                                  flexShrink: 0,
+                                }}
+                                onClick={() => {
+                                  triggerAutopayDeduct(r.id);
+                                }}
+                              >
+                                Pay Now
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quick Logs Section */}
+                    {unloggedQuickLogs.length > 0 && (
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: '#d97706',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.6px',
+                            marginBottom: 8,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                          }}
+                        >
+                          <Zap size={13} />
+                          <span>Due Logs({unloggedQuickLogs.length})</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {unloggedQuickLogs.map(r => (
+                            <div
+                              key={r.id}
+                              style={{
+                                padding: '10px 12px',
+                                background: 'var(--surface2)',
+                                border: '1px solid var(--border)',
+                                borderRadius: 'var(--radius-lg)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 12,
+                              }}
+                            >
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                                  {r.title}
+                                </div>
+                                <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>
+                                  <span style={{ fontWeight: 700, color: 'var(--text)' }}>{fmtMoney(r.amount, currency)}</span>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-primary"
+                                style={{
+                                  fontSize: 12,
+                                  padding: '6px 14px',
+                                  height: 32,
+                                  borderRadius: 16,
+                                  flexShrink: 0,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}
+                                onClick={() => {
+                                  quickLogRecurringRule(r.id);
+                                }}
+                              >
+                                <Zap size={12} /> Log Expense
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="modal-footer" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setOpen(false)}
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  onClick={() => {
+                    setOpen(false);
+                    onNavigate('recurring');
+                  }}
+                >
+                  <span>Manage Subscriptions</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
             </div>
-            {totalCount > 0 ? (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: 10,
-                  background: 'rgba(239, 83, 80, 0.15)',
-                  color: '#ef5350',
-                }}
-              >
-                {totalCount} Pending
-              </span>
-            ) : (
-              <span style={{ fontSize: 11, color: 'var(--text-3)' }}>All caught up</span>
-            )}
-          </div>
-
-          {/* List Content */}
-          <div style={{ maxHeight: 340, overflowY: 'auto', padding: '8px 12px' }}>
-            {totalCount === 0 ? (
-              <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-3)' }}>
-                <CheckCircle2 size={24} style={{ color: '#66bb6a', marginBottom: 6 }} />
-                <p style={{ fontSize: 13, margin: 0, fontWeight: 500 }}>No pending prompts!</p>
-                <p style={{ fontSize: 11.5, margin: '4px 0 0 0', opacity: 0.8 }}>
-                  All subscriptions & quick logs are up to date.
-                </p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {/* Due Autopays Section */}
-                {dueAutopays.length > 0 && (
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        color: '#ef5350',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        marginBottom: 6,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                    >
-                      <RefreshCw size={12} />
-                      <span>Due Subscriptions ({dueAutopays.length})</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {dueAutopays.map(r => (
-                        <div
-                          key={r.id}
-                          style={{
-                            padding: '8px 10px',
-                            background: 'rgba(239, 83, 80, 0.08)',
-                            border: '1px solid rgba(239, 83, 80, 0.2)',
-                            borderRadius: 'var(--radius)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 8,
-                          }}
-                        >
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>
-                              {r.title}
-                            </div>
-                            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
-                              {fmtMoney(r.amount, currency)} · Due Today
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            className="btn btn-sm"
-                            style={{
-                              background: '#ef5350',
-                              color: '#ffffff',
-                              fontSize: 11.5,
-                              padding: '4px 10px',
-                              height: 28,
-                              borderRadius: 14,
-                              flexShrink: 0,
-                            }}
-                            onClick={() => {
-                              triggerAutopayDeduct(r.id);
-                              showToast(`Paid ${fmtMoney(r.amount, currency)} for "${r.title}"`);
-                            }}
-                          >
-                            Pay
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Quick Logs Section */}
-                {unloggedQuickLogs.length > 0 && (
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        color: '#d97706',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        marginBottom: 6,
-                        marginTop: dueAutopays.length > 0 ? 6 : 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                    >
-                      <Zap size={12} />
-                      <span>1-Tap Daily Logs ({unloggedQuickLogs.length})</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {unloggedQuickLogs.map(r => (
-                        <div
-                          key={r.id}
-                          style={{
-                            padding: '8px 10px',
-                            background: 'var(--surface2)',
-                            border: '1px solid var(--border)',
-                            borderRadius: 'var(--radius)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 8,
-                          }}
-                        >
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>
-                              {r.title}
-                            </div>
-                            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
-                              {fmtMoney(r.amount, currency)}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-primary"
-                            style={{
-                              fontSize: 11.5,
-                              padding: '4px 10px',
-                              height: 28,
-                              borderRadius: 14,
-                              flexShrink: 0,
-                            }}
-                            onClick={() => {
-                              quickLogRecurringRule(r.id);
-                              showToast(`Logged ${fmtMoney(r.amount, currency)} for "${r.title}"`);
-                            }}
-                          >
-                            <Zap size={11} /> Log
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              padding: '8px 12px',
-              borderTop: '1px solid var(--border)',
-              background: 'var(--surface2)',
-              textAlign: 'center',
-            }}
-          >
-            <button
-              type="button"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--accent)',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
-              onClick={() => {
-                setOpen(false);
-                onNavigate('recurring');
-              }}
-            >
-              <span>Manage Subscriptions & Recurring</span>
-              <ArrowRight size={13} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }

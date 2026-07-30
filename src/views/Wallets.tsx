@@ -71,7 +71,6 @@ export default function Wallets() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Wallets</h1>
-          <p className="page-subtitle">Manage your accounts & view wallet activity</p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
           <Plus size={16} /> Add Wallet

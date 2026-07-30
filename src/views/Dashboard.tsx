@@ -67,7 +67,6 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
       <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">{now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost desktop-only" onClick={() => onNavigate('recurring')}>

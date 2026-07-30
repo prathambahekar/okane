@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useStore } from '../store';
 import { expenseFlow } from '../db';
 import { fmtMoney } from '../utils';
@@ -9,8 +9,6 @@ import {
   BarChart2,
   PieChart,
   Calendar,
-  TrendingUp,
-  TrendingDown,
   Sun,
   SlidersHorizontal,
   Check,
@@ -60,7 +58,7 @@ export default function Analytics() {
   }, [now]);
 
   // Robust Monday to Sunday current week calculation
-  const { mondayStr, sundayStr, currentWeekDays } = useMemo(() => {
+  const { mondayStr, sundayStr } = useMemo(() => {
     const [y, m, d] = todayStr.split('-').map(Number);
     const dt = new Date(y, m - 1, d);
     const day = dt.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
@@ -85,7 +83,6 @@ export default function Analytics() {
     return {
       mondayStr: days[0].dateStr,
       sundayStr: days[6].dateStr,
-      currentWeekDays: days,
     };
   }, [todayStr]);
 
@@ -142,10 +139,6 @@ export default function Analytics() {
     filteredExpenses.filter(e => expenseFlow(e) === 'out').reduce((sum, e) => sum + Number(e.amount), 0),
   [filteredExpenses]);
 
-  const totalIncome = useMemo(() =>
-    filteredExpenses.filter(e => expenseFlow(e) === 'in').reduce((sum, e) => sum + Number(e.amount), 0),
-  [filteredExpenses]);
-
   // Days in selected timeframe
   const daysInPeriod = useMemo(() => {
     switch (timeframe) {
@@ -171,62 +164,118 @@ export default function Analytics() {
 
   const dailyAvgSpend = totalSpent / daysInPeriod;
 
-  // Chart Bars for Per-Day Expenditure (respecting category filter if set)
-  const dailyChartData = useMemo(() => {
+  const chartScrollRef = useRef<HTMLDivElement>(null);
+
+  // Multi-week Chart Data for Horizontal Scrolling across Past Weeks
+  const weeklyWeeks = useMemo(() => {
     const baseList = typeFilteredExpenses.filter(e => !selectedCategory || e.category === selectedCategory);
 
-    if (timeframe === 'this_week') {
-      return currentWeekDays.map(item => {
-        const dayExps = baseList.filter(e => e.date === item.dateStr);
+    const [y, m, d] = todayStr.split('-').map(Number);
+    const todayObj = new Date(y, m - 1, d);
+    const day = todayObj.getDay();
+    const diffToMonday = (day + 6) % 7;
+    const currentMon = new Date(y, m - 1, d - diffToMonday);
+
+    // Determine how many weeks back to generate (min 8 weeks, up to 26)
+    let numWeeks = 8;
+    if (baseList.length > 0) {
+      const earliest = baseList.reduce((min, e) => (e.date < min ? e.date : min), todayStr);
+      const [ey, em, ed] = earliest.split('-').map(Number);
+      const earliestObj = new Date(ey, em - 1, ed);
+      const msDiff = currentMon.getTime() - earliestObj.getTime();
+      if (msDiff > 0) {
+        const weeksDiff = Math.ceil(msDiff / (7 * 24 * 60 * 60 * 1000)) + 1;
+        numWeeks = Math.max(8, Math.min(26, weeksDiff));
+      }
+    }
+
+    const weeks = [];
+    for (let w = numWeeks - 1; w >= 0; w--) {
+      const mon = new Date(currentMon.getFullYear(), currentMon.getMonth(), currentMon.getDate() - w * 7);
+      const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+
+      const monStr = formatISO(mon);
+      const sunStr = formatISO(sun);
+
+      const isCurrentWeek = w === 0;
+      const isLastWeek = w === 1;
+
+      const monMonth = mon.toLocaleDateString(undefined, { month: 'short' });
+      const sunMonth = sun.toLocaleDateString(undefined, { month: 'short' });
+      const dateRange = monMonth === sunMonth
+        ? `${monMonth} ${mon.getDate()}–${sun.getDate()}`
+        : `${monMonth} ${mon.getDate()} – ${sunMonth} ${sun.getDate()}`;
+
+      let label = dateRange;
+      if (isCurrentWeek) label = 'This Week';
+      else if (isLastWeek) label = 'Last Week';
+
+      const days = [];
+      let weekTotal = 0;
+
+      for (let i = 0; i < 7; i++) {
+        const cur = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
+        const dateStr = formatISO(cur);
+        const dayName = cur.toLocaleDateString(undefined, { weekday: 'short' });
+        const dayNum = cur.getDate();
+        const dayExps = baseList.filter(e => e.date === dateStr);
         const spend = dayExps.filter(e => expenseFlow(e) === 'out').reduce((s, e) => s + Number(e.amount), 0);
-        return {
-          dateStr: item.dateStr,
-          label: item.label,
-          dayName: item.dayName,
-          dayNum: item.dayNum,
+
+        weekTotal += spend;
+
+        days.push({
+          dateStr,
+          label: `${dayName} ${dayNum}`,
+          dayName,
+          dayNum,
           spend,
           count: dayExps.length,
-          isToday: item.dateStr === todayStr,
-          isYesterday: item.dateStr === yesterdayStr,
-        };
+          isToday: dateStr === todayStr,
+          isYesterday: dateStr === yesterdayStr,
+        });
+      }
+
+      weeks.push({
+        weekMonStr: monStr,
+        weekSunStr: sunStr,
+        label,
+        dateRange,
+        isCurrentWeek,
+        days,
+        weekTotal,
       });
     }
 
-    // For other timeframes (Month, Year, All), show up to 14 recent days
-    const count = timeframe === 'this_month' ? Math.min(14, now.getDate()) : 14;
-    const items = [];
-    for (let i = count - 1; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-      const dateStr = formatISO(d);
-      const dayName = d.toLocaleDateString(undefined, { weekday: 'short' });
-      const dayNum = d.getDate();
-      const dayExps = baseList.filter(e => e.date === dateStr);
-      const spend = dayExps.filter(e => expenseFlow(e) === 'out').reduce((s, e) => s + Number(e.amount), 0);
-      items.push({
-        dateStr,
-        label: `${dayName} ${dayNum}`,
-        dayName,
-        dayNum,
-        spend,
-        count: dayExps.length,
-        isToday: dateStr === todayStr,
-        isYesterday: dateStr === yesterdayStr,
-      });
+    return weeks;
+  }, [typeFilteredExpenses, selectedCategory, todayStr, yesterdayStr]);
+
+  // Auto-scroll to the rightmost week (This Week) on load or week update
+  useEffect(() => {
+    if (chartScrollRef.current) {
+      chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
     }
-    return items;
-  }, [timeframe, currentWeekDays, typeFilteredExpenses, selectedCategory, todayStr, yesterdayStr, now]);
+  }, [weeklyWeeks]);
 
-  const maxDailyVal = Math.max(...dailyChartData.map(d => d.spend), 1);
+  const maxDailyVal = useMemo(() => {
+    let max = 1;
+    weeklyWeeks.forEach(w => {
+      w.days.forEach(d => {
+        if (d.spend > max) max = d.spend;
+      });
+    });
+    return max;
+  }, [weeklyWeeks]);
 
-  // Peak Spending Day in period
+  // Peak Spending Day in current week
   const peakDayInfo = useMemo(() => {
-    if (dailyChartData.length === 0) return null;
-    const sorted = [...dailyChartData].sort((a, b) => b.spend - a.spend);
+    const currentWeek = weeklyWeeks[weeklyWeeks.length - 1];
+    if (!currentWeek || currentWeek.days.length === 0) return null;
+    const sorted = [...currentWeek.days].sort((a, b) => b.spend - a.spend);
     if (sorted[0] && sorted[0].spend > 0) {
       return sorted[0];
     }
     return null;
-  }, [dailyChartData]);
+  }, [weeklyWeeks]);
 
   // Daily log breakdown
   const perDayList = useMemo(() => {
@@ -545,7 +594,7 @@ export default function Analytics() {
       {/* 3 Smart Context Metrics (Non-Redundant Cards) */}
       <div className="analytics-stat-grid" style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
         gap: 12,
         marginBottom: 16
       }}>
@@ -553,7 +602,7 @@ export default function Analytics() {
         <div
           className={`stat-card ${selectedDate === todayStr ? 'active-card' : ''}`}
           style={{
-            padding: '14px 16px',
+            padding: '12px 14px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             border: selectedDate === todayStr ? '1px solid var(--accent)' : '1px solid var(--border)',
@@ -562,27 +611,24 @@ export default function Analytics() {
           onClick={() => handleToggleDate(todayStr)}
           title="Click to inspect Today's expenses"
         >
-          <div className="stat-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Sun size={14} style={{ color: '#F59E0B' }} /> Today's Spend
-            </span>
-            <span style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>Inspect &rarr;</span>
+          <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, textTransform: 'none', letterSpacing: 'normal', color: 'var(--text-2)', fontWeight: 600, marginBottom: 4 }}>
+            <Sun size={13.5} style={{ color: '#F59E0B' }} /> Today
           </div>
-          <div className="stat-value debit" style={{ fontSize: 21, marginTop: 4 }}>
+          <div className="stat-value debit" style={{ fontSize: 20, fontWeight: 700 }}>
             {fmtMoney(todaySpent, currency)}
           </div>
-          <div className="stat-sub" style={{ fontSize: 11.5, marginTop: 4 }}>
+          <div className="stat-sub" style={{ fontSize: 11, marginTop: 3, color: 'var(--text-3)' }}>
             {yesterdaySpent > 0 ? (
               diffTodayVsYesterday > 0 ? (
-                <span style={{ color: 'var(--debit)', display: 'inline-flex', alignItems: 'center', gap: 2, fontWeight: 600 }}>
-                  <TrendingUp size={12} /> +{fmtMoney(diffTodayVsYesterday, currency)} vs yesterday
+                <span style={{ color: 'var(--debit)' }}>
+                  +{fmtMoney(diffTodayVsYesterday, currency)} vs yesterday
                 </span>
               ) : diffTodayVsYesterday < 0 ? (
-                <span style={{ color: 'var(--credit)', display: 'inline-flex', alignItems: 'center', gap: 2, fontWeight: 600 }}>
-                  <TrendingDown size={12} /> {fmtMoney(diffTodayVsYesterday, currency)} vs yesterday
+                <span style={{ color: 'var(--credit)' }}>
+                  {fmtMoney(diffTodayVsYesterday, currency)} vs yesterday
                 </span>
               ) : (
-                <span>Same as yesterday ({fmtMoney(yesterdaySpent, currency)})</span>
+                <span>Same as yesterday</span>
               )
             ) : (
               <span>Yesterday: {fmtMoney(yesterdaySpent, currency)}</span>
@@ -591,25 +637,24 @@ export default function Analytics() {
         </div>
 
         {/* Card 2: Period Total Outflow */}
-        <div className="stat-card" style={{ padding: '14px 16px' }}>
-          <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5 }}>
-            <Calendar size={14} style={{ color: '#3B82F6' }} />
-            {timeframe === 'this_week' ? 'Weekly Spend (Mon–Sun)' : timeframe === 'this_month' ? 'Monthly Outflow' : 'Period Outflow'}
+        <div className="stat-card" style={{ padding: '12px 14px' }}>
+          <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, textTransform: 'none', letterSpacing: 'normal', color: 'var(--text-2)', fontWeight: 600, marginBottom: 4 }}>
+            <Calendar size={13.5} style={{ color: '#3B82F6' }} />
+            {timeframe === 'this_week' ? 'Weekly Spend' : timeframe === 'this_month' ? 'Monthly Spend' : 'Period Spend'}
           </div>
-          <div className="stat-value debit" style={{ fontSize: 21, marginTop: 4 }}>
+          <div className="stat-value debit" style={{ fontSize: 20, fontWeight: 700 }}>
             {fmtMoney(totalSpent, currency)}
           </div>
-          <div className="stat-sub" style={{ fontSize: 11.5, marginTop: 4 }}>
-            Avg <strong style={{ color: 'var(--text)' }}>{fmtMoney(dailyAvgSpend, currency)}</strong> / day ({daysInPeriod}d)
-            {totalIncome > 0 ? ` · Recv: ${fmtMoney(totalIncome, currency)}` : ''}
+          <div className="stat-sub" style={{ fontSize: 11, marginTop: 3, color: 'var(--text-3)' }}>
+            Avg {fmtMoney(dailyAvgSpend, currency)} / day
           </div>
         </div>
 
-        {/* Card 3: Smart Insight Card (Peak Day or Received Income / Top Category) */}
+        {/* Card 3: Peak Day */}
         <div
           className="stat-card"
           style={{
-            padding: '14px 16px',
+            padding: '12px 14px',
             cursor: peakDayInfo ? 'pointer' : 'default',
             border: peakDayInfo && selectedDate === peakDayInfo.dateStr ? '1px solid #F59E0B' : '1px solid var(--border)',
           }}
@@ -618,18 +663,15 @@ export default function Analytics() {
           }}
           title={peakDayInfo ? `Click to inspect peak day (${peakDayInfo.label})` : undefined}
         >
-          <div className="stat-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Flame size={14} style={{ color: '#EF4444' }} /> Peak Day Outflow
-            </span>
-            {peakDayInfo && <span style={{ fontSize: 10, color: '#F59E0B', fontWeight: 600 }}>Filter &rarr;</span>}
+          <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, textTransform: 'none', letterSpacing: 'normal', color: 'var(--text-2)', fontWeight: 600, marginBottom: 4 }}>
+            <Flame size={13.5} style={{ color: '#EF4444' }} /> Peak Day
           </div>
-          <div className="stat-value debit" style={{ fontSize: 21, marginTop: 4 }}>
+          <div className="stat-value debit" style={{ fontSize: 20, fontWeight: 700 }}>
             {peakDayInfo ? fmtMoney(peakDayInfo.spend, currency) : fmtMoney(0, currency)}
           </div>
-          <div className="stat-sub" style={{ fontSize: 11.5, marginTop: 4 }}>
+          <div className="stat-sub" style={{ fontSize: 11, marginTop: 3, color: 'var(--text-3)' }}>
             {peakDayInfo ? (
-              <span>Highest on <strong style={{ color: 'var(--text)' }}>{peakDayInfo.label}</strong> ({peakDayInfo.count} items)</span>
+              <span>{peakDayInfo.label} ({peakDayInfo.count} items)</span>
             ) : (
               <span>No peak day recorded</span>
             )}
@@ -637,106 +679,154 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Weekly Monday–Sunday Bar Chart with Amounts directly visible */}
+      {/* Weekly Bar Chart with Horizontal Scroll across Past Weeks */}
       <div className="card" style={{ padding: '16px', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+        {/* Uncluttered Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text)' }}>
             <BarChart2 size={16} style={{ color: 'var(--accent)' }} />
-            {timeframe === 'this_week' ? 'Weekly Spending (Mon – Sun)' : 'Daily Spending Breakdown'}
-            <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-3)', marginLeft: 4 }}>(Tap bar to inspect)</span>
+            <span>Weekly Spending</span>
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>
-            Daily Avg: <strong style={{ color: 'var(--accent)' }}>{fmtMoney(dailyAvgSpend, currency)}</strong>
+            Avg <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{fmtMoney(dailyAvgSpend, currency)}</strong> / day
           </div>
         </div>
 
-        <div className="analytics-chart-scroll">
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            gap: 6,
-            height: 155,
-            minWidth: dailyChartData.length * 44,
-            paddingTop: 18,
-            paddingBottom: 4,
-          }}>
-            {dailyChartData.map(d => {
-              const isSelected = selectedDate === d.dateStr;
+        {/* Horizontally scrollable container across past weeks */}
+        <div
+          ref={chartScrollRef}
+          className="analytics-chart-scroll"
+          style={{
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              gap: 16,
+              alignItems: 'flex-end',
+              paddingTop: 12,
+              paddingBottom: 4,
+              minWidth: 'max-content',
+            }}
+          >
+            {weeklyWeeks.map((week, wIdx) => {
+              const isCurrent = week.isCurrentWeek;
               return (
                 <div
-                  key={d.dateStr}
+                  key={week.weekMonStr}
                   style={{
-                    flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'center',
-                    height: '100%',
-                    cursor: 'pointer',
-                    minWidth: 38,
+                    paddingRight: wIdx < weeklyWeeks.length - 1 ? 16 : 0,
+                    borderRight: wIdx < weeklyWeeks.length - 1 ? '1px solid var(--border)' : 'none',
                   }}
-                  onClick={() => handleToggleDate(d.dateStr)}
                 >
-                  {/* Amount Badge directly above the bar */}
-                  <div style={{ minHeight: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {d.spend > 0 ? (
-                      <span style={{
-                        fontSize: 9.5,
-                        fontWeight: isSelected || d.isToday ? 700 : 600,
-                        color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--debit)',
-                        whiteSpace: 'nowrap',
-                        letterSpacing: '-0.2px',
-                        background: isSelected ? 'rgba(139, 92, 246, 0.18)' : undefined,
-                        padding: isSelected ? '1px 4px' : undefined,
-                        borderRadius: 4,
-                      }}>
-                        {fmtMoney(d.spend, currency)}
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: 9, color: 'var(--text-3)', opacity: 0.4 }}>-</span>
-                    )}
-                  </div>
-
-                  {/* Bar Column */}
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 3, width: '100%', justifyContent: 'center', marginTop: 2 }}>
-                    <div
-                      style={{
-                        width: '78%',
-                        maxWidth: 32,
-                        background: isSelected
-                          ? '#8B5CF6'
-                          : d.isToday
-                          ? 'var(--accent)'
-                          : 'var(--debit)',
-                        borderRadius: '4px 4px 0 0',
-                        height: d.spend > 0 ? `${Math.max(12, (d.spend / maxDailyVal) * 100)}%` : '4px',
-                        opacity: d.spend > 0 ? (isSelected ? 1 : 0.88) : 0.18,
-                        transition: 'all 0.2s ease',
-                        boxShadow: isSelected
-                          ? '0 0 0 2px #8B5CF6, 0 0 12px rgba(139, 92, 246, 0.6)'
-                          : d.isToday
-                          ? '0 0 8px var(--accent-soft)'
-                          : undefined,
-                      }}
-                      title={`${d.label}: ${fmtMoney(d.spend, currency)} (${d.count} items) — Click to view`}
-                    />
-                  </div>
-
-                  {/* Day Label */}
-                  <div style={{ marginTop: 6, textAlign: 'center' }}>
+                  {/* Week Label & Total */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 8,
+                    padding: '0 4px',
+                  }}>
                     <span style={{
-                      fontSize: 10.5,
-                      color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--text-2)',
-                      fontWeight: isSelected || d.isToday ? 700 : 500,
-                      whiteSpace: 'nowrap',
-                      display: 'block',
+                      fontSize: 11,
+                      fontWeight: isCurrent ? 700 : 600,
+                      color: isCurrent ? 'var(--accent)' : 'var(--text-2)',
                     }}>
-                      {d.label}
+                      {week.label}
                     </span>
-                    {d.isToday && (
-                      <span style={{ fontSize: 8.5, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                        TODAY
-                      </span>
-                    )}
+                    <span style={{ fontSize: 10.5, color: 'var(--text-3)', fontWeight: 500 }}>
+                      {fmtMoney(week.weekTotal, currency)}
+                    </span>
+                  </div>
+
+                  {/* 7 Days Columns */}
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 140 }}>
+                    {week.days.map(d => {
+                      const isSelected = selectedDate === d.dateStr;
+                      return (
+                        <div
+                          key={d.dateStr}
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            height: '100%',
+                            cursor: 'pointer',
+                            width: 36,
+                          }}
+                          onClick={() => handleToggleDate(d.dateStr)}
+                        >
+                          {/* Amount Badge directly above the bar */}
+                          <div style={{ minHeight: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {d.spend > 0 ? (
+                              <span style={{
+                                fontSize: 9,
+                                fontWeight: isSelected || d.isToday ? 700 : 600,
+                                color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--debit)',
+                                whiteSpace: 'nowrap',
+                                letterSpacing: '-0.2px',
+                                background: isSelected ? 'rgba(139, 92, 246, 0.18)' : undefined,
+                                padding: isSelected ? '1px 3px' : undefined,
+                                borderRadius: 3,
+                              }}>
+                                {fmtMoney(d.spend, currency)}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: 9, color: 'var(--text-3)', opacity: 0.3 }}>-</span>
+                            )}
+                          </div>
+
+                          {/* Bar Column */}
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 2 }}>
+                            <div
+                              style={{
+                                width: '80%',
+                                maxWidth: 28,
+                                background: isSelected
+                                  ? '#8B5CF6'
+                                  : d.isToday
+                                  ? 'var(--accent)'
+                                  : 'var(--debit)',
+                                borderRadius: '4px 4px 0 0',
+                                height: d.spend > 0 ? `${Math.max(12, (d.spend / maxDailyVal) * 100)}%` : '4px',
+                                opacity: d.spend > 0 ? (isSelected ? 1 : 0.88) : 0.18,
+                                transition: 'all 0.2s ease',
+                                boxShadow: isSelected
+                                  ? '0 0 0 2px #8B5CF6, 0 0 12px rgba(139, 92, 246, 0.6)'
+                                  : d.isToday
+                                  ? '0 0 8px var(--accent-soft)'
+                                  : undefined,
+                              }}
+                              title={`${d.label}: ${fmtMoney(d.spend, currency)} (${d.count} items)`}
+                            />
+                          </div>
+
+                          {/* Day Label */}
+                          <div style={{ marginTop: 6, textAlign: 'center' }}>
+                            <span style={{
+                              fontSize: 10,
+                              color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--text-2)',
+                              fontWeight: isSelected || d.isToday ? 700 : 500,
+                              whiteSpace: 'nowrap',
+                              display: 'block',
+                            }}>
+                              {d.label}
+                            </span>
+                            {d.isToday && (
+                              <span style={{ fontSize: 8, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                TODAY
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
