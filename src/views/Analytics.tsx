@@ -117,7 +117,9 @@ export default function Analytics() {
   const filteredExpenses = useMemo(() => {
     return typeFilteredExpenses.filter(e => {
       if (selectedCategory && e.category !== selectedCategory) return false;
-      if (selectedDate && e.date !== selectedDate) return false;
+      if (selectedDate) {
+        return e.date === selectedDate;
+      }
 
       const d = e.date;
       switch (timeframe) {

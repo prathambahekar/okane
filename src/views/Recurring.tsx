@@ -297,13 +297,13 @@ export default function Recurring() {
                 {/* Bottom Row: Badge on Left, Action Buttons on Right */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                   <span style={{
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: 600,
-                    padding: '4px 10px',
+                    padding: '3px 9px',
                     borderRadius: 6,
-                    background: isAutopay ? 'rgba(14, 42, 74, 0.8)' : 'rgba(92, 60, 10, 0.5)',
-                    color: isAutopay ? '#38bdf8' : '#f59e0b',
-                    border: isAutopay ? '1px solid rgba(56, 189, 248, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)',
+                    background: isAutopay ? 'rgba(56, 189, 248, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                    color: isAutopay ? 'var(--info)' : '#d97706',
+                    border: isAutopay ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(245, 158, 11, 0.25)',
                   }}>
                     {isAutopay ? 'Subscription' : 'Log'}
                   </span>
