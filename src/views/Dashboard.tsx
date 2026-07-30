@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, RefreshCw } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey } from '../db';
 import { fmtMoney, fmtDate, friendInitial, generateInsights, groupExpenses } from '../utils';
@@ -69,9 +69,14 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">{now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
-        <button className="btn btn-primary desktop-only" onClick={onAddExpense}>
-          <Plus size={16} /> Add Expense
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost desktop-only" onClick={() => onNavigate('recurring')}>
+            <RefreshCw size={15} /> Subscriptions & Autopay
+          </button>
+          <button className="btn btn-primary desktop-only" onClick={onAddExpense}>
+            <Plus size={16} /> Add Expense
+          </button>
+        </div>
       </div>
 
       {/* Hero Financial Overview Header Card */}
@@ -171,8 +176,6 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 </div>
               </div>
             </div>
-
-
 
           </div>
         </div>

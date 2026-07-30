@@ -1,6 +1,93 @@
-import type { AppDB, Wallet, Friend, Expense, Settlement, ExpenseFlow, ExpenseType, ExpenseStatus } from './types';
+import type { AppDB, Wallet, Friend, Expense, Settlement, ExpenseFlow, ExpenseType, ExpenseStatus, RecurringRule, FrequencyType } from './types';
 
 const DB_KEY = 'ledger_app_db_v2';
+
+export function computeNextDueDate(currentDateISO: string, frequency: FrequencyType, intervalValue: number = 1): string {
+  const parts = currentDateISO.split('-').map(Number);
+  const y = parts[0] || new Date().getFullYear();
+  const m = parts[1] || (new Date().getMonth() + 1);
+  const d = parts[2] || new Date().getDate();
+  const dt = new Date(y, m - 1, d);
+  const val = Math.max(1, intervalValue || 1);
+
+  switch (frequency) {
+    case 'daily':
+      dt.setDate(dt.getDate() + val);
+      break;
+    case 'weekly':
+      dt.setDate(dt.getDate() + (7 * val));
+      break;
+    case 'monthly':
+      dt.setMonth(dt.getMonth() + val);
+      break;
+    case 'custom_days':
+      dt.setDate(dt.getDate() + val);
+      break;
+    case 'custom_months':
+      dt.setMonth(dt.getMonth() + val);
+      break;
+  }
+  const ny = dt.getFullYear();
+  const nm = String(dt.getMonth() + 1).padStart(2, '0');
+  const nd = String(dt.getDate()).padStart(2, '0');
+  return `${ny}-${nm}-${nd}`;
+}
+
+export function defaultSampleRecurringRules(walletId: string): RecurringRule[] {
+  const t = todayISO();
+  return [
+    {
+      id: 'rec_netflix',
+      title: 'Netflix Subscription',
+      kind: 'autopay',
+      amount: 199,
+      category: 'Entertainment',
+      walletId,
+      type: 'personal',
+      flow: 'out',
+      frequency: 'monthly',
+      intervalValue: 1,
+      startDate: t,
+      nextDueDate: t, // Due today for immediate testing
+      autoDeduct: false,
+      status: 'active',
+      notes: 'Monthly standard HD plan',
+      createdAt: Date.now() - 86400000,
+    },
+    {
+      id: 'rec_tiffin',
+      title: 'Daily Tiffin Service',
+      kind: 'quick_log',
+      amount: 80,
+      category: 'Food',
+      walletId,
+      type: 'personal',
+      flow: 'out',
+      frequency: 'daily',
+      intervalValue: 1,
+      startDate: t,
+      status: 'active',
+      notes: 'Lunch tiffin box',
+      createdAt: Date.now() - 86400000,
+    },
+    {
+      id: 'rec_recharge',
+      title: 'Mobile Recharge (2 Months)',
+      kind: 'quick_log',
+      amount: 479,
+      category: 'Utilities',
+      walletId,
+      type: 'personal',
+      flow: 'out',
+      frequency: 'custom_months',
+      intervalValue: 2,
+      startDate: t,
+      status: 'active',
+      notes: 'Prepaid 84 days pack',
+      createdAt: Date.now() - 86400000,
+    }
+  ];
+}
 
 export const DEFAULT_CATEGORIES = [
   { name: 'Food', color: '#F97362', icon: 'food' },
@@ -59,6 +146,7 @@ export function defaultDB(): AppDB {
       defaultStatus: 'paid',
       defaultWalletId: wallets[0].id,
     },
+    recurringRules: defaultSampleRecurringRules(wallets[0].id),
   };
 }
 
@@ -76,6 +164,11 @@ export function loadDB(): AppDB {
       db.settings.defaultWalletId = db.wallets[0].id;
     }
     const defaultWal = db.settings.defaultWalletId;
+
+    if (!Array.isArray(db.recurringRules) || db.recurringRules.length === 0) {
+      db.recurringRules = defaultSampleRecurringRules(defaultWal);
+    }
+
     db.expenses.forEach(e => {
       if (!e.flow) e.flow = 'out';
       if (e.type !== 'by_friend' && (!e.walletId || !db.wallets.some(w => w.id === e.walletId))) {
@@ -382,4 +475,130 @@ export function seedSampleData(db: AppDB): AppDB {
 
   expenses.forEach(e => { current = addExpense(current, e); });
   return current;
+}
+
+export function addRecurringRule(db: AppDB, data: Partial<RecurringRule>): AppDB {
+  const walId = data.walletId || db.settings.defaultWalletId || db.wallets[0]?.id || 'wal_cash';
+  const start = data.startDate || todayISO();
+  const rule: RecurringRule = {
+    id: uid('rec'),
+    title: data.title?.trim() || 'Untitled Recurring',
+    kind: data.kind || 'quick_log',
+    amount: Number(data.amount) || 0,
+    category: data.category || db.settings.defaultCategory,
+    walletId: walId,
+    type: (data.type as ExpenseType) || 'personal',
+    flow: data.flow === 'in' ? 'in' : 'out',
+    friendId: data.type === 'personal' ? null : (data.friendId || null),
+    frequency: data.frequency || 'monthly',
+    intervalValue: Math.max(1, Number(data.intervalValue) || 1),
+    startDate: start,
+    nextDueDate: data.nextDueDate || start,
+    autoDeduct: Boolean(data.autoDeduct),
+    status: data.status === 'paused' ? 'paused' : 'active',
+    notes: data.notes || '',
+    createdAt: Date.now(),
+  };
+  return {
+    ...db,
+    recurringRules: [rule, ...(db.recurringRules || [])],
+  };
+}
+
+export function updateRecurringRule(db: AppDB, id: string, data: Partial<RecurringRule>): AppDB {
+  const rules = (db.recurringRules || []).map(r => {
+    if (r.id !== id) return r;
+    const updated = { ...r, ...data };
+    if (data.amount !== undefined) updated.amount = Number(data.amount) || 0;
+    if (data.intervalValue !== undefined) updated.intervalValue = Math.max(1, Number(data.intervalValue) || 1);
+    return updated;
+  });
+  return { ...db, recurringRules: rules };
+}
+
+export function deleteRecurringRule(db: AppDB, id: string): AppDB {
+  return {
+    ...db,
+    recurringRules: (db.recurringRules || []).filter(r => r.id !== id),
+  };
+}
+
+export function triggerAutopayDeduct(db: AppDB, ruleId: string, customDate?: string, customWalletId?: string): { db: AppDB; expense: Expense | null } {
+  const rule = (db.recurringRules || []).find(r => r.id === ruleId);
+  if (!rule) return { db, expense: null };
+
+  const deductDate = customDate || rule.nextDueDate || todayISO();
+  const walletId = customWalletId || rule.walletId;
+
+  const expData: Partial<Expense> = {
+    description: rule.title,
+    amount: rule.amount,
+    category: rule.category,
+    walletId: walletId,
+    type: rule.type,
+    flow: rule.flow,
+    friendId: rule.friendId,
+    date: deductDate,
+    status: rule.type !== 'personal' ? 'unsettled' : 'paid',
+    notes: `Autopay Subscription Payment (${rule.title})`,
+  };
+
+  const nextDb = addExpense(db, expData);
+  const createdExp = nextDb.expenses[0] || null;
+
+  const nextDue = computeNextDueDate(deductDate, rule.frequency, rule.intervalValue);
+  const updatedRules = (nextDb.recurringRules || []).map(r => {
+    if (r.id === ruleId) {
+      return {
+        ...r,
+        lastDeductedDate: deductDate,
+        nextDueDate: nextDue,
+      };
+    }
+    return r;
+  });
+
+  return {
+    db: { ...nextDb, recurringRules: updatedRules },
+    expense: createdExp,
+  };
+}
+
+export function quickLogRecurringRule(db: AppDB, ruleId: string, customDate?: string, customWalletId?: string): { db: AppDB; expense: Expense | null } {
+  const rule = (db.recurringRules || []).find(r => r.id === ruleId);
+  if (!rule) return { db, expense: null };
+
+  const logDate = customDate || todayISO();
+  const walletId = customWalletId || rule.walletId;
+
+  const expData: Partial<Expense> = {
+    description: rule.title,
+    amount: rule.amount,
+    category: rule.category,
+    walletId: walletId,
+    type: rule.type,
+    flow: rule.flow,
+    friendId: rule.friendId,
+    date: logDate,
+    status: rule.type !== 'personal' ? 'unsettled' : 'paid',
+    notes: `Quick-logged recurring expense`,
+  };
+
+  const nextDb = addExpense(db, expData);
+  const createdExp = nextDb.expenses[0] || null;
+
+  const updatedRules = (nextDb.recurringRules || []).map(r => {
+    if (r.id === ruleId) {
+      return {
+        ...r,
+        lastLoggedDate: logDate,
+      };
+    }
+    return r;
+  });
+
+  return {
+    db: { ...nextDb, recurringRules: updatedRules },
+    expense: createdExp,
+  };
 }

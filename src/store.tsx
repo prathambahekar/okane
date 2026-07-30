@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import type { AppDB, Expense, Friend, Wallet } from './types';
+import type { AppDB, Expense, Friend, Wallet, RecurringRule } from './types';
 import {
   loadDB, saveDB, defaultDB,
   addExpense as dbAddExpense, updateExpense as dbUpdateExpense, deleteExpense as dbDeleteExpense, deleteExpenseGroup as dbDeleteExpenseGroup,
@@ -8,6 +8,8 @@ import {
   addWallet as dbAddWallet, updateWallet as dbUpdateWallet, deleteWallet as dbDeleteWallet,
   updateCategory as dbUpdateCategory,
   recordSettlement as dbRecordSettlement, deleteSettlement as dbDeleteSettlement,
+  addRecurringRule as dbAddRecurringRule, updateRecurringRule as dbUpdateRecurringRule, deleteRecurringRule as dbDeleteRecurringRule,
+  triggerAutopayDeduct as dbTriggerAutopayDeduct, quickLogRecurringRule as dbQuickLogRecurringRule,
   seedSampleData,
 } from './db';
 
@@ -40,6 +42,12 @@ interface StoreContextType {
 
   recordSettlement: (friendId: string, expenseIds: string[], note: string, walletId?: string) => void;
   deleteSettlement: (id: string) => void;
+
+  addRecurringRule: (data: Partial<RecurringRule>) => void;
+  updateRecurringRule: (id: string, data: Partial<RecurringRule>) => void;
+  deleteRecurringRule: (id: string) => void;
+  triggerAutopayDeduct: (ruleId: string, customDate?: string, customWalletId?: string) => void;
+  quickLogRecurringRule: (ruleId: string, customDate?: string, customWalletId?: string) => void;
 
   updateCategory: (oldName: string, data: { name: string; color: string; icon?: string }) => void;
   updateSettings: (data: Partial<AppDB['settings']>) => void;
@@ -190,6 +198,56 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   }, [pushUndo, persist]);
 
+  const addRecurringRule = useCallback((data: Partial<RecurringRule>) => {
+    setDB(current => {
+      const next = dbAddRecurringRule(current, data);
+      saveDB(next);
+      return next;
+    });
+  }, []);
+
+  const updateRecurringRule = useCallback((id: string, data: Partial<RecurringRule>) => {
+    setDB(current => {
+      const next = dbUpdateRecurringRule(current, id, data);
+      saveDB(next);
+      return next;
+    });
+  }, []);
+
+  const deleteRecurringRule = useCallback((id: string) => {
+    setDB(current => {
+      const snapshot = current;
+      const next = dbDeleteRecurringRule(current, id);
+      saveDB(next);
+      pushUndo('Recurring rule deleted', snapshot, () => persist(snapshot));
+      return next;
+    });
+  }, [pushUndo, persist]);
+
+  const triggerAutopayDeduct = useCallback((ruleId: string, customDate?: string, customWalletId?: string) => {
+    setDB(current => {
+      const snapshot = current;
+      const { db: next, expense } = dbTriggerAutopayDeduct(current, ruleId, customDate, customWalletId);
+      saveDB(next);
+      if (expense) {
+        pushUndo(`Autopay paid: ${expense.description}`, snapshot, () => persist(snapshot));
+      }
+      return next;
+    });
+  }, [pushUndo, persist]);
+
+  const quickLogRecurringRule = useCallback((ruleId: string, customDate?: string, customWalletId?: string) => {
+    setDB(current => {
+      const snapshot = current;
+      const { db: next, expense } = dbQuickLogRecurringRule(current, ruleId, customDate, customWalletId);
+      saveDB(next);
+      if (expense) {
+        pushUndo(`Logged: ${expense.description}`, snapshot, () => persist(snapshot));
+      }
+      return next;
+    });
+  }, [pushUndo, persist]);
+
   const updateCategory = useCallback((oldName: string, data: { name: string; color: string; icon?: string }) => {
     setDB(current => {
       const next = dbUpdateCategory(current, oldName, data);
@@ -243,6 +301,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     addFriend, updateFriend, deleteFriend,
     addWallet, updateWallet, deleteWallet: deleteWalletFn,
     recordSettlement, deleteSettlement,
+    addRecurringRule, updateRecurringRule, deleteRecurringRule,
+    triggerAutopayDeduct, quickLogRecurringRule,
     updateCategory, updateSettings, resetDB, restoreDB, loadSampleData, bulkAddExpenses,
     showToast, dismissToast,
   };

@@ -27,12 +27,15 @@ import {
   Moon,
   Sun,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  RefreshCw,
+  PanelLeftClose,
+  PanelLeft
 } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import { useColorMode } from './theme';
 import type { ViewName } from './types';
-import { expenseFlow, friendBalance, totalWalletBalance } from './db';
+import { expenseFlow, friendBalance, totalWalletBalance, todayISO } from './db';
 import { fmtMoney } from './utils';
 import Dashboard from './views/Dashboard';
 import Expenses from './views/Expenses';
@@ -42,11 +45,13 @@ import FriendDetail from './views/FriendDetail';
 import Settlements from './views/Settlements';
 import Analytics from './views/Analytics';
 import Settings from './views/Settings';
+import Recurring from './views/Recurring';
 import ExpenseModal from './components/ExpenseModal';
 import Toast from './components/Toast';
+import NotificationBell from './components/NotificationBell';
 import './styles.css';
 
-const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'analytics', 'settings'];
+const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'recurring', 'analytics', 'settings'];
 
 function AppInner() {
   const { db } = useStore();
@@ -54,9 +59,18 @@ function AppInner() {
   const [friendDetailId, setFriendDetailId] = useState<string>('');
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
   const { mode, toggleMode: toggleDark } = useColorMode();
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   const { expenses, friends, currency } = useMemo(() => ({
     expenses: db.expenses,
@@ -76,9 +90,15 @@ function AppInner() {
     setMoreOpen(false);
   };
 
+  const dueAutopaysCount = useMemo(() => {
+    const today = todayISO();
+    return (db.recurringRules || []).filter(r => r.kind === 'autopay' && r.status === 'active' && r.nextDueDate && r.nextDueDate <= today).length;
+  }, [db.recurringRules]);
+
   const sidebarNavItems: { id: ViewName; label: string; icon: React.ReactNode; section?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, section: 'Main' },
     { id: 'expenses', label: 'Expenses', icon: <ReceiptText size={18} /> },
+    { id: 'recurring', label: 'Autopay', icon: <RefreshCw size={18} /> },
     { id: 'wallets', label: 'Wallets', icon: <Wallet size={18} /> },
     { id: 'friends', label: 'Friends', icon: <Users size={18} />, section: 'Social' },
     { id: 'settlements', label: 'Settlements', icon: <Handshake size={18} /> },
@@ -87,6 +107,7 @@ function AppInner() {
   ];
 
   const moreItems: { id: ViewName; label: string; icon: React.ReactNode }[] = [
+    { id: 'recurring', label: 'Autopay', icon: <RefreshCw size={20} /> },
     { id: 'wallets', label: 'Wallets', icon: <Wallet size={20} /> },
     { id: 'settlements', label: 'Settlements', icon: <Handshake size={20} /> },
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
@@ -104,6 +125,7 @@ function AppInner() {
     switch (view) {
       case 'dashboard': return <Dashboard onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
       case 'expenses': return <Expenses />;
+      case 'recurring': return <Recurring />;
       case 'wallets': return <Wallets />;
       case 'friends': return <Friends onNavigate={navigate} />;
       case 'friend-detail': return <FriendDetail friendId={friendDetailId} onNavigate={navigate} />;
@@ -118,12 +140,22 @@ function AppInner() {
     <div className="app-layout">
       {/* Desktop sidebar */}
       {!isMobile && (
-        <nav className="sidebar">
+        <nav className={`sidebar floating ${sidebarCollapsed ? 'collapsed' : ''}`}>
           <div className="sidebar-logo">
-            <div>
-              <div className="sidebar-logo-text">Okane</div>
-              <div className="sidebar-logo-sub">おかね</div>
-            </div>
+            {!sidebarCollapsed && (
+              <div>
+                <div className="sidebar-logo-text">Okane</div>
+                <div className="sidebar-logo-sub">おかね</div>
+              </div>
+            )}
+            <IconButton
+              size="small"
+              onClick={toggleSidebar}
+              sx={{ color: 'text.secondary', p: 0.8, borderRadius: '8px' }}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+            </IconButton>
           </div>
 
           <div className="sidebar-nav">
@@ -131,43 +163,67 @@ function AppInner() {
               const showSection = item.section && (i === 0 || sidebarNavItems[i - 1]?.section !== item.section);
               return (
                 <div key={item.id}>
-                  {showSection && <div className="nav-section-label">{item.section}</div>}
+                  {showSection && (
+                    !sidebarCollapsed ? (
+                      <div className="nav-section-label">{item.section}</div>
+                    ) : (
+                      <div className="nav-section-divider" />
+                    )
+                  )}
                   <button
                     className={`nav-item ${activeView === item.id ? 'active' : ''}`}
                     onClick={() => navigate(item.id)}
+                    title={sidebarCollapsed ? item.label : undefined}
                   >
                     <span className="nav-item-icon">{item.icon}</span>
                     <span className="nav-item-label">{item.label}</span>
                     {item.id === 'settlements' && pendingSettlements > 0 && (
-                      <span style={{
-                        marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: '1px 6px',
+                      <span className="nav-badge" style={{
+                        marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: sidebarCollapsed ? '2px 5px' : '1px 6px',
                         background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 99,
                       }}>{pendingSettlements}</span>
+                    )}
+                    {item.id === 'recurring' && dueAutopaysCount > 0 && (
+                      <span className="nav-badge" style={{
+                        marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: sidebarCollapsed ? '2px 5px' : '1px 6px',
+                        background: 'rgba(239, 83, 80, 0.15)', color: '#d32f2f', borderRadius: 99,
+                      }}>{dueAutopaysCount}</span>
                     )}
                   </button>
                 </div>
               );
             })}
             <div style={{ flex: 1 }} />
-            <button className="btn btn-primary btn-sm" style={{ margin: '8px 0', width: '100%' }} onClick={() => setShowAddExpense(true)}>
+            <button
+              className="btn btn-primary btn-sm"
+              style={{
+                margin: '8px 0',
+                width: '100%',
+                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                padding: sidebarCollapsed ? '8px 0' : '8px 12px'
+              }}
+              onClick={() => setShowAddExpense(true)}
+              title={sidebarCollapsed ? "Add Expense" : undefined}
+            >
               <Plus size={16} />
               <span className="nav-item-label">Add Expense</span>
             </button>
           </div>
 
           <div className="sidebar-footer">
-            <span style={{ fontSize: 16 }}>🎯</span>
-            <span className="nav-item-label">{db.expenses.length} records</span>
-            <IconButton
-              size="small"
-              onClick={toggleDark}
-              sx={{ ml: 'auto', color: 'text.secondary' }}
-              title={mode === 'dark' ? 'Switch to light' : 'Switch to dark'}
-            >
-              {mode === 'dark'
-                ? <Sun size={18} />
-                : <Moon size={18} />}
-            </IconButton>
+            <div className="sidebar-footer-actions" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between', gap: 6 }}>
+              <NotificationBell onNavigate={navigate} placement="top-left" />
+              <IconButton
+                size="small"
+                onClick={toggleDark}
+                sx={{ color: 'text.secondary' }}
+                title={mode === 'dark' ? 'Switch to light' : 'Switch to dark'}
+              >
+                {mode === 'dark'
+                  ? <Sun size={18} />
+                  : <Moon size={18} />}
+              </IconButton>
+            </div>
           </div>
         </nav>
       )}
@@ -210,6 +266,7 @@ function AppInner() {
                view === 'friends' ? 'Friends' :
                view === 'friend-detail' ? 'Friend Details' :
                view === 'wallets' ? 'Wallets' :
+               view === 'recurring' ? 'Autopay' :
                view === 'analytics' ? 'Analytics' :
                view === 'settlements' ? 'Settlements' :
                view === 'settings' ? 'Settings' : 'Dashboard'}
@@ -270,6 +327,8 @@ function AppInner() {
                   {fmtMoney(totalBal, currency)}
                 </Box>
               )}
+
+              <NotificationBell onNavigate={navigate} />
 
               <IconButton size="small" onClick={toggleDark} sx={{ color: 'text.secondary', p: 0.5 }}>
                 {mode === 'dark'
@@ -352,7 +411,22 @@ function AppInner() {
               }}
             />
             <BottomNavigationAction label="Friends" icon={<Users size={20} />} value="friends" />
-            <BottomNavigationAction label="More" icon={<MoreHorizontal size={20} />} value="more" />
+            <BottomNavigationAction
+              label="More"
+              icon={
+                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                  <MoreHorizontal size={20} />
+                  {(dueAutopaysCount > 0 || pendingSettlements > 0) && (
+                    <Box sx={{
+                      position: 'absolute', top: -2, right: -4,
+                      width: 8, height: 8, borderRadius: '50%',
+                      bgcolor: dueAutopaysCount > 0 ? 'error.main' : 'primary.main'
+                    }} />
+                  )}
+                </Box>
+              }
+              value="more"
+            />
           </BottomNavigation>
         </Paper>
       )}
@@ -382,6 +456,14 @@ function AppInner() {
                     bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: 99,
                   }}>
                     {pendingSettlements}
+                  </Box>
+                )}
+                {item.id === 'recurring' && dueAutopaysCount > 0 && (
+                  <Box sx={{
+                    fontSize: 11, fontWeight: 700, px: 0.75, py: 0.25,
+                    bgcolor: 'error.main', color: '#ffffff', borderRadius: 99,
+                  }}>
+                    {dueAutopaysCount} due
                   </Box>
                 )}
               </ListItemButton>

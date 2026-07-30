@@ -682,10 +682,10 @@ export default function Analytics() {
                       <span style={{
                         fontSize: 9.5,
                         fontWeight: isSelected || d.isToday ? 700 : 600,
-                        color: isSelected ? '#0284C7' : d.isToday ? 'var(--accent)' : 'var(--debit)',
+                        color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--debit)',
                         whiteSpace: 'nowrap',
                         letterSpacing: '-0.2px',
-                        background: isSelected ? 'rgba(2, 132, 199, 0.15)' : undefined,
+                        background: isSelected ? 'rgba(139, 92, 246, 0.18)' : undefined,
                         padding: isSelected ? '1px 4px' : undefined,
                         borderRadius: 4,
                       }}>
@@ -703,7 +703,7 @@ export default function Analytics() {
                         width: '78%',
                         maxWidth: 32,
                         background: isSelected
-                          ? '#0284C7'
+                          ? '#8B5CF6'
                           : d.isToday
                           ? 'var(--accent)'
                           : 'var(--debit)',
@@ -712,7 +712,7 @@ export default function Analytics() {
                         opacity: d.spend > 0 ? (isSelected ? 1 : 0.88) : 0.18,
                         transition: 'all 0.2s ease',
                         boxShadow: isSelected
-                          ? '0 0 0 2px #0284C7, 0 0 12px rgba(2, 132, 199, 0.6)'
+                          ? '0 0 0 2px #8B5CF6, 0 0 12px rgba(139, 92, 246, 0.6)'
                           : d.isToday
                           ? '0 0 8px var(--accent-soft)'
                           : undefined,
@@ -725,7 +725,7 @@ export default function Analytics() {
                   <div style={{ marginTop: 6, textAlign: 'center' }}>
                     <span style={{
                       fontSize: 10.5,
-                      color: isSelected ? 'var(--accent)' : d.isToday ? 'var(--accent)' : 'var(--text-2)',
+                      color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--text-2)',
                       fontWeight: isSelected || d.isToday ? 700 : 500,
                       whiteSpace: 'nowrap',
                       display: 'block',
@@ -753,7 +753,7 @@ export default function Analytics() {
             <span style={{ width: 8, height: 8, background: 'var(--accent)', borderRadius: 2 }} /> Today
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 8, height: 8, background: '#0284C7', borderRadius: 2 }} /> Selected Day
+            <span style={{ width: 8, height: 8, background: '#8B5CF6', borderRadius: 2 }} /> Selected Day
           </div>
         </div>
       </div>
@@ -761,19 +761,19 @@ export default function Analytics() {
       {/* Grid: Daily Expenditure Log & Category Share */}
       <div className="dashboard-grid" style={{ gap: 16 }}>
         {/* Daily Log List (Interactive & Expandable) */}
-        <div className="card" style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Award size={15} style={{ color: 'var(--accent)' }} />
-              Daily Expenditure Log
-              <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-3)' }}>
+        <div className="card" style={{ padding: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: '1 1 auto' }}>
+              <Award size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Daily Expenditure Log</span>
+              <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-3)', flexShrink: 0 }}>
                 ({perDayList.length} {perDayList.length === 1 ? 'day' : 'days'})
               </span>
             </div>
             {selectedDate && (
               <button
                 className="btn btn-secondary btn-sm"
-                style={{ fontSize: 11, padding: '2px 8px' }}
+                style={{ fontSize: 11, padding: '3px 10px', height: 26, whiteSpace: 'nowrap', flexShrink: 0 }}
                 onClick={() => setSelectedDate(null)}
               >
                 Clear Date
@@ -797,7 +797,8 @@ export default function Analytics() {
                     style={{
                       background: 'var(--surface2)',
                       borderRadius: 8,
-                      border: selectedDate === row.dateStr ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      border: selectedDate === row.dateStr ? '1px solid #8B5CF6' : '1px solid var(--border)',
+                      boxShadow: selectedDate === row.dateStr ? '0 0 10px rgba(139, 92, 246, 0.2)' : undefined,
                       overflow: 'hidden',
                       transition: 'all 0.2s ease',
                     }}
@@ -816,25 +817,25 @@ export default function Analytics() {
                       }}
                       onClick={() => handleToggleExpand(row.dateStr)}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
                         <CategoryBadge category={row.topCategory} color={catObj?.color} icon={catObj?.icon} size={14} showLabel={false} />
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span>{row.dayName}</span>
                             {row.isToday && <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.15)', color: 'var(--accent)', fontSize: 9, padding: '1px 5px' }}>Today</span>}
                             {row.isYesterday && <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#8B5CF6', fontSize: 9, padding: '1px 5px' }}>Yest.</span>}
                           </div>
-                          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
+                          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {row.count} {row.count === 1 ? 'item' : 'items'} · {row.topCategory}
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                         <div style={{ textAlign: 'right', fontWeight: 700, fontSize: 13.5, color: row.spend > 0 ? 'var(--debit)' : 'var(--credit)', whiteSpace: 'nowrap' }}>
                           {fmtMoney(row.spend, currency)}
                         </div>
-                        <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center', padding: '2px' }}>
+                        <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center', padding: '2px', flexShrink: 0 }}>
                           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </div>
                       </div>
@@ -845,7 +846,7 @@ export default function Analytics() {
                       <div style={{
                         borderTop: '1px solid var(--border)',
                         background: 'var(--surface)',
-                        padding: '8px 10px',
+                        padding: '6px 8px',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 6,
@@ -877,14 +878,14 @@ export default function Analytics() {
                                   <div style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                     {item.description || 'Expense'}
                                   </div>
-                                  <div style={{ fontSize: 10.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                                  <div style={{ fontSize: 10.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
                                     {item.type === 'personal' ? (
-                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                        <Wallet size={11} /> {walletObj?.name || 'Personal'}
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                        <Wallet size={10} /> {walletObj?.name || 'Personal'}
                                       </span>
                                     ) : (
-                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--accent)' }}>
-                                        <User size={11} /> {item.type === 'by_friend' ? `Paid by ${friendObj?.name || 'Friend'}` : `Split with ${friendObj?.name || 'Friend'}`}
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--accent)' }}>
+                                        <User size={10} /> {item.type === 'by_friend' ? `Paid by ${friendObj?.name || 'Friend'}` : `Split with ${friendObj?.name || 'Friend'}`}
                                       </span>
                                     )}
                                     <span>·</span>
@@ -903,40 +904,41 @@ export default function Analytics() {
                                 </div>
                               </div>
 
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                                 <div style={{
                                   fontWeight: 700,
                                   fontSize: 12.5,
                                   color: isDebit ? 'var(--debit)' : 'var(--credit)',
                                   whiteSpace: 'nowrap',
-                                  paddingRight: 2,
                                 }}>
                                   {isDebit ? '-' : '+'}{fmtMoney(item.amount, currency)}
                                 </div>
 
-                                <button
-                                  className="btn-icon"
-                                  style={{ width: 28, height: 28, padding: 0 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingExpense(item);
-                                  }}
-                                  title="Edit expense"
-                                >
-                                  <Edit2 size={13} />
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                                  <button
+                                    className="btn-icon"
+                                    style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0 }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingExpense(item);
+                                    }}
+                                    title="Edit expense"
+                                  >
+                                    <Edit2 size={12} />
+                                  </button>
 
-                                <button
-                                  className="btn-icon"
-                                  style={{ width: 28, height: 28, padding: 0, color: '#EF4444' }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeletingId(item.id);
-                                  }}
-                                  title="Delete expense"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
+                                  <button
+                                    className="btn-icon"
+                                    style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0, color: '#EF4444' }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeletingId(item.id);
+                                    }}
+                                    title="Delete expense"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           );

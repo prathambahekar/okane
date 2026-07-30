@@ -78,15 +78,44 @@ html, body, #root {
   height: 100vh;
   position: sticky;
   top: 0;
+  transition: width 0.22s cubic-bezier(0.2, 0, 0, 1), min-width 0.22s cubic-bezier(0.2, 0, 0, 1), padding 0.22s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.sidebar.floating {
+  margin: 12px 0 12px 12px;
+  height: calc(100vh - 24px);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  z-index: 100;
+  overflow: hidden;
+}
+
+[data-color-scheme="dark"] .sidebar.floating {
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar.collapsed {
+  width: 68px;
+  min-width: 68px;
 }
 
 .sidebar-logo {
-  padding: 22px 20px 16px;
+  padding: 16px 16px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   border-bottom: 1px solid var(--border);
+  min-height: 60px;
 }
+
+.sidebar.collapsed .sidebar-logo {
+  padding: 16px 8px;
+  justify-content: center;
+}
+
 .sidebar-logo-icon {
   width: 34px;
   height: 34px;
@@ -105,12 +134,14 @@ html, body, #root {
   font-weight: 600;
   letter-spacing: -0.2px;
   color: var(--text);
+  white-space: nowrap;
 }
 .sidebar-logo-sub {
   font-size: 10px;
   color: var(--text-3);
   margin-top: -1px;
   letter-spacing: 0.4px;
+  white-space: nowrap;
 }
 
 .sidebar-nav {
@@ -122,6 +153,10 @@ html, body, #root {
   overflow-y: auto;
 }
 
+.sidebar.collapsed .sidebar-nav {
+  padding: 10px 6px;
+}
+
 .nav-section-label {
   font-size: 9.5px;
   font-weight: 600;
@@ -129,6 +164,13 @@ html, body, #root {
   letter-spacing: 0.9px;
   color: var(--text-3);
   padding: 8px 10px 4px;
+  white-space: nowrap;
+}
+
+.nav-section-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 6px;
 }
 
 .nav-item {
@@ -136,7 +178,7 @@ html, body, #root {
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  border-radius: var(--radius);
+  border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 400;
@@ -146,12 +188,19 @@ html, body, #root {
   width: 100%;
   text-align: left;
   transition: background var(--transition), color var(--transition);
+  position: relative;
 }
 .nav-item:hover { background: var(--surface2); color: var(--text); }
 .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 10px 0;
+}
+
 .nav-item-icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -161,6 +210,27 @@ html, body, #root {
 }
 .nav-item.active .nav-item-icon { opacity: 1; }
 
+.nav-item-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar.collapsed .nav-item-label,
+.sidebar.collapsed .sidebar-logo-text,
+.sidebar.collapsed .sidebar-logo-sub,
+.sidebar.collapsed .nav-section-label,
+.sidebar.collapsed .record-count-text {
+  display: none !important;
+}
+
+.sidebar.collapsed .nav-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  margin-left: 0 !important;
+}
+
 .sidebar-footer {
   padding: 12px 16px;
   border-top: 1px solid var(--border);
@@ -169,6 +239,18 @@ html, body, #root {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  padding: 12px 6px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.sidebar.collapsed .sidebar-footer-actions {
+  margin-left: 0 !important;
+  flex-direction: column;
 }
 
 /* Main */
@@ -596,7 +678,7 @@ input[type="number"] {
   color: var(--text-2);
   letter-spacing: 0.2px;
 }
-.form-input, .form-select, .form-textarea {
+.form-input, .form-control, .form-select, .form-textarea {
   background: var(--surface2);
   border: 1px solid var(--border2);
   border-radius: var(--radius);
@@ -609,11 +691,11 @@ input[type="number"] {
   width: 100%;
   min-height: 42px;
 }
-.form-input:focus, .form-select:focus, .form-textarea:focus {
+.form-input:focus, .form-control:focus, .form-select:focus, .form-textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 2.5px var(--accent-soft);
 }
-.form-input::placeholder, .form-textarea::placeholder { color: var(--text-3); }
+.form-input::placeholder, .form-control::placeholder, .form-textarea::placeholder { color: var(--text-3); }
 .form-select {
   cursor: pointer;
   appearance: none;
