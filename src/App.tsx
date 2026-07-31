@@ -100,7 +100,7 @@ function AppInner() {
     { id: 'expenses', label: 'Expenses', icon: <ReceiptText size={18} /> },
     { id: 'recurring', label: 'Autopay', icon: <RefreshCw size={18} /> },
     { id: 'wallets', label: 'Wallets', icon: <Wallet size={18} /> },
-    { id: 'friends', label: 'Friends', icon: <Users size={18} />, section: 'Social' },
+    { id: 'friends', label: 'Contacts', icon: <Users size={18} />, section: 'Social' },
     { id: 'settlements', label: 'Settlements', icon: <Handshake size={18} /> },
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} />, section: 'Insights' },
     { id: 'settings', label: 'Settings', icon: <SettingsIconLucide size={18} />, section: 'System' },
@@ -263,8 +263,8 @@ function AppInner() {
             >
               {view === 'dashboard' ? 'Dashboard' :
                view === 'expenses' ? 'Expenses' :
-               view === 'friends' ? 'Friends' :
-               view === 'friend-detail' ? 'Friend Details' :
+               view === 'friends' ? 'Contacts' :
+               view === 'friend-detail' ? 'Contact Details' :
                view === 'wallets' ? 'Wallets' :
                view === 'recurring' ? 'Autopay' :
                view === 'analytics' ? 'Analytics' :
@@ -410,7 +410,7 @@ function AppInner() {
                 },
               }}
             />
-            <BottomNavigationAction label="Friends" icon={<Users size={20} />} value="friends" />
+            <BottomNavigationAction label="Contacts" icon={<Users size={20} />} value="friends" />
             <BottomNavigationAction
               label="More"
               icon={

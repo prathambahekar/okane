@@ -428,7 +428,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
         amount: totalAmt,
         category, date, type: calculatedType,
         flow,
-        friendId: calculatedType === 'personal' ? null : (friendId || null),
+        friendId: friendId || null,
         walletId: whoPaid === 'other' ? '' : walletId,
         status: calculatedStatus,
         notes,
@@ -584,6 +584,21 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                           <span>Pay Back Debt</span>
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Optional Contact/Vendor Selector for Personal Expense */}
+                  {whoPaid === 'me' && splitMode === 'just_me' && db.friends.length > 0 && (
+                    <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
+                      <label className="form-label">Contact / Vendor (Optional)</label>
+                      <select className="form-select" value={friendId} onChange={e => setFriendId(e.target.value)}>
+                        <option value="">— None (Personal Expense) —</option>
+                        {db.friends.map(f => {
+                          const t = f.type || 'friend';
+                          const tag = t === 'vendor' ? ' (Vendor)' : t === 'subscription' ? ' (Subscription)' : ' (Friend)';
+                          return <option key={f.id} value={f.id}>{f.name}{tag}</option>;
+                        })}
+                      </select>
                     </div>
                   )}
 

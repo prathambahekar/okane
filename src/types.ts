@@ -11,6 +11,8 @@ export interface Wallet {
   color: string;
 }
 
+export type ContactType = 'friend' | 'vendor' | 'subscription';
+
 export interface Friend {
   id: string;
   name: string;
@@ -19,7 +21,14 @@ export interface Friend {
   notes: string;
   color: string;
   createdAt: number;
+  type?: ContactType;
+  category?: string;
+  billingCycle?: 'monthly' | 'yearly' | 'custom' | 'one_time';
+  defaultAmount?: number;
+  website?: string;
 }
+
+export type Contact = Friend;
 
 export type ExpenseFlow = 'in' | 'out';
 export type ExpenseType = 'personal' | 'for_friend' | 'by_friend';

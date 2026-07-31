@@ -204,6 +204,53 @@ export function loadDB(): AppDB {
       }
     });
 
+    // Ensure Tiffin / Tiffin Aunty is classified as a vendor while keeping expenses & balances intact
+    const tiffin = db.friends.find(f => f.name.toLowerCase().includes('tiffin'));
+    if (tiffin) {
+      tiffin.type = 'vendor';
+      if (!tiffin.category) tiffin.category = 'Food';
+    } else {
+      const tiffinId = uid('frnd');
+      const tiffinVendor: Friend = {
+        id: tiffinId,
+        name: 'Tiffin Aunty',
+        type: 'vendor',
+        category: 'Food',
+        color: '#F97362',
+        notes: 'Monthly tiffin service - pay at end of month',
+        createdAt: Date.now() - 30 * 86400000,
+      };
+      db.friends.push(tiffinVendor);
+
+      const d = (offsetDays: number): string => {
+        const dt = new Date();
+        dt.setDate(dt.getDate() + offsetDays);
+        return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+      };
+
+      const defaultWal = db.settings.defaultWalletId || db.wallets[0]?.id || 'wal_cash';
+      const tiffinExps: Expense[] = [
+        {
+          id: uid('exp'),
+          groupId: null,
+          description: 'Monthly Tiffin Service (Lunch & Dinner)',
+          amount: 2500,
+          category: 'Food',
+          date: d(-5),
+          type: 'by_friend',
+          flow: 'out',
+          friendId: tiffinId,
+          walletId: defaultWal,
+          status: 'unsettled',
+          settled: false,
+          settlementId: null,
+          notes: 'Daily tiffin taken, to be paid at month end',
+          createdAt: Date.now() - 5 * 86400000,
+        },
+      ];
+      db.expenses.push(...tiffinExps);
+    }
+
     db.version = 3;
     return db;
   } catch (e) {
@@ -284,6 +331,26 @@ export function unsettledExpensesForFriend(db: AppDB, friendId: string): Expense
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
+export function contactTotalSpent(db: AppDB, contactId: string): number {
+  return db.expenses
+    .filter(e => e.friendId === contactId)
+    .reduce((sum, e) => {
+      const amt = Number(e.amount) || 0;
+      return sum + (expenseFlow(e) === 'in' ? -amt : amt);
+    }, 0);
+}
+
+export function contactTransactionCount(db: AppDB, contactId: string): number {
+  return db.expenses.filter(e => e.friendId === contactId).length;
+}
+
+export function contactLastTransaction(db: AppDB, contactId: string): Expense | null {
+  const exps = db.expenses
+    .filter(e => e.friendId === contactId)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+  return exps[0] || null;
+}
+
 // CRUD helpers that return new DB state (immutable-ish)
 export function addExpense(db: AppDB, data: Partial<Expense>): AppDB {
   const e: Expense = {
@@ -295,7 +362,7 @@ export function addExpense(db: AppDB, data: Partial<Expense>): AppDB {
     date: data.date || todayISO(),
     type: (data.type as ExpenseType) || 'personal',
     flow: data.flow === 'in' ? 'in' : 'out',
-    friendId: data.type === 'personal' ? null : (data.friendId || null),
+    friendId: data.friendId || null,
     walletId: data.type === 'by_friend' ? (data.walletId || '') : (data.walletId || db.settings.defaultWalletId || db.wallets[0]?.id),
     status: (data.status as ExpenseStatus) || db.settings.defaultStatus,
     settled: false,
@@ -311,7 +378,6 @@ export function updateExpense(db: AppDB, id: string, data: Partial<Expense>): Ap
     if (e.id !== id) return e;
     const updated = { ...e, ...data };
     if (updated.flow !== 'in') updated.flow = 'out';
-    if (updated.type === 'personal') updated.friendId = null;
     return updated;
   });
   return { ...db, expenses };
@@ -332,8 +398,13 @@ export function addFriend(db: AppDB, data: Partial<Friend>): { db: AppDB; friend
     email: data.email || '',
     phone: data.phone || '',
     notes: data.notes || '',
-    color: FRIEND_PALETTE[db.friends.length % FRIEND_PALETTE.length],
+    color: data.color || FRIEND_PALETTE[db.friends.length % FRIEND_PALETTE.length],
     createdAt: Date.now(),
+    type: data.type || 'friend',
+    category: data.category || undefined,
+    billingCycle: data.billingCycle || undefined,
+    defaultAmount: data.defaultAmount !== undefined ? Number(data.defaultAmount) : undefined,
+    website: data.website || '',
   };
   return { db: { ...db, friends: [...db.friends, friend] }, friend };
 }
@@ -406,15 +477,16 @@ export function recordSettlement(db: AppDB, friendId: string, expenseIds: string
   const exps = db.expenses.filter(e => expenseIds.includes(e.id));
   let owedToMe = 0, owedByMe = 0;
   exps.forEach(e => {
-    if (expenseFlow(e) !== 'out') return;
-    if (e.type === 'for_friend') owedToMe += Number(e.amount) || 0;
-    else if (e.type === 'by_friend') owedByMe += Number(e.amount) || 0;
+    const amt = Number(e.amount) || 0;
+    if (e.type === 'for_friend') owedToMe += amt;
+    else if (e.type === 'by_friend') owedByMe += amt;
   });
   const amount = owedToMe - owedByMe;
   const wallet = walletId ? db.wallets.find(w => w.id === walletId) : undefined;
   const s: Settlement = {
     id: uid('stl'),
-    friendId, amount,
+    friendId,
+    amount,
     date: todayISO(),
     note: note || '',
     expenseIds: expenseIds.slice(),
@@ -425,14 +497,26 @@ export function recordSettlement(db: AppDB, friendId: string, expenseIds: string
   const expenses = db.expenses.map(e =>
     expenseIds.includes(e.id) ? { ...e, settled: true, settlementId: s.id } : e
   );
-  return { ...db, settlements: [s, ...db.settlements], expenses };
+  return { ...db, settlements: [s, ...(db.settlements || [])], expenses };
 }
 
 export function deleteSettlement(db: AppDB, id: string): AppDB {
+  const target = (db.settlements || []).find(s => s.id === id);
+  const targetExpenseIds = new Set(target?.expenseIds || []);
   const expenses = db.expenses.map(e =>
-    e.settlementId === id ? { ...e, settled: false, settlementId: null } : e
+    (e.settlementId === id || targetExpenseIds.has(e.id)) ? { ...e, settled: false, settlementId: null } : e
   );
-  return { ...db, settlements: db.settlements.filter(x => x.id !== id), expenses };
+  return { ...db, settlements: (db.settlements || []).filter(x => x.id !== id), expenses };
+}
+
+export function unsettleExpense(db: AppDB, expenseId: string): AppDB {
+  const exp = db.expenses.find(e => e.id === expenseId);
+  if (!exp) return db;
+  if (exp.settlementId) {
+    return deleteSettlement(db, exp.settlementId);
+  }
+  const expenses = db.expenses.map(e => e.id === expenseId ? { ...e, settled: false, settlementId: null } : e);
+  return { ...db, expenses };
 }
 
 export function monthKey(iso: string): string {

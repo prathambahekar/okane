@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, Filter, Users, Layers, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, Filter, Users, Layers, ArrowUpRight, ArrowDownLeft, RotateCcw } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense } from '../types';
 import { fmtMoney, fmtDate, typeLabel, statusLabel, friendInitial, groupExpenses } from '../utils';
@@ -8,7 +8,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import CategoryIcon, { CategoryBadge } from '../components/CategoryIcon';
 
 export default function Expenses() {
-  const { db, deleteExpense, showToast } = useStore();
+  const { db, deleteExpense, unsettleExpense, showToast } = useStore();
   const { expenses, settings: { currency } } = db;
 
   const [search, setSearch] = useState('');
@@ -23,12 +23,19 @@ export default function Expenses() {
   const [editExp, setEditExp] = useState<Expense | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [delId, setDelId] = useState<string | null>(null);
+  const [undoExpId, setUndoExpId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
   const activeFilterCount = (catFilter ? 1 : 0) + (typeFilter ? 1 : 0) + (walletFilter ? 1 : 0) + (sort !== 'date-desc' ? 1 : 0);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleUnsettleConfirm = () => {
+    if (!undoExpId) return;
+    unsettleExpense(undoExpId);
+    setUndoExpId(null);
   };
 
   const grouped = useMemo(() => groupExpenses(expenses), [expenses]);
@@ -189,7 +196,17 @@ export default function Expenses() {
                 {filtered.map(ge => {
                   const primaryItem = ge.items[0];
                   const cat = db.settings.categories.find(c => c.name === ge.category);
-                  const wallet = db.wallets.find(w => w.id === ge.walletId);
+                  const stl = ge.items.reduce<typeof db.settlements[0] | null | undefined>((found, item) => {
+                    if (found) return found;
+                    if (item.settlementId) return db.settlements.find(s => s.id === item.settlementId);
+                    return db.settlements.find(s => s.expenseIds.includes(item.id));
+                  }, null);
+                  const stlWallet = stl?.walletId ? db.wallets.find(w => w.id === stl.walletId) : undefined;
+                  const wallet = ge.items.reduce<typeof db.wallets[0] | null | undefined>((found, item) => {
+                    if (found) return found;
+                    return item.walletId ? db.wallets.find(w => w.id === item.walletId) : null;
+                  }, null) || db.wallets.find(w => w.id === ge.walletId);
+                  const effectiveWalletName = wallet?.name || stlWallet?.name || stl?.paymentMethod || '—';
                   const isIn = ge.flow === 'in';
                   const isExpanded = !!expandedIds[ge.id];
                   const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
@@ -251,20 +268,37 @@ export default function Expenses() {
                         <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
                           {ge.isSplit ? 'Split Expense' : typeLabel(primaryItem.type)}
                         </td>
-                        <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{wallet?.name ?? '—'}</td>
+                        <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{effectiveWalletName}</td>
                         <td>
-                          {ge.isSplit ? (
-                            <span className="badge badge-unsettled" style={{ whiteSpace: 'nowrap' }}>
-                              {ge.items.every(i => i.settled) ? 'Settled' : 'Split'}
-                            </span>
-                          ) : (
-                            <span className={`badge badge-${primaryItem.settled ? 'settled' : primaryItem.status}`} style={{ whiteSpace: 'nowrap' }}>
-                              {statusLabel(primaryItem.settled ? 'settled' : primaryItem.status)}
-                            </span>
-                          )}
+                          {(() => {
+                            const isAllSettled = ge.items.every(i => i.settled);
+                            if (ge.isSplit) {
+                              return (
+                                <span className={`badge badge-${isAllSettled ? 'settled' : 'unsettled'}`} style={{ whiteSpace: 'nowrap' }}>
+                                  {isAllSettled ? 'Settled' : 'Split'}
+                                </span>
+                              );
+                            }
+
+                            return (
+                              <span className={`badge badge-${primaryItem.settled ? 'settled' : primaryItem.status}`} style={{ whiteSpace: 'nowrap' }}>
+                                {primaryItem.settled ? 'Settled' : statusLabel(primaryItem.status)}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
+                            {ge.items.some(i => i.settled) && (
+                              <button
+                                className="btn-icon"
+                                onClick={() => setUndoExpId(primaryItem.id)}
+                                title="Undo Settlement (Restore money to wallet)"
+                                style={{ color: '#d97706', background: 'rgba(217, 119, 6, 0.12)', borderRadius: 4, padding: 3 }}
+                              >
+                                <RotateCcw size={14} />
+                              </button>
+                            )}
                             <button className="btn-icon" onClick={() => setEditExp(primaryItem)} title="Edit"><Edit2 size={15} /></button>
                             <button className="btn-icon" onClick={() => setDelId(ge.id)} title="Delete" style={{ color: 'var(--debit)' }}><Trash2 size={15} /></button>
                           </div>
@@ -334,7 +368,17 @@ export default function Expenses() {
               {filtered.map(ge => {
                 const primaryItem = ge.items[0];
                 const cat = db.settings.categories.find(c => c.name === ge.category);
-                const wallet = db.wallets.find(w => w.id === ge.walletId);
+                const stl = ge.items.reduce<typeof db.settlements[0] | null | undefined>((found, item) => {
+                  if (found) return found;
+                  if (item.settlementId) return db.settlements.find(s => s.id === item.settlementId);
+                  return db.settlements.find(s => s.expenseIds.includes(item.id));
+                }, null);
+                const stlWallet = stl?.walletId ? db.wallets.find(w => w.id === stl.walletId) : undefined;
+                const wallet = ge.items.reduce<typeof db.wallets[0] | null | undefined>((found, item) => {
+                  if (found) return found;
+                  return item.walletId ? db.wallets.find(w => w.id === item.walletId) : null;
+                }, null) || db.wallets.find(w => w.id === ge.walletId);
+                const effectiveWalletName = wallet?.name || stlWallet?.name || stl?.paymentMethod || '—';
                 const isIn = ge.flow === 'in';
                 const isExpanded = !!expandedIds[ge.id];
                 const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
@@ -442,7 +486,7 @@ export default function Expenses() {
 
                           <div className="mobile-expense-detail-item">
                             <span className="mobile-expense-detail-label">Wallet</span>
-                            <span className="mobile-expense-detail-val">{wallet?.name ?? '—'}</span>
+                            <span className="mobile-expense-detail-val">{effectiveWalletName}</span>
                           </div>
 
                           <div className="mobile-expense-detail-item">
@@ -454,7 +498,7 @@ export default function Expenses() {
                             <span className="mobile-expense-detail-label">Status</span>
                             <span className="mobile-expense-detail-val">
                               <span className={`badge badge-${primaryItem.settled ? 'settled' : primaryItem.status}`}>
-                                {statusLabel(primaryItem.settled ? 'settled' : primaryItem.status)}
+                                {primaryItem.settled ? 'Settled' : statusLabel(primaryItem.status)}
                               </span>
                             </span>
                           </div>
@@ -468,6 +512,15 @@ export default function Expenses() {
                         </div>
 
                         <div className="mobile-expense-actions">
+                          {ge.items.some(i => i.settled) && (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => setUndoExpId(primaryItem.id)}
+                              style={{ color: '#d97706', borderColor: 'rgba(217, 119, 6, 0.3)' }}
+                            >
+                              <RotateCcw size={14} /> Undo Settlement
+                            </button>
+                          )}
                           <button className="btn btn-secondary btn-sm" onClick={() => setEditExp(primaryItem)}>
                             <Edit2 size={14} /> Edit
                           </button>
@@ -488,8 +541,20 @@ export default function Expenses() {
       {showAdd && <ExpenseModal onClose={() => setShowAdd(false)} />}
       {editExp && <ExpenseModal expense={editExp} onClose={() => setEditExp(null)} />}
       {delId && (
-        <ConfirmDialog title="Delete Expense" message="Are you sure you want to delete this expense? This cannot be undone."
-          onConfirm={() => handleDelete(delId)} onClose={() => setDelId(null)} />
+        <ConfirmDialog
+          title="Delete Expense"
+          message="Are you sure you want to delete this expense? If it was settled, money will be restored to your wallet. This cannot be undone."
+          onConfirm={() => handleDelete(delId)}
+          onClose={() => setDelId(null)}
+        />
+      )}
+      {undoExpId && (
+        <ConfirmDialog
+          title="Undo Settlement"
+          message="Are you sure you want to undo settlement for this expense? The money will be returned to your wallet and the item marked as unsettled."
+          onConfirm={handleUnsettleConfirm}
+          onClose={() => setUndoExpId(null)}
+        />
       )}
     </div>
   );

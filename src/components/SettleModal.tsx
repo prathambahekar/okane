@@ -38,7 +38,10 @@ export default function SettleModal({ friend, onClose }: Props) {
   const handleSettle = () => {
     if (!selected.size) return;
     recordSettlement(friend.id, Array.from(selected), note, selectedWalletId);
-    showToast('Settlement recorded');
+    const targetWallet = wallets.find(w => w.id === selectedWalletId);
+    const wName = targetWallet?.name || 'Wallet';
+    const actionText = net >= 0 ? `credited to ${wName}` : `deducted from ${wName}`;
+    showToast(`Settled ${fmtMoney(Math.abs(net), currency)} (${actionText})`);
     onClose();
   };
 

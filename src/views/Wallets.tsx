@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, Wallet as WalletIcon, TrendingDown, TrendingUp, ReceiptText, Search, X } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Edit2, Trash2, Wallet as WalletIcon, TrendingDown, TrendingUp, ReceiptText, Search, X, RotateCcw, Handshake } from 'lucide-react';
 import Drawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
@@ -15,12 +15,13 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import ExpenseModal from '../components/ExpenseModal';
 
 export default function Wallets() {
-  const { db, deleteWallet, showToast } = useStore();
+  const { db, deleteWallet, deleteSettlement, showToast } = useStore();
   const { wallets, expenses, settings: { currency } } = db;
   const [editW, setEditW] = useState<Wallet | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showAddExp, setShowAddExp] = useState(false);
   const [delId, setDelId] = useState<string | null>(null);
+  const [undoStlId, setUndoStlId] = useState<string | null>(null);
   const [selectedWalletForTx, setSelectedWalletForTx] = useState<Wallet | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -36,6 +37,60 @@ export default function Wallets() {
   };
 
   const activeWallet = selectedWalletForTx;
+
+  const unifiedTransactions = useMemo(() => {
+    if (!activeWallet) return [];
+    const expItems = expenses
+      .filter(e => e.walletId === activeWallet.id)
+      .map(e => ({
+        id: e.id,
+        isSettlement: false as const,
+        description: e.description,
+        category: e.category,
+        date: e.date,
+        createdAt: e.createdAt,
+        amount: Number(e.amount),
+        flow: expenseFlow(e),
+        statusKey: e.settled ? 'settled' : e.status,
+        typeLabelStr: typeLabel(e.type),
+        rawExpense: e,
+      }));
+
+    const stlItems = db.settlements
+      .filter(s => s.walletId === activeWallet.id)
+      .map(s => {
+        const friend = db.friends.find(f => f.id === s.friendId);
+        const friendName = friend ? friend.name : 'Friend';
+        const flow = s.amount >= 0 ? 'in' : 'out';
+        return {
+          id: s.id,
+          isSettlement: true as const,
+          description: `Settlement: ${s.amount >= 0 ? 'Received from' : 'Paid to'} ${friendName}${s.note ? ` (${s.note})` : ''}`,
+          category: 'Settlement',
+          date: s.date,
+          createdAt: s.createdAt,
+          amount: Math.abs(s.amount),
+          flow: flow as 'in' | 'out',
+          statusKey: 'settled',
+          typeLabelStr: 'Settlement',
+          rawSettlement: s,
+        };
+      });
+
+    const combined = [...expItems, ...stlItems];
+    combined.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+    return combined;
+  }, [activeWallet, expenses, db.settlements, db.friends]);
+
+  const filteredTx = useMemo(() => {
+    if (!searchQuery.trim()) return unifiedTransactions;
+    const q = searchQuery.toLowerCase();
+    return unifiedTransactions.filter(t =>
+      t.description.toLowerCase().includes(q) ||
+      t.category.toLowerCase().includes(q)
+    );
+  }, [unifiedTransactions, searchQuery]);
+
   const walletExpenses = activeWallet
     ? [...expenses.filter(e => e.walletId === activeWallet.id)].sort((a, b) => b.date.localeCompare(a.date))
     : [];
@@ -43,11 +98,6 @@ export default function Wallets() {
   const walletSettlements = activeWallet
     ? [...db.settlements.filter(s => s.walletId === activeWallet.id)].sort((a, b) => b.date.localeCompare(a.date))
     : [];
-
-  const filteredExpenses = walletExpenses.filter(e =>
-    e.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const now = new Date();
   const thisKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
@@ -294,20 +344,19 @@ export default function Wallets() {
 
             {/* Transactions Content */}
             <Box sx={{ flex: 1, overflowY: 'auto', p: 2, bgcolor: 'var(--surface)' }}>
-              {filteredExpenses.length === 0 ? (
+              {filteredTx.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 6, color: 'var(--text-2)' }}>
                   <Typography variant="body2">No matching transactions found.</Typography>
                 </Box>
               ) : (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {filteredExpenses.map(e => {
-                    const cat = db.settings.categories.find(c => c.name === e.category);
-                    const isIn = expenseFlow(e) === 'in';
-                    const statusKey = e.settled ? 'settled' : e.status;
+                  {filteredTx.map(tx => {
+                    const cat = db.settings.categories.find(c => c.name === tx.category);
+                    const isIn = tx.flow === 'in';
 
                     return (
                       <Box
-                        key={e.id}
+                        key={tx.id}
                         sx={{
                           p: 1.75,
                           borderRadius: 2.5,
@@ -322,38 +371,68 @@ export default function Wallets() {
                         }}
                       >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
-                          {cat && (
+                          {tx.isSettlement ? (
                             <Box
                               sx={{
-                                width: 10,
-                                height: 10,
+                                width: 26,
+                                height: 26,
                                 borderRadius: '50%',
-                                bgcolor: cat.color,
+                                bgcolor: 'rgba(16, 185, 129, 0.15)',
+                                border: '1px solid var(--credit)',
+                                color: 'var(--credit)',
+                                display: 'grid',
+                                placeItems: 'center',
                                 flexShrink: 0,
                               }}
-                            />
+                            >
+                              <Handshake size={14} />
+                            </Box>
+                          ) : (
+                            cat && (
+                              <Box
+                                sx={{
+                                  width: 10,
+                                  height: 10,
+                                  borderRadius: '50%',
+                                  bgcolor: cat.color,
+                                  flexShrink: 0,
+                                }}
+                              />
+                            )
                           )}
                           <Box sx={{ minWidth: 0 }}>
                             <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)' }}>
-                              {e.description}
+                              {tx.description}
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.2 }}>
-                              <span>{fmtDate(e.date)}</span>
+                              <span>{fmtDate(tx.date)}</span>
                               <span>·</span>
-                              <span>{e.category}</span>
+                              <span>{tx.category}</span>
                               <span>·</span>
-                              <span>{typeLabel(e.type)}</span>
+                              <span>{tx.typeLabelStr}</span>
                             </Typography>
                           </Box>
                         </Box>
 
-                        <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                        <Box sx={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                           <Typography variant="body2" sx={{ fontWeight: 700, color: isIn ? 'var(--credit)' : 'var(--text)', fontSize: '0.92rem' }}>
-                            {isIn ? '+' : ''}{fmtMoney(e.amount, currency)}
+                            {isIn ? '+' : '-'}{fmtMoney(tx.amount, currency)}
                           </Typography>
-                          <span className={`badge badge-${statusKey}`} style={{ fontSize: 10, marginTop: 4 }}>
-                            {statusLabel(statusKey)}
-                          </span>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                            <span className={`badge badge-${tx.statusKey}`} style={{ fontSize: 10 }}>
+                              {statusLabel(tx.statusKey)}
+                            </span>
+                            {tx.isSettlement && (
+                              <button
+                                className="btn-icon"
+                                style={{ color: '#d97706', padding: 2 }}
+                                title="Undo Settlement"
+                                onClick={() => setUndoStlId(tx.id)}
+                              >
+                                <RotateCcw size={13} />
+                              </button>
+                            )}
+                          </Box>
                         </Box>
                       </Box>
                     );
@@ -374,6 +453,19 @@ export default function Wallets() {
           message="All expenses in this wallet will be moved to another wallet. Are you sure?"
           onConfirm={() => handleDelete(delId)}
           onClose={() => setDelId(null)}
+        />
+      )}
+      {undoStlId && (
+        <ConfirmDialog
+          title="Undo Settlement"
+          message="Are you sure you want to undo this settlement? The settlement will be deleted and associated expenses marked as unsettled again."
+          confirmLabel="Undo Settlement"
+          onConfirm={() => {
+            deleteSettlement(undoStlId);
+            setUndoStlId(null);
+            showToast('Settlement undone. Balance restored.');
+          }}
+          onClose={() => setUndoStlId(null)}
         />
       )}
     </div>

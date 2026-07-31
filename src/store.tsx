@@ -2,12 +2,12 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { AppDB, Expense, Friend, Wallet, RecurringRule } from './types';
 import {
-  loadDB, saveDB, defaultDB,
+  loadDB, saveDB, defaultDB, DEFAULT_CATEGORIES, DEFAULT_WALLETS,
   addExpense as dbAddExpense, updateExpense as dbUpdateExpense, deleteExpense as dbDeleteExpense, deleteExpenseGroup as dbDeleteExpenseGroup,
   addFriend as dbAddFriend, updateFriend as dbUpdateFriend, deleteFriend as dbDeleteFriend,
   addWallet as dbAddWallet, updateWallet as dbUpdateWallet, deleteWallet as dbDeleteWallet,
   updateCategory as dbUpdateCategory,
-  recordSettlement as dbRecordSettlement, deleteSettlement as dbDeleteSettlement,
+  recordSettlement as dbRecordSettlement, deleteSettlement as dbDeleteSettlement, unsettleExpense as dbUnsettleExpense,
   addRecurringRule as dbAddRecurringRule, updateRecurringRule as dbUpdateRecurringRule, deleteRecurringRule as dbDeleteRecurringRule,
   triggerAutopayDeduct as dbTriggerAutopayDeduct, quickLogRecurringRule as dbQuickLogRecurringRule,
   seedSampleData,
@@ -42,6 +42,7 @@ interface StoreContextType {
 
   recordSettlement: (friendId: string, expenseIds: string[], note: string, walletId?: string) => void;
   deleteSettlement: (id: string) => void;
+  unsettleExpense: (expenseId: string) => void;
 
   addRecurringRule: (data: Partial<RecurringRule>) => void;
   updateRecurringRule: (id: string, data: Partial<RecurringRule>) => void;
@@ -193,7 +194,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const snapshot = current;
       const next = dbDeleteSettlement(current, id);
       saveDB(next);
-      pushUndo('Settlement undone', snapshot, () => persist(snapshot));
+      pushUndo('Settlement undone & money restored to wallet', snapshot, () => persist(snapshot));
+      return next;
+    });
+  }, [pushUndo, persist]);
+
+  const unsettleExpense = useCallback((expenseId: string) => {
+    setDB(current => {
+      const snapshot = current;
+      const next = dbUnsettleExpense(current, expenseId);
+      saveDB(next);
+      pushUndo('Payment status reset & money restored', snapshot, () => persist(snapshot));
       return next;
     });
   }, [pushUndo, persist]);
@@ -270,7 +281,23 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [persist]);
 
   const restoreDB = useCallback((data: AppDB) => {
-    persist(data);
+    const defaultWal = data.settings?.defaultWalletId || data.wallets?.[0]?.id || 'wal_cash';
+    const normalized: AppDB = {
+      version: data.version || 3,
+      friends: Array.isArray(data.friends) ? data.friends : [],
+      expenses: Array.isArray(data.expenses) ? data.expenses : [],
+      settlements: Array.isArray(data.settlements) ? data.settlements : [],
+      wallets: Array.isArray(data.wallets) && data.wallets.length > 0 ? data.wallets : JSON.parse(JSON.stringify(DEFAULT_WALLETS)),
+      settings: {
+        currency: data.settings?.currency || 'INR',
+        categories: data.settings?.categories || JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+        defaultCategory: data.settings?.defaultCategory || 'Food',
+        defaultStatus: data.settings?.defaultStatus || 'paid',
+        defaultWalletId: defaultWal,
+      },
+      recurringRules: Array.isArray(data.recurringRules) ? data.recurringRules : [],
+    };
+    persist(normalized);
   }, [persist]);
 
   const loadSampleData = useCallback(() => {
@@ -300,7 +327,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     addExpense, updateExpense, deleteExpense,
     addFriend, updateFriend, deleteFriend,
     addWallet, updateWallet, deleteWallet: deleteWalletFn,
-    recordSettlement, deleteSettlement,
+    recordSettlement, deleteSettlement, unsettleExpense,
     addRecurringRule, updateRecurringRule, deleteRecurringRule,
     triggerAutopayDeduct, quickLogRecurringRule,
     updateCategory, updateSettings, resetDB, restoreDB, loadSampleData, bulkAddExpenses,

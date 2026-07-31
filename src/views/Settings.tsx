@@ -126,7 +126,11 @@ export default function Settings() {
 
   const handleExport = async () => {
     try {
-      const json = JSON.stringify(db, null, 2);
+      const exportData: AppDB = {
+        ...db,
+        recurringRules: db.recurringRules || [],
+      };
+      const json = JSON.stringify(exportData, null, 2);
       const fileName = `ledger-backup-${new Date()
         .toISOString()
         .slice(0, 10)}.json`;

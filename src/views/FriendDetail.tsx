@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Handshake, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Handshake, Plus, ChevronDown, ChevronUp, Edit2, Store, Tv, ExternalLink } from 'lucide-react';
 import { useStore } from '../store';
-import { friendBalance, expenseFlow } from '../db';
+import { friendBalance, expenseFlow, contactTotalSpent } from '../db';
 import { fmtMoney, fmtDate, friendInitial, typeLabel, statusLabel } from '../utils';
 import type { ViewName } from '../types';
 import FriendModal from '../components/FriendModal';
+import { renderBrandLogo } from '../components/BrandIcons';
 import { CategoryBadge } from '../components/CategoryIcon';
 import SettleModal from '../components/SettleModal';
 import ExpenseModal from '../components/ExpenseModal';
@@ -29,6 +30,8 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
     setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const contactType = friend?.type || 'friend';
+
   const bal = useMemo(() => friend ? friendBalance(db, friend.id) : { owedToMe: 0, owedByMe: 0, net: 0 }, [db, friend]);
   const allExps = useMemo(() =>
     db.expenses
@@ -36,28 +39,22 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
       .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt),
     [db.expenses, friendId]
   );
+
+  const totalSpent = useMemo(() => friend ? contactTotalSpent(db, friend.id) : 0, [db, friend]);
+  const avgOrderVal = useMemo(() => allExps.length > 0 ? totalSpent / allExps.length : 0, [totalSpent, allExps]);
+
   const activeExps = allExps.filter(e => !e.settled);
   const settledExps = allExps.filter(e => e.settled);
-  const shown = tab === 'active' ? activeExps : settledExps;
-
-  // const handleShareReminder = () => {
-  //   if (!friend) return;
-  //   const msg = bal.net > 0
-  //     ? `Hey ${friend.name}! Quick reminder: You owe me ${fmtMoney(bal.owedToMe, currency)} on Okane for shared expenses. Let me know when you settle up!`
-  //     : `Hey ${friend.name}! I owe you ${fmtMoney(bal.owedByMe, currency)} on Okane. Let me know how you'd like to get paid!`;
-
-  //   navigator.clipboard.writeText(msg);
-  //   showToast('Payment request copied to clipboard!');
-  // };
+  const shown = contactType === 'friend' ? (tab === 'active' ? activeExps : settledExps) : allExps;
 
   if (!friend) {
     return (
       <div className="view-container">
         <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('friends')}>
-          <ArrowLeft size={16} /> Back to Friends
+          <ArrowLeft size={16} /> Back to Contacts
         </button>
         <div className="card" style={{ marginTop: 20 }}>
-          <div className="empty-state"><p>Friend not found.</p></div>
+          <div className="empty-state"><p>Contact not found.</p></div>
         </div>
       </div>
     );
@@ -68,14 +65,15 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
       {/* Back Button & Secondary Action Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('friends')} style={{ gap: 6 }}>
-          <ArrowLeft size={18} /> Back to Friends
+          <ArrowLeft size={18} /> Back to Contacts
         </button>
 
-
-
+        <button className="btn btn-secondary btn-sm" style={{ gap: 6 }} onClick={() => setShowEdit(true)}>
+          <Edit2 size={14} /> Edit Contact
+        </button>
       </div>
 
-      {/* Profile & Net Balance Hero Card */}
+      {/* Hero Profile & Stats Card */}
       <div
         className="card"
         style={{
@@ -90,22 +88,69 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           <div
             className="avatar"
             style={{
-              background: friend.color,
+              background: friend.color || '#3B82F6',
               width: 50,
               height: 50,
               fontSize: 20,
               fontWeight: 700,
               flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            {friendInitial(friend.name)}
+            {contactType === 'subscription' ? (
+              renderBrandLogo(friend.name, 26) || <Tv size={24} />
+            ) : contactType === 'vendor' ? (
+              <Store size={24} />
+            ) : (
+              friendInitial(friend.name)
+            )}
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 style={{ fontSize: 19, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{friend.name}</h2>
-            {(friend.email || friend.phone) && (
-              <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>
-                {friend.email}{friend.email && friend.phone ? ' · ' : ''}{friend.phone}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{friend.name}</h2>
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.4px',
+                  background:
+                    contactType === 'vendor'
+                      ? 'rgba(245, 158, 11, 0.15)'
+                      : contactType === 'subscription'
+                      ? 'rgba(168, 85, 247, 0.15)'
+                      : 'rgba(59, 130, 246, 0.15)',
+                  color:
+                    contactType === 'vendor'
+                      ? '#D97706'
+                      : contactType === 'subscription'
+                      ? '#9333EA'
+                      : 'var(--accent)',
+                }}
+              >
+                {contactType}
+              </span>
+            </div>
+
+            {(friend.email || friend.phone || friend.website) && (
+              <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                {friend.email && <span>{friend.email}</span>}
+                {friend.phone && <span>· {friend.phone}</span>}
+                {friend.website && (
+                  <a
+                    href={friend.website.startsWith('http') ? friend.website : `https://${friend.website}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: 2 }}
+                  >
+                    <span>Website</span> <ExternalLink size={12} />
+                  </a>
+                )}
               </div>
             )}
             {friend.notes && (
@@ -116,54 +161,164 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           </div>
         </div>
 
-        {/* Hero Net Balance Banner Box */}
-        <div
-          style={{
-            background: bal.net > 0.004
-              ? 'rgba(34, 197, 94, 0.08)'
-              : bal.net < -0.004
-                ? 'rgba(239, 68, 68, 0.08)'
-                : 'var(--surface2)',
-            border: `1px solid ${bal.net > 0.004
-              ? 'rgba(34, 197, 94, 0.22)'
-              : bal.net < -0.004
-                ? 'rgba(239, 68, 68, 0.22)'
-                : 'var(--border2)'
-              }`,
-            borderRadius: 8,
-            padding: '14px 16px',
-            marginBottom: 16,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 12,
-          }}
-        >
-          <div>
-            <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)' }}>
-              Net Balance Status
-            </span>
-            <div style={{ fontSize: 24, fontWeight: 700, color: bal.net > 0.004 ? 'var(--credit)' : bal.net < -0.004 ? 'var(--debit)' : 'var(--text-2)', marginTop: 2 }}>
-              {bal.net > 0.004 ? `+${fmtMoney(bal.net, currency)}` : bal.net < -0.004 ? `-${fmtMoney(-bal.net, currency)}` : 'Settled Up ✓'}
+        {/* Dynamic Hero Banner for Contact Type */}
+        {contactType === 'friend' ? (
+          /* Friend Net Balance Banner Box */
+          <div
+            style={{
+              background: bal.net > 0.004
+                ? 'rgba(34, 197, 94, 0.08)'
+                : bal.net < -0.004
+                  ? 'rgba(239, 68, 68, 0.08)'
+                  : 'var(--surface2)',
+              border: `1px solid ${bal.net > 0.004
+                ? 'rgba(34, 197, 94, 0.22)'
+                : bal.net < -0.004
+                  ? 'rgba(239, 68, 68, 0.22)'
+                  : 'var(--border2)'
+                }`,
+              borderRadius: 8,
+              padding: '14px 16px',
+              marginBottom: 16,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            <div>
+              <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)' }}>
+                Net Balance Status
+              </span>
+              <div style={{ fontSize: 24, fontWeight: 700, color: bal.net > 0.004 ? 'var(--credit)' : bal.net < -0.004 ? 'var(--debit)' : 'var(--text-2)', marginTop: 2 }}>
+                {bal.net > 0.004 ? fmtMoney(bal.net, currency) : bal.net < -0.004 ? fmtMoney(Math.abs(bal.net), currency) : 'Settled Up ✓'}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1 }}>
+                {bal.net > 0.004 ? `${friend.name} owes you in total` : bal.net < -0.004 ? `You owe ${friend.name} in total` : 'All shared bills are settled'}
+              </div>
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1 }}>
-              {bal.net > 0.004 ? `${friend.name} owes you in total` : bal.net < -0.004 ? `You owe ${friend.name} in total` : 'All shared bills are settled'}
-            </div>
-          </div>
 
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>Owes You</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--credit)', marginTop: 1 }}>{fmtMoney(bal.owedToMe, currency)}</div>
-            </div>
-            <div style={{ width: 1, background: 'var(--border)', height: 26 }} />
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>You Owe</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--debit)', marginTop: 1 }}>{fmtMoney(bal.owedByMe, currency)}</div>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>Owes You</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--credit)', marginTop: 1 }}>{fmtMoney(bal.owedToMe, currency)}</div>
+              </div>
+              <div style={{ width: 1, background: 'var(--border)', height: 26 }} />
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>You Owe</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--debit)', marginTop: 1 }}>{fmtMoney(bal.owedByMe, currency)}</div>
+              </div>
             </div>
           </div>
-        </div>
+        ) : contactType === 'vendor' ? (
+          /* Vendor Hero Stats Box */
+          <div>
+            {Math.abs(bal.net) > 0.004 && (
+              <div
+                style={{
+                  background: bal.net > 0.004 ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                  border: `1px solid ${bal.net > 0.004 ? 'rgba(34, 197, 94, 0.22)' : 'rgba(239, 68, 68, 0.22)'}`,
+                  borderRadius: 8,
+                  padding: '12px 16px',
+                  marginBottom: 12,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>
+                    Outstanding Balance
+                  </span>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: bal.net > 0.004 ? 'var(--credit)' : 'var(--debit)', marginTop: 2 }}>
+                    {bal.net > 0.004 ? fmtMoney(bal.net, currency) : fmtMoney(Math.abs(bal.net), currency)}
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: bal.net > 0.004 ? 'var(--credit)' : 'var(--debit)' }}>
+                  {bal.net > 0.004 ? 'Owes You' : 'You Owe Vendor'}
+                </div>
+              </div>
+            )}
+            <div
+              style={{
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                padding: '14px 16px',
+                marginBottom: 16,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                gap: 12,
+              }}
+            >
+              <div>
+                <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Spent</span>
+                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginTop: 2 }}>
+                  {fmtMoney(totalSpent, currency)}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Orders</span>
+                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginTop: 2 }}>
+                  {allExps.length}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Avg / Order</span>
+                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginTop: 2 }}>
+                  {fmtMoney(avgOrderVal, currency)}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Category</span>
+                <div style={{ marginTop: 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                    {friend.category || 'General'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Subscription Hero Stats Box */
+          <div
+            style={{
+              background: 'rgba(168, 85, 247, 0.06)',
+              border: '1px solid rgba(168, 85, 247, 0.2)',
+              borderRadius: 8,
+              padding: '14px 16px',
+              marginBottom: 16,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: 12,
+            }}
+          >
+            <div>
+              <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Plan Cost</span>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#9333EA', marginTop: 2 }}>
+                {friend.defaultAmount ? fmtMoney(friend.defaultAmount, currency) : 'Flexible'} <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-3)' }}>/ {friend.billingCycle || 'mo'}</span>
+              </div>
+            </div>
+
+            <div>
+              <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Lifetime Spend</span>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginTop: 2 }}>
+                {fmtMoney(totalSpent, currency)}
+              </div>
+            </div>
+
+            <div>
+              <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Payments</span>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginTop: 2 }}>
+                {allExps.length}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Primary Action Buttons */}
         <div style={{ display: 'flex', gap: 10 }}>
@@ -172,7 +327,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             style={{ flex: 1, padding: '9px 14px', fontSize: 13, gap: 6, justifyContent: 'center' }}
             onClick={() => setShowAddExp(true)}
           >
-            <Plus size={16} /> Add Shared Expense
+            <Plus size={16} /> {contactType === 'vendor' ? 'Log Vendor Purchase' : contactType === 'subscription' ? 'Log Subscription Payment' : 'Add Shared Expense'}
           </button>
 
           {activeExps.length > 0 && (
@@ -197,19 +352,25 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
       {/* Transactions List */}
       <div className="card" style={{ padding: 0 }}>
         <div style={{ padding: '12px 18px 0', borderBottom: '1px solid var(--border)' }}>
-          <div className="tab-list" style={{ marginBottom: 0 }}>
-            <button className={`tab-btn ${tab === 'active' ? 'active' : ''}`} onClick={() => setTab('active')}>
-              Active ({activeExps.length})
-            </button>
-            <button className={`tab-btn ${tab === 'settled' ? 'active' : ''}`} onClick={() => setTab('settled')}>
-              Settled ({settledExps.length})
-            </button>
-          </div>
+          {(contactType === 'friend' || activeExps.length > 0 || settledExps.length > 0) ? (
+            <div className="tab-list" style={{ marginBottom: 0 }}>
+              <button className={`tab-btn ${tab === 'active' ? 'active' : ''}`} onClick={() => setTab('active')}>
+                Active ({activeExps.length})
+              </button>
+              <button className={`tab-btn ${tab === 'settled' ? 'active' : ''}`} onClick={() => setTab('settled')}>
+                Settled ({settledExps.length})
+              </button>
+            </div>
+          ) : (
+            <div style={{ fontWeight: 600, fontSize: 14, paddingBottom: 10 }}>
+              Payment & Order History ({allExps.length})
+            </div>
+          )}
         </div>
 
         {shown.length === 0 ? (
           <div className="empty-state" style={{ padding: '32px' }}>
-            <p>{tab === 'active' ? 'No active expenses with this friend.' : 'No settled expenses yet.'}</p>
+            <p>{contactType === 'friend' ? (tab === 'active' ? 'No active expenses with this friend.' : 'No settled expenses yet.') : 'No recorded transactions yet.'}</p>
           </div>
         ) : (
           <>
@@ -232,8 +393,8 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   return (
                     <tr key={e.id}>
                       <td style={{ fontWeight: 500, fontSize: 13 }}>{e.description}</td>
-                      <td style={{ fontWeight: 500, color: isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined }}>
-                        {isIn ? '+' : ''}{fmtMoney(e.amount, currency)}
+                      <td style={{ fontWeight: 500, color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
+                        {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
                       </td>
                       <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
                       <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type)}</td>
@@ -268,8 +429,8 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={13} showLabel={false} />
                           <span className="mobile-expense-title">{e.description}</span>
                         </div>
-                        <div className="mobile-expense-amount" style={{ color: isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined }}>
-                          {isIn ? '+' : ''}{fmtMoney(e.amount, currency)}
+                        <div className="mobile-expense-amount" style={{ color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
+                          {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
                         </div>
                       </div>
 
@@ -331,7 +492,18 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
       {showEdit && <FriendModal friend={friend} onClose={() => setShowEdit(false)} />}
       {showSettle && <SettleModal friend={friend} onClose={() => setShowSettle(false)} />}
-      {showAddExp && <ExpenseModal expense={{ friendId: friend.id, type: 'for_friend' } as never} onClose={() => setShowAddExp(false)} />}
+      {showAddExp && (
+        <ExpenseModal
+          expense={{
+            friendId: friend.id,
+            type: contactType === 'friend' ? 'for_friend' : 'personal',
+            category: friend.category || undefined,
+            description: contactType === 'subscription' ? `${friend.name} Subscription` : contactType === 'vendor' ? `${friend.name}` : '',
+            amount: friend.defaultAmount || undefined,
+          } as never}
+          onClose={() => setShowAddExp(false)}
+        />
+      )}
     </div>
   );
 }
