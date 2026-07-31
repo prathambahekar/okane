@@ -11,7 +11,8 @@ interface Props {
 }
 
 const PRESETS: { label: string; kind: RecurringKind; amount: number; category: string; frequency: FrequencyType; intervalValue?: number; notes?: string }[] = [
-  // Subscription Autopays (Netflix, YT, Spotify, etc.)
+  // Subscription Autopays (Netflix, Tiffin Aunty, YT, Spotify, etc.)
+  { label: 'Tiffin Service (Tiffin Aunty)', kind: 'autopay', amount: 2500, category: 'Food', frequency: 'monthly', notes: 'Monthly Tiffin Service' },
   { label: 'Netflix', kind: 'autopay', amount: 199, category: 'Entertainment', frequency: 'monthly', notes: 'Monthly HD plan' },
   { label: 'Spotify', kind: 'autopay', amount: 119, category: 'Entertainment', frequency: 'monthly', notes: 'Music subscription' },
   { label: 'YouTube Premium', kind: 'autopay', amount: 149, category: 'Entertainment', frequency: 'monthly', notes: 'Ad-free video & music' },
@@ -19,7 +20,7 @@ const PRESETS: { label: string; kind: RecurringKind; amount: number; category: s
   { label: 'Gym Membership', kind: 'autopay', amount: 1500, category: 'Health', frequency: 'monthly', notes: 'Fitness center' },
 
   // Quick Daily / Custom Logs
-  { label: 'Daily Tiffin', kind: 'quick_log', amount: 75, category: 'Food', frequency: 'daily', notes: 'Lunch tiffin service' },
+  { label: 'Daily Tiffin', kind: 'quick_log', amount: 80, category: 'Food', frequency: 'daily', notes: 'Lunch tiffin service' },
   { label: 'Daily Milk', kind: 'quick_log', amount: 50, category: 'Groceries', frequency: 'daily', notes: 'Daily 1L milk' },
   { label: 'Bus / Metro', kind: 'quick_log', amount: 100, category: 'Transport', frequency: 'daily', notes: 'Daily commute' },
 ];
@@ -56,6 +57,15 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
     setFrequency(preset.frequency);
     if (preset.intervalValue) setIntervalValue(String(preset.intervalValue));
     if (preset.notes) setNotes(preset.notes);
+
+    // Auto-link matching contact/vendor if found
+    const matchingContact = db.friends.find(f =>
+      preset.label.toLowerCase().includes(f.name.toLowerCase()) ||
+      f.name.toLowerCase().includes(preset.label.toLowerCase())
+    );
+    if (matchingContact) {
+      setFriendId(matchingContact.id);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -321,145 +331,170 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               </div>
             )}
 
-            {/* Detailed Log specific options: Friend / Debt split */}
-            {kind === 'quick_log' && (
-              <>
-                <div className="form-group" style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <label className="form-label" style={{ margin: 0, fontSize: 12 }}>Person / Friend (Optional)</label>
-                    {!showAddFriend && (
-                      <button
-                        type="button"
-                        style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                        onClick={() => setShowAddFriend(true)}
-                      >
-                        + Add Friend
-                      </button>
-                    )}
-                  </div>
+            {/* Person / Contact / Vendor Selector (Available for Autopay & Quick Log) */}
+            <div className="form-group" style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <label className="form-label" style={{ margin: 0, fontSize: 12 }}>Link Contact / Vendor (Optional)</label>
+                {!showAddFriend && (
+                  <button
+                    type="button"
+                    style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                    onClick={() => setShowAddFriend(true)}
+                  >
+                    + Add Contact
+                  </button>
+                )}
+              </div>
 
-                  {showAddFriend ? (
-                    <div style={{ background: 'var(--surface2)', padding: 8, borderRadius: 'var(--radius)', border: '1px solid var(--accent)', marginBottom: 8 }}>
-                      <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 4, color: 'var(--text)' }}>
-                        New Friend Name (e.g. Tiffin Aunty):
-                      </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <input
-                          type="text"
-                          className="form-control"
-                          style={{ fontSize: 12.5 }}
-                          placeholder="e.g. Tiffin Aunty"
-                          value={newFriendName}
-                          onChange={e => setNewFriendName(e.target.value)}
-                          autoFocus
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-primary"
-                          style={{ whiteSpace: 'nowrap', fontSize: 12 }}
-                          onClick={() => {
-                            if (!newFriendName.trim()) return;
-                            const created = addFriend({ name: newFriendName.trim() });
-                            setFriendId(created.id);
-                            if (type === 'personal') setType('for_friend');
-                            setNewFriendName('');
-                            setShowAddFriend(false);
-                            showToast(`Added friend "${created.name}"`);
-                          }}
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-ghost"
-                          style={{ fontSize: 12 }}
-                          onClick={() => setShowAddFriend(false)}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <select
-                      className="form-select"
-                      style={{ fontSize: 13 }}
-                      value={friendId}
-                      onChange={e => {
-                        const val = e.target.value;
-                        if (val === 'NEW_FRIEND') {
-                          setShowAddFriend(true);
-                          setFriendId('');
-                        } else {
-                          setFriendId(val);
-                          if (val && type === 'personal') {
-                            setType('for_friend');
-                          }
-                        }
+              {showAddFriend ? (
+                <div style={{ background: 'var(--surface2)', padding: 8, borderRadius: 'var(--radius)', border: '1px solid var(--accent)', marginBottom: 8 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 600, marginBottom: 4, color: 'var(--text)' }}>
+                    New Contact / Vendor Name (e.g. Tiffin Aunty):
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input
+                      type="text"
+                      className="form-control"
+                      style={{ fontSize: 12.5 }}
+                      placeholder="e.g. Tiffin Aunty"
+                      value={newFriendName}
+                      onChange={e => setNewFriendName(e.target.value)}
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      style={{ whiteSpace: 'nowrap', fontSize: 12 }}
+                      onClick={() => {
+                        if (!newFriendName.trim()) return;
+                        const created = addFriend({ name: newFriendName.trim(), type: 'vendor' });
+                        setFriendId(created.id);
+                        if (type === 'personal') setType('by_friend');
+                        setNewFriendName('');
+                        setShowAddFriend(false);
+                        showToast(`Added vendor "${created.name}"`);
                       }}
                     >
-                      <option value="">No Friend</option>
-                      {db.friends.map(f => (
-                        <option key={f.id} value={f.id}>{f.name}</option>
-                      ))}
-                      <option value="NEW_FRIEND">+ Add New Friend (e.g. Tiffin Aunty)...</option>
-                    </select>
-                  )}
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      style={{ fontSize: 12 }}
+                      onClick={() => setShowAddFriend(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <select
+                  className="form-select"
+                  style={{ fontSize: 13 }}
+                  value={friendId}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === 'NEW_FRIEND') {
+                      setShowAddFriend(true);
+                      setFriendId('');
+                    } else {
+                      setFriendId(val);
+                      if (val && type === 'personal') {
+                        const selContact = db.friends.find(f => f.id === val);
+                        setType(selContact?.type === 'vendor' ? 'by_friend' : 'for_friend');
+                      }
+                    }
+                  }}
+                >
+                  <option value="">No Contact Linked</option>
+                  {db.friends.map(f => {
+                    const tag = f.type === 'vendor' ? ' (Vendor)' : f.type === 'subscription' ? ' (Subscription)' : ' (Friend)';
+                    return (
+                      <option key={f.id} value={f.id}>
+                        {f.name}{tag}
+                      </option>
+                    );
+                  })}
+                  <option value="NEW_FRIEND">+ Add New Contact...</option>
+                </select>
+              )}
+            </div>
 
-                {friendId && (
-                  <>
-                    <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
-                      <label className="form-label" style={{ fontSize: 12 }}>Payment Relation</label>
-                      <select className="form-select" style={{ fontSize: 12.5 }} value={type} onChange={e => setType(e.target.value as ExpenseType)}>
-                        <option value="for_friend">I Pay For Friend (Friend owes me)</option>
-                        <option value="by_friend">Friend Pays For Me (I owe friend)</option>
-                        <option value="personal">Personal Expense (Under my name)</option>
-                      </select>
-                    </div>
+                {friendId && (() => {
+                  const linkedContact = db.friends.find(f => f.id === friendId);
+                  const cType = linkedContact?.type || 'friend';
+                  const cName = linkedContact?.name || 'Contact';
 
-                    {type !== 'personal' && (
-                      <div
-                        className="form-group"
-                        style={{
-                          background: 'var(--surface2)',
-                          padding: '10px 12px',
-                          borderRadius: 'var(--radius)',
-                          border: '1px solid var(--border)',
-                          animation: 'fadein 0.15s ease'
-                        }}
-                      >
-                        <label className="form-label" style={{ marginBottom: 6, fontWeight: 600, fontSize: 12, color: 'var(--text)' }}>
-                          When logged:
-                        </label>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', color: 'var(--text)' }}>
-                            <input
-                              type="radio"
-                              name="paymentModeRadio"
-                              checked={paymentMode === 'debt'}
-                              onChange={() => setPaymentMode('debt')}
-                              style={{ accentColor: 'var(--accent)' }}
-                            />
-                            <span>Add to Debt of <strong>{db.friends.find(f => f.id === friendId)?.name || 'Friend'}</strong></span>
-                          </label>
+                  let byFriendOption = `Friend Pays For Me (I owe ${cName})`;
+                  let forFriendOption = `I Pay For Friend (${cName} owes me)`;
+                  let personalOption = `Personal Expense (Under my name)`;
+                  let debtOptionText = `Add to Debt / Unpaid Balance of ${cName}`;
 
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', color: 'var(--text)' }}>
-                            <input
-                              type="radio"
-                              name="paymentModeRadio"
-                              checked={paymentMode === 'paid'}
-                              onChange={() => setPaymentMode('paid')}
-                              style={{ accentColor: 'var(--accent)' }}
-                            />
-                            <span>Paid Now (Settle Immediately)</span>
-                          </label>
-                        </div>
+                  if (cType === 'vendor') {
+                    byFriendOption = `Vendor Billed Me (I owe ${cName})`;
+                    forFriendOption = `Advance / Prepaid to Vendor (${cName})`;
+                    personalOption = `Direct Personal Expense`;
+                    debtOptionText = `Add to Outstanding Unpaid Bill of ${cName}`;
+                  } else if (cType === 'subscription') {
+                    byFriendOption = `Subscription Billing (I owe ${cName})`;
+                    forFriendOption = `Prepaid Subscription (${cName})`;
+                    personalOption = `Direct Personal Expense`;
+                    debtOptionText = `Add to Outstanding Subscription Balance of ${cName}`;
+                  }
+
+                  return (
+                    <>
+                      <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
+                        <label className="form-label" style={{ fontSize: 12 }}>Payment Relation</label>
+                        <select className="form-select" style={{ fontSize: 12.5 }} value={type} onChange={e => setType(e.target.value as ExpenseType)}>
+                          <option value="by_friend">{byFriendOption}</option>
+                          <option value="for_friend">{forFriendOption}</option>
+                          <option value="personal">{personalOption}</option>
+                        </select>
                       </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
+
+                      {type !== 'personal' && (
+                        <div
+                          className="form-group"
+                          style={{
+                            background: 'var(--surface2)',
+                            padding: '10px 12px',
+                            borderRadius: 'var(--radius)',
+                            border: '1px solid var(--border)',
+                            animation: 'fadein 0.15s ease'
+                          }}
+                        >
+                          <label className="form-label" style={{ marginBottom: 6, fontWeight: 600, fontSize: 12, color: 'var(--text)' }}>
+                            When logged:
+                          </label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', color: 'var(--text)' }}>
+                              <input
+                                type="radio"
+                                name="paymentModeRadio"
+                                checked={paymentMode === 'debt'}
+                                onChange={() => setPaymentMode('debt')}
+                                style={{ accentColor: 'var(--accent)' }}
+                              />
+                              <span><strong>{debtOptionText}</strong></span>
+                            </label>
+
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', color: 'var(--text)' }}>
+                              <input
+                                type="radio"
+                                name="paymentModeRadio"
+                                checked={paymentMode === 'paid'}
+                                onChange={() => setPaymentMode('paid')}
+                                style={{ accentColor: 'var(--accent)' }}
+                              />
+                              <span>Paid Now (Settle Immediately)</span>
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
             {/* Notes */}
             <div className="form-group">

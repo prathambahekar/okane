@@ -205,22 +205,29 @@ export function loadDB(): AppDB {
     });
 
     // Ensure Tiffin / Tiffin Aunty is classified as a vendor while keeping expenses & balances intact
-    const tiffin = db.friends.find(f => f.name.toLowerCase().includes('tiffin'));
+    let tiffin = db.friends.find(f => f.name.toLowerCase().includes('tiffin'));
     if (tiffin) {
       tiffin.type = 'vendor';
       if (!tiffin.category) tiffin.category = 'Food';
+      if (!tiffin.defaultAmount) tiffin.defaultAmount = 2500;
+      if (!tiffin.billingCycle) tiffin.billingCycle = 'monthly';
     } else {
       const tiffinId = uid('frnd');
       const tiffinVendor: Friend = {
         id: tiffinId,
         name: 'Tiffin Aunty',
+        email: '',
+        phone: '',
         type: 'vendor',
         category: 'Food',
+        billingCycle: 'monthly',
+        defaultAmount: 2500,
         color: '#F97362',
         notes: 'Monthly tiffin service - pay at end of month',
         createdAt: Date.now() - 30 * 86400000,
       };
       db.friends.push(tiffinVendor);
+      tiffin = tiffinVendor;
 
       const d = (offsetDays: number): string => {
         const dt = new Date();
@@ -249,6 +256,41 @@ export function loadDB(): AppDB {
         },
       ];
       db.expenses.push(...tiffinExps);
+    }
+
+    // Connect Tiffin Aunty with Autopay / Subscriptions recurring rule
+    if (tiffin) {
+      if (!db.recurringRules) db.recurringRules = [];
+      const hasTiffinRule = db.recurringRules.some(r => r.friendId === tiffin.id || r.title.toLowerCase().includes('tiffin'));
+      if (!hasTiffinRule) {
+        const defaultWal = db.settings.defaultWalletId || db.wallets[0]?.id || 'wal_cash';
+        db.recurringRules.push({
+          id: uid('rec'),
+          title: 'Tiffin Service (Tiffin Aunty)',
+          kind: 'autopay',
+          amount: 2500,
+          category: 'Food',
+          walletId: defaultWal,
+          type: 'by_friend',
+          flow: 'out',
+          friendId: tiffin.id,
+          frequency: 'monthly',
+          intervalValue: 1,
+          startDate: todayISO(),
+          nextDueDate: todayISO(),
+          autoDeduct: true,
+          status: 'active',
+          notes: 'Monthly Tiffin Service autopay',
+          createdAt: Date.now(),
+        });
+      } else {
+        // Ensure existing tiffin recurring rule is linked to tiffin.id
+        db.recurringRules.forEach(r => {
+          if (r.title.toLowerCase().includes('tiffin') || r.friendId === tiffin.id) {
+            r.friendId = tiffin.id;
+          }
+        });
+      }
     }
 
     db.version = 3;
@@ -384,11 +426,43 @@ export function updateExpense(db: AppDB, id: string, data: Partial<Expense>): Ap
 }
 
 export function deleteExpense(db: AppDB, id: string): AppDB {
-  return { ...db, expenses: db.expenses.filter(x => x.id !== id) };
+  const target = db.expenses.find(x => x.id === id || x.groupId === id);
+  if (!target) return db;
+
+  if (target.groupId) {
+    return deleteExpenseGroup(db, target.groupId);
+  }
+
+  const targetSettlementId = target.settlementId;
+  const expenses = db.expenses.filter(x => x.id !== id);
+
+  const settlements = (db.settlements || []).map(s => {
+    if (s.expenseIds.includes(id)) {
+      return { ...s, expenseIds: s.expenseIds.filter(x => x !== id) };
+    }
+    return s;
+  }).filter(s => s.expenseIds.length > 0 && s.id !== targetSettlementId);
+
+  return { ...db, expenses, settlements };
 }
 
 export function deleteExpenseGroup(db: AppDB, groupId: string): AppDB {
-  return { ...db, expenses: db.expenses.filter(x => x.groupId !== groupId) };
+  const groupExpenses = db.expenses.filter(x => x.groupId === groupId);
+  if (groupExpenses.length === 0) {
+    return { ...db, expenses: db.expenses.filter(x => x.id !== groupId) };
+  }
+
+  const groupExpenseIds = new Set(groupExpenses.map(x => x.id));
+  const groupSettlementIds = new Set(groupExpenses.map(x => x.settlementId).filter(Boolean) as string[]);
+
+  const expenses = db.expenses.filter(x => x.groupId !== groupId && !groupExpenseIds.has(x.id));
+
+  const settlements = (db.settlements || []).map(s => {
+    const remainingIds = s.expenseIds.filter(id => !groupExpenseIds.has(id));
+    return { ...s, expenseIds: remainingIds };
+  }).filter(s => s.expenseIds.length > 0 && !groupSettlementIds.has(s.id));
+
+  return { ...db, expenses, settlements };
 }
 
 export function addFriend(db: AppDB, data: Partial<Friend>): { db: AppDB; friend: Friend } {
@@ -573,7 +647,7 @@ export function addRecurringRule(db: AppDB, data: Partial<RecurringRule>): AppDB
     walletId: walId,
     type: (data.type as ExpenseType) || 'personal',
     flow: data.flow === 'in' ? 'in' : 'out',
-    friendId: data.type === 'personal' ? null : (data.friendId || null),
+    friendId: data.friendId || null,
     frequency: data.frequency || 'monthly',
     intervalValue: Math.max(1, Number(data.intervalValue) || 1),
     startDate: start,

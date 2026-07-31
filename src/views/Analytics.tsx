@@ -258,16 +258,6 @@ export default function Analytics() {
     }
   }, [weeklyWeeks]);
 
-  const maxDailyVal = useMemo(() => {
-    let max = 1;
-    weeklyWeeks.forEach(w => {
-      w.days.forEach(d => {
-        if (d.spend > max) max = d.spend;
-      });
-    });
-    return max;
-  }, [weeklyWeeks]);
-
   // Peak Spending Day in current week
   const peakDayInfo = useMemo(() => {
     const currentWeek = weeklyWeeks[weeklyWeeks.length - 1];
@@ -748,88 +738,95 @@ export default function Analytics() {
                   </div>
 
                   {/* 7 Days Columns */}
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 140 }}>
-                    {week.days.map(d => {
-                      const isSelected = selectedDate === d.dateStr;
-                      return (
-                        <div
-                          key={d.dateStr}
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            height: '100%',
-                            cursor: 'pointer',
-                            width: 36,
-                          }}
-                          onClick={() => handleToggleDate(d.dateStr)}
-                        >
-                          {/* Amount Badge directly above the bar */}
-                          <div style={{ minHeight: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {d.spend > 0 ? (
-                              <span style={{
-                                fontSize: 9,
-                                fontWeight: isSelected || d.isToday ? 700 : 600,
-                                color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--debit)',
-                                whiteSpace: 'nowrap',
-                                letterSpacing: '-0.2px',
-                                background: isSelected ? 'rgba(139, 92, 246, 0.18)' : undefined,
-                                padding: isSelected ? '1px 3px' : undefined,
-                                borderRadius: 3,
-                              }}>
-                                {fmtMoney(d.spend, currency)}
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: 9, color: 'var(--text-3)', opacity: 0.3 }}>-</span>
-                            )}
-                          </div>
+                  {(() => {
+                    const weekMaxSpend = Math.max(...week.days.map(d => d.spend), dailyAvgSpend, 10);
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 140 }}>
+                        {week.days.map(d => {
+                          const isSelected = selectedDate === d.dateStr;
+                          const barHeightPct = d.spend > 0 ? Math.max(8, Math.round((d.spend / weekMaxSpend) * 100)) : 0;
 
-                          {/* Bar Column */}
-                          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 2 }}>
+                          return (
                             <div
+                              key={d.dateStr}
                               style={{
-                                width: '80%',
-                                maxWidth: 28,
-                                background: isSelected
-                                  ? '#8B5CF6'
-                                  : d.isToday
-                                  ? 'var(--accent)'
-                                  : 'var(--debit)',
-                                borderRadius: '4px 4px 0 0',
-                                height: d.spend > 0 ? `${Math.max(12, (d.spend / maxDailyVal) * 100)}%` : '4px',
-                                opacity: d.spend > 0 ? (isSelected ? 1 : 0.88) : 0.18,
-                                transition: 'all 0.2s ease',
-                                boxShadow: isSelected
-                                  ? '0 0 0 2px #8B5CF6, 0 0 12px rgba(139, 92, 246, 0.6)'
-                                  : d.isToday
-                                  ? '0 0 8px var(--accent-soft)'
-                                  : undefined,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                height: '100%',
+                                cursor: 'pointer',
+                                width: 36,
                               }}
-                              title={`${d.label}: ${fmtMoney(d.spend, currency)} (${d.count} items)`}
-                            />
-                          </div>
+                              onClick={() => handleToggleDate(d.dateStr)}
+                            >
+                              {/* Amount Badge directly above the bar */}
+                              <div style={{ minHeight: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {d.spend > 0 ? (
+                                  <span style={{
+                                    fontSize: 9,
+                                    fontWeight: isSelected || d.isToday ? 700 : 600,
+                                    color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--debit)',
+                                    whiteSpace: 'nowrap',
+                                    letterSpacing: '-0.2px',
+                                    background: isSelected ? 'rgba(139, 92, 246, 0.18)' : undefined,
+                                    padding: isSelected ? '1px 3px' : undefined,
+                                    borderRadius: 3,
+                                  }}>
+                                    {fmtMoney(d.spend, currency)}
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: 9, color: 'var(--text-3)', opacity: 0.3 }}>-</span>
+                                )}
+                              </div>
 
-                          {/* Day Label */}
-                          <div style={{ marginTop: 6, textAlign: 'center' }}>
-                            <span style={{
-                              fontSize: 10,
-                              color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--text-2)',
-                              fontWeight: isSelected || d.isToday ? 700 : 500,
-                              whiteSpace: 'nowrap',
-                              display: 'block',
-                            }}>
-                              {d.label}
-                            </span>
-                            {d.isToday && (
-                              <span style={{ fontSize: 8, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                                TODAY
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                              {/* Bar Column */}
+                              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 2 }}>
+                                <div
+                                  style={{
+                                    width: '80%',
+                                    maxWidth: 28,
+                                    background: isSelected
+                                      ? '#8B5CF6'
+                                      : d.isToday
+                                      ? 'var(--accent)'
+                                      : 'var(--debit)',
+                                    borderRadius: '4px 4px 0 0',
+                                    height: d.spend > 0 ? `${barHeightPct}%` : '4px',
+                                    opacity: d.spend > 0 ? (isSelected ? 1 : 0.88) : 0.18,
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: isSelected
+                                      ? '0 0 0 2px #8B5CF6, 0 0 12px rgba(139, 92, 246, 0.6)'
+                                      : d.isToday
+                                      ? '0 0 8px var(--accent-soft)'
+                                      : undefined,
+                                  }}
+                                  title={`${d.label}: ${fmtMoney(d.spend, currency)} (${d.count} items)`}
+                                />
+                              </div>
+
+                              {/* Day Label */}
+                              <div style={{ marginTop: 6, textAlign: 'center' }}>
+                                <span style={{
+                                  fontSize: 10,
+                                  color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--text-2)',
+                                  fontWeight: isSelected || d.isToday ? 700 : 500,
+                                  whiteSpace: 'nowrap',
+                                  display: 'block',
+                                }}>
+                                  {d.label}
+                                </span>
+                                {d.isToday && (
+                                  <span style={{ fontSize: 8, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                    TODAY
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}

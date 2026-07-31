@@ -31,15 +31,27 @@ export function monthKey(iso: string): string {
   return iso.slice(0, 7);
 }
 
-export function typeLabel(type: ExpenseType): string {
+export function typeLabel(type: ExpenseType, friendType?: 'friend' | 'vendor' | 'subscription'): string {
   if (type === 'personal') return 'Personal';
+  if (friendType === 'vendor') {
+    if (type === 'for_friend') return 'Advance to Vendor';
+    return 'Billed by Vendor';
+  }
+  if (friendType === 'subscription') {
+    if (type === 'for_friend') return 'Prepaid Sub';
+    return 'Subscription Bill';
+  }
   if (type === 'for_friend') return 'Paid for friend';
   return 'Friend paid';
 }
 
-export function typeLabelWithFlow(e: Expense): string {
-  const base = typeLabel(e.type);
+export function typeLabelWithFlow(e: Expense, friendType?: 'friend' | 'vendor' | 'subscription'): string {
+  const base = typeLabel(e.type, friendType);
   if (expenseFlow(e) === 'in') {
+    if (friendType === 'vendor') {
+      if (e.type === 'for_friend') return 'Vendor refund';
+      if (e.type === 'by_friend') return 'Vendor payout';
+    }
     if (e.type === 'for_friend') return 'Friend repaid me';
     if (e.type === 'by_friend') return 'I repaid friend';
     return base + ' · received';

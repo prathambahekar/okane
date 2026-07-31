@@ -77,7 +77,7 @@ export default function Expenses() {
   const handleDelete = (id: string) => {
     deleteExpense(id);
     setDelId(null);
-    showToast('Expense deleted');
+    showToast('Expense deleted & money restored to wallet');
   };
 
   return (
@@ -543,7 +543,7 @@ export default function Expenses() {
       {delId && (
         <ConfirmDialog
           title="Delete Expense"
-          message="Are you sure you want to delete this expense? If it was settled, money will be restored to your wallet. This cannot be undone."
+          message="Are you sure you want to delete this expense? Any amount deducted from your wallet will be added back automatically."
           onConfirm={() => handleDelete(delId)}
           onClose={() => setDelId(null)}
         />

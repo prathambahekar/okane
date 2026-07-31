@@ -1,14 +1,18 @@
 import { useState, useMemo } from 'react';
-import { RefreshCw, Zap, Plus, CheckCircle2, Trash2, Edit2, AlertTriangle, Search } from 'lucide-react';
+import { RefreshCw, Zap, Plus, CheckCircle2, Trash2, Edit2, AlertTriangle, Search, User, Store, Tv } from 'lucide-react';
 import { useStore } from '../store';
-import type { RecurringRule, RecurringKind } from '../types';
+import type { RecurringRule, RecurringKind, ViewName } from '../types';
 import { todayISO } from '../db';
 import { fmtMoney, fmtDate } from '../utils';
 import RecurringModal from '../components/RecurringModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CategoryIcon from '../components/CategoryIcon';
 
-export default function Recurring() {
+interface Props {
+  onNavigate?: (v: ViewName, arg?: string) => void;
+}
+
+export default function Recurring({ onNavigate }: Props) {
   const { db, triggerAutopayDeduct, quickLogRecurringRule, deleteRecurringRule, showToast } = useStore();
   const currency = db.settings.currency;
   const today = todayISO();
@@ -232,6 +236,8 @@ export default function Recurring() {
               }
             }
 
+            const linkedFriend = r.friendId ? db.friends.find(f => f.id === r.friendId) : null;
+
             return (
               <div
                 key={r.id}
@@ -296,17 +302,54 @@ export default function Recurring() {
 
                 {/* Bottom Row: Badge on Left, Action Buttons on Right */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <span style={{
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    padding: '3px 9px',
-                    borderRadius: 6,
-                    background: isAutopay ? 'rgba(56, 189, 248, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                    color: isAutopay ? 'var(--info)' : '#d97706',
-                    border: isAutopay ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(245, 158, 11, 0.25)',
-                  }}>
-                    {isAutopay ? 'Subscription' : 'Log'}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      padding: '3px 9px',
+                      borderRadius: 6,
+                      background: isAutopay ? 'rgba(56, 189, 248, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                      color: isAutopay ? 'var(--info)' : '#d97706',
+                      border: isAutopay ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(245, 158, 11, 0.25)',
+                    }}>
+                      {isAutopay ? 'Subscription' : 'Log'}
+                    </span>
+
+                    {linkedFriend && (
+                      <span
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          padding: '3px 9px',
+                          borderRadius: 6,
+                          background: 'var(--surface2)',
+                          color: 'var(--accent)',
+                          border: '1px solid var(--border)',
+                          cursor: onNavigate ? 'pointer' : 'default',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          whiteSpace: 'nowrap'
+                        }}
+                        onClick={(e) => {
+                          if (onNavigate) {
+                            e.stopPropagation();
+                            onNavigate('friend-detail', linkedFriend.id);
+                          }
+                        }}
+                        title={`View ${linkedFriend.name} details`}
+                      >
+                        {linkedFriend.type === 'vendor' ? (
+                          <Store size={12} style={{ flexShrink: 0 }} />
+                        ) : linkedFriend.type === 'subscription' ? (
+                          <Tv size={12} style={{ flexShrink: 0 }} />
+                        ) : (
+                          <User size={12} style={{ flexShrink: 0 }} />
+                        )}
+                        <span>{linkedFriend.name}</span>
+                      </span>
+                    )}
+                  </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {isAutopay ? (

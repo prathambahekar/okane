@@ -108,12 +108,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const deleteExpense = useCallback((id: string) => {
     setDB(current => {
       const snapshot = current;
-      const target = current.expenses.find(x => x.id === id);
-      const next = target?.groupId
-        ? dbDeleteExpenseGroup(current, target.groupId)
+      const target = current.expenses.find(x => x.id === id || x.groupId === id);
+      const targetGroupId = target?.groupId || (current.expenses.some(x => x.groupId === id) ? id : null);
+      const next = targetGroupId
+        ? dbDeleteExpenseGroup(current, targetGroupId)
         : dbDeleteExpense(current, id);
       saveDB(next);
-      pushUndo('Expense deleted', snapshot, () => persist(snapshot));
+      pushUndo('Expense deleted & money restored to wallet', snapshot, () => persist(snapshot));
       return next;
     });
   }, [pushUndo, persist]);

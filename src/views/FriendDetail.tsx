@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Handshake, Plus, ChevronDown, ChevronUp, Edit2, Store, Tv, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Handshake, Plus, ChevronDown, ChevronUp, Edit2, Trash2, Store, Tv, ExternalLink, RefreshCw, Zap, Play } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, expenseFlow, contactTotalSpent } from '../db';
 import { fmtMoney, fmtDate, friendInitial, typeLabel, statusLabel } from '../utils';
-import type { ViewName } from '../types';
+import type { ViewName, Expense } from '../types';
 import FriendModal from '../components/FriendModal';
 import { renderBrandLogo } from '../components/BrandIcons';
 import { CategoryBadge } from '../components/CategoryIcon';
 import SettleModal from '../components/SettleModal';
 import ExpenseModal from '../components/ExpenseModal';
+import RecurringModal from '../components/RecurringModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface Props {
   friendId: string;
@@ -16,13 +18,16 @@ interface Props {
 }
 
 export default function FriendDetail({ friendId, onNavigate }: Props) {
-  const { db } = useStore();
+  const { db, deleteExpense, triggerAutopayDeduct, quickLogRecurringRule, showToast } = useStore();
   const { settings: { currency } } = db;
   const friend = db.friends.find(f => f.id === friendId);
 
   const [showEdit, setShowEdit] = useState(false);
   const [showSettle, setShowSettle] = useState(false);
   const [showAddExp, setShowAddExp] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [tab, setTab] = useState<'active' | 'settled'>('active');
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
@@ -46,6 +51,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
   const activeExps = allExps.filter(e => !e.settled);
   const settledExps = allExps.filter(e => e.settled);
   const shown = contactType === 'friend' ? (tab === 'active' ? activeExps : settledExps) : allExps;
+
+  const connectedRules = useMemo(() => {
+    if (!friend) return [];
+    return (db.recurringRules || []).filter(
+      r => r.friendId === friend.id || (r.title && r.title.toLowerCase().includes(friend.name.toLowerCase()))
+    );
+  }, [db.recurringRules, friend]);
 
   if (!friend) {
     return (
@@ -349,6 +361,120 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
         </div>
       </div>
 
+      {/* Connected Autopay & Subscriptions Section */}
+      <div className="card" style={{ padding: '16px 18px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: connectedRules.length > 0 ? 12 : 8, flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: 'rgba(56, 189, 248, 0.15)', color: 'var(--info)',
+              display: 'grid', placeItems: 'center', flexShrink: 0
+            }}>
+              <RefreshCw size={17} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
+                Autopay & Subscriptions ({connectedRules.length})
+              </h3>
+              <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                Recurring rules & automated billing for {friend.name}
+              </p>
+            </div>
+          </div>
+
+          <button
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: 11.5, gap: 5, padding: '5px 12px' }}
+            onClick={() => setShowRecurringModal(true)}
+          >
+            <Plus size={14} /> Add Autopay Rule
+          </button>
+        </div>
+
+        {connectedRules.length === 0 ? (
+          <div style={{
+            background: 'var(--surface2)', borderRadius: 8, padding: '12px 14px',
+            border: '1px dashed var(--border2)', display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', gap: 10, flexWrap: 'wrap'
+          }}>
+            <span style={{ fontSize: 12, color: 'var(--text-2)' }}>
+              No active autopay or subscription rule connected to {friend.name} yet.
+            </span>
+            <button
+              className="btn btn-primary btn-sm"
+              style={{ fontSize: 11.5, padding: '5px 12px', gap: 5 }}
+              onClick={() => setShowRecurringModal(true)}
+            >
+              <Zap size={13} /> Connect Autopay Rule
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {connectedRules.map(r => (
+              <div
+                key={r.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  background: 'var(--surface2)',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  gap: 10,
+                  flexWrap: 'wrap'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    background: r.kind === 'autopay' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(251, 191, 36, 0.15)',
+                    color: r.kind === 'autopay' ? 'var(--info)' : '#d97706',
+                    display: 'grid', placeItems: 'center', flexShrink: 0
+                  }}>
+                    {r.kind === 'autopay' ? <RefreshCw size={16} /> : <Zap size={16} />}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{r.title}</span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4,
+                        background: r.kind === 'autopay' ? 'rgba(56, 189, 248, 0.12)' : 'rgba(251, 191, 36, 0.12)',
+                        color: r.kind === 'autopay' ? 'var(--info)' : '#d97706',
+                        textTransform: 'uppercase'
+                      }}>
+                        {r.kind === 'autopay' ? 'Autopay' : 'Quick Log'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      {fmtMoney(r.amount, currency)} / {r.frequency}
+                      {r.nextDueDate && ` · Next due: ${r.nextDueDate}`}
+                      {r.lastDeductedDate && ` · Last paid: ${r.lastDeductedDate}`}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{ fontSize: 12, padding: '5px 12px', gap: 5 }}
+                  onClick={() => {
+                    if (r.kind === 'autopay') {
+                      triggerAutopayDeduct(r.id);
+                      showToast(`Deducted autopay for "${r.title}"`);
+                    } else {
+                      quickLogRecurringRule(r.id);
+                      showToast(`Logged expense for "${r.title}"`);
+                    }
+                  }}
+                >
+                  <Play size={13} /> {r.kind === 'autopay' ? 'Deduct / Pay Now' : 'Log Now'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Transactions List */}
       <div className="card" style={{ padding: 0 }}>
         <div style={{ padding: '12px 18px 0', borderBottom: '1px solid var(--border)' }}>
@@ -384,6 +510,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   <th>Type</th>
                   <th>Category</th>
                   <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -397,7 +524,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                         {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
                       </td>
                       <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
-                      <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type)}</td>
+                      <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type, contactType)}</td>
                       <td>
                         <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} />
                       </td>
@@ -405,6 +532,12 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                         <span className={`badge badge-${e.settled ? 'settled' : e.status}`}>
                           {e.settled ? 'Settled' : e.status.charAt(0).toUpperCase() + e.status.slice(1)}
                         </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <button className="btn-icon" onClick={() => setEditingExpense(e)} title="Edit"><Edit2 size={15} /></button>
+                          <button className="btn-icon" onClick={() => setDeletingExpenseId(e.groupId || e.id)} title="Delete" style={{ color: 'var(--debit)' }}><Trash2 size={15} /></button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -463,7 +596,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
                           <div className="mobile-expense-detail-item">
                             <span className="mobile-expense-detail-label">Type</span>
-                            <span className="mobile-expense-detail-val">{typeLabel(e.type)}</span>
+                            <span className="mobile-expense-detail-val">{typeLabel(e.type, contactType)}</span>
                           </div>
 
                           <div className="mobile-expense-detail-item">
@@ -480,6 +613,15 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                             </div>
                           )}
                         </div>
+
+                        <div className="mobile-expense-actions" style={{ marginTop: 12 }}>
+                          <button className="btn btn-secondary btn-sm" onClick={() => setEditingExpense(e)}>
+                            <Edit2 size={14} /> Edit
+                          </button>
+                          <button className="btn btn-danger btn-sm" onClick={() => setDeletingExpenseId(e.groupId || e.id)}>
+                            <Trash2 size={14} /> Delete
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -492,6 +634,19 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
       {showEdit && <FriendModal friend={friend} onClose={() => setShowEdit(false)} />}
       {showSettle && <SettleModal friend={friend} onClose={() => setShowSettle(false)} />}
+      {showRecurringModal && (
+        <RecurringModal
+          rule={{
+            title: `${friend.name}`,
+            amount: friend.defaultAmount || 2500,
+            category: friend.category || 'Food',
+            friendId: friend.id,
+            kind: 'autopay',
+            frequency: 'monthly',
+          } as never}
+          onClose={() => setShowRecurringModal(false)}
+        />
+      )}
       {showAddExp && (
         <ExpenseModal
           expense={{
@@ -502,6 +657,24 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             amount: friend.defaultAmount || undefined,
           } as never}
           onClose={() => setShowAddExp(false)}
+        />
+      )}
+      {editingExpense && (
+        <ExpenseModal
+          expense={editingExpense}
+          onClose={() => setEditingExpense(null)}
+        />
+      )}
+      {deletingExpenseId && (
+        <ConfirmDialog
+          title="Delete Expense"
+          message="Are you sure you want to delete this expense? Any amount deducted from your wallet will be added back automatically."
+          onConfirm={() => {
+            deleteExpense(deletingExpenseId);
+            setDeletingExpenseId(null);
+            showToast('Expense deleted & money restored to wallet');
+          }}
+          onClose={() => setDeletingExpenseId(null)}
         />
       )}
     </div>

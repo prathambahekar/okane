@@ -16,8 +16,8 @@ export type ContactType = 'friend' | 'vendor' | 'subscription';
 export interface Friend {
   id: string;
   name: string;
-  email: string;
-  phone: string;
+  email?: string;
+  phone?: string;
   notes: string;
   color: string;
   createdAt: number;

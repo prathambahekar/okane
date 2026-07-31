@@ -125,7 +125,7 @@ function AppInner() {
     switch (view) {
       case 'dashboard': return <Dashboard onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
       case 'expenses': return <Expenses />;
-      case 'recurring': return <Recurring />;
+      case 'recurring': return <Recurring onNavigate={navigate} />;
       case 'wallets': return <Wallets />;
       case 'friends': return <Friends onNavigate={navigate} />;
       case 'friend-detail': return <FriendDetail friendId={friendDetailId} onNavigate={navigate} />;
