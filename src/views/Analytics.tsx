@@ -9,9 +9,6 @@ import {
   BarChart2,
   PieChart,
   Calendar,
-  Sun,
-  SlidersHorizontal,
-  Check,
   ChevronDown,
   ChevronUp,
   X,
@@ -20,12 +17,9 @@ import {
   Wallet,
   User,
   Tag,
-  Flame,
-  Award
+  Award,
+  Check
 } from 'lucide-react';
-
-type TimeFrame = 'this_week' | 'this_month' | 'this_year' | 'all';
-type TypeFilter = 'all' | 'personal' | 'friend';
 
 function padZero(n: number): string {
   return String(n).padStart(2, '0');
@@ -35,15 +29,25 @@ function formatISO(d: Date): string {
   return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`;
 }
 
+function formatDateLabel(dateStr: string): string {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const [y, m, d] = parts.map(Number);
+  if (!y || !m || !d) return dateStr;
+  const dt = new Date(y, m - 1, d);
+  return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export default function Analytics() {
   const { db, deleteExpense, showToast } = useStore();
   const { expenses, wallets, friends, settings: { currency } } = db;
 
-  const [timeframe, setTimeframe] = useState<TimeFrame>('this_week');
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [chartMode, setChartMode] = useState<'weekly' | 'monthly'>('weekly');
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -57,120 +61,179 @@ export default function Analytics() {
     return formatISO(y);
   }, [now]);
 
-  // Robust Monday to Sunday current week calculation
-  const { mondayStr, sundayStr } = useMemo(() => {
-    const [y, m, d] = todayStr.split('-').map(Number);
-    const dt = new Date(y, m - 1, d);
-    const day = dt.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-    const diffToMonday = (day + 6) % 7; // Mon=0, Tue=1 ... Sun=6
+  // Base expense filter
+  const typeFilteredExpenses = expenses;
 
-    const monday = new Date(y, m - 1, d - diffToMonday);
-    const days: { dateStr: string; label: string; dayName: string; dayNum: number }[] = [];
-
-    for (let i = 0; i < 7; i++) {
-      const cur = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
-      const dateStr = formatISO(cur);
-      const dayName = cur.toLocaleDateString(undefined, { weekday: 'short' });
-      const dayNum = cur.getDate();
-      days.push({
-        dateStr,
-        label: `${dayName} ${dayNum}`,
-        dayName,
-        dayNum,
-      });
-    }
-
-    return {
-      mondayStr: days[0].dateStr,
-      sundayStr: days[6].dateStr,
-    };
-  }, [todayStr]);
-
-  // Days passed in current Monday-to-Sunday week (Mon = 1, Tue = 2, ..., Sun = 7)
-  const daysPassedInWeek = useMemo(() => {
-    const day = now.getDay();
-    return ((day + 6) % 7) + 1;
-  }, [now]);
-
-  // Base expense filter by expense type (all, personal only, or friend splits)
-  const typeFilteredExpenses = useMemo(() => {
-    return expenses.filter(e => {
-      if (typeFilter === 'personal') return e.type === 'personal';
-      if (typeFilter === 'friend') return e.type !== 'personal';
-      return true;
-    });
-  }, [expenses, typeFilter]);
-
-  // Today's outflow
-  const todaySpent = useMemo(() =>
-    typeFilteredExpenses.filter(e => e.date === todayStr && expenseFlow(e) === 'out')
-      .reduce((sum, e) => sum + Number(e.amount), 0),
-  [typeFilteredExpenses, todayStr]);
-
-  // Yesterday's outflow
-  const yesterdaySpent = useMemo(() =>
-    typeFilteredExpenses.filter(e => e.date === yesterdayStr && expenseFlow(e) === 'out')
-      .reduce((sum, e) => sum + Number(e.amount), 0),
-  [typeFilteredExpenses, yesterdayStr]);
-
-  // Filtered expenses according to timeframe, type, category, date
+  // Filtered expenses according to category, date, or month
   const filteredExpenses = useMemo(() => {
     return typeFilteredExpenses.filter(e => {
       if (selectedCategory && e.category !== selectedCategory) return false;
-      if (selectedDate) {
-        return e.date === selectedDate;
-      }
-
-      const d = e.date;
-      switch (timeframe) {
-        case 'this_week':
-          return d >= mondayStr && d <= sundayStr;
-        case 'this_month':
-          return d.slice(0, 7) === todayStr.slice(0, 7);
-        case 'this_year':
-          return d.slice(0, 4) === todayStr.slice(0, 4);
-        case 'all':
-        default:
-          return true;
-      }
+      if (selectedDate) return e.date === selectedDate;
+      if (selectedMonth) return e.date.slice(0, 7) === selectedMonth;
+      return true;
     });
-  }, [typeFilteredExpenses, timeframe, todayStr, mondayStr, sundayStr, selectedCategory, selectedDate]);
+  }, [typeFilteredExpenses, selectedCategory, selectedDate, selectedMonth]);
 
-  // Outflow & Inflow totals for selected timeframe
+  // Outflow total
   const totalSpent = useMemo(() =>
     filteredExpenses.filter(e => expenseFlow(e) === 'out').reduce((sum, e) => sum + Number(e.amount), 0),
   [filteredExpenses]);
 
-  // Days in selected timeframe
+  // Days in selected timeframe or selected month
   const daysInPeriod = useMemo(() => {
-    switch (timeframe) {
-      case 'this_week':
-        return Math.max(1, daysPassedInWeek);
-      case 'this_month':
-        return Math.max(1, now.getDate());
-      case 'this_year': {
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        const diffDays = Math.ceil((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
-        return Math.max(1, diffDays);
-      }
-      case 'all': default: {
-        if (typeFilteredExpenses.length === 0) return 30;
-        const dates = typeFilteredExpenses.map(e => new Date(e.date).getTime()).filter(t => !isNaN(t));
-        if (dates.length === 0) return 30;
-        const minDate = Math.min(...dates);
-        const diffDays = Math.ceil((now.getTime() - minDate) / (1000 * 60 * 60 * 24));
-        return Math.max(1, diffDays);
-      }
+    if (selectedDate) return 1;
+    if (selectedMonth) {
+      const [y, m] = selectedMonth.split('-').map(Number);
+      const isCurrentM = selectedMonth === todayStr.slice(0, 7);
+      const totalDaysInM = new Date(y, m, 0).getDate();
+      return Math.max(1, isCurrentM ? Math.min(now.getDate(), totalDaysInM) : totalDaysInM);
     }
-  }, [timeframe, daysPassedInWeek, now, typeFilteredExpenses]);
+    if (typeFilteredExpenses.length === 0) return 30;
+    const dates = typeFilteredExpenses.map(e => new Date(e.date).getTime()).filter(t => !isNaN(t));
+    if (dates.length === 0) return 30;
+    const minDate = Math.min(...dates);
+    const diffDays = Math.ceil((now.getTime() - minDate) / (1000 * 60 * 60 * 24));
+    return Math.max(1, diffDays);
+  }, [now, typeFilteredExpenses, selectedDate, selectedMonth, todayStr]);
 
   const dailyAvgSpend = totalSpent / daysInPeriod;
 
   const chartScrollRef = useRef<HTMLDivElement>(null);
 
-  // Multi-week Chart Data for Horizontal Scrolling across Past Weeks
+  // Multi-month Chart Data for Interactive Monthly Spending Chart
+  const monthlyMonths = useMemo(() => {
+    const baseList = typeFilteredExpenses.filter(e => !selectedCategory || e.category === selectedCategory);
+    const currentMonthKey = todayStr.slice(0, 7);
+
+    let numMonths = 12;
+    if (baseList.length > 0) {
+      const earliest = baseList.reduce((min, e) => (e.date < min ? e.date : min), todayStr);
+      const [ey, em] = earliest.split('-').map(Number);
+      const [cy, cm] = todayStr.split('-').map(Number);
+      const monthsDiff = (cy - ey) * 12 + (cm - em) + 1;
+      numMonths = Math.max(6, Math.min(24, monthsDiff));
+    }
+
+    const [cy, cm] = todayStr.split('-').map(Number);
+    const months = [];
+
+    for (let i = numMonths - 1; i >= 0; i--) {
+      const d = new Date(cy, cm - 1 - i, 1);
+      const monthKey = `${d.getFullYear()}-${padZero(d.getMonth() + 1)}`;
+      const monthName = d.toLocaleDateString(undefined, { month: 'short' });
+      const fullMonthName = d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+      const isCurrentMonth = monthKey === currentMonthKey;
+
+      const monthExps = baseList.filter(e => e.date.slice(0, 7) === monthKey);
+      const spend = monthExps.filter(e => expenseFlow(e) === 'out').reduce((s, e) => s + Number(e.amount), 0);
+      const count = monthExps.length;
+
+      const daysInM = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      const daysPassed = isCurrentMonth ? Math.min(now.getDate(), daysInM) : daysInM;
+      const dailyAvg = spend / Math.max(1, daysPassed);
+
+      months.push({
+        monthKey,
+        year: d.getFullYear(),
+        monthName,
+        fullMonthName,
+        isCurrentMonth,
+        spend,
+        count,
+        dailyAvg,
+      });
+    }
+
+    return months;
+  }, [typeFilteredExpenses, selectedCategory, todayStr, now]);
+
+  const maxMonthlyVal = useMemo(() => {
+    return Math.max(...monthlyMonths.map(m => m.spend), dailyAvgSpend, 10);
+  }, [monthlyMonths, dailyAvgSpend]);
+
+  // Selected Month details
+  const selectedMonthObj = useMemo(() => {
+    if (!selectedMonth) return null;
+    return monthlyMonths.find(m => m.monthKey === selectedMonth) || null;
+  }, [selectedMonth, monthlyMonths]);
+
+  // Multi-week Chart Data for Horizontal Scrolling across Past Weeks or Weeks of Selected Month
   const weeklyWeeks = useMemo(() => {
     const baseList = typeFilteredExpenses.filter(e => !selectedCategory || e.category === selectedCategory);
+
+    if (selectedMonth) {
+      const [sy, sm] = selectedMonth.split('-').map(Number);
+      const firstDayOfMonth = new Date(sy, sm - 1, 1);
+      const lastDayOfMonth = new Date(sy, sm, 0);
+
+      const firstDayOfWeek = firstDayOfMonth.getDay();
+      const diffToMon = (firstDayOfWeek + 6) % 7;
+      const startMon = new Date(sy, sm - 1, 1 - diffToMon);
+
+      const weeks = [];
+      let currentMon = new Date(startMon);
+      let weekIndex = 1;
+
+      while (currentMon <= lastDayOfMonth) {
+        const mon = new Date(currentMon);
+        const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+
+        const monStr = formatISO(mon);
+        const sunStr = formatISO(sun);
+
+        const monMonth = mon.toLocaleDateString(undefined, { month: 'short' });
+        const sunMonth = sun.toLocaleDateString(undefined, { month: 'short' });
+        const dateRange = monMonth === sunMonth
+          ? `${monMonth} ${mon.getDate()}–${sun.getDate()}`
+          : `${monMonth} ${mon.getDate()} – ${sunMonth} ${sun.getDate()}`;
+
+        const isCurrentWeek = monStr <= todayStr && todayStr <= sunStr;
+        const label = `Week ${weekIndex} (${dateRange})`;
+
+        const days = [];
+        let weekTotal = 0;
+
+        for (let i = 0; i < 7; i++) {
+          const cur = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
+          const dateStr = formatISO(cur);
+          const dayName = cur.toLocaleDateString(undefined, { weekday: 'short' });
+          const dayNum = cur.getDate();
+
+          const inSelectedMonth = dateStr.slice(0, 7) === selectedMonth;
+          const dayExps = baseList.filter(e => e.date === dateStr && inSelectedMonth);
+          const spend = dayExps.filter(e => expenseFlow(e) === 'out').reduce((s, e) => s + Number(e.amount), 0);
+
+          weekTotal += spend;
+
+          days.push({
+            dateStr,
+            label: `${dayName} ${dayNum}`,
+            dayName,
+            dayNum,
+            spend,
+            count: dayExps.length,
+            isToday: dateStr === todayStr,
+            isYesterday: dateStr === yesterdayStr,
+            inSelectedMonth,
+          });
+        }
+
+        weeks.push({
+          weekMonStr: monStr,
+          weekSunStr: sunStr,
+          label,
+          dateRange,
+          isCurrentWeek,
+          days,
+          weekTotal,
+        });
+
+        currentMon = new Date(currentMon.getFullYear(), currentMon.getMonth(), currentMon.getDate() + 7);
+        weekIndex++;
+      }
+
+      return weeks;
+    }
 
     const [y, m, d] = todayStr.split('-').map(Number);
     const todayObj = new Date(y, m - 1, d);
@@ -234,6 +297,7 @@ export default function Analytics() {
           count: dayExps.length,
           isToday: dateStr === todayStr,
           isYesterday: dateStr === yesterdayStr,
+          inSelectedMonth: true,
         });
       }
 
@@ -249,24 +313,13 @@ export default function Analytics() {
     }
 
     return weeks;
-  }, [typeFilteredExpenses, selectedCategory, todayStr, yesterdayStr]);
+  }, [typeFilteredExpenses, selectedCategory, selectedMonth, todayStr, yesterdayStr]);
 
   // Auto-scroll to the rightmost week (This Week) on load or week update
   useEffect(() => {
     if (chartScrollRef.current) {
       chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
     }
-  }, [weeklyWeeks]);
-
-  // Peak Spending Day in current week
-  const peakDayInfo = useMemo(() => {
-    const currentWeek = weeklyWeeks[weeklyWeeks.length - 1];
-    if (!currentWeek || currentWeek.days.length === 0) return null;
-    const sorted = [...currentWeek.days].sort((a, b) => b.spend - a.spend);
-    if (sorted[0] && sorted[0].spend > 0) {
-      return sorted[0];
-    }
-    return null;
   }, [weeklyWeeks]);
 
   // Daily log breakdown
@@ -331,8 +384,6 @@ export default function Analytics() {
       .sort((a, b) => b.amount - a.amount);
   }, [filteredExpenses, totalSpent]);
 
-  const diffTodayVsYesterday = todaySpent - yesterdaySpent;
-
   // Toggle date selection from bar chart or list
   const handleToggleDate = (dateStr: string) => {
     if (selectedDate === dateStr) {
@@ -366,184 +417,8 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Sleek Control Bar with Timeframe Tabs & Inline Filter Icon Widget */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        <div className="analytics-segmented-group" style={{ flex: 1, maxWidth: 500, marginBottom: 0 }}>
-          <button
-            className={`analytics-segmented-btn ${timeframe === 'this_week' ? 'active' : ''}`}
-            onClick={() => setTimeframe('this_week')}
-          >
-            <Calendar size={13} /> Week
-          </button>
-          <button
-            className={`analytics-segmented-btn ${timeframe === 'this_month' ? 'active' : ''}`}
-            onClick={() => setTimeframe('this_month')}
-          >
-            Month
-          </button>
-          <button
-            className={`analytics-segmented-btn ${timeframe === 'this_year' ? 'active' : ''}`}
-            onClick={() => setTimeframe('this_year')}
-          >
-            Year
-          </button>
-          <button
-            className={`analytics-segmented-btn ${timeframe === 'all' ? 'active' : ''}`}
-            onClick={() => setTimeframe('all')}
-          >
-            All Time
-          </button>
-
-          <div style={{ width: 1, height: 18, background: 'var(--border)', margin: '0 2px', opacity: 0.6 }} />
-
-          {/* Icon-Only Filter Trigger on the right */}
-          <div style={{ position: 'relative' }}>
-            <button
-              title={`Scope Filter: ${typeFilter === 'all' ? 'All Expenses' : typeFilter === 'personal' ? 'Personal Only' : 'Friend Splits'}`}
-              className={`analytics-segmented-btn ${typeFilter !== 'all' || isFilterOpen ? 'active' : ''}`}
-              style={{
-                width: 36,
-                height: 32,
-                padding: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-              }}
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-            >
-              <SlidersHorizontal size={15} />
-              {typeFilter !== 'all' && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 5,
-                    right: 5,
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: '#ffffff',
-                    boxShadow: '0 0 4px rgba(0,0,0,0.3)',
-                  }}
-                />
-              )}
-            </button>
-
-            {/* Expandable Dropdown Popover */}
-            {isFilterOpen && (
-              <>
-                {/* Backdrop overlay to dismiss on click outside */}
-                <div
-                  style={{ position: 'fixed', inset: 0, zIndex: 40 }}
-                  onClick={() => setIsFilterOpen(false)}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 8px)',
-                    right: 0,
-                    zIndex: 50,
-                    width: 210,
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-lg)',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3)',
-                    padding: 6,
-                    animation: 'fadein 0.15s ease',
-                  }}
-                >
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', padding: '6px 10px 4px 10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Filter Expense Scope
-                  </div>
-
-                  <button
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius)',
-                      background: typeFilter === 'all' ? 'var(--surface2)' : 'transparent',
-                      border: 'none',
-                      color: typeFilter === 'all' ? 'var(--accent)' : 'var(--text)',
-                      fontSize: 12.5,
-                      fontWeight: typeFilter === 'all' ? 600 : 400,
-                      cursor: 'pointer',
-                      marginBottom: 2,
-                    }}
-                    onClick={() => {
-                      setTypeFilter('all');
-                      setIsFilterOpen(false);
-                    }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Tag size={14} /> All Expenses
-                    </span>
-                    {typeFilter === 'all' && <Check size={14} />}
-                  </button>
-
-                  <button
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius)',
-                      background: typeFilter === 'personal' ? 'var(--surface2)' : 'transparent',
-                      border: 'none',
-                      color: typeFilter === 'personal' ? 'var(--accent)' : 'var(--text)',
-                      fontSize: 12.5,
-                      fontWeight: typeFilter === 'personal' ? 600 : 400,
-                      cursor: 'pointer',
-                      marginBottom: 2,
-                    }}
-                    onClick={() => {
-                      setTypeFilter('personal');
-                      setIsFilterOpen(false);
-                    }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Wallet size={14} /> Personal Only
-                    </span>
-                    {typeFilter === 'personal' && <Check size={14} />}
-                  </button>
-
-                  <button
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 10px',
-                      borderRadius: 'var(--radius)',
-                      background: typeFilter === 'friend' ? 'var(--surface2)' : 'transparent',
-                      border: 'none',
-                      color: typeFilter === 'friend' ? 'var(--accent)' : 'var(--text)',
-                      fontSize: 12.5,
-                      fontWeight: typeFilter === 'friend' ? 600 : 400,
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => {
-                      setTypeFilter('friend');
-                      setIsFilterOpen(false);
-                    }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <User size={14} /> Friend / Splits
-                    </span>
-                    {typeFilter === 'friend' && <Check size={14} />}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Active Filter Indicators */}
-      {(selectedDate || selectedCategory) && (
+      {(selectedDate || selectedMonth || selectedCategory) && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           {selectedDate && (
             <div style={{
@@ -552,11 +427,29 @@ export default function Analytics() {
               borderRadius: 99, fontSize: 12, color: 'var(--accent)', fontWeight: 600,
             }}>
               <Calendar size={13} />
-              Filter Date: {selectedDate}
+              Date: {formatDateLabel(selectedDate)}
               <button
                 style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex' }}
                 onClick={() => setSelectedDate(null)}
                 title="Clear date filter"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          {selectedMonth && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px',
+              background: 'rgba(139, 92, 246, 0.15)', border: '1px solid #8B5CF6',
+              borderRadius: 99, fontSize: 12, color: '#8B5CF6', fontWeight: 600,
+            }}>
+              <Calendar size={13} />
+              Month: {selectedMonthObj?.fullMonthName || selectedMonth}
+              <button
+                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex' }}
+                onClick={() => setSelectedMonth(null)}
+                title="Clear month filter"
               >
                 <X size={14} />
               </button>
@@ -583,267 +476,487 @@ export default function Analytics() {
         </div>
       )}
 
-      {/* 3 Smart Context Metrics (Non-Redundant Cards) */}
-      <div className="analytics-stat-grid" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: 12,
-        marginBottom: 16
-      }}>
-        {/* Card 1: Today's Spend */}
-        <div
-          className={`stat-card ${selectedDate === todayStr ? 'active-card' : ''}`}
-          style={{
-            padding: '12px 14px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            border: selectedDate === todayStr ? '1px solid var(--accent)' : '1px solid var(--border)',
-            boxShadow: selectedDate === todayStr ? '0 0 10px var(--accent-soft)' : undefined,
-          }}
-          onClick={() => handleToggleDate(todayStr)}
-          title="Click to inspect Today's expenses"
-        >
-          <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, textTransform: 'none', letterSpacing: 'normal', color: 'var(--text-2)', fontWeight: 600, marginBottom: 4 }}>
-            <Sun size={13.5} style={{ color: '#F59E0B' }} /> Today
-          </div>
-          <div className="stat-value debit" style={{ fontSize: 20, fontWeight: 700 }}>
-            {fmtMoney(todaySpent, currency)}
-          </div>
-          <div className="stat-sub" style={{ fontSize: 11, marginTop: 3, color: 'var(--text-3)' }}>
-            {yesterdaySpent > 0 ? (
-              diffTodayVsYesterday > 0 ? (
-                <span style={{ color: 'var(--debit)' }}>
-                  +{fmtMoney(diffTodayVsYesterday, currency)} vs yesterday
-                </span>
-              ) : diffTodayVsYesterday < 0 ? (
-                <span style={{ color: 'var(--credit)' }}>
-                  {fmtMoney(diffTodayVsYesterday, currency)} vs yesterday
-                </span>
-              ) : (
-                <span>Same as yesterday</span>
-              )
-            ) : (
-              <span>Yesterday: {fmtMoney(yesterdaySpent, currency)}</span>
-            )}
-          </div>
-        </div>
-
-        {/* Card 2: Period Total Outflow */}
-        <div className="stat-card" style={{ padding: '12px 14px' }}>
-          <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, textTransform: 'none', letterSpacing: 'normal', color: 'var(--text-2)', fontWeight: 600, marginBottom: 4 }}>
-            <Calendar size={13.5} style={{ color: '#3B82F6' }} />
-            {timeframe === 'this_week' ? 'Weekly Spend' : timeframe === 'this_month' ? 'Monthly Spend' : 'Period Spend'}
-          </div>
-          <div className="stat-value debit" style={{ fontSize: 20, fontWeight: 700 }}>
-            {fmtMoney(totalSpent, currency)}
-          </div>
-          <div className="stat-sub" style={{ fontSize: 11, marginTop: 3, color: 'var(--text-3)' }}>
-            Avg {fmtMoney(dailyAvgSpend, currency)} / day
-          </div>
-        </div>
-
-        {/* Card 3: Peak Day */}
-        <div
-          className="stat-card"
-          style={{
-            padding: '12px 14px',
-            cursor: peakDayInfo ? 'pointer' : 'default',
-            border: peakDayInfo && selectedDate === peakDayInfo.dateStr ? '1px solid #F59E0B' : '1px solid var(--border)',
-          }}
-          onClick={() => {
-            if (peakDayInfo) handleToggleDate(peakDayInfo.dateStr);
-          }}
-          title={peakDayInfo ? `Click to inspect peak day (${peakDayInfo.label})` : undefined}
-        >
-          <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, textTransform: 'none', letterSpacing: 'normal', color: 'var(--text-2)', fontWeight: 600, marginBottom: 4 }}>
-            <Flame size={13.5} style={{ color: '#EF4444' }} /> Peak Day
-          </div>
-          <div className="stat-value debit" style={{ fontSize: 20, fontWeight: 700 }}>
-            {peakDayInfo ? fmtMoney(peakDayInfo.spend, currency) : fmtMoney(0, currency)}
-          </div>
-          <div className="stat-sub" style={{ fontSize: 11, marginTop: 3, color: 'var(--text-3)' }}>
-            {peakDayInfo ? (
-              <span>{peakDayInfo.label} ({peakDayInfo.count} items)</span>
-            ) : (
-              <span>No peak day recorded</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Weekly Bar Chart with Horizontal Scroll across Past Weeks */}
+      {/* Spending Bar Chart (Interactive Weekly / Monthly View) */}
       <div className="card" style={{ padding: '16px', marginBottom: 16 }}>
-        {/* Uncluttered Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text)' }}>
-            <BarChart2 size={16} style={{ color: 'var(--accent)' }} />
-            <span>Weekly Spending</span>
+        {/* Uncluttered Header with View Mode Switcher and Month Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text)' }}>
+              <BarChart2 size={16} style={{ color: 'var(--accent)' }} />
+              <span>
+                {chartMode === 'monthly'
+                  ? 'Monthly Spending'
+                  : selectedMonthObj
+                  ? `Weekly Spending (${selectedMonthObj.fullMonthName})`
+                  : 'Weekly Spending'}
+              </span>
+            </div>
+
+            {/* Custom Month Selector Popover */}
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                type="button"
+                onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius)',
+                  border: selectedMonth ? '1px solid #8B5CF6' : '1px solid var(--border)',
+                  background: selectedMonth ? 'rgba(139, 92, 246, 0.12)' : 'var(--surface2)',
+                  color: selectedMonth ? '#8B5CF6' : 'var(--text-2)',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Calendar size={12} style={{ color: selectedMonth ? '#8B5CF6' : 'var(--text-3)' }} />
+                <span>{selectedMonthObj ? selectedMonthObj.fullMonthName : 'All Months (Rolling)'}</span>
+                <ChevronDown size={12} style={{ opacity: 0.7, transform: isMonthPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+              </button>
+
+              {isMonthPickerOpen && (
+                <>
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                    onClick={() => setIsMonthPickerOpen(false)}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 6px)',
+                      left: 0,
+                      zIndex: 100,
+                      width: 230,
+                      maxHeight: 280,
+                      overflowY: 'auto',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-lg)',
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.35), 0 4px 10px -2px rgba(0,0,0,0.2)',
+                      padding: 5,
+                      animation: 'fadein 0.15s ease',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedMonth(null);
+                        setSelectedDate(null);
+                        setIsMonthPickerOpen(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '7px 10px',
+                        borderRadius: 'var(--radius)',
+                        background: !selectedMonth ? 'var(--surface2)' : 'transparent',
+                        border: 'none',
+                        color: !selectedMonth ? 'var(--accent)' : 'var(--text)',
+                        fontSize: 12,
+                        fontWeight: !selectedMonth ? 700 : 500,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <span>All Months (Rolling)</span>
+                      {!selectedMonth && <Check size={14} style={{ color: 'var(--accent)' }} />}
+                    </button>
+
+                    <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+
+                    {monthlyMonths.map((m) => {
+                      const isSelected = selectedMonth === m.monthKey;
+                      return (
+                        <button
+                          key={m.monthKey}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMonth(m.monthKey);
+                            setSelectedDate(null);
+                            setChartMode('weekly');
+                            setIsMonthPickerOpen(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '7px 10px',
+                            borderRadius: 'var(--radius)',
+                            background: isSelected ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
+                            border: 'none',
+                            color: isSelected ? '#8B5CF6' : 'var(--text)',
+                            fontSize: 12,
+                            fontWeight: isSelected ? 700 : 500,
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Calendar size={12} style={{ opacity: 0.6 }} />
+                            <span>{m.fullMonthName}</span>
+                          </div>
+                          <span style={{ fontSize: 11, color: isSelected ? '#8B5CF6' : 'var(--text-3)', fontWeight: 600 }}>
+                            {fmtMoney(m.spend, currency)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>
-            Avg <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{fmtMoney(dailyAvgSpend, currency)}</strong> / day
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div
+              style={{
+                fontSize: 11.5,
+                color: 'var(--text-2)',
+                background: 'var(--surface2)',
+                padding: '4px 9px',
+                borderRadius: 'var(--radius)',
+                border: '1px solid var(--border)',
+                whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span>Avg</span>
+              <strong style={{ color: 'var(--text)', fontWeight: 700 }}>
+                {fmtMoney(
+                  chartMode === 'monthly'
+                    ? monthlyMonths.reduce((s, m) => s + m.spend, 0) / Math.max(1, monthlyMonths.length)
+                    : dailyAvgSpend,
+                  currency
+                )}
+              </strong>
+              <span>/ {chartMode === 'monthly' ? 'month' : 'day'}</span>
+            </div>
+
+            {/* Toggle between Weekly & Monthly Chart */}
+            <div className="analytics-segmented-group" style={{ marginBottom: 0, padding: 2, flexShrink: 0 }}>
+              <button
+                className={`analytics-segmented-btn ${chartMode === 'weekly' ? 'active' : ''}`}
+                style={{ height: 26, padding: '0 8px', fontSize: 11 }}
+                onClick={() => setChartMode('weekly')}
+              >
+                Weekly
+              </button>
+              <button
+                className={`analytics-segmented-btn ${chartMode === 'monthly' ? 'active' : ''}`}
+                style={{ height: 26, padding: '0 8px', fontSize: 11 }}
+                onClick={() => setChartMode('monthly')}
+              >
+                Monthly
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Horizontally scrollable container across past weeks */}
-        <div
-          ref={chartScrollRef}
-          className="analytics-chart-scroll"
-          style={{
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch',
-          }}
-        >
+        {/* Chart Content Container */}
+        {chartMode === 'monthly' ? (
+          /* Horizontally Scrollable Interactive Monthly Spending Chart */
           <div
+            ref={chartScrollRef}
+            className="analytics-chart-scroll"
             style={{
-              display: 'flex',
-              gap: 16,
-              alignItems: 'flex-end',
-              paddingTop: 12,
-              paddingBottom: 4,
-              minWidth: 'max-content',
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
             }}
           >
-            {weeklyWeeks.map((week, wIdx) => {
-              const isCurrent = week.isCurrentWeek;
-              return (
-                <div
-                  key={week.weekMonStr}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    paddingRight: wIdx < weeklyWeeks.length - 1 ? 16 : 0,
-                    borderRight: wIdx < weeklyWeeks.length - 1 ? '1px solid var(--border)' : 'none',
-                  }}
-                >
-                  {/* Week Label & Total */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: 8,
-                    padding: '0 4px',
-                  }}>
-                    <span style={{
-                      fontSize: 11,
-                      fontWeight: isCurrent ? 700 : 600,
-                      color: isCurrent ? 'var(--accent)' : 'var(--text-2)',
-                    }}>
-                      {week.label}
-                    </span>
-                    <span style={{ fontSize: 10.5, color: 'var(--text-3)', fontWeight: 500 }}>
-                      {fmtMoney(week.weekTotal, currency)}
-                    </span>
+            <div
+              style={{
+                display: 'flex',
+                gap: 14,
+                alignItems: 'flex-end',
+                paddingTop: 16,
+                paddingBottom: 6,
+                minWidth: 'max-content',
+              }}
+            >
+              {monthlyMonths.map((m) => {
+                const isSelected = selectedMonth === m.monthKey;
+                const barHeightPct = m.spend > 0 ? Math.max(10, Math.round((m.spend / maxMonthlyVal) * 100)) : 0;
+
+                return (
+                  <div
+                    key={m.monthKey}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      height: 160,
+                      cursor: 'pointer',
+                      width: 54,
+                    }}
+                    onClick={() => {
+                      if (selectedMonth === m.monthKey) {
+                        setSelectedMonth(null);
+                      } else {
+                        setSelectedMonth(m.monthKey);
+                        setSelectedDate(null);
+                        setChartMode('weekly');
+                      }
+                    }}
+                  >
+                    {/* Amount Badge directly above the bar */}
+                    <div style={{ minHeight: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                      {m.spend > 0 ? (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: isSelected || m.isCurrentMonth ? 700 : 600,
+                            color: isSelected ? '#8B5CF6' : m.isCurrentMonth ? 'var(--accent)' : 'var(--debit)',
+                            whiteSpace: 'nowrap',
+                            letterSpacing: '-0.2px',
+                            background: isSelected ? 'rgba(139, 92, 246, 0.18)' : undefined,
+                            padding: isSelected ? '1px 5px' : undefined,
+                            borderRadius: 4,
+                          }}
+                        >
+                          {fmtMoney(m.spend, currency)}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 10, color: 'var(--text-3)', opacity: 0.3 }}>-</span>
+                      )}
+                    </div>
+
+                    {/* Bar Column */}
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 4 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          background: isSelected
+                            ? '#8B5CF6'
+                            : m.isCurrentMonth
+                            ? 'var(--accent)'
+                            : 'var(--debit)',
+                          borderRadius: '6px 6px 0 0',
+                          height: m.spend > 0 ? `${barHeightPct}%` : '4px',
+                          opacity: m.spend > 0 ? (isSelected ? 1 : 0.88) : 0.2,
+                          transition: 'all 0.25s ease',
+                          boxShadow: isSelected
+                            ? '0 0 0 2px #8B5CF6, 0 0 14px rgba(139, 92, 246, 0.6)'
+                            : m.isCurrentMonth
+                            ? '0 0 10px var(--accent-soft)'
+                            : undefined,
+                        }}
+                        title={`${m.fullMonthName}: ${fmtMoney(m.spend, currency)} (${m.count} items, Avg ${fmtMoney(m.dailyAvg, currency)}/day)`}
+                      />
+                    </div>
+
+                    {/* Month Label */}
+                    <div style={{ marginTop: 8, textAlign: 'center' }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: isSelected ? '#8B5CF6' : m.isCurrentMonth ? 'var(--accent)' : 'var(--text-2)',
+                          fontWeight: isSelected || m.isCurrentMonth ? 700 : 500,
+                          whiteSpace: 'nowrap',
+                          display: 'block',
+                        }}
+                      >
+                        {m.monthName}
+                      </span>
+                      {m.isCurrentMonth && (
+                        <span style={{ fontSize: 8, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                          NOW
+                        </span>
+                      )}
+                    </div>
                   </div>
-
-                  {/* 7 Days Columns */}
-                  {(() => {
-                    const weekMaxSpend = Math.max(...week.days.map(d => d.spend), dailyAvgSpend, 10);
-                    return (
-                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 140 }}>
-                        {week.days.map(d => {
-                          const isSelected = selectedDate === d.dateStr;
-                          const barHeightPct = d.spend > 0 ? Math.max(8, Math.round((d.spend / weekMaxSpend) * 100)) : 0;
-
-                          return (
-                            <div
-                              key={d.dateStr}
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                height: '100%',
-                                cursor: 'pointer',
-                                width: 36,
-                              }}
-                              onClick={() => handleToggleDate(d.dateStr)}
-                            >
-                              {/* Amount Badge directly above the bar */}
-                              <div style={{ minHeight: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {d.spend > 0 ? (
-                                  <span style={{
-                                    fontSize: 9,
-                                    fontWeight: isSelected || d.isToday ? 700 : 600,
-                                    color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--debit)',
-                                    whiteSpace: 'nowrap',
-                                    letterSpacing: '-0.2px',
-                                    background: isSelected ? 'rgba(139, 92, 246, 0.18)' : undefined,
-                                    padding: isSelected ? '1px 3px' : undefined,
-                                    borderRadius: 3,
-                                  }}>
-                                    {fmtMoney(d.spend, currency)}
-                                  </span>
-                                ) : (
-                                  <span style={{ fontSize: 9, color: 'var(--text-3)', opacity: 0.3 }}>-</span>
-                                )}
-                              </div>
-
-                              {/* Bar Column */}
-                              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 2 }}>
-                                <div
-                                  style={{
-                                    width: '80%',
-                                    maxWidth: 28,
-                                    background: isSelected
-                                      ? '#8B5CF6'
-                                      : d.isToday
-                                      ? 'var(--accent)'
-                                      : 'var(--debit)',
-                                    borderRadius: '4px 4px 0 0',
-                                    height: d.spend > 0 ? `${barHeightPct}%` : '4px',
-                                    opacity: d.spend > 0 ? (isSelected ? 1 : 0.88) : 0.18,
-                                    transition: 'all 0.2s ease',
-                                    boxShadow: isSelected
-                                      ? '0 0 0 2px #8B5CF6, 0 0 12px rgba(139, 92, 246, 0.6)'
-                                      : d.isToday
-                                      ? '0 0 8px var(--accent-soft)'
-                                      : undefined,
-                                  }}
-                                  title={`${d.label}: ${fmtMoney(d.spend, currency)} (${d.count} items)`}
-                                />
-                              </div>
-
-                              {/* Day Label */}
-                              <div style={{ marginTop: 6, textAlign: 'center' }}>
-                                <span style={{
-                                  fontSize: 10,
-                                  color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--text-2)',
-                                  fontWeight: isSelected || d.isToday ? 700 : 500,
-                                  whiteSpace: 'nowrap',
-                                  display: 'block',
-                                }}>
-                                  {d.label}
-                                </span>
-                                {d.isToday && (
-                                  <span style={{ fontSize: 8, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                                    TODAY
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Horizontally scrollable container across past weeks */
+          <div
+            ref={chartScrollRef}
+            className="analytics-chart-scroll"
+            style={{
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                gap: 16,
+                alignItems: 'flex-end',
+                paddingTop: 12,
+                paddingBottom: 4,
+                minWidth: 'max-content',
+              }}
+            >
+              {weeklyWeeks.map((week, wIdx) => {
+                const isCurrent = week.isCurrentWeek;
+                return (
+                  <div
+                    key={week.weekMonStr}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      paddingRight: wIdx < weeklyWeeks.length - 1 ? 16 : 0,
+                      borderRight: wIdx < weeklyWeeks.length - 1 ? '1px solid var(--border)' : 'none',
+                    }}
+                  >
+                    {/* Week Label & Total */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 8,
+                      padding: '0 4px',
+                    }}>
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: isCurrent ? 700 : 600,
+                        color: isCurrent ? 'var(--accent)' : 'var(--text-2)',
+                      }}>
+                        {week.label}
+                      </span>
+                      <span style={{ fontSize: 10.5, color: 'var(--text-3)', fontWeight: 500 }}>
+                        {fmtMoney(week.weekTotal, currency)}
+                      </span>
+                    </div>
+
+                    {/* 7 Days Columns */}
+                    {(() => {
+                      const weekMaxSpend = Math.max(...week.days.map(d => d.spend), dailyAvgSpend, 10);
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 140 }}>
+                          {week.days.map(d => {
+                            const isSelected = selectedDate === d.dateStr;
+                            const barHeightPct = d.spend > 0 ? Math.max(8, Math.round((d.spend / weekMaxSpend) * 100)) : 0;
+
+                            return (
+                              <div
+                                key={d.dateStr}
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  height: '100%',
+                                  cursor: 'pointer',
+                                  width: 36,
+                                }}
+                                onClick={() => handleToggleDate(d.dateStr)}
+                              >
+                                {/* Amount Badge directly above the bar */}
+                                <div style={{ minHeight: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  {d.spend > 0 ? (
+                                    <span style={{
+                                      fontSize: 9,
+                                      fontWeight: isSelected || d.isToday ? 700 : 600,
+                                      color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--debit)',
+                                      whiteSpace: 'nowrap',
+                                      letterSpacing: '-0.2px',
+                                      background: isSelected ? 'rgba(139, 92, 246, 0.18)' : undefined,
+                                      padding: isSelected ? '1px 3px' : undefined,
+                                      borderRadius: 3,
+                                    }}>
+                                      {fmtMoney(d.spend, currency)}
+                                    </span>
+                                  ) : (
+                                    <span style={{ fontSize: 9, color: 'var(--text-3)', opacity: 0.3 }}>-</span>
+                                  )}
+                                </div>
+
+                                {/* Bar Column */}
+                                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 2 }}>
+                                  <div
+                                    style={{
+                                      width: '80%',
+                                      maxWidth: 28,
+                                      background: isSelected
+                                        ? '#8B5CF6'
+                                        : d.isToday
+                                        ? 'var(--accent)'
+                                        : 'var(--debit)',
+                                      borderRadius: '4px 4px 0 0',
+                                      height: d.spend > 0 ? `${barHeightPct}%` : '4px',
+                                      opacity: d.spend > 0 ? (isSelected ? 1 : 0.88) : 0.18,
+                                      transition: 'all 0.2s ease',
+                                      boxShadow: isSelected
+                                        ? '0 0 0 2px #8B5CF6, 0 0 12px rgba(139, 92, 246, 0.6)'
+                                        : d.isToday
+                                        ? '0 0 8px var(--accent-soft)'
+                                        : undefined,
+                                    }}
+                                    title={`${d.label}: ${fmtMoney(d.spend, currency)} (${d.count} items)`}
+                                  />
+                                </div>
+
+                                {/* Day Label */}
+                                <div style={{ marginTop: 6, textAlign: 'center' }}>
+                                  <span style={{
+                                    fontSize: 10,
+                                    color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--text-2)',
+                                    fontWeight: isSelected || d.isToday ? 700 : 500,
+                                    whiteSpace: 'nowrap',
+                                    display: 'block',
+                                  }}>
+                                    {d.label}
+                                  </span>
+                                  {d.isToday && (
+                                    <span style={{ fontSize: 8, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                      TODAY
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Chart Legend */}
         <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 11, color: 'var(--text-3)', paddingTop: 8, borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 8, height: 8, background: 'var(--debit)', borderRadius: 2 }} /> Past Days
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 8, height: 8, background: 'var(--accent)', borderRadius: 2 }} /> Today
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 8, height: 8, background: '#8B5CF6', borderRadius: 2 }} /> Selected Day
-          </div>
+          {chartMode === 'monthly' ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 8, height: 8, background: 'var(--debit)', borderRadius: 2 }} /> Past Months
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 8, height: 8, background: 'var(--accent)', borderRadius: 2 }} /> Current Month
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 8, height: 8, background: '#8B5CF6', borderRadius: 2 }} /> Selected Month
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 8, height: 8, background: 'var(--debit)', borderRadius: 2 }} /> Past Days
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 8, height: 8, background: 'var(--accent)', borderRadius: 2 }} /> Today
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 8, height: 8, background: '#8B5CF6', borderRadius: 2 }} /> Selected Day
+              </div>
+            </>
+          )}
         </div>
       </div>
 

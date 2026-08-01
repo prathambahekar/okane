@@ -1052,6 +1052,13 @@ input[type="number"] {
 .muted { color: var(--text-3); }
 .text-accent { color: var(--accent); }
 
+/* Hide on mobile helper */
+@media (max-width: 640px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
 /* Mobile layout — sidebar hidden, top AppBar + BottomNavigation via MUI */
 @media (max-width: 900px) {
   html, body, #root { height: 100%; overflow: hidden; }
@@ -1074,14 +1081,16 @@ input[type="number"] {
   .tab-list {
     display: flex;
     width: 100%;
-    overflow-x: auto;
+    overflow: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    box-sizing: border-box;
   }
   .tab-list::-webkit-scrollbar { display: none; }
   .tab-btn {
-    flex: 1 0 auto;
-    padding: 6px 10px;
+    flex: 1 1 0px;
+    min-width: 0;
+    padding: 6px 8px;
     font-size: 12.5px;
     justify-content: center;
   }
@@ -1121,7 +1130,7 @@ input[type="number"] {
 
 /* Tab list */
 .tab-list {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 4px;
   background: var(--surface2);
@@ -1129,18 +1138,22 @@ input[type="number"] {
   border-radius: var(--radius-lg);
   padding: 4px;
   margin-bottom: 16px;
+  width: 100%;
   max-width: 100%;
-  overflow-x: auto;
+  box-sizing: border-box;
+  overflow: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 .tab-list::-webkit-scrollbar { display: none; }
 .tab-btn {
+  flex: 1 1 0px;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 7px 16px;
+  padding: 7px 12px;
   border-radius: var(--radius);
   font-size: 13px;
   font-weight: 500;
@@ -1152,7 +1165,6 @@ input[type="number"] {
   transition: all var(--transition);
   min-height: 34px;
   user-select: none;
-  flex-shrink: 0;
 }
 .tab-btn:hover:not(.active) {
   color: var(--text);
@@ -1195,6 +1207,80 @@ input[type="number"] {
   font-weight: 600;
   box-shadow: 0 2px 8px var(--accent-soft);
 }
+
+/* Status Segment Bar */
+.status-segment-bar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 3px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.status-segment-btn {
+  flex: 1 1 0px;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border-radius: var(--radius);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+  user-select: none;
+}
+
+.status-segment-btn:hover:not(.active) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.status-segment-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  border-color: var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.status-segment-btn.owes-me.active {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--credit);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.status-segment-btn.i-owe.active {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--debit);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.status-segment-btn.settled.active {
+  background: var(--surface3);
+  color: var(--text);
+  border-color: var(--border2);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot-credit { background: var(--credit); }
+.status-dot-debit { background: var(--debit); }
 
 /* Wallet card */
 .wallet-card {

@@ -139,168 +139,177 @@ export default function Friends({ onNavigate }: Props) {
         </div>
       </div>
 
-      {/* Overview Stat Ribbon & Collapsible Cards */}
-      <div style={{ marginBottom: 10 }}>
-        <div
-          onClick={() => setStatsExpanded(!statsExpanded)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
-            padding: '8px 12px',
-            cursor: 'pointer',
-            userSelect: 'none',
-            fontSize: 12,
-            gap: 8,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
-              <User size={13} className="text-accent" />
-              <span style={{ color: 'var(--credit)' }}>+{fmtMoney(friendStats.credit, currency)}</span>
-              <span style={{ color: 'var(--text-3)' }}>/</span>
-              <span style={{ color: 'var(--debit)' }}>-{fmtMoney(friendStats.debit, currency)}</span>
-            </div>
-            <div style={{ width: 1, height: 12, background: 'var(--border)' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-2)', fontWeight: 500 }}>
-              <Store size={13} style={{ color: '#F59E0B' }} />
-              <span>Spent: <strong>{fmtMoney(vendorAndSubSpend.total, currency)}</strong></span>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'var(--accent)', fontSize: 11.5, fontWeight: 600, flexShrink: 0 }}>
-            <span>{statsExpanded ? 'Less' : 'Stats'}</span>
-            {statsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </div>
-        </div>
-
-        {/* Full Stat Banners when expanded */}
-        {statsExpanded && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, marginTop: 8, animation: 'fadein 0.15s ease' }}>
-            {/* Friends Balance Banner */}
-            <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
-                  <User size={14} className="text-accent" />
-                  <span>Friends Owe Status</span>
-                </div>
-                <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{counts.friend} friends</span>
-              </div>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
-                <div>
-                  <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Owed to You</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--credit)' }}>
-                    {fmtMoney(friendStats.credit, currency)}
-                  </div>
-                </div>
-                <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
-                  <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>You Owe</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--debit)' }}>
-                    {fmtMoney(Math.abs(friendStats.debit), currency)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Vendors & Subscriptions Spending Banner */}
-            <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
-                  <Store size={14} style={{ color: '#F59E0B' }} />
-                  <span>Vendors & Subscriptions Spend</span>
-                </div>
-                <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{counts.vendor + counts.subscription} contacts</span>
-              </div>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
-                <div>
-                  <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Total Spent</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>
-                    {fmtMoney(vendorAndSubSpend.total, currency)}
-                  </div>
-                </div>
-                <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
-                  <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Subscriptions ({counts.subscription})</div>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-2)' }}>
-                    {fmtMoney(vendorAndSubSpend.subTotal, currency)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Unified Search Bar & + Add button row */}
+      {/* Unified Search Bar with merged Stat Pill & + Add button row */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-        <div className="search-input-wrap" style={{ flex: 1 }}>
+        <div className="search-input-wrap" style={{ flex: '1 1 auto', minWidth: 0 }}>
           <Search size={15} className="search-icon" />
           <input
             className="form-input"
-            style={{ height: 38, fontSize: 13 }}
+            style={{ height: 36, fontSize: 13 }}
             placeholder="Search..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
+
+        {/* Merged Stat Summary Button */}
+        <button
+          type="button"
+          onClick={() => setStatsExpanded(!statsExpanded)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            height: 36,
+            padding: '0 10px',
+            background: statsExpanded ? 'var(--surface2)' : 'var(--surface)',
+            border: statsExpanded ? '1px solid var(--accent)' : '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            cursor: 'pointer',
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'var(--text-2)',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            transition: 'all 0.15s ease',
+          }}
+          title="Click to toggle full breakdown stats"
+        >
+          <User size={15} className="text-accent" style={{ flexShrink: 0 }} />
+          <span className="hide-on-mobile" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ color: 'var(--credit)' }}>+{fmtMoney(friendStats.credit, currency)}</span>
+            <span style={{ color: 'var(--text-3)', fontSize: 10 }}>/</span>
+            <span style={{ color: 'var(--debit)' }}>-{fmtMoney(friendStats.debit, currency)}</span>
+          </span>
+          {statsExpanded ? (
+            <ChevronUp size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          ) : (
+            <ChevronDown size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+          )}
+        </button>
+
         <button
           className="btn btn-primary"
-          style={{ whiteSpace: 'nowrap', flexShrink: 0, height: 38, padding: '0 14px', gap: 6, fontSize: 13, fontWeight: 600 }}
+          style={{ whiteSpace: 'nowrap', flexShrink: 0, height: 36, padding: '0 10px', gap: 5, fontSize: 13, fontWeight: 600 }}
           onClick={() => {
             setAddDefaultType(typeFilter);
             setShowAdd(true);
           }}
+          title="Add Contact / Vendor / Subscription"
         >
-          <Plus size={16} /> Add
+          <Plus size={16} style={{ flexShrink: 0 }} />
+          <span className="hide-on-mobile">Add</span>
         </button>
       </div>
 
+      {/* Full Stat Banners when expanded */}
+      {statsExpanded && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, marginBottom: 12, animation: 'fadein 0.15s ease' }}>
+          {/* Friends Balance Banner */}
+          <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
+                <User size={14} className="text-accent" />
+                <span>Friends Owe Status</span>
+              </div>
+              <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{counts.friend} friends</span>
+            </div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
+              <div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Owed to You</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--credit)' }}>
+                  {fmtMoney(friendStats.credit, currency)}
+                </div>
+              </div>
+              <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
+                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>You Owe</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--debit)' }}>
+                  {fmtMoney(Math.abs(friendStats.debit), currency)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Vendors & Subscriptions Spending Banner */}
+          <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
+                <Store size={14} style={{ color: '#F59E0B' }} />
+                <span>Vendors & Subscriptions Spend</span>
+              </div>
+              <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{counts.vendor + counts.subscription} contacts</span>
+            </div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
+              <div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Total Spent</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>
+                  {fmtMoney(vendorAndSubSpend.total, currency)}
+                </div>
+              </div>
+              <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
+                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Subscriptions ({counts.subscription})</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-2)' }}>
+                  {fmtMoney(vendorAndSubSpend.subTotal, currency)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filter Tabs - Only Friends, Vendors, Subscriptions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-        <div className="tab-list" style={{ marginBottom: 0, paddingBottom: 2, overflowX: 'auto' }}>
-          <button className={`tab-btn ${typeFilter === 'friend' ? 'active' : ''}`} style={{ fontSize: 12.5, padding: '6px 12px' }} onClick={() => setTypeFilter('friend')}>
-            <User size={13} style={{ marginRight: 4 }} /> Friends ({counts.friend})
+        <div className="tab-list" style={{ marginBottom: 0 }}>
+          <button className={`tab-btn ${typeFilter === 'friend' ? 'active' : ''}`} onClick={() => setTypeFilter('friend')}>
+            <User size={13} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Friends ({counts.friend})
+            </span>
           </button>
-          <button className={`tab-btn ${typeFilter === 'vendor' ? 'active' : ''}`} style={{ fontSize: 12.5, padding: '6px 12px' }} onClick={() => setTypeFilter('vendor')}>
-            <Store size={13} style={{ marginRight: 4 }} /> Vendors ({counts.vendor})
+          <button className={`tab-btn ${typeFilter === 'vendor' ? 'active' : ''}`} onClick={() => setTypeFilter('vendor')}>
+            <Store size={13} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Vendors ({counts.vendor})
+            </span>
           </button>
-          <button className={`tab-btn ${typeFilter === 'subscription' ? 'active' : ''}`} style={{ fontSize: 12.5, padding: '6px 12px' }} onClick={() => setTypeFilter('subscription')}>
-            <Tv size={13} style={{ marginRight: 4 }} /> Subscriptions ({counts.subscription})
+          <button className={`tab-btn ${typeFilter === 'subscription' ? 'active' : ''}`} onClick={() => setTypeFilter('subscription')}>
+            <Tv size={13} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Subscriptions ({counts.subscription})
+            </span>
           </button>
         </div>
 
-        {/* Secondary Status Pills for Friends & Vendors tabs */}
-        {(typeFilter === 'friend' || typeFilter === 'vendor') && counts[typeFilter] > 0 && (
-          <div style={{ display: 'flex', gap: 5, overflowX: 'auto', paddingBottom: 2 }}>
+        {/* Secondary Status Filter Segment Bar for Friends tab */}
+        {typeFilter === 'friend' && counts.friend > 0 && (
+          <div className="status-segment-bar">
             <button
-              className={`pill-btn ${statusFilter === 'all' ? 'active' : ''}`}
-              style={{ fontSize: 11, padding: '2px 9px' }}
+              type="button"
+              className={`status-segment-btn ${statusFilter === 'all' ? 'active' : ''}`}
               onClick={() => setStatusFilter('all')}
             >
-              All Statuses
+              All
             </button>
             <button
-              className={`pill-btn ${statusFilter === 'owes_me' ? 'active' : ''}`}
-              style={{ fontSize: 11, padding: '2px 9px' }}
+              type="button"
+              className={`status-segment-btn owes-me ${statusFilter === 'owes_me' ? 'active' : ''}`}
               onClick={() => setStatusFilter('owes_me')}
             >
-              Owes You
+              <span className="status-dot status-dot-credit" /> Owes You
             </button>
             <button
-              className={`pill-btn ${statusFilter === 'i_owe' ? 'active' : ''}`}
-              style={{ fontSize: 11, padding: '2px 9px' }}
+              type="button"
+              className={`status-segment-btn i-owe ${statusFilter === 'i_owe' ? 'active' : ''}`}
               onClick={() => setStatusFilter('i_owe')}
             >
-              You Owe
+              <span className="status-dot status-dot-debit" /> You Owe
             </button>
             <button
-              className={`pill-btn ${statusFilter === 'settled' ? 'active' : ''}`}
-              style={{ fontSize: 11, padding: '2px 9px' }}
+              type="button"
+              className={`status-segment-btn settled ${statusFilter === 'settled' ? 'active' : ''}`}
               onClick={() => setStatusFilter('settled')}
             >
-              Settled Up
+              Settled
             </button>
           </div>
         )}
@@ -532,8 +541,8 @@ export default function Friends({ onNavigate }: Props) {
                         <span style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {f.name}
                         </span>
-                        {/* Only show Type Badge for vendors or subscriptions, not for standard friends */}
-                        {fType !== 'friend' && (
+                        {/* Show Type Badge only when viewing outside dedicated type tabs */}
+                        {typeFilter !== fType && fType !== 'friend' && (
                           <span
                             style={{
                               fontSize: 9.5,
@@ -586,65 +595,67 @@ export default function Friends({ onNavigate }: Props) {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                     {/* Status / Spend Pill Badge */}
-                    {isOwed ? (
-                      <span
-                        style={{
-                          background: 'rgba(34, 197, 94, 0.12)',
-                          color: 'var(--credit)',
-                          border: '1px solid rgba(34, 197, 94, 0.25)',
-                          fontWeight: 600,
-                          fontSize: 11.5,
-                          padding: '3px 9px',
-                          borderRadius: 99,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        Owes {fmtMoney(Math.abs(bal.net), currency)}
-                      </span>
-                    ) : isDebt ? (
-                      <span
-                        style={{
-                          background: 'rgba(239, 68, 68, 0.12)',
-                          color: 'var(--debit)',
-                          border: '1px solid rgba(239, 68, 68, 0.25)',
-                          fontWeight: 600,
-                          fontSize: 11.5,
-                          padding: '3px 9px',
-                          borderRadius: 99,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        You owe {fmtMoney(Math.abs(bal.net), currency)}
-                      </span>
-                    ) : fType === 'friend' ? (
-                      <span
-                        style={{
-                          background: 'var(--surface2)',
-                          color: 'var(--text-3)',
-                          border: '1px solid var(--border)',
-                          fontWeight: 500,
-                          fontSize: 11.5,
-                          padding: '3px 9px',
-                          borderRadius: 99,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        Settled Up ✓
-                      </span>
+                    {fType === 'friend' ? (
+                      isOwed ? (
+                        <span
+                          style={{
+                            background: 'rgba(34, 197, 94, 0.12)',
+                            color: 'var(--credit)',
+                            border: '1px solid rgba(34, 197, 94, 0.25)',
+                            fontWeight: 600,
+                            fontSize: 11.5,
+                            padding: '3px 9px',
+                            borderRadius: 99,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Owes {fmtMoney(Math.abs(bal.net), currency)}
+                        </span>
+                      ) : isDebt ? (
+                        <span
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            color: 'var(--debit)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            fontWeight: 600,
+                            fontSize: 11.5,
+                            padding: '3px 9px',
+                            borderRadius: 99,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          You owe {fmtMoney(Math.abs(bal.net), currency)}
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            background: 'var(--surface2)',
+                            color: 'var(--text-3)',
+                            border: '1px solid var(--border)',
+                            fontWeight: 500,
+                            fontSize: 11.5,
+                            padding: '3px 9px',
+                            borderRadius: 99,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Settled Up ✓
+                        </span>
+                      )
                     ) : (
                       <span
                         style={{
                           background: 'var(--surface2)',
-                          color: 'var(--text-1)',
+                          color: 'var(--text)',
                           border: '1px solid var(--border)',
-                          fontWeight: 600,
-                          fontSize: 11.5,
-                          padding: '3px 9px',
+                          fontWeight: 700,
+                          fontSize: 12,
+                          padding: '3px 8px',
                           borderRadius: 99,
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        Spent: {fmtMoney(totalSpent, currency)}
+                        {fmtMoney(totalSpent, currency)}
                       </span>
                     )}
 
