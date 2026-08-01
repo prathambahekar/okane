@@ -151,7 +151,19 @@ function AppInner() {
             <IconButton
               size="small"
               onClick={toggleSidebar}
-              sx={{ color: 'text.secondary', p: 0.8, borderRadius: '8px' }}
+              sx={{ 
+                color: 'text.secondary', 
+                p: 0.8, 
+                borderRadius: '8px',
+                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease',
+                '&:hover': {
+                  transform: 'scale(1.15) rotate(-6deg)',
+                  bgcolor: 'action.hover',
+                },
+                '&:active': {
+                  transform: 'scale(0.92)',
+                }
+              }}
               title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
@@ -216,7 +228,17 @@ function AppInner() {
               <IconButton
                 size="small"
                 onClick={toggleDark}
-                sx={{ color: 'text.secondary' }}
+                sx={{ 
+                  color: 'text.secondary',
+                  transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.25s ease',
+                  '&:hover': {
+                    transform: 'rotate(20deg) scale(1.15)',
+                    color: 'text.primary',
+                  },
+                  '&:active': {
+                    transform: 'scale(0.9)',
+                  }
+                }}
                 title={mode === 'dark' ? 'Switch to light' : 'Switch to dark'}
               >
                 {mode === 'dark'
@@ -341,7 +363,9 @@ function AppInner() {
       )}
 
       <main className={`main-content${isMobile ? ' mobile-layout' : ''}`}>
-        {renderView()}
+        <div key={view} className="view-page-animate">
+          {renderView()}
+        </div>
       </main>
 
       {/* Mobile bottom navigation */}
@@ -367,12 +391,39 @@ function AppInner() {
             }}
             showLabels
             sx={{
-              height: 60,
+              height: 62,
               '& .MuiBottomNavigationAction-root': {
                 minWidth: 'auto',
                 padding: '6px 0',
+                transition: 'color 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                 '& .MuiBottomNavigationAction-label': {
                   fontSize: '0.72rem',
+                  transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease, font-weight 0.2s ease, color 0.25s ease',
+                  fontWeight: 400,
+                  mt: 0.2,
+                },
+                '& .MuiSvgIcon-root, & svg': {
+                  transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease, opacity 0.2s ease',
+                },
+                '&:hover .MuiSvgIcon-root, &:hover svg': {
+                  transform: 'translateY(-2px) scale(1.14)',
+                },
+                '&.Mui-selected': {
+                  color: 'primary.main',
+                  '& .MuiBottomNavigationAction-label': {
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                    transform: 'translateY(-1px)',
+                  },
+                  '& .MuiSvgIcon-root, & svg': {
+                    transform: 'translateY(-3px) scale(1.18)',
+                    filter: mode === 'dark'
+                      ? 'drop-shadow(0 3px 6px rgba(66, 165, 245, 0.45))'
+                      : 'drop-shadow(0 3px 6px rgba(25, 118, 210, 0.35))',
+                  },
+                },
+                '&:active .MuiSvgIcon-root, &:active svg': {
+                  transform: 'scale(0.92)',
                 },
               },
             }}
@@ -384,8 +435,8 @@ function AppInner() {
               icon={
                 <Box
                   sx={{
-                    width: 40,
-                    height: 40,
+                    width: 44,
+                    height: 44,
                     borderRadius: '50%',
                     bgcolor: 'primary.main',
                     color: 'primary.contrastText',
@@ -393,11 +444,17 @@ function AppInner() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     boxShadow: mode === 'dark'
-                      ? '0 3px 12px rgba(66, 165, 245, 0.45)'
-                      : '0 3px 10px rgba(25, 118, 210, 0.35)',
-                    transition: 'transform 0.15s ease, background-color 0.2s ease',
+                      ? '0 4px 14px rgba(66, 165, 245, 0.45)'
+                      : '0 4px 12px rgba(25, 118, 210, 0.35)',
+                    transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, background-color 0.2s ease',
+                    '&:hover': {
+                      transform: 'translateY(-3px) scale(1.1) rotate(90deg)',
+                      boxShadow: mode === 'dark'
+                        ? '0 6px 20px rgba(66, 165, 245, 0.6)'
+                        : '0 6px 18px rgba(25, 118, 210, 0.48)',
+                    },
                     '&:active': {
-                      transform: 'scale(0.92)',
+                      transform: 'scale(0.92) rotate(90deg)',
                     },
                   }}
                 >
@@ -446,7 +503,21 @@ function AppInner() {
                 key={item.id}
                 onClick={() => navigate(item.id)}
                 selected={activeView === item.id}
-                sx={{ py: 1.5, px: 3 }}
+                sx={{ 
+                  py: 1.5, 
+                  px: 3,
+                  transition: 'background-color 0.2s ease',
+                  '& .MuiListItemIcon-root': {
+                    minWidth: 44,
+                    transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease',
+                  },
+                  '&:hover .MuiListItemIcon-root': {
+                    transform: 'scale(1.15) translateY(-1px)',
+                  },
+                  '&.Mui-selected .MuiListItemIcon-root': {
+                    transform: 'scale(1.12)',
+                  }
+                }}
               >
                 <ListItemIcon sx={{ minWidth: 44 }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 500 }} />

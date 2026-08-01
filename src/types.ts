@@ -44,6 +44,7 @@ export interface Expense {
   type: ExpenseType;
   flow: ExpenseFlow;
   friendId: string | null;
+  vendorId?: string | null;
   walletId: string;
   status: ExpenseStatus;
   settled: boolean;

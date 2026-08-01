@@ -73,6 +73,11 @@ export default function ExpenseModal({ expense, onClose }: Props) {
     return fId ? [fId] : [];
   }, [db.expenses, expense, forFriendItem]);
 
+  const initialVendorId = expense?.vendorId ?? (expense?.friendId && db.friends.find(f => f.id === expense.friendId)?.type === 'vendor' ? expense.friendId : '');
+  const [selectedVendorId, setSelectedVendorId] = useState<string>(initialVendorId);
+  const [vendorPaymentStatus, setVendorPaymentStatus] = useState<'paid' | 'unpaid'>('paid');
+  const [contactTypeFilter, setContactTypeFilter] = useState<'all' | 'friend' | 'vendor'>('all');
+
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>(initialFriendIds);
   const [friendSearch, setFriendSearch] = useState('');
   const [splitCalcMode, setSplitCalcMode] = useState<'equal_all' | 'equal_friends' | 'custom'>('equal_all');
@@ -90,10 +95,16 @@ export default function ExpenseModal({ expense, onClose }: Props) {
   });
 
   const filteredFriends = useMemo(() => {
-    if (!friendSearch.trim()) return db.friends;
-    const q = friendSearch.toLowerCase().trim();
-    return db.friends.filter(f => f.name.toLowerCase().includes(q));
-  }, [db.friends, friendSearch]);
+    let list = db.friends;
+    if (contactTypeFilter !== 'all') {
+      list = list.filter(f => (f.type || 'friend') === contactTypeFilter);
+    }
+    if (friendSearch.trim()) {
+      const q = friendSearch.toLowerCase().trim();
+      list = list.filter(f => f.name.toLowerCase().includes(q));
+    }
+    return list;
+  }, [db.friends, contactTypeFilter, friendSearch]);
 
   const getFriendShare = (fId: string): number => {
     const tot = parseFloat(amount) || 0;
@@ -389,6 +400,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
             type: 'for_friend',
             flow,
             friendId: fId,
+            vendorId: selectedVendorId || null,
             walletId,
             status: 'unsettled',
             notes,
@@ -396,7 +408,24 @@ export default function ExpenseModal({ expense, onClose }: Props) {
         }
       });
 
-      if (myShare > 0) {
+      if (selectedVendorId && vendorPaymentStatus === 'unpaid') {
+        const vObj = db.friends.find(f => f.id === selectedVendorId);
+        const vName = vObj?.name || 'Vendor';
+        addExpense({
+          groupId: targetGroupId,
+          description: `${finalDesc} (${vName} Bill)`,
+          amount: totalAmt,
+          category,
+          date,
+          type: 'by_friend',
+          flow: 'out',
+          friendId: selectedVendorId,
+          vendorId: selectedVendorId,
+          walletId: '',
+          status: 'unsettled',
+          notes: notes ? `${notes} (Unpaid vendor bill)` : `Unpaid bill to ${vName}`,
+        });
+      } else if (myShare > 0) {
         addExpense({
           groupId: targetGroupId,
           description: finalDesc,
@@ -405,7 +434,8 @@ export default function ExpenseModal({ expense, onClose }: Props) {
           date,
           type: 'personal',
           flow,
-          friendId: null,
+          friendId: selectedVendorId || null,
+          vendorId: selectedVendorId || null,
           walletId,
           status: 'paid',
           notes,
@@ -602,6 +632,66 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                     </div>
                   )}
 
+                  {/* Vendor / Merchant Selector for Split Expense */}
+                  {whoPaid === 'me' && splitMode === 'for_friend' && (
+                    <div className="form-group" style={{ animation: 'fadein 0.15s ease', marginBottom: 14 }}>
+                      <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Vendor / Merchant / Store (Optional)</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Where was this bill paid?</span>
+                      </label>
+                      <select
+                        className="form-select"
+                        value={selectedVendorId}
+                        onChange={e => {
+                          const vId = e.target.value;
+                          setSelectedVendorId(vId);
+                          if (vId) {
+                            const v = db.friends.find(f => f.id === vId);
+                            if (v?.category) setCategory(v.category);
+                          }
+                        }}
+                      >
+                        <option value="">— None / Direct Store —</option>
+                        {db.friends.map(f => {
+                          const t = f.type || 'friend';
+                          const tag = t === 'vendor' ? ' 🏪 (Vendor)' : t === 'subscription' ? ' 📺 (Subscription)' : ' 👤 (Friend)';
+                          return <option key={f.id} value={f.id}>{f.name}{tag}</option>;
+                        })}
+                      </select>
+
+                      {selectedVendorId && (
+                        <div style={{ marginTop: 10, background: 'var(--surface2)', border: '1px solid var(--border)', padding: 10, borderRadius: 'var(--radius)' }}>
+                          <label className="form-label" style={{ fontSize: 12, marginBottom: 6 }}>Payment to Vendor Status</label>
+                          <div className="segment-control">
+                            <button
+                              type="button"
+                              className={`segment-btn ${vendorPaymentStatus === 'paid' ? 'active' : ''}`}
+                              onClick={() => setVendorPaymentStatus('paid')}
+                            >
+                              <span>🟢 Paid Upfront</span>
+                            </button>
+                            <button
+                              type="button"
+                              className={`segment-btn ${vendorPaymentStatus === 'unpaid' ? 'active' : ''}`}
+                              onClick={() => setVendorPaymentStatus('unpaid')}
+                            >
+                              <span>🔴 Unpaid / On Credit</span>
+                            </button>
+                          </div>
+                          {vendorPaymentStatus === 'unpaid' ? (
+                            <p style={{ fontSize: 11, color: 'var(--debit)', marginTop: 6, fontWeight: 500 }}>
+                              💡 This will record that you owe <strong>{db.friends.find(f => f.id === selectedVendorId)?.name || 'the vendor'}</strong> {fmtMoney(parseFloat(amount) || 0, s.currency)} while your friends owe you.
+                            </p>
+                          ) : (
+                            <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>
+                              Paid from your wallet upfront. Friends will owe you their shares.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Friend Selection & Custom Split Share: If Split with Friend */}
                   {whoPaid === 'me' && splitMode === 'for_friend' && (
                     <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
@@ -614,6 +704,34 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                         )}
                       </div>
 
+                      {/* Contact Type Filter Pills */}
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${contactTypeFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ fontSize: 11, padding: '3px 10px', borderRadius: 99 }}
+                          onClick={() => setContactTypeFilter('all')}
+                        >
+                          All Contacts
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${contactTypeFilter === 'friend' ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ fontSize: 11, padding: '3px 10px', borderRadius: 99 }}
+                          onClick={() => setContactTypeFilter('friend')}
+                        >
+                          Friends Only
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${contactTypeFilter === 'vendor' ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ fontSize: 11, padding: '3px 10px', borderRadius: 99 }}
+                          onClick={() => setContactTypeFilter('vendor')}
+                        >
+                          Vendors / Merchants
+                        </button>
+                      </div>
+
                       {/* Search Bar for Friends */}
                       <div style={{ position: 'relative', marginBottom: 8 }}>
                         <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
@@ -621,7 +739,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                           type="text"
                           className="form-input"
                           style={{ paddingLeft: 32, fontSize: 13, height: 36 }}
-                          placeholder="Search friends by name..."
+                          placeholder="Search contacts by name..."
                           value={friendSearch}
                           onChange={e => setFriendSearch(e.target.value)}
                         />
@@ -699,6 +817,16 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                                   <span style={{ fontSize: 13, fontWeight: isSel ? 600 : 400, color: 'var(--text)' }}>
                                     {f.name}
                                   </span>
+                                  {f.type === 'vendor' && (
+                                    <span style={{ fontSize: 9.5, padding: '1px 5px', borderRadius: 4, background: 'rgba(255, 152, 0, 0.15)', color: '#f57c00', fontWeight: 600 }}>
+                                      Vendor
+                                    </span>
+                                  )}
+                                  {f.type === 'subscription' && (
+                                    <span style={{ fontSize: 9.5, padding: '1px 5px', borderRadius: 4, background: 'rgba(156, 39, 176, 0.15)', color: '#ab47bc', fontWeight: 600 }}>
+                                      Sub
+                                    </span>
+                                  )}
                                 </div>
                                 {isSel && (
                                   <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)' }}>
@@ -1120,7 +1248,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                           {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                         </select>
                       </div>
-                      {type === 'personal' && (
+                      {splitMode === 'just_me' && (
                         <div className="form-group">
                           <label className="form-label">Status</label>
                           <select className="form-select" value={status} onChange={e => setStatus(e.target.value as ExpenseStatus)}>

@@ -187,11 +187,28 @@ html, body, #root {
   background: none;
   width: 100%;
   text-align: left;
-  transition: background var(--transition), color var(--transition);
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease;
   position: relative;
 }
-.nav-item:hover { background: var(--surface2); color: var(--text); }
-.nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.nav-item:hover { 
+  background: var(--surface2); 
+  color: var(--text); 
+  transform: translateX(3px);
+}
+.sidebar.collapsed .nav-item:hover {
+  transform: translateY(-2px);
+}
+.nav-item.active { 
+  background: var(--accent-soft); 
+  color: var(--accent); 
+  font-weight: 500; 
+}
+.nav-item:active {
+  transform: scale(0.97);
+}
 
 .sidebar.collapsed .nav-item {
   justify-content: center;
@@ -207,8 +224,30 @@ html, body, #root {
   flex-shrink: 0;
   opacity: 0.75;
   font-size: 18px;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), 
+              opacity 0.25s ease, 
+              color 0.25s ease,
+              filter 0.25s ease;
 }
-.nav-item.active .nav-item-icon { opacity: 1; }
+.nav-item:hover .nav-item-icon { 
+  opacity: 0.95; 
+  transform: scale(1.15) translateY(-1px);
+}
+.nav-item.active .nav-item-icon { 
+  opacity: 1; 
+  transform: scale(1.12);
+  animation: navIconSoftPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 2px 5px var(--accent-soft));
+}
+.nav-item:active .nav-item-icon {
+  transform: scale(0.92);
+}
+
+@keyframes navIconSoftPop {
+  0% { transform: scale(0.85); }
+  50% { transform: scale(1.22); }
+  100% { transform: scale(1.12); }
+}
 
 .nav-item-label {
   white-space: nowrap;
@@ -1935,6 +1974,88 @@ table.desktop-only { display: table !important; }
   .analytics-timeframe-pill {
     padding: 6px 12px;
     font-size: 12px;
+  }
+}
+
+/* Notification Bell & Badge Animations */
+.notification-bell-btn {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+.notification-bell-btn:hover {
+  transform: scale(1.12);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+.notification-bell-btn:active {
+  transform: scale(0.92);
+}
+.notification-bell-btn .bell-icon {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: top center;
+}
+.notification-bell-btn:hover .bell-icon {
+  animation: bellSwing 0.65s ease-in-out;
+}
+.notification-bell-btn.has-badge .bell-icon {
+  animation: bellSubtleRing 3.5s ease-in-out infinite;
+}
+
+@keyframes bellSwing {
+  0% { transform: rotate(0); }
+  20% { transform: rotate(20deg); }
+  40% { transform: rotate(-16deg); }
+  60% { transform: rotate(12deg); }
+  80% { transform: rotate(-6deg); }
+  100% { transform: rotate(0); }
+}
+
+@keyframes bellSubtleRing {
+  0%, 82%, 100% { transform: rotate(0); }
+  86% { transform: rotate(16deg); }
+  90% { transform: rotate(-12deg); }
+  94% { transform: rotate(8deg); }
+  97% { transform: rotate(-4deg); }
+}
+
+.bell-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #ef5350;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid var(--surface);
+  line-height: 1;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  animation: badgePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.16); box-shadow: 0 3px 8px rgba(239, 83, 80, 0.5); }
+}
+
+/* Fast, Hardware-Accelerated Page & Tab Transitions */
+.view-page-animate {
+  animation: viewFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes viewFadeIn {
+  from {
+    opacity: 0.65;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

@@ -44,7 +44,7 @@ export default function NotificationBell({ onNavigate }: Props) {
     <>
       <button
         type="button"
-        className="btn-icon"
+        className={`btn-icon notification-bell-btn ${totalCount > 0 ? 'has-badge' : ''}`}
         onClick={() => setOpen(true)}
         style={{
           position: 'relative',
@@ -61,29 +61,9 @@ export default function NotificationBell({ onNavigate }: Props) {
         }}
         title="Notifications"
       >
-        <Bell size={18} />
+        <Bell size={18} className="bell-icon" />
         {totalCount > 0 && (
-          <span
-            style={{
-              position: 'absolute',
-              top: -2,
-              right: -2,
-              background: '#ef5350',
-              color: '#ffffff',
-              fontSize: 10,
-              fontWeight: 800,
-              minWidth: 18,
-              height: 18,
-              borderRadius: 9,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 4px',
-              border: '2px solid var(--surface)',
-              lineHeight: 1,
-              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-            }}
-          >
+          <span className="bell-badge">
             {totalCount}
           </span>
         )}

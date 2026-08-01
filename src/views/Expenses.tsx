@@ -340,9 +340,11 @@ export default function Expenses() {
                                           {friendInitial(itemFriend?.name ?? '?')}
                                         </div>
                                         <div>
-                                          <div style={{ fontWeight: 600, fontSize: 12 }}>{itemFriend?.name ?? 'Friend'}'s Share</div>
-                                          <div style={{ fontSize: 11, color: item.settled ? 'var(--credit)' : 'var(--debit)' }}>
-                                            {item.settled ? 'Settled ✓' : 'Unsettled'}
+                                          <div style={{ fontWeight: 600, fontSize: 12 }}>
+                                            {itemFriend?.name ?? 'Contact'}{item.type === 'by_friend' ? ' (Vendor Owed)' : "'s Share"}
+                                          </div>
+                                          <div style={{ fontSize: 11, color: item.settled ? 'var(--credit)' : (item.type === 'by_friend' ? '#d32f2f' : 'var(--accent)') }}>
+                                            {item.settled ? 'Settled ✓' : item.type === 'by_friend' ? 'You Owe Vendor' : 'Owes You'}
                                           </div>
                                         </div>
                                       </div>
