@@ -51,7 +51,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
   const [friendShare, setFriendShare] = useState(initialFriendShare);
   const [category, setCategory] = useState(expense?.category ?? s.defaultCategory);
   const [date, setDate] = useState(expense?.date ?? todayISO());
-  const [type, setType] = useState<ExpenseType>(expense?.type ?? 'personal');
+  const [, setType] = useState<ExpenseType>(expense?.type ?? 'personal');
   const [whoPaid, setWhoPaid] = useState<'me' | 'other'>(initialWhoPaid);
   const [splitMode, setSplitMode] = useState<'just_me' | 'for_friend' | 'pay_debt'>(initialSplitMode);
   const [flow, setFlow] = useState<ExpenseFlow>(expense?.flow ?? 'out');
