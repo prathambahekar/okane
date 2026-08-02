@@ -432,6 +432,12 @@ html, body, #root {
   font-size: 11px;
   font-weight: 500;
   line-height: 1.5;
+  transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: background-color, color, transform;
 }
 .badge-paid { background: rgba(75,173,115,.15); color: var(--credit); }
 .badge-unpaid { background: rgba(201,162,39,.12); color: var(--accent); }
@@ -439,6 +445,22 @@ html, body, #root {
 .badge-credit { background: rgba(75,173,115,.12); color: var(--credit); }
 .badge-debit { background: rgba(224,92,92,.12); color: var(--debit); }
 .badge-settled { background: rgba(107,114,128,.15); color: var(--text-3); }
+
+/* Animation when status toggles */
+.badge-paid,
+.badge-unpaid,
+.badge-unsettled,
+.badge-credit,
+.badge-debit,
+.badge-settled {
+  animation: badgeStatusPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) ease-out;
+}
+
+@keyframes badgeStatusPop {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
 
 /* Category dot */
 .cat-dot {
@@ -1343,13 +1365,43 @@ input[type="number"] {
 .spin { animation: spin 1s linear infinite; }
 
 /* Confirmation dialog */
-.confirm-modal { max-width: 380px; }
-.confirm-body { padding: 24px 20px 8px; }
+.confirm-modal {
+  max-width: 420px;
+  width: 100%;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border2);
+  overflow: hidden;
+  background: var(--surface);
+}
+.confirm-body { padding: 20px 20px 12px; }
 .confirm-actions {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
   padding: 12px 20px 18px;
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+  .modal-backdrop:has(.confirm-modal) {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 16px !important;
+  }
+  .confirm-modal {
+    margin: auto !important;
+    max-height: 90vh !important;
+    border-radius: 16px !important;
+    border-bottom: 1px solid var(--border2) !important;
+    animation: confirmPopMobile 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+}
+
+@keyframes confirmPopMobile {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 /* Responsive Visibility Helpers */
@@ -2042,6 +2094,7 @@ table.desktop-only { display: table !important; }
   50% { transform: scale(1.16); box-shadow: 0 3px 8px rgba(239, 83, 80, 0.5); }
 }
 
+
 /* Fast, Hardware-Accelerated Page & Tab Transitions */
 .view-page-animate {
   animation: viewFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -2058,6 +2111,47 @@ table.desktop-only { display: table !important; }
     transform: translateY(0);
   }
 }
+
+/* 2-Color Day Alternating Row & Card Styles */
+.data-table tr.date-row-even td,
+.data-table tr.date-row-odd td {
+  border-bottom: none;
+}
+
+.data-table tr.date-row-even {
+  background-color: var(--surface);
+}
+
+.data-table tr.date-row-odd {
+  background-color: rgba(25, 118, 210, 0.04);
+}
+
+[data-color-scheme="dark"] .data-table tr.date-row-odd {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.data-table tr.date-row-even:hover td,
+.data-table tr.date-row-odd:hover td {
+  background-color: var(--surface2);
+}
+
+/* Mobile cards 2-color day differentiation */
+.mobile-expense-card.date-card-even {
+  background: var(--surface);
+}
+
+.mobile-expense-card.date-card-odd {
+  background: rgba(25, 118, 210, 0.04);
+}
+
+[data-color-scheme="dark"] .mobile-expense-card.date-card-odd {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mobile-expense-card.date-card-first:not(:first-child) {
+  margin-top: 6px;
+}
+
 
 
 

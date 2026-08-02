@@ -4,6 +4,7 @@ import type { AppDB, Expense, Friend, Wallet, RecurringRule } from './types';
 import {
   loadDB, saveDB, defaultDB, DEFAULT_CATEGORIES, DEFAULT_WALLETS,
   addExpense as dbAddExpense, updateExpense as dbUpdateExpense, deleteExpense as dbDeleteExpense, deleteExpenseGroup as dbDeleteExpenseGroup,
+  transferFunds as dbTransferFunds,
   addFriend as dbAddFriend, updateFriend as dbUpdateFriend, deleteFriend as dbDeleteFriend,
   addWallet as dbAddWallet, updateWallet as dbUpdateWallet, deleteWallet as dbDeleteWallet,
   updateCategory as dbUpdateCategory,
@@ -39,6 +40,7 @@ interface StoreContextType {
   addWallet: (data: Partial<Wallet>) => Wallet;
   updateWallet: (id: string, data: Partial<Wallet>) => void;
   deleteWallet: (id: string) => boolean;
+  transferFunds: (fromWalletId: string, toWalletId: string, amount: number, date: string, note?: string) => void;
 
   recordSettlement: (friendId: string, expenseIds: string[], note: string, walletId?: string) => void;
   deleteSettlement: (id: string) => void;
@@ -180,6 +182,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
     return success;
+  }, [pushUndo, persist]);
+
+  const transferFunds = useCallback((fromWalletId: string, toWalletId: string, amount: number, date: string, note?: string) => {
+    setDB(current => {
+      const snapshot = current;
+      const { db: next, fromName, toName } = dbTransferFunds(current, fromWalletId, toWalletId, amount, date, note);
+      saveDB(next);
+      pushUndo(`Transferred funds from ${fromName} to ${toName}`, snapshot, () => persist(snapshot));
+      return next;
+    });
   }, [pushUndo, persist]);
 
   const recordSettlement = useCallback((friendId: string, expenseIds: string[], note: string, walletId?: string) => {
@@ -327,7 +339,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     db, toasts,
     addExpense, updateExpense, deleteExpense,
     addFriend, updateFriend, deleteFriend,
-    addWallet, updateWallet, deleteWallet: deleteWalletFn,
+    addWallet, updateWallet, deleteWallet: deleteWalletFn, transferFunds,
     recordSettlement, deleteSettlement, unsettleExpense,
     addRecurringRule, updateRecurringRule, deleteRecurringRule,
     triggerAutopayDeduct, quickLogRecurringRule,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, RefreshCw, Zap, Check, AlertCircle } from 'lucide-react';
 import { useStore } from '../store';
 import type { RecurringRule, RecurringKind, FrequencyType, ExpenseType } from '../types';
@@ -116,7 +117,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-handle-bar">
@@ -519,6 +520,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

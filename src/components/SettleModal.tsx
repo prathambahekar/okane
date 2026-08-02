@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
 import { useStore } from '../store';
@@ -45,7 +46,7 @@ export default function SettleModal({ friend, onClose }: Props) {
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal modal-lg">
         <div className="modal-header">
@@ -164,6 +165,7 @@ export default function SettleModal({ friend, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

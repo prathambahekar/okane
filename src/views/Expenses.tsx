@@ -74,6 +74,26 @@ export default function Expenses() {
     return arr;
   }, [grouped, search, catFilter, typeFilter, statusFilter, flowFilter, walletFilter, sort]);
 
+  const dateGroupInfo = useMemo(() => {
+    const groupMap: Record<string, number> = {};
+    const isFirstMap: Record<string, boolean> = {};
+    let currentGroup = 0;
+    let prevDate: string | null = null;
+
+    filtered.forEach((ge) => {
+      if (prevDate !== null && ge.date !== prevDate) {
+        currentGroup++;
+        isFirstMap[ge.id] = true;
+      } else {
+        isFirstMap[ge.id] = prevDate === null;
+      }
+      groupMap[ge.id] = currentGroup % 2;
+      prevDate = ge.date;
+    });
+
+    return { groupMap, isFirstMap };
+  }, [filtered]);
+
   const handleDelete = (id: string) => {
     deleteExpense(id);
     setDelId(null);
@@ -211,9 +231,13 @@ export default function Expenses() {
                   const isExpanded = !!expandedIds[ge.id];
                   const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
 
+                  const isEvenGroup = dateGroupInfo.groupMap[ge.id] === 0;
+                  const isFirstOfDate = dateGroupInfo.isFirstMap[ge.id];
+                  const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}${isExpanded ? ' is-expanded-row' : ''}`;
+
                   return (
                     <React.Fragment key={ge.id}>
-                      <tr className={isExpanded ? 'is-expanded-row' : ''}>
+                      <tr className={rowClass}>
                         <td style={{ textAlign: 'center', padding: '8px 2px' }}>
                           {ge.isSplit && (
                             <button
@@ -275,7 +299,7 @@ export default function Expenses() {
                             if (ge.isSplit) {
                               return (
                                 <span className={`badge badge-${isAllSettled ? 'settled' : 'unsettled'}`} style={{ whiteSpace: 'nowrap' }}>
-                                  {isAllSettled ? 'Settled' : 'Split'}
+                                  {isAllSettled ? 'Settled' : 'Unsettled'}
                                 </span>
                               );
                             }
@@ -385,8 +409,12 @@ export default function Expenses() {
                 const isExpanded = !!expandedIds[ge.id];
                 const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
 
+                const isEvenGroup = dateGroupInfo.groupMap[ge.id] === 0;
+                const isFirstOfDate = dateGroupInfo.isFirstMap[ge.id];
+                const cardClass = `mobile-expense-card ${isEvenGroup ? 'date-card-even' : 'date-card-odd'}${isFirstOfDate ? ' date-card-first' : ''}${isExpanded ? ' is-expanded' : ''}`;
+
                 return (
-                  <div key={ge.id} className={`mobile-expense-card ${isExpanded ? 'is-expanded' : ''}`}>
+                  <div key={ge.id} className={cardClass}>
                     <div className="mobile-expense-header" onClick={() => toggleExpand(ge.id)}>
                       <div className="mobile-expense-top">
                         <div className="mobile-expense-desc-wrap">
@@ -445,32 +473,46 @@ export default function Expenses() {
                             <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                               <Users size={14} style={{ color: 'var(--accent)' }} /> Split Breakdown (Total {fmtMoney(ge.totalAmount, currency)})
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                               {ge.items.map((item, idx) => {
                                 const itemFriend = item.friendId ? db.friends.find(f => f.id === item.friendId) : null;
                                 const isMine = item.type === 'personal';
+                                const isVendorOwed = item.type === 'by_friend';
                                 return (
                                   <div key={item.id || idx} style={{
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
                                     fontSize: 12,
-                                    padding: '4px 0',
+                                    padding: '6px 0',
                                     borderBottom: idx < ge.items.length - 1 ? '1px dashed var(--border)' : 'none'
                                   }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                       {isMine ? (
-                                        <><span>👤</span> <span><strong>Mine</strong> (Your share)</span></>
+                                        <>
+                                          <span style={{ fontSize: 16 }}>👤</span>
+                                          <div>
+                                            <div style={{ fontWeight: 600 }}>Mine <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>(Your share)</span></div>
+                                            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Your Expense</div>
+                                          </div>
+                                        </>
                                       ) : (
                                         <>
-                                          <span className="avatar avatar-sm" style={{ background: itemFriend?.color ?? 'var(--accent)', width: 16, height: 16, fontSize: 8 }}>
+                                          <span className="avatar avatar-sm" style={{ background: itemFriend?.color ?? 'var(--accent)', width: 22, height: 22, fontSize: 10 }}>
                                             {friendInitial(itemFriend?.name ?? '?')}
                                           </span>
-                                          <span><strong>{itemFriend?.name ?? 'Friend'}'s share</strong> {item.settled ? '· Settled ✓' : ''}</span>
+                                          <div>
+                                            <div style={{ fontWeight: 600 }}>
+                                              {itemFriend?.name ?? 'Contact'}{isVendorOwed ? ' (Vendor Owed)' : "'s share"}
+                                            </div>
+                                            <div style={{ fontSize: 11, fontWeight: 500, color: item.settled ? 'var(--credit)' : (isVendorOwed ? '#d32f2f' : 'var(--accent)') }}>
+                                              {item.settled ? 'Settled ✓' : isVendorOwed ? 'You Owe Vendor' : 'Owes You'}
+                                            </div>
+                                          </div>
                                         </>
                                       )}
-                                    </span>
-                                    <span style={{ fontWeight: 600 }}>{fmtMoney(item.amount, currency)}</span>
+                                    </div>
+                                    <span style={{ fontWeight: 700, fontSize: 13, marginLeft: 'auto' }}>{fmtMoney(item.amount, currency)}</span>
                                   </div>
                                 );
                               })}
@@ -499,9 +541,21 @@ export default function Expenses() {
                           <div className="mobile-expense-detail-item">
                             <span className="mobile-expense-detail-label">Status</span>
                             <span className="mobile-expense-detail-val">
-                              <span className={`badge badge-${primaryItem.settled ? 'settled' : primaryItem.status}`}>
-                                {primaryItem.settled ? 'Settled' : statusLabel(primaryItem.status)}
-                              </span>
+                              {(() => {
+                                const isAllSettled = ge.items.every(i => i.settled);
+                                if (ge.isSplit) {
+                                  return (
+                                    <span className={`badge badge-${isAllSettled ? 'settled' : 'unsettled'}`}>
+                                      {isAllSettled ? 'Settled' : 'Unsettled'}
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <span className={`badge badge-${primaryItem.settled ? 'settled' : primaryItem.status}`}>
+                                    {primaryItem.settled ? 'Settled' : statusLabel(primaryItem.status)}
+                                  </span>
+                                );
+                              })()}
                             </span>
                           </div>
 

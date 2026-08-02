@@ -363,6 +363,7 @@ export function overallBalance(db: AppDB): { credit: number; debit: number; net:
 
 export function personalNetAmount(e: Expense): number {
   if (e.type !== 'personal') return 0;
+  if (e.category === 'Transfer') return 0;
   const amt = Number(e.amount) || 0;
   return expenseFlow(e) === 'in' ? -amt : amt;
 }
@@ -394,6 +395,68 @@ export function contactLastTransaction(db: AppDB, contactId: string): Expense | 
 }
 
 // CRUD helpers that return new DB state (immutable-ish)
+export function transferFunds(
+  db: AppDB,
+  fromWalletId: string,
+  toWalletId: string,
+  amount: number,
+  date: string,
+  note: string = ''
+): { db: AppDB; groupId: string; fromName: string; toName: string } {
+  const fromW = db.wallets.find(w => w.id === fromWalletId);
+  const toW = db.wallets.find(w => w.id === toWalletId);
+  const fromName = fromW ? fromW.name : 'Wallet';
+  const toName = toW ? toW.name : 'Wallet';
+
+  const groupId = uid('trf_grp');
+  const timestamp = Date.now();
+  const txDate = date || todayISO();
+  const amt = Number(amount) || 0;
+
+  const outExp: Expense = {
+    id: uid('exp'),
+    groupId,
+    description: `Transfer to ${toName}${note ? ` (${note})` : ''}`,
+    amount: amt,
+    category: 'Transfer',
+    date: txDate,
+    type: 'personal',
+    flow: 'out',
+    friendId: null,
+    walletId: fromWalletId,
+    status: 'paid',
+    settled: false,
+    settlementId: null,
+    notes: note || `Transfer to ${toName}`,
+    createdAt: timestamp,
+  };
+
+  const inExp: Expense = {
+    id: uid('exp'),
+    groupId,
+    description: `Transfer from ${fromName}${note ? ` (${note})` : ''}`,
+    amount: amt,
+    category: 'Transfer',
+    date: txDate,
+    type: 'personal',
+    flow: 'in',
+    friendId: null,
+    walletId: toWalletId,
+    status: 'paid',
+    settled: false,
+    settlementId: null,
+    notes: note || `Transfer from ${fromName}`,
+    createdAt: timestamp + 1,
+  };
+
+  return {
+    db: { ...db, expenses: [outExp, inExp, ...db.expenses] },
+    groupId,
+    fromName,
+    toName,
+  };
+}
+
 export function addExpense(db: AppDB, data: Partial<Expense>): AppDB {
   const e: Expense = {
     id: uid('exp'),
@@ -431,6 +494,25 @@ export function deleteExpense(db: AppDB, id: string): AppDB {
 
   if (target.groupId) {
     return deleteExpenseGroup(db, target.groupId);
+  }
+
+  // Fallback: check if there are associated split items with same date & base description
+  const cleanDesc = target.description.replace(/\s*\([^)]*\)$/i, '').trim();
+  const related = db.expenses.filter(x =>
+    x.id !== target.id &&
+    !x.groupId &&
+    x.date === target.date &&
+    x.description.replace(/\s*\([^)]*\)$/i, '').trim() === cleanDesc
+  );
+
+  if (related.length > 0) {
+    const toDeleteIds = new Set([target.id, ...related.map(r => r.id)]);
+    const expenses = db.expenses.filter(x => !toDeleteIds.has(x.id));
+    const settlements = (db.settlements || []).map(s => ({
+      ...s,
+      expenseIds: s.expenseIds.filter(x => !toDeleteIds.has(x))
+    })).filter(s => s.expenseIds.length > 0);
+    return { ...db, expenses, settlements };
   }
 
   const targetSettlementId = target.settlementId;

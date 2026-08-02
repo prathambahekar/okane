@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
-import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, RefreshCw } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, RefreshCw, ArrowLeftRight } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey } from '../db';
 import { fmtMoney, fmtDate, friendInitial, groupExpenses } from '../utils';
 import type { Friend, ViewName } from '../types';
 import { CategoryBadge } from '../components/CategoryIcon';
+import MonthlySpendingTrend from '../components/MonthlySpendingTrend';
+import TransferModal from '../components/TransferModal';
 
 interface Props {
   onNavigate: (v: ViewName, arg?: string) => void;
@@ -14,6 +16,7 @@ interface Props {
 export default function Dashboard({ onNavigate, onAddExpense }: Props) {
   const { db } = useStore();
   const { expenses, friends, wallets, settings: { currency } } = db;
+  const [showTransfer, setShowTransfer] = useState(false);
 
   const now = new Date();
   const thisKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
@@ -104,8 +107,32 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
 
             {/* Quick Wallet Breakdown Chips */}
             <div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Wallets Breakdown
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Wallets Breakdown
+                </div>
+                {wallets.length >= 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowTransfer(true)}
+                    style={{
+                      background: 'var(--accent-soft)',
+                      color: 'var(--accent)',
+                      border: 'none',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                    title="Transfer funds between wallets"
+                  >
+                    <ArrowLeftRight size={12} /> Transfer
+                  </button>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {wallets.map(w => {
@@ -174,6 +201,9 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Monthly Spending Trend Chart */}
+      <MonthlySpendingTrend expenses={expenses} currency={currency} onNavigate={onNavigate} />
 
       <div className="dashboard-grid">
         {/* Recent Expenses */}
@@ -316,6 +346,11 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
           </div>
         </div>
       )}
+
+      <TransferModal
+        isOpen={showTransfer}
+        onClose={() => setShowTransfer(false)}
+      />
     </div>
   );
 }

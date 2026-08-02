@@ -52,6 +52,26 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
   const settledExps = allExps.filter(e => e.settled);
   const shown = contactType === 'friend' ? (tab === 'active' ? activeExps : settledExps) : allExps;
 
+  const dateGroupInfo = useMemo(() => {
+    const groupMap: Record<string, number> = {};
+    const isFirstMap: Record<string, boolean> = {};
+    let currentGroup = 0;
+    let prevDate: string | null = null;
+
+    shown.forEach((e) => {
+      if (prevDate !== null && e.date !== prevDate) {
+        currentGroup++;
+        isFirstMap[e.id] = true;
+      } else {
+        isFirstMap[e.id] = prevDate === null;
+      }
+      groupMap[e.id] = currentGroup % 2;
+      prevDate = e.date;
+    });
+
+    return { groupMap, isFirstMap };
+  }, [shown]);
+
   const connectedRules = useMemo(() => {
     if (!friend) return [];
     return (db.recurringRules || []).filter(
@@ -517,8 +537,12 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 {shown.map(e => {
                   const cat = db.settings.categories.find(c => c.name === e.category);
                   const isIn = expenseFlow(e) === 'in';
+                  const isEvenGroup = dateGroupInfo.groupMap[e.id] === 0;
+                  const isFirstOfDate = dateGroupInfo.isFirstMap[e.id];
+                  const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}`;
+
                   return (
-                    <tr key={e.id}>
+                    <tr key={e.id} className={rowClass}>
                       <td style={{ fontWeight: 500, fontSize: 13 }}>{e.description}</td>
                       <td style={{ fontWeight: 500, color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
                         {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
@@ -553,9 +577,12 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 const isIn = expenseFlow(e) === 'in';
                 const statusKey = e.settled ? 'settled' : e.status;
                 const isExpanded = !!expandedIds[e.id];
+                const isEvenGroup = dateGroupInfo.groupMap[e.id] === 0;
+                const isFirstOfDate = dateGroupInfo.isFirstMap[e.id];
+                const cardClass = `mobile-expense-card ${isEvenGroup ? 'date-card-even' : 'date-card-odd'}${isFirstOfDate ? ' date-card-first' : ''}${isExpanded ? ' is-expanded' : ''}`;
 
                 return (
-                  <div key={e.id} className={`mobile-expense-card ${isExpanded ? 'is-expanded' : ''}`}>
+                  <div key={e.id} className={cardClass}>
                     <div className="mobile-expense-header" onClick={() => toggleExpand(e.id)}>
                       <div className="mobile-expense-top">
                         <div className="mobile-expense-desc-wrap">

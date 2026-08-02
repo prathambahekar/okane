@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Wallet as WalletIcon, TrendingDown, TrendingUp, ReceiptText, Search, X, RotateCcw, Handshake } from 'lucide-react';
+import { Plus, Edit2, Trash2, Wallet as WalletIcon, TrendingDown, TrendingUp, ReceiptText, Search, X, RotateCcw, Handshake, ArrowLeftRight } from 'lucide-react';
 import Drawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
@@ -13,6 +13,7 @@ import { fmtMoney, fmtDate, typeLabel, statusLabel } from '../utils';
 import WalletModal from '../components/WalletModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ExpenseModal from '../components/ExpenseModal';
+import TransferModal from '../components/TransferModal';
 
 export default function Wallets() {
   const { db, deleteWallet, deleteSettlement, showToast } = useStore();
@@ -24,6 +25,8 @@ export default function Wallets() {
   const [undoStlId, setUndoStlId] = useState<string | null>(null);
   const [selectedWalletForTx, setSelectedWalletForTx] = useState<Wallet | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferFromId, setTransferFromId] = useState<string | undefined>(undefined);
 
   const handleDelete = (id: string) => {
     if (!deleteWallet(id)) {
@@ -122,9 +125,22 @@ export default function Wallets() {
         <div>
           <h1 className="page-title">Wallets</h1>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          <Plus size={16} /> Add Wallet
-        </button>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {wallets.length >= 2 && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setTransferFromId(undefined);
+                setShowTransfer(true);
+              }}
+            >
+              <ArrowLeftRight size={16} /> Transfer Funds
+            </button>
+          )}
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+            <Plus size={16} /> Add Wallet
+          </button>
+        </div>
       </div>
 
       {/* Wallet Cards Grid Row */}
@@ -204,17 +220,33 @@ export default function Wallets() {
                   <span style={{ fontWeight: 600, color: 'var(--debit)' }}>-{fmtMoney(wSpend, currency)}</span>
                 </div>
 
-                <button
-                  className="btn btn-secondary"
-                  style={{ width: '100%', justifyContent: 'center', gap: 6, fontSize: 12.5, fontWeight: 600 }}
-                  onClick={() => {
-                    setSelectedWalletForTx(w);
-                    setSearchQuery('');
-                  }}
-                >
-                  <ReceiptText size={16} />
-                  View Transactions ({wExpCount})
-                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {wallets.length >= 2 && (
+                    <button
+                      className="btn btn-secondary"
+                      style={{ flex: 1, justifyContent: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, padding: '7px 10px' }}
+                      onClick={() => {
+                        setTransferFromId(w.id);
+                        setShowTransfer(true);
+                      }}
+                      title="Transfer funds from this wallet"
+                    >
+                      <ArrowLeftRight size={15} />
+                      Transfer
+                    </button>
+                  )}
+                  <button
+                    className="btn btn-secondary"
+                    style={{ flex: 1, justifyContent: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, padding: '7px 10px' }}
+                    onClick={() => {
+                      setSelectedWalletForTx(w);
+                      setSearchQuery('');
+                    }}
+                  >
+                    <ReceiptText size={15} />
+                    Transactions ({wExpCount})
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -447,6 +479,11 @@ export default function Wallets() {
       {showAdd && <WalletModal onClose={() => setShowAdd(false)} />}
       {editW && <WalletModal wallet={editW} onClose={() => setEditW(null)} />}
       {showAddExp && activeWallet && <ExpenseModal expense={{ walletId: activeWallet.id } as never} onClose={() => setShowAddExp(false)} />}
+      <TransferModal
+        isOpen={showTransfer}
+        onClose={() => setShowTransfer(false)}
+        defaultFromWalletId={transferFromId}
+      />
       {delId && (
         <ConfirmDialog
           title="Delete Wallet"

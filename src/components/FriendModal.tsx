@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, User, Store, Tv, Pipette } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend, ContactType } from '../types';
@@ -80,7 +81,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
       ? 'e.g. Netflix, Spotify, ChatGPT'
       : 'e.g. Alex, Priya, Rahul';
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal" style={{ width: '100%', maxWidth: 440 }}>
         {/* Drag Handle Indicator for Mobile Bottom Sheet */}
@@ -485,6 +486,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

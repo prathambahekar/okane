@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface Props {
@@ -10,9 +11,9 @@ interface Props {
 }
 
 export default function ConfirmDialog({ title, message, confirmLabel = 'Delete', danger = true, onConfirm, onClose }: Props) {
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal confirm-modal">
+      <div className="modal confirm-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <span className="modal-title">{title}</span>
           <button className="btn-icon" onClick={onClose}><X size={18} /></button>
@@ -27,6 +28,8 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
+

@@ -136,12 +136,48 @@ export function groupExpenses(expenses: Expense[]): GroupedExpense[] {
     } else {
       items.sort((a) => (a.type === 'personal' ? -1 : 1));
       const first = items[0];
-      const totalAmount = items.reduce((sum, item) => sum + Number(item.amount), 0);
-      const personalShare = items.filter(i => i.type === 'personal').reduce((sum, item) => sum + Number(item.amount), 0);
-      const friendShare = items.filter(i => i.type !== 'personal').reduce((sum, item) => sum + Number(item.amount), 0);
+
+      const byFriendItems = items.filter(i => i.type === 'by_friend');
+      const forFriendItems = items.filter(i => i.type === 'for_friend');
+      const personalItems = items.filter(i => i.type === 'personal');
+
+      const byFriendSum = byFriendItems.reduce((sum, item) => sum + Number(item.amount), 0);
+      const forFriendSum = forFriendItems.reduce((sum, item) => sum + Number(item.amount), 0);
+      const personalSum = personalItems.reduce((sum, item) => sum + Number(item.amount), 0);
+
+      const totalAmount = byFriendItems.length > 0
+        ? Math.max(byFriendSum, personalSum + forFriendSum)
+        : (personalSum + forFriendSum || items.reduce((sum, i) => sum + Number(i.amount), 0));
+
+      const personalShare = personalItems.length > 0
+        ? personalSum
+        : (byFriendItems.length > 0 ? Math.max(0, totalAmount - forFriendSum) : 0);
+
+      const friendShare = forFriendSum;
       const friendIds = Array.from(new Set(items.map(i => i.friendId).filter(Boolean) as string[]));
       const maxCreatedAt = Math.max(...items.map(i => i.createdAt || 0));
-      const cleanDesc = first.description.replace(/\s*\(Friend share\)$/i, '').trim();
+      const cleanDesc = first.description.replace(/\s*\([^)]*\)$/i, '').trim();
+
+      const finalItems = [...items];
+      if (personalItems.length === 0 && personalShare > 0) {
+        finalItems.unshift({
+          id: `synth_mine_${gId}`,
+          description: cleanDesc,
+          amount: personalShare,
+          category: first.category,
+          date: first.date,
+          type: 'personal',
+          flow: first.flow,
+          friendId: null,
+          walletId: first.walletId,
+          status: 'paid',
+          settled: false,
+          settlementId: null,
+          notes: '',
+          createdAt: maxCreatedAt,
+          groupId: gId,
+        });
+      }
 
       result.push({
         id: gId,
@@ -153,7 +189,7 @@ export function groupExpenses(expenses: Expense[]): GroupedExpense[] {
         walletId: first.walletId,
         flow: first.flow,
         createdAt: maxCreatedAt,
-        items,
+        items: finalItems,
         isSplit: true,
         personalShare,
         friendShare,

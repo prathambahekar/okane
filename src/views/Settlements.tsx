@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { RotateCcw, Handshake, ArrowUpRight, ArrowDownLeft, Clock } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend } from '../types';
@@ -22,7 +22,27 @@ export default function Settlements() {
     db.expenses.some(e => e.friendId === f.id && !e.settled && e.type !== 'personal')
   );
 
-  const sorted = [...settlements].sort((a, b) => b.createdAt - a.createdAt);
+  const sorted = useMemo(() => [...settlements].sort((a, b) => b.createdAt - a.createdAt), [settlements]);
+
+  const dateGroupInfo = useMemo(() => {
+    const groupMap: Record<string, number> = {};
+    const isFirstMap: Record<string, boolean> = {};
+    let currentGroup = 0;
+    let prevDate: string | null = null;
+
+    sorted.forEach((s) => {
+      if (prevDate !== null && s.date !== prevDate) {
+        currentGroup++;
+        isFirstMap[s.id] = true;
+      } else {
+        isFirstMap[s.id] = prevDate === null;
+      }
+      groupMap[s.id] = currentGroup % 2;
+      prevDate = s.date;
+    });
+
+    return { groupMap, isFirstMap };
+  }, [sorted]);
 
   const handleDelete = (id: string) => {
     deleteSettlement(id);
@@ -205,8 +225,12 @@ export default function Settlements() {
                   const friend = db.friends.find(f => f.id === s.friendId);
                   const wallet = db.wallets.find(w => w.id === s.walletId);
                   const walletName = wallet?.name || s.paymentMethod;
+                  const isEvenGroup = dateGroupInfo.groupMap[s.id] === 0;
+                  const isFirstOfDate = dateGroupInfo.isFirstMap[s.id];
+                  const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}`;
+
                   return (
-                    <tr key={s.id}>
+                    <tr key={s.id} className={rowClass}>
                       <td>
                         {friend ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

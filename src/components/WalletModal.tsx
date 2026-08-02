@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useStore } from '../store';
 import type { Wallet } from '../types';
@@ -29,7 +30,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal">
         <div className="modal-header">
@@ -69,6 +70,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

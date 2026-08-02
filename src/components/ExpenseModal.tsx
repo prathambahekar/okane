@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X, TrendingDown, TrendingUp, User, Users, Handshake, Briefcase, HeartHandshake, CheckSquare, Square, Search } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types';
@@ -425,7 +426,10 @@ export default function ExpenseModal({ expense, onClose }: Props) {
           status: 'unsettled',
           notes: notes ? `${notes} (Unpaid vendor bill)` : `Unpaid bill to ${vName}`,
         });
-      } else if (myShare > 0) {
+      }
+
+      if (myShare > 0) {
+        const isUnpaidVendor = Boolean(selectedVendorId && vendorPaymentStatus === 'unpaid');
         addExpense({
           groupId: targetGroupId,
           description: finalDesc,
@@ -436,8 +440,8 @@ export default function ExpenseModal({ expense, onClose }: Props) {
           flow,
           friendId: selectedVendorId || null,
           vendorId: selectedVendorId || null,
-          walletId,
-          status: 'paid',
+          walletId: isUnpaidVendor ? '' : walletId,
+          status: isUnpaidVendor ? 'unpaid' : 'paid',
           notes,
         });
       }
@@ -483,7 +487,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal">
         {/* Drag Handle Indicator for Mobile Bottom Sheet */}
@@ -1574,6 +1578,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

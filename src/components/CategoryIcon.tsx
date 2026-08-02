@@ -19,6 +19,7 @@ import {
   Tv,
   Coffee,
   Briefcase,
+  ArrowLeftRight,
   type LucideProps
 } from 'lucide-react';
 
@@ -45,6 +46,7 @@ export const AVAILABLE_ICONS = [
   { id: 'tv', label: 'Subscriptions / TV', Icon: Tv },
   { id: 'cafe', label: 'Coffee / Cafe', Icon: Coffee },
   { id: 'work', label: 'Work / Business', Icon: Briefcase },
+  { id: 'transfer', label: 'Transfer / Move', Icon: ArrowLeftRight },
   { id: 'other', label: 'Other / Tag', Icon: Tag },
 ];
 
@@ -87,6 +89,9 @@ const iconMap: Record<string, React.ElementType> = {
   investment: LineChart,
   tv: Tv,
   work: Briefcase,
+  transfer: ArrowLeftRight,
+  transferring: ArrowLeftRight,
+  move: ArrowLeftRight,
   other: Tag,
 };
 
