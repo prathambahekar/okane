@@ -5,7 +5,6 @@ import { friendBalance, walletBalance, totalWalletBalance, expenseFlow, personal
 import { fmtMoney, fmtDate, friendInitial, groupExpenses } from '../utils';
 import type { Friend, ViewName } from '../types';
 import { CategoryBadge } from '../components/CategoryIcon';
-import MonthlySpendingTrend from '../components/MonthlySpendingTrend';
 import TransferModal from '../components/TransferModal';
 
 interface Props {
@@ -35,7 +34,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
     return s + b.owedByMe;
   }, 0);
 
-  const recentExpenses = useMemo(() => groupExpenses(expenses).slice(0, 5), [expenses]);
+  const recentExpenses = useMemo(() => groupExpenses(expenses, db.wallets).slice(0, 5), [expenses, db.wallets]);
 
   const balancedFriends = useMemo(() =>
     friends
@@ -202,9 +201,6 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         </div>
       </div>
 
-      {/* Monthly Spending Trend Chart */}
-      <MonthlySpendingTrend expenses={expenses} currency={currency} onNavigate={onNavigate} />
-
       <div className="dashboard-grid">
         {/* Recent Expenses */}
         <div className="card" style={{ gridColumn: '1 / -1' }}>
@@ -223,7 +219,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {recentExpenses.map((ge, idx) => {
                 const cat = db.settings.categories.find(c => c.name === ge.category);
-                const isIn = ge.flow === 'in';
+                const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
                 const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
                 return (
                   <div key={ge.id} style={{

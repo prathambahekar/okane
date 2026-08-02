@@ -35,7 +35,7 @@ import {
 import { StoreProvider, useStore } from './store';
 import { useColorMode } from './theme';
 import type { ViewName } from './types';
-import { expenseFlow, friendBalance, totalWalletBalance, todayISO } from './db';
+import { expenseFlow, friendBalance, totalWalletBalance, todayISO, monthKey } from './db';
 import { fmtMoney } from './utils';
 import Dashboard from './views/Dashboard';
 import Expenses from './views/Expenses';
@@ -78,8 +78,19 @@ function AppInner() {
     currency: db.settings.currency,
   }), [db]);
 
-  const expOut = useMemo(() => expenses.filter(e => expenseFlow(e) === 'out' && e.type === 'personal').reduce((s, e) => s + Number(e.amount), 0), [expenses]);
-  const expIn = useMemo(() => expenses.filter(e => expenseFlow(e) === 'in' && e.type === 'personal').reduce((s, e) => s + Number(e.amount), 0), [expenses]);
+  const expOut = useMemo(() => {
+    const curMonth = monthKey(todayISO());
+    return expenses
+      .filter(e => monthKey(e.date) === curMonth && expenseFlow(e) === 'out' && e.type === 'personal')
+      .reduce((s, e) => s + Number(e.amount), 0);
+  }, [expenses]);
+
+  const expIn = useMemo(() => {
+    const curMonth = monthKey(todayISO());
+    return expenses
+      .filter(e => monthKey(e.date) === curMonth && expenseFlow(e) === 'in' && e.type === 'personal')
+      .reduce((s, e) => s + Number(e.amount), 0);
+  }, [expenses]);
   const friendCredit = useMemo(() => friends.reduce((s, f) => s + Math.max(0, friendBalance(db, f.id).net), 0), [friends, db]);
   const friendDebt = useMemo(() => friends.reduce((s, f) => s + Math.max(0, -friendBalance(db, f.id).net), 0), [friends, db]);
   const totalBal = useMemo(() => totalWalletBalance(db), [db]);

@@ -658,7 +658,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                         <option value="">— None / Direct Store —</option>
                         {db.friends.map(f => {
                           const t = f.type || 'friend';
-                          const tag = t === 'vendor' ? ' 🏪 (Vendor)' : t === 'subscription' ? ' 📺 (Subscription)' : ' 👤 (Friend)';
+                          const tag = t === 'vendor' ? ' (Vendor)' : t === 'subscription' ? ' (Subscription)' : ' (Friend)';
                           return <option key={f.id} value={f.id}>{f.name}{tag}</option>;
                         })}
                       </select>
@@ -672,19 +672,19 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                               className={`segment-btn ${vendorPaymentStatus === 'paid' ? 'active' : ''}`}
                               onClick={() => setVendorPaymentStatus('paid')}
                             >
-                              <span>🟢 Paid Upfront</span>
+                              <span>Paid Upfront</span>
                             </button>
                             <button
                               type="button"
                               className={`segment-btn ${vendorPaymentStatus === 'unpaid' ? 'active' : ''}`}
                               onClick={() => setVendorPaymentStatus('unpaid')}
                             >
-                              <span>🔴 Unpaid / On Credit</span>
+                              <span>Unpaid / On Credit</span>
                             </button>
                           </div>
                           {vendorPaymentStatus === 'unpaid' ? (
                             <p style={{ fontSize: 11, color: 'var(--debit)', marginTop: 6, fontWeight: 500 }}>
-                              💡 This will record that you owe <strong>{db.friends.find(f => f.id === selectedVendorId)?.name || 'the vendor'}</strong> {fmtMoney(parseFloat(amount) || 0, s.currency)} while your friends owe you.
+                              This will record that you owe <strong>{db.friends.find(f => f.id === selectedVendorId)?.name || 'the vendor'}</strong> {fmtMoney(parseFloat(amount) || 0, s.currency)} while your friends owe you.
                             </p>
                           ) : (
                             <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>
@@ -1310,10 +1310,10 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                         {/* Quick Presets for Speed */}
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                           {[
-                            { label: '💼 Salary', value: 'Monthly Salary' },
-                            { label: '👨‍👩‍👧 Parents / Pocket Money', value: 'Pocket Money from Parents' },
-                            { label: '💻 Freelance', value: 'Freelance Income' },
-                            { label: '🎁 Gift / Bonus', value: 'Gift / Bonus' },
+                            { label: 'Salary', value: 'Monthly Salary' },
+                            { label: 'Parents / Pocket Money', value: 'Pocket Money from Parents' },
+                            { label: 'Freelance', value: 'Freelance Income' },
+                            { label: 'Gift / Bonus', value: 'Gift / Bonus' },
                           ].map(preset => (
                             <button
                               key={preset.value}
@@ -1335,7 +1335,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                         </div>
                       </div>
 
-                      <div className="form-row">
+                      <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div className="form-group">
                           <label className="form-label">Deposited To (Wallet)</label>
                           <select className="form-select" value={walletId} onChange={e => setWalletId(e.target.value)}>
@@ -1537,7 +1537,7 @@ export default function ExpenseModal({ expense, onClose }: Props) {
                         />
                       </div>
 
-                      <div className="form-row">
+                      <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div className="form-group">
                           <label className="form-label">Deposited To (Wallet)</label>
                           <select className="form-select" value={walletId} onChange={e => setWalletId(e.target.value)}>

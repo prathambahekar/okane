@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Handshake, Search, ChevronDown, ChevronUp, MoreVertical, User, Store, Tv, ArrowUpRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Handshake, Search, ChevronDown, ChevronUp, MoreVertical, User, Users, Store, Tv, ArrowUpRight } from 'lucide-react';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -319,7 +319,7 @@ export default function Friends({ onNavigate }: Props) {
       {friends.length === 0 ? (
         <div className="card">
           <div className="empty-state">
-            <div className="empty-state-icon">👥</div>
+            <div className="empty-state-icon"><Users size={36} /></div>
             <div className="empty-state-title">No contacts added yet</div>
             <p>Add friends for splitting bills, vendors like Tiffin Aunty, or subscriptions like Netflix.</p>
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>

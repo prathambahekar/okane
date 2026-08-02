@@ -1,5 +1,5 @@
 import { CURRENCIES } from './db';
-import type { Expense, ExpenseFlow, ExpenseType } from './types';
+import type { Expense, ExpenseFlow, ExpenseType, Wallet } from './types';
 import { expenseFlow, personalNetAmount } from './db';
 
 export function currencySymbol(currency: string): string {
@@ -31,7 +31,8 @@ export function monthKey(iso: string): string {
   return iso.slice(0, 7);
 }
 
-export function typeLabel(type: ExpenseType, friendType?: 'friend' | 'vendor' | 'subscription'): string {
+export function typeLabel(type: ExpenseType, friendType?: 'friend' | 'vendor' | 'subscription', category?: string): string {
+  if (category === 'Transfer') return 'Wallet Transfer';
   if (type === 'personal') return 'Personal';
   if (friendType === 'vendor') {
     if (type === 'for_friend') return 'Advance to Vendor';
@@ -46,6 +47,7 @@ export function typeLabel(type: ExpenseType, friendType?: 'friend' | 'vendor' | 
 }
 
 export function typeLabelWithFlow(e: Expense, friendType?: 'friend' | 'vendor' | 'subscription'): string {
+  if (e.category === 'Transfer') return 'Wallet Transfer';
   const base = typeLabel(e.type, friendType);
   if (expenseFlow(e) === 'in') {
     if (friendType === 'vendor') {
@@ -94,9 +96,11 @@ export interface GroupedExpense {
   personalShare: number;
   friendShare: number;
   friendIds: string[];
+  fromWalletName?: string;
+  toWalletName?: string;
 }
 
-export function groupExpenses(expenses: Expense[]): GroupedExpense[] {
+export function groupExpenses(expenses: Expense[], wallets?: Wallet[]): GroupedExpense[] {
   const groupedMap = new Map<string, Expense[]>();
   const singles: Expense[] = [];
 
@@ -114,7 +118,57 @@ export function groupExpenses(expenses: Expense[]): GroupedExpense[] {
   const result: GroupedExpense[] = [];
 
   groupedMap.forEach((items, gId) => {
-    if (items.length <= 1) {
+    const isTransferGroup = items.some(i => i.category === 'Transfer') || gId.startsWith('trf_grp');
+
+    if (isTransferGroup) {
+      const outItem = items.find(i => i.flow === 'out') || items[0];
+      const inItem = items.find(i => i.flow === 'in') || items[1];
+
+      let fromWName = outItem ? wallets?.find(w => w.id === outItem.walletId)?.name : undefined;
+      let toWName = inItem ? wallets?.find(w => w.id === inItem.walletId)?.name : undefined;
+
+      if (!fromWName && inItem?.description) {
+        const m = inItem.description.match(/Transfer from\s+(.+?)(?:\s*\(|$)/i);
+        if (m) fromWName = m[1].trim();
+      }
+      if (!toWName && outItem?.description) {
+        const m = outItem.description.match(/Transfer to\s+(.+?)(?:\s*\(|$)/i);
+        if (m) toWName = m[1].trim();
+      }
+
+      fromWName = fromWName || 'Wallet';
+      toWName = toWName || 'Wallet';
+
+      let noteStr = '';
+      if (outItem?.notes && !outItem.notes.toLowerCase().startsWith('transfer to')) {
+        noteStr = outItem.notes.trim();
+      } else if (inItem?.notes && !inItem.notes.toLowerCase().startsWith('transfer from')) {
+        noteStr = inItem.notes.trim();
+      }
+
+      const cleanDesc = `Transfer: ${fromWName} → ${toWName}${noteStr ? ` (${noteStr})` : ''}`;
+      const transferAmount = outItem ? outItem.amount : (inItem ? inItem.amount : items[0].amount);
+      const maxCreatedAt = Math.max(...items.map(i => i.createdAt || 0));
+
+      result.push({
+        id: gId,
+        groupId: gId,
+        description: cleanDesc,
+        totalAmount: transferAmount,
+        date: outItem?.date || items[0].date,
+        category: 'Transfer',
+        walletId: outItem?.walletId || items[0].walletId,
+        flow: 'out',
+        createdAt: maxCreatedAt,
+        items,
+        isSplit: false,
+        personalShare: 0,
+        friendShare: 0,
+        friendIds: [],
+        fromWalletName: fromWName,
+        toWalletName: toWName,
+      });
+    } else if (items.length <= 1) {
       const e = items[0];
       const friendIds = e.friendId ? [e.friendId] : [];
       result.push({
@@ -199,23 +253,55 @@ export function groupExpenses(expenses: Expense[]): GroupedExpense[] {
   });
 
   for (const e of singles) {
-    const friendIds = e.friendId ? [e.friendId] : [];
-    result.push({
-      id: e.id,
-      groupId: null,
-      description: e.description.replace(/\s*\(Friend share\)$/i, '').trim(),
-      totalAmount: e.amount,
-      date: e.date,
-      category: e.category,
-      walletId: e.walletId,
-      flow: e.flow,
-      createdAt: e.createdAt,
-      items: [e],
-      isSplit: false,
-      personalShare: e.type === 'personal' ? e.amount : 0,
-      friendShare: e.type !== 'personal' ? e.amount : 0,
-      friendIds,
-    });
+    if (e.category === 'Transfer') {
+      let fromWName = wallets?.find(w => w.id === e.walletId)?.name;
+      let toWName: string | undefined;
+
+      if (e.description.toLowerCase().startsWith('transfer to')) {
+        toWName = e.description.replace(/^Transfer to\s*/i, '').replace(/\s*\([^)]*\)$/, '').trim();
+      } else if (e.description.toLowerCase().startsWith('transfer from')) {
+        toWName = fromWName;
+        fromWName = e.description.replace(/^Transfer from\s*/i, '').replace(/\s*\([^)]*\)$/, '').trim();
+      }
+
+      const cleanDesc = `Transfer: ${fromWName || 'Wallet'} → ${toWName || 'Wallet'}`;
+      result.push({
+        id: e.id,
+        groupId: null,
+        description: cleanDesc,
+        totalAmount: e.amount,
+        date: e.date,
+        category: 'Transfer',
+        walletId: e.walletId,
+        flow: 'out',
+        createdAt: e.createdAt,
+        items: [e],
+        isSplit: false,
+        personalShare: 0,
+        friendShare: 0,
+        friendIds: [],
+        fromWalletName: fromWName,
+        toWalletName: toWName,
+      });
+    } else {
+      const friendIds = e.friendId ? [e.friendId] : [];
+      result.push({
+        id: e.id,
+        groupId: null,
+        description: e.description.replace(/\s*\(Friend share\)$/i, '').trim(),
+        totalAmount: e.amount,
+        date: e.date,
+        category: e.category,
+        walletId: e.walletId,
+        flow: e.flow,
+        createdAt: e.createdAt,
+        items: [e],
+        isSplit: false,
+        personalShare: e.type === 'personal' ? e.amount : 0,
+        friendShare: e.type !== 'personal' ? e.amount : 0,
+        friendIds,
+      });
+    }
   }
 
   result.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);

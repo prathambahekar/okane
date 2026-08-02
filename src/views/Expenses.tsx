@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, Filter, Users, Layers, ArrowUpRight, ArrowDownLeft, RotateCcw } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, Filter, Users, Layers, ArrowUpRight, ArrowDownLeft, RotateCcw, User, ReceiptText } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense } from '../types';
 import { fmtMoney, fmtDate, typeLabel, statusLabel, friendInitial, groupExpenses } from '../utils';
@@ -38,7 +38,7 @@ export default function Expenses() {
     setUndoExpId(null);
   };
 
-  const grouped = useMemo(() => groupExpenses(expenses), [expenses]);
+  const grouped = useMemo(() => groupExpenses(expenses, db.wallets), [expenses, db.wallets]);
 
   const filtered = useMemo(() => {
     let arr = [...grouped];
@@ -190,7 +190,7 @@ export default function Expenses() {
       <div className="card" style={{ padding: 0 }}>
         {filtered.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">📋</div>
+            <div className="empty-state-icon"><ReceiptText size={36} /></div>
             <div className="empty-state-title">No expenses found</div>
             <p>Try adjusting your filters or add a new expense.</p>
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}><Plus size={16} /> Add Expense</button>
@@ -226,8 +226,21 @@ export default function Expenses() {
                     if (found) return found;
                     return item.walletId ? db.wallets.find(w => w.id === item.walletId) : null;
                   }, null) || db.wallets.find(w => w.id === ge.walletId);
-                  const effectiveWalletName = wallet?.name || stlWallet?.name || stl?.paymentMethod || '—';
-                  const isIn = ge.flow === 'in';
+                  let effectiveWalletName = wallet?.name || stlWallet?.name || stl?.paymentMethod || '—';
+                  if (ge.category === 'Transfer') {
+                    if (ge.fromWalletName && ge.toWalletName) {
+                      effectiveWalletName = `${ge.fromWalletName} → ${ge.toWalletName}`;
+                    } else {
+                      const outItem = ge.items.find(i => i.flow === 'out');
+                      const inItem = ge.items.find(i => i.flow === 'in');
+                      const fromW = outItem ? db.wallets.find(w => w.id === outItem.walletId) : null;
+                      const toW = inItem ? db.wallets.find(w => w.id === inItem.walletId) : null;
+                      if (fromW || toW) {
+                        effectiveWalletName = `${fromW?.name || 'Wallet'} → ${toW?.name || 'Wallet'}`;
+                      }
+                    }
+                  }
+                  const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
                   const isExpanded = !!expandedIds[ge.id];
                   const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
 
@@ -290,7 +303,7 @@ export default function Expenses() {
                           <CategoryBadge category={ge.category} color={cat?.color} icon={cat?.icon} />
                         </td>
                         <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
-                          {ge.isSplit ? 'Split Expense' : typeLabel(primaryItem.type)}
+                          {ge.isSplit ? 'Split Expense' : typeLabel(primaryItem.type, undefined, primaryItem.category)}
                         </td>
                         <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{effectiveWalletName}</td>
                         <td>
@@ -304,9 +317,12 @@ export default function Expenses() {
                               );
                             }
 
+                            const isTransfer = primaryItem.category === 'Transfer';
+                            const isSettled = primaryItem.settled || isTransfer;
+
                             return (
-                              <span className={`badge badge-${primaryItem.settled ? 'settled' : primaryItem.status}`} style={{ whiteSpace: 'nowrap' }}>
-                                {primaryItem.settled ? 'Settled' : statusLabel(primaryItem.status)}
+                              <span className={`badge badge-${isSettled ? 'settled' : primaryItem.status}`} style={{ whiteSpace: 'nowrap' }}>
+                                {isTransfer ? 'Completed' : (isSettled ? 'Settled' : statusLabel(primaryItem.status))}
                               </span>
                             );
                           })()}
@@ -352,7 +368,7 @@ export default function Expenses() {
                                   }}>
                                     {isMine ? (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <span style={{ fontSize: 16 }}>👤</span>
+                                        <User size={16} style={{ color: 'var(--text-2)' }} />
                                         <div>
                                           <div style={{ fontWeight: 600, fontSize: 12 }}>My Share</div>
                                           <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Your Expense</div>
@@ -404,8 +420,21 @@ export default function Expenses() {
                   if (found) return found;
                   return item.walletId ? db.wallets.find(w => w.id === item.walletId) : null;
                 }, null) || db.wallets.find(w => w.id === ge.walletId);
-                const effectiveWalletName = wallet?.name || stlWallet?.name || stl?.paymentMethod || '—';
-                const isIn = ge.flow === 'in';
+                let effectiveWalletName = wallet?.name || stlWallet?.name || stl?.paymentMethod || '—';
+                if (ge.category === 'Transfer') {
+                  if (ge.fromWalletName && ge.toWalletName) {
+                    effectiveWalletName = `${ge.fromWalletName} → ${ge.toWalletName}`;
+                  } else {
+                    const outItem = ge.items.find(i => i.flow === 'out');
+                    const inItem = ge.items.find(i => i.flow === 'in');
+                    const fromW = outItem ? db.wallets.find(w => w.id === outItem.walletId) : null;
+                    const toW = inItem ? db.wallets.find(w => w.id === inItem.walletId) : null;
+                    if (fromW || toW) {
+                      effectiveWalletName = `${fromW?.name || 'Wallet'} → ${toW?.name || 'Wallet'}`;
+                    }
+                  }
+                }
+                const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
                 const isExpanded = !!expandedIds[ge.id];
                 const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
 
@@ -490,7 +519,7 @@ export default function Expenses() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                       {isMine ? (
                                         <>
-                                          <span style={{ fontSize: 16 }}>👤</span>
+                                          <User size={16} style={{ color: 'var(--text-2)' }} />
                                           <div>
                                             <div style={{ fontWeight: 600 }}>Mine <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>(Your share)</span></div>
                                             <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Your Expense</div>
@@ -535,7 +564,7 @@ export default function Expenses() {
 
                           <div className="mobile-expense-detail-item">
                             <span className="mobile-expense-detail-label">Type</span>
-                            <span className="mobile-expense-detail-val">{ge.isSplit ? 'Split Expense' : typeLabel(primaryItem.type)}</span>
+                            <span className="mobile-expense-detail-val">{ge.isSplit ? 'Split Expense' : typeLabel(primaryItem.type, undefined, primaryItem.category)}</span>
                           </div>
 
                           <div className="mobile-expense-detail-item">
@@ -550,9 +579,11 @@ export default function Expenses() {
                                     </span>
                                   );
                                 }
+                                const isTransfer = primaryItem.category === 'Transfer';
+                                const isSettled = primaryItem.settled || isTransfer;
                                 return (
-                                  <span className={`badge badge-${primaryItem.settled ? 'settled' : primaryItem.status}`}>
-                                    {primaryItem.settled ? 'Settled' : statusLabel(primaryItem.status)}
+                                  <span className={`badge badge-${isSettled ? 'settled' : primaryItem.status}`}>
+                                    {isTransfer ? 'Completed' : (isSettled ? 'Settled' : statusLabel(primaryItem.status))}
                                   </span>
                                 );
                               })()}
