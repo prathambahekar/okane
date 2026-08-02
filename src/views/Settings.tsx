@@ -533,22 +533,22 @@ export default function Settings() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Version</h2>
-              <span style={{ 
-                fontSize: 12, 
-                fontWeight: 600, 
-                padding: '2px 10px', 
-                borderRadius: 12, 
-                background: 'var(--surface2)', 
-                color: 'var(--accent)', 
-                border: '1px solid var(--border)' 
+              <span style={{
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '2px 10px',
+                borderRadius: 12,
+                background: 'var(--surface2)',
+                color: 'var(--accent)',
+                border: '1px solid var(--border)'
               }}>
-                v1.0.0
+                v0.7
               </span>
             </div>
 
-            <a 
-              href="https://github.com/prathambahekar/okane/" 
-              target="_blank" 
+            <a
+              href="https://github.com/prathambahekar/okane/"
+              target="_blank"
               rel="noopener noreferrer"
               style={{
                 display: 'inline-flex',
