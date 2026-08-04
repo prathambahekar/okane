@@ -373,8 +373,10 @@ html, body, #root {
 /* Buttons */
 .btn {
   display: inline-flex;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
   padding: 9px 18px;
   border-radius: var(--radius);
   font-size: 13.5px;
@@ -383,6 +385,17 @@ html, body, #root {
   border: none;
   transition: all var(--transition);
   white-space: nowrap;
+  line-height: 1;
+}
+
+.btn svg, .btn-icon svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.btn span {
+  display: inline-flex;
+  align-items: center;
   line-height: 1;
 }
 .btn-primary {
@@ -1407,6 +1420,7 @@ input[type="number"] {
 /* Responsive Visibility Helpers */
 .mobile-only { display: none !important; }
 .desktop-only { display: block !important; }
+button.desktop-only, .btn.desktop-only { display: inline-flex !important; }
 table.desktop-only { display: table !important; }
 
 /* Dashboard grid */

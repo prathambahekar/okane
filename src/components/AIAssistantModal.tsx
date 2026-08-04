@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Dialog from '@mui/material/Dialog';
-import Drawer from '@mui/material/Drawer';
+import SwipeableDrawer from '@mui/material/SwipeableDrawer';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
@@ -16,6 +16,7 @@ import Chip from '@mui/material/Chip';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
+import InputBase from '@mui/material/InputBase';
 import Paper from '@mui/material/Paper';
 import Tooltip from '@mui/material/Tooltip';
 import ToggleButton from '@mui/material/ToggleButton';
@@ -35,9 +36,11 @@ import {
   CreditCard,
   TrendingDown,
   TrendingUp,
+  Zap,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { currencySymbol } from '../utils';
+import { parseLocallyClient } from '../nlp';
 import { uid, todayISO } from '../db';
 import type { ExpenseType, ExpenseFlow } from '../types';
 
@@ -47,9 +50,60 @@ interface ISpeechRecognition {
   lang: string;
   start: () => void;
   stop: () => void;
-  onresult: (event: { resultIndex: number; results: Array<Array<{ transcript: string }>> }) => void;
+  onstart?: () => void;
+  onresult: (event: { resultIndex: number; results: Array<Array<{ transcript: string }> & { isFinal?: boolean }> }) => void;
   onerror: (event: { error: string }) => void;
   onend: () => void;
+}
+
+function AudioWaveVisualizer({ volume, isListening }: { volume: number; isListening: boolean }) {
+  if (!isListening) return null;
+
+  // 6 vertical bars with varied height multipliers for a natural, reactive audio wave
+  const barConfigs = [
+    { mult: 0.55 },
+    { mult: 0.95 },
+    { mult: 1.45 },
+    { mult: 1.25 },
+    { mult: 0.85 },
+    { mult: 0.45 },
+  ];
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '3px',
+        px: 1,
+        py: 0.5,
+        height: '28px',
+        borderRadius: '99px',
+        bgcolor: 'rgba(239, 68, 68, 0.08)',
+        border: '1px solid rgba(239, 68, 68, 0.22)',
+        flexShrink: 0,
+      }}
+    >
+      {barConfigs.map((cfg, idx) => {
+        // Base min height 4px, height expands up to 22px depending on live volume
+        const computedHeight = Math.max(4, Math.min(22, 4 + volume * cfg.mult * 26));
+        return (
+          <Box
+            key={idx}
+            sx={{
+              width: '3px',
+              height: `${computedHeight}px`,
+              borderRadius: '99px',
+              bgcolor: 'var(--debit)',
+              transition: 'height 0.06s ease-out, opacity 0.12s ease',
+              opacity: Math.max(0.4, Math.min(1, 0.5 + volume * 0.7)),
+              boxShadow: volume > 0.15 ? '0 0 6px rgba(239, 68, 68, 0.45)' : 'none',
+            }}
+          />
+        );
+      })}
+    </Box>
+  );
 }
 
 interface DraftExpense {
@@ -86,12 +140,38 @@ interface AIAssistantModalProps {
 export default function AIAssistantModal({ open, onClose }: AIAssistantModalProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isDark = theme.palette.mode === 'dark';
 
   const { db, addExpense, addFriend, showToast } = useStore();
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartYRef.current === null) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - touchStartYRef.current;
+    if (deltaY > 0) {
+      setDragOffsetY(deltaY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (dragOffsetY > 70) {
+      onClose();
+    }
+    setDragOffsetY(0);
+    touchStartYRef.current = null;
+  };
+  const [aiEngineMode, setAiEngineMode] = useState<'offline' | 'online'>(() => {
+    return (localStorage.getItem('ai_engine_mode') as 'offline' | 'online') || db.settings?.defaultAiEngine || 'offline';
+  });
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -106,6 +186,87 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
   const contentEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const msgCounterRef = useRef(1);
+
+  // Audio analyzer refs & volume state for live wave visualization
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animFrameRef = useRef<number | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const [volumeLevel, setVolumeLevel] = useState<number>(0);
+
+  const stopAudioAnalysis = useCallback(() => {
+    if (animFrameRef.current !== null) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    if (analyserRef.current) {
+      analyserRef.current = null;
+    }
+    if (audioContextRef.current) {
+      try {
+        audioContextRef.current.close();
+      } catch {
+        // ignore
+      }
+      audioContextRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      try {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      } catch {
+        // ignore
+      }
+      mediaStreamRef.current = null;
+    }
+    setVolumeLevel(0);
+  }, []);
+
+  const startAudioAnalysis = useCallback(async () => {
+    stopAudioAnalysis();
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      const AudioCtxClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtxClass) return;
+
+      const audioCtx = new AudioCtxClass();
+      audioContextRef.current = audioCtx;
+
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.5;
+      analyserRef.current = analyser;
+
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      const updateVolume = () => {
+        if (!analyserRef.current) return;
+        analyserRef.current.getByteFrequencyData(dataArray);
+
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+        }
+        const average = sum / dataArray.length;
+        // Normalizing average amplitude into a smooth [0, 1] range
+        const norm = Math.min(1, Math.max(0, average / 65));
+        setVolumeLevel(norm);
+
+        animFrameRef.current = requestAnimationFrame(updateVolume);
+      };
+
+      updateVolume();
+    } catch (err) {
+      console.warn('Audio volume analysis unavailable:', err);
+    }
+  }, [stopAudioAnalysis]);
 
   const generateMsgId = () => {
     msgCounterRef.current += 1;
@@ -126,57 +287,118 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     }
   }, [messages, loading, activeDraft]);
 
-  // Setup Web Speech Recognition if available
+  // Cleanup speech recognition and audio stream on unmount
   useEffect(() => {
-    const SpeechRecognitionClass = (window as unknown as { SpeechRecognition?: new () => ISpeechRecognition; webkitSpeechRecognition?: new () => ISpeechRecognition }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: new () => ISpeechRecognition }).webkitSpeechRecognition;
-    if (SpeechRecognitionClass) {
+    return () => {
+      stopAudioAnalysis();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [stopAudioAnalysis]);
+
+  const toggleListening = async () => {
+    if (isListening) {
+      stopAudioAnalysis();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognitionClass =
+      (window as unknown as { SpeechRecognition?: new () => ISpeechRecognition; webkitSpeechRecognition?: new () => ISpeechRecognition }).SpeechRecognition ||
+      (window as unknown as { webkitSpeechRecognition?: new () => ISpeechRecognition }).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionClass) {
+      showToast('Voice input is not supported in this browser. Please type your command.');
+      return;
+    }
+
+    try {
+      // Prompt user for microphone permission explicitly via getUserMedia first
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          // Stop stream tracks so SpeechRecognition can lock the audio device
+          stream.getTracks().forEach((track) => track.stop());
+        } catch (mediaErr) {
+          console.warn('Microphone permission check failed:', mediaErr);
+          showToast('Microphone access denied. Please allow microphone permissions in browser settings.');
+          setIsListening(false);
+          return;
+        }
+      }
+
       const recognition = new SpeechRecognitionClass();
-      recognition.continuous = false;
+      recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
+      setInputText('');
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        startAudioAnalysis();
+      };
+
       recognition.onresult = (event) => {
-        let transcript = '';
+        let interimTranscript = '';
+        let finalTranscript = '';
+
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          transcript += event.results[i][0].transcript;
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
         }
-        setInputText(transcript);
+
+        const text = finalTranscript || interimTranscript;
+        if (text) {
+          setInputText(text);
+        }
       };
 
       recognition.onerror = (event) => {
         console.warn('Speech recognition error:', event.error);
+        stopAudioAnalysis();
         setIsListening(false);
-        if (event.error !== 'no-speech') {
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          showToast('Microphone access blocked. Please allow mic permissions in browser settings.');
+        } else if (event.error === 'audio-capture') {
+          showToast('No microphone found on your device.');
+        } else if (event.error === 'network') {
+          showToast('Network error during speech recognition.');
+        } else if (event.error !== 'no-speech') {
           showToast(`Mic error: ${event.error}`);
         }
       };
 
       recognition.onend = () => {
+        stopAudioAnalysis();
         setIsListening(false);
       };
 
       recognitionRef.current = recognition;
-    }
-  }, [showToast]);
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) {
-      showToast('Voice input is not supported in this browser. Please type your command.');
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current.stop();
+      recognition.start();
+      setIsListening(true);
+      startAudioAnalysis();
+    } catch (err) {
+      console.error('Error starting mic:', err);
+      stopAudioAnalysis();
       setIsListening(false);
-    } else {
-      try {
-        setInputText('');
-        recognitionRef.current.start();
-        setIsListening(true);
-      } catch (err) {
-        console.error('Error starting mic:', err);
-        setIsListening(false);
-      }
+      showToast('Could not start microphone. Please check browser permissions or try typing.');
     }
   };
 
@@ -184,8 +406,15 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     const query = (textToSend || inputText).trim();
     if (!query) return;
 
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
+    if (isListening) {
+      stopAudioAnalysis();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
       setIsListening(false);
     }
 
@@ -201,6 +430,47 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
     setLoading(true);
+
+    if (aiEngineMode === 'offline') {
+      setTimeout(() => {
+        const localResult = parseLocallyClient(query, categories, friends, wallets, currency);
+        const botMsg: Message = {
+          id: generateMsgId(),
+          sender: 'bot',
+          text: localResult.reply,
+          timestamp: timeStr,
+          draft: localResult.draft || null,
+        };
+
+        setMessages(prev => [...prev, botMsg]);
+
+        if (localResult.draft) {
+          const d = localResult.draft as DraftExpense;
+          if (d.whoPaid === 'other' || d.type === 'by_friend' || d.splitMode === 'by_friend') {
+            d.whoPaid = 'other';
+            d.type = 'by_friend';
+            d.splitMode = 'by_friend';
+          } else if (!d.splitMode) {
+            if (d.type === 'for_friend') d.splitMode = 'equal_split';
+            else d.splitMode = 'just_me';
+          }
+
+          if (d.friendName && (!d.friendNames || d.friendNames.length === 0)) {
+            d.friendNames = [d.friendName];
+          } else if (d.friendNames && d.friendNames.length > 0 && !d.friendName) {
+            d.friendName = d.friendNames.join(', ');
+          }
+
+          if (d.splitMode === 'equal_split') {
+            if (d.myShare == null) d.myShare = Math.round((d.amount / 2) * 100) / 100;
+            if (d.friendShare == null) d.friendShare = Math.round((d.amount / 2) * 100) / 100;
+          }
+          setActiveDraft(d);
+        }
+        setLoading(false);
+      }, 150);
+      return;
+    }
 
     try {
       const res = await fetch('/api/assistant', {
@@ -229,13 +499,24 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       setMessages(prev => [...prev, botMsg]);
 
       if (data.draft) {
-        // Ensure default calculations if split equal
+        // Ensure default calculations and split mode setup
         const d = data.draft as DraftExpense;
-        if (!d.splitMode) {
+        if (d.whoPaid === 'other' || d.type === 'by_friend' || d.splitMode === 'by_friend') {
+          d.whoPaid = 'other';
+          d.type = 'by_friend';
+          d.splitMode = 'by_friend';
+        } else if (!d.splitMode) {
           if (d.type === 'for_friend') d.splitMode = 'equal_split';
-          else if (d.type === 'by_friend') d.splitMode = 'equal_split';
           else d.splitMode = 'just_me';
         }
+
+        // Sync friendName and friendNames
+        if (d.friendName && (!d.friendNames || d.friendNames.length === 0)) {
+          d.friendNames = [d.friendName];
+        } else if (d.friendNames && d.friendNames.length > 0 && !d.friendName) {
+          d.friendName = d.friendNames.join(', ');
+        }
+
         if (d.splitMode === 'equal_split') {
           if (d.myShare == null) d.myShare = Math.round((d.amount / 2) * 100) / 100;
           if (d.friendShare == null) d.friendShare = Math.round((d.amount / 2) * 100) / 100;
@@ -243,16 +524,21 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         setActiveDraft(d);
       }
     } catch (err) {
-      console.error('Failed to communicate with Max AI:', err);
+      console.error('Online AI call failed, using local offline fallback:', err);
+      const localResult = parseLocallyClient(query, categories, friends, wallets, currency);
       setMessages(prev => [
         ...prev,
         {
           id: generateMsgId(),
           sender: 'bot',
-          text: 'Sorry, I had trouble parsing that. Could you rephrase your command?',
+          text: localResult.reply,
           timestamp: timeStr,
+          draft: localResult.draft || null,
         }
       ]);
+      if (localResult.draft) {
+        setActiveDraft(localResult.draft as DraftExpense);
+      }
     } finally {
       setLoading(false);
     }
@@ -275,7 +561,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
 
     const resolvedFriends = friendList.map(nameStr => {
       let fObj = friends.find(f => f.name.toLowerCase() === nameStr.toLowerCase());
-      if (!fObj && nameStr && activeDraft.splitMode !== 'just_me') {
+      if (!fObj && nameStr && (activeDraft.splitMode !== 'just_me' || activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other')) {
         fObj = addFriend({ name: nameStr, type: 'friend' });
       }
       return fObj;
@@ -283,21 +569,22 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
 
     const totalAmt = Number(activeDraft.amount) || 0;
     const itemDesc = activeDraft.description?.trim() || 'Expense';
-    const itemCat = activeDraft.category || categories[0] || 'Food';
+    const itemCat = activeDraft.category || (activeDraft.flow === 'in' ? 'Income' : categories[0] || 'Food');
     const itemDate = activeDraft.date || todayISO();
     const itemWalletId = matchedWallet?.id || wallets[0]?.id || '';
     const itemFlow = activeDraft.flow || 'out';
 
-    const mode = activeDraft.splitMode || (activeDraft.type === 'personal' ? 'just_me' : 'equal_split');
+    const isFriendPaid = activeDraft.whoPaid === 'other' || activeDraft.type === 'by_friend' || activeDraft.splitMode === 'by_friend';
+    const mode = isFriendPaid ? 'by_friend' : (activeDraft.splitMode || (activeDraft.type === 'personal' ? 'just_me' : 'equal_split'));
 
     if (itemFlow === 'in') {
       // Record Income
       addExpense({
         description: itemDesc,
         amount: totalAmt,
-        category: 'Income',
+        category: itemCat || 'Income',
         date: itemDate,
-        type: activeDraft.type || 'personal',
+        type: 'personal',
         flow: 'in',
         friendId: resolvedFriends[0] ? resolvedFriends[0].id : null,
         walletId: itemWalletId,
@@ -425,10 +712,11 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
 
   const quickPills = [
     'Paid 30rs for poha',
+    'Got 5000 salary income',
     'I paid 100 for me and Alex',
     'Coffee 150rs for Alex',
     'Alex paid 500 for dinner',
-    'Yesterday arman paid my poha'
+    'Arman paid 150 for my poha',
   ];
 
   const headerContent = (
@@ -440,28 +728,28 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         alignItems: 'center',
         justifyContent: 'space-between',
         borderBottom: '1px solid',
-        borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
-        bgcolor: 'background.paper',
+        borderColor: 'var(--border)',
+        bgcolor: 'var(--surface)',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
         <Box
           sx={{
-            width: 36,
-            height: 36,
-            borderRadius: '8px',
-            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+            width: 38,
+            height: 38,
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, var(--accent), #1e40af)',
             color: '#fff',
             display: 'grid',
             placeItems: 'center',
-            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+            boxShadow: '0 4px 12px var(--accent-soft)',
           }}
         >
           <Sparkles size={20} />
         </Box>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.01em' }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.01em', color: 'var(--text)' }}>
               Max AI
             </Typography>
             <Chip
@@ -471,20 +759,63 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                 height: 20,
                 fontSize: '10px',
                 fontWeight: 600,
-                bgcolor: 'rgba(37, 99, 235, 0.1)',
-                color: '#2563eb',
-                borderRadius: '4px',
+                bgcolor: 'var(--accent-soft)',
+                color: 'var(--accent)',
+                borderRadius: '99px',
+                px: 0.5,
               }}
             />
           </Box>
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '11.5px', display: 'block' }}>
+          <Typography variant="caption" sx={{ color: 'var(--text-2)', fontSize: '11.5px', display: 'block' }}>
             Voice or text expense logger
           </Typography>
         </Box>
       </Box>
-      <IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary', p: 0.75, borderRadius: '6px' }}>
-        <X size={20} />
-      </IconButton>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box
+          onClick={() => {
+            const next = aiEngineMode === 'offline' ? 'online' : 'offline';
+            setAiEngineMode(next);
+            localStorage.setItem('ai_engine_mode', next);
+            showToast(next === 'offline' ? '⚡ Switched to Offline AI (100% local, no internet needed)' : '✨ Switched to Gemini Cloud AI');
+          }}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.6,
+            px: 1.2,
+            py: 0.5,
+            borderRadius: '99px',
+            cursor: 'pointer',
+            userSelect: 'none',
+            fontSize: '11px',
+            fontWeight: 600,
+            bgcolor: aiEngineMode === 'offline' ? 'rgba(34, 197, 94, 0.12)' : 'var(--accent-soft)',
+            color: aiEngineMode === 'offline' ? '#16a34a' : 'var(--accent)',
+            border: `1px solid ${aiEngineMode === 'offline' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+            transition: 'all 0.15s ease',
+            '&:hover': {
+              opacity: 0.9,
+              transform: 'scale(1.02)'
+            }
+          }}
+        >
+          {aiEngineMode === 'offline' ? (
+            <>
+              <Zap size={13} style={{ flexShrink: 0 }} />
+              <span>Offline AI</span>
+            </>
+          ) : (
+            <>
+              <Sparkles size={13} style={{ flexShrink: 0 }} />
+              <span>Gemini Cloud</span>
+            </>
+          )}
+        </Box>
+        <IconButton size="small" onClick={onClose} sx={{ color: 'var(--text-2)', p: 0.75, borderRadius: '50%', '&:hover': { bgcolor: 'var(--surface2)', color: 'var(--text)' } }}>
+          <X size={20} />
+        </IconButton>
+      </Box>
     </DialogTitle>
   );
 
@@ -497,7 +828,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         gap: 2,
         flex: 1,
         overflowY: 'auto',
-        bgcolor: isDark ? '#0b0f17' : '#f8fafc',
+        bgcolor: 'var(--bg)',
       }}
     >
       {/* Messages */}
@@ -522,66 +853,123 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             {m.sender === 'bot' && (
               <Box
                 sx={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: '6px',
-                  background: isDark ? 'rgba(37, 99, 235, 0.2)' : 'rgba(37, 99, 235, 0.08)',
+                  width: 32,
+                  height: 32,
+                  borderRadius: '10px',
+                  bgcolor: 'var(--accent-soft)',
                   display: 'grid',
                   placeItems: 'center',
                   flexShrink: 0,
                   mt: 0.25,
-                  border: '1px solid',
-                  borderColor: isDark ? 'rgba(37, 99, 235, 0.3)' : 'rgba(37, 99, 235, 0.15)',
                 }}
               >
-                <Sparkles size={15} color="#2563eb" />
+                <Sparkles size={16} color="var(--accent)" />
               </Box>
             )}
 
-            <Paper
-              elevation={0}
-              sx={{
-                px: 2,
-                py: 1.25,
-                borderRadius: m.sender === 'user' ? '10px 10px 2px 10px' : '10px 10px 10px 2px',
-                bgcolor: m.sender === 'user'
-                  ? 'primary.main'
-                  : (isDark ? '#1e293b' : '#ffffff'),
-                color: m.sender === 'user' ? '#ffffff' : 'text.primary',
-                maxWidth: { xs: '90%', sm: '82%' },
-                whiteSpace: 'pre-line',
-                border: '1px solid',
-                borderColor: m.sender === 'user' ? 'primary.main' : (isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'),
-                boxShadow: m.sender === 'bot' ? '0 1px 4px rgba(0,0,0,0.03)' : '0 2px 6px rgba(37, 99, 235, 0.2)',
-              }}
-            >
-              <Typography variant="body2" sx={{ lineHeight: 1.5, fontSize: '13.5px' }}>
-                {m.text}
-              </Typography>
-            </Paper>
+            {m.id === 'welcome' ? (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: '18px 18px 18px 6px',
+                  bgcolor: 'var(--surface)',
+                  color: 'var(--text)',
+                  maxWidth: { xs: '92%', sm: '85%' },
+                  border: '1px solid',
+                  borderColor: 'var(--border)',
+                  boxShadow: 'var(--shadow)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1.25,
+                }}
+              >
+                <Box>
+                  <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '14.5px', color: 'var(--text)', mb: 0.25 }}>
+                    Hi! I'm Max, your AI Assistant 👋
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '12.5px', lineHeight: 1.5 }}>
+                    Speak or type what you spent, received, or split:
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.25 }}>
+                  {quickPills.map((example) => (
+                    <Box
+                      key={example}
+                      onClick={() => handleSend(example)}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        px: 1.25,
+                        py: 0.85,
+                        borderRadius: '10px',
+                        bgcolor: 'var(--surface2)',
+                        border: '1px solid',
+                        borderColor: 'var(--border2)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        '&:hover': {
+                          bgcolor: 'var(--surface3)',
+                          borderColor: 'var(--accent)',
+                          transform: 'translateX(2px)',
+                        },
+                      }}
+                    >
+                      <Sparkles size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                      <Typography variant="body2" sx={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--text)' }}>
+                        "{example}"
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Paper>
+            ) : (
+              <Paper
+                elevation={0}
+                sx={{
+                  px: 2,
+                  py: 1.25,
+                  borderRadius: m.sender === 'user' ? '18px 18px 6px 18px' : '18px 18px 18px 6px',
+                  bgcolor: m.sender === 'user' ? 'var(--accent)' : 'var(--surface)',
+                  color: m.sender === 'user' ? '#ffffff' : 'var(--text)',
+                  maxWidth: { xs: '90%', sm: '82%' },
+                  whiteSpace: 'pre-line',
+                  border: '1px solid',
+                  borderColor: m.sender === 'user' ? 'var(--accent)' : 'var(--border)',
+                  boxShadow: m.sender === 'bot' ? 'var(--shadow)' : '0 2px 8px var(--accent-soft)',
+                }}
+              >
+                <Typography variant="body2" sx={{ lineHeight: 1.55, fontSize: '13.5px' }}>
+                  {m.text}
+                </Typography>
+              </Paper>
+            )}
 
             {m.sender === 'user' && (
               <Box
                 sx={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: '6px',
-                  bgcolor: 'primary.light',
-                  color: 'primary.contrastText',
+                  width: 32,
+                  height: 32,
+                  borderRadius: '10px',
+                  bgcolor: 'var(--accent)',
+                  color: '#ffffff',
                   display: 'grid',
                   placeItems: 'center',
                   flexShrink: 0,
                   mt: 0.25,
+                  boxShadow: '0 2px 6px var(--accent-soft)',
                 }}
               >
-                <User size={15} />
+                <User size={16} />
               </Box>
             )}
           </Box>
         ))}
 
         {loading && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'text.secondary', p: 1, ml: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'var(--text-2)', p: 1, ml: 4 }}>
             <CircularProgress size={16} />
             <Typography variant="body2" sx={{ fontSize: '13px', fontWeight: 500 }}>
               Extracting details...
@@ -598,113 +986,242 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           elevation={0}
           sx={{
             p: { xs: 2, sm: 2.25 },
-            borderRadius: '10px',
+            borderRadius: '16px',
             border: '1px solid',
-            borderColor: isDark ? '#3b82f6' : '#2563eb',
-            bgcolor: isDark ? '#161e2e' : '#ffffff',
+            borderColor: 'var(--accent)',
+            bgcolor: 'var(--surface)',
             display: 'flex',
             flexDirection: 'column',
             gap: 1.75,
-            boxShadow: '0 4px 16px rgba(37, 99, 235, 0.1)',
+            boxShadow: 'var(--shadow)',
             mt: 0.5,
           }}
         >
           {/* Header Row */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CheckCircle2 size={18} color="#16a34a" />
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '14.5px' }}>
+              <CheckCircle2 size={18} color="var(--credit)" />
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '14.5px', color: 'var(--text)' }}>
                 Extracted Record Details
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Chip
-                icon={activeDraft.flow === 'in' ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-                label={activeDraft.flow === 'in' ? 'Income (+)' : 'Expense (-)'}
-                size="small"
-                color={activeDraft.flow === 'in' ? 'success' : 'default'}
-                sx={{ fontWeight: 600, fontSize: '11px', borderRadius: '4px' }}
-              />
-              <Chip
                 label={`${currencySymbol(currency)} ${activeDraft.amount}`}
                 size="small"
-                color="primary"
-                sx={{ fontWeight: 700, fontSize: '13.5px', borderRadius: '6px', px: 0.5 }}
+                sx={{ fontWeight: 700, fontSize: '13.5px', borderRadius: '99px', px: 0.75, bgcolor: 'var(--accent)', color: '#ffffff' }}
               />
             </Box>
           </Box>
 
-          {/* Payment & Split Mode Selector */}
+          {/* Transaction Type Toggle: Expense vs Income */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
-              Split / Payment Mode
+            <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
+              Transaction Type
             </Typography>
             <ToggleButtonGroup
-              value={activeDraft.splitMode || (activeDraft.type === 'personal' ? 'just_me' : 'equal_split')}
+              value={activeDraft.flow || 'out'}
               exclusive
-              onChange={(_, newMode) => {
-                if (!newMode) return;
-                const updated = { ...activeDraft, splitMode: newMode };
-                const selectedFriendCount = (updated.friendNames && updated.friendNames.length > 0) ? updated.friendNames.length : 1;
-                if (newMode === 'equal_split') {
-                  updated.type = 'for_friend';
-                  updated.whoPaid = 'me';
-                  const share = Math.round((updated.amount / (selectedFriendCount + 1)) * 100) / 100;
-                  updated.myShare = share;
-                  updated.friendShare = Math.round((updated.amount - share) * 100) / 100;
-                } else if (newMode === 'for_friend') {
-                  updated.type = 'for_friend';
-                  updated.whoPaid = 'me';
-                  updated.myShare = 0;
-                  updated.friendShare = updated.amount;
-                } else if (newMode === 'just_me') {
-                  updated.type = 'personal';
-                  updated.whoPaid = 'me';
-                  updated.myShare = updated.amount;
-                  updated.friendShare = 0;
-                }
-                setActiveDraft(updated);
+              onChange={(_, newFlow) => {
+                if (!newFlow) return;
+                setActiveDraft({
+                  ...activeDraft,
+                  flow: newFlow,
+                  category: newFlow === 'in' ? 'Income' : (activeDraft.category === 'Income' ? 'Food' : activeDraft.category),
+                  splitMode: newFlow === 'in' ? 'just_me' : activeDraft.splitMode,
+                  type: newFlow === 'in' ? 'personal' : activeDraft.type,
+                  whoPaid: newFlow === 'in' ? 'me' : activeDraft.whoPaid,
+                });
               }}
               size="small"
               fullWidth
               sx={{
                 display: 'flex',
-                flexDirection: 'row',
-                flexWrap: 'nowrap',
-                width: '100%',
                 gap: 0.5,
+                bgcolor: 'var(--surface2)',
+                p: 0.5,
+                borderRadius: '99px',
                 '& .MuiToggleButton-root': {
                   flex: 1,
-                  minWidth: 0,
-                  whiteSpace: 'nowrap',
-                  borderRadius: '6px !important',
+                  borderRadius: '99px !important',
                   textTransform: 'none',
                   fontWeight: 600,
-                  fontSize: { xs: '11px', sm: '12px' },
-                  py: 0.75,
-                  px: 0.5,
-                  border: '1px solid !important',
-                  borderColor: isDark ? 'rgba(255,255,255,0.12) !important' : '#cbd5e1 !important',
+                  fontSize: '12px',
+                  py: 0.65,
+                  color: 'var(--text-2)',
+                  border: 'none !important',
                   '&.Mui-selected': {
-                    bgcolor: 'primary.main',
-                    color: '#ffffff',
-                    borderColor: 'primary.main !important',
-                    '&:hover': { bgcolor: 'primary.dark' },
+                    bgcolor: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--debit)',
+                    color: '#ffffff !important',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                   },
                 },
               }}
             >
-              <ToggleButton value="just_me">
-                <User size={14} style={{ marginRight: 4 }} /> Just Me
+              <ToggleButton value="out">
+                <TrendingDown size={14} style={{ marginRight: 4 }} /> Expense (-)
               </ToggleButton>
-              <ToggleButton value="equal_split">
-                <Users size={14} style={{ marginRight: 4 }} /> Split Equally
-              </ToggleButton>
-              <ToggleButton value="for_friend">
-                <CreditCard size={14} style={{ marginRight: 4 }} /> 100% For Friend
+              <ToggleButton value="in">
+                <TrendingUp size={14} style={{ marginRight: 4 }} /> Income (+)
               </ToggleButton>
             </ToggleButtonGroup>
           </Box>
+
+          {/* Who Paid & Split Mode Selector (Only if Expense) */}
+          {activeDraft.flow !== 'in' && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {/* Primary Payer Selection: I Paid vs Friend Paid */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
+                  Who Paid?
+                </Typography>
+                <ToggleButtonGroup
+                  value={(activeDraft.whoPaid === 'other' || activeDraft.type === 'by_friend' || activeDraft.splitMode === 'by_friend') ? 'friend' : 'me'}
+                  exclusive
+                  onChange={(_, newPayer) => {
+                    if (!newPayer) return;
+                    const updated = { ...activeDraft };
+                    const selectedFriendCount = (updated.friendNames && updated.friendNames.length > 0) ? updated.friendNames.length : 1;
+
+                    if (newPayer === 'friend') {
+                      updated.splitMode = 'by_friend';
+                      updated.type = 'by_friend';
+                      updated.whoPaid = 'other';
+                      updated.myShare = updated.amount;
+                      updated.friendShare = 0;
+                    } else {
+                      const mode = (updated.splitMode === 'by_friend') ? 'just_me' : (updated.splitMode || 'just_me');
+                      updated.whoPaid = 'me';
+                      if (mode === 'equal_split') {
+                        updated.splitMode = 'equal_split';
+                        updated.type = 'for_friend';
+                        const share = Math.round((updated.amount / (selectedFriendCount + 1)) * 100) / 100;
+                        updated.myShare = share;
+                        updated.friendShare = Math.round((updated.amount - share) * 100) / 100;
+                      } else if (mode === 'for_friend') {
+                        updated.splitMode = 'for_friend';
+                        updated.type = 'for_friend';
+                        updated.myShare = 0;
+                        updated.friendShare = updated.amount;
+                      } else {
+                        updated.splitMode = 'just_me';
+                        updated.type = 'personal';
+                        updated.myShare = updated.amount;
+                        updated.friendShare = 0;
+                      }
+                    }
+                    setActiveDraft(updated);
+                  }}
+                  size="small"
+                  fullWidth
+                  sx={{
+                    display: 'flex',
+                    gap: 0.5,
+                    bgcolor: 'var(--surface2)',
+                    p: 0.5,
+                    borderRadius: '99px',
+                    '& .MuiToggleButton-root': {
+                      flex: 1,
+                      borderRadius: '99px !important',
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      fontSize: '12px',
+                      py: 0.65,
+                      color: 'var(--text-2)',
+                      border: 'none !important',
+                      '&.Mui-selected': {
+                        bgcolor: 'var(--accent)',
+                        color: '#ffffff !important',
+                        boxShadow: '0 2px 6px var(--accent-soft)',
+                      },
+                    },
+                  }}
+                >
+                  <ToggleButton value="me">
+                    <User size={13} style={{ marginRight: 4 }} /> I Paid
+                  </ToggleButton>
+                  <ToggleButton value="friend">
+                    <Users size={13} style={{ marginRight: 4 }} /> Friend Paid
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
+              {/* Sub-options when I Paid: Just Me | I Paid & Split | 100% For Friend */}
+              {activeDraft.whoPaid !== 'other' && activeDraft.type !== 'by_friend' && activeDraft.splitMode !== 'by_friend' && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
+                    Split Options
+                  </Typography>
+                  <ToggleButtonGroup
+                    value={activeDraft.splitMode || 'just_me'}
+                    exclusive
+                    onChange={(_, newMode) => {
+                      if (!newMode) return;
+                      const updated = { ...activeDraft };
+                      const selectedFriendCount = (updated.friendNames && updated.friendNames.length > 0) ? updated.friendNames.length : 1;
+
+                      if (newMode === 'equal_split') {
+                        updated.splitMode = 'equal_split';
+                        updated.type = 'for_friend';
+                        updated.whoPaid = 'me';
+                        const share = Math.round((updated.amount / (selectedFriendCount + 1)) * 100) / 100;
+                        updated.myShare = share;
+                        updated.friendShare = Math.round((updated.amount - share) * 100) / 100;
+                      } else if (newMode === 'for_friend') {
+                        updated.splitMode = 'for_friend';
+                        updated.type = 'for_friend';
+                        updated.whoPaid = 'me';
+                        updated.myShare = 0;
+                        updated.friendShare = updated.amount;
+                      } else {
+                        updated.splitMode = 'just_me';
+                        updated.type = 'personal';
+                        updated.whoPaid = 'me';
+                        updated.myShare = updated.amount;
+                        updated.friendShare = 0;
+                      }
+                      setActiveDraft(updated);
+                    }}
+                    size="small"
+                    fullWidth
+                    sx={{
+                      display: 'flex',
+                      gap: 0.5,
+                      bgcolor: 'var(--surface2)',
+                      p: 0.5,
+                      borderRadius: '12px',
+                      '& .MuiToggleButton-root': {
+                        flex: 1,
+                        borderRadius: '8px !important',
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        fontSize: { xs: '11px', sm: '11.5px' },
+                        py: 0.65,
+                        px: 0.5,
+                        color: 'var(--text-2)',
+                        border: 'none !important',
+                        '&.Mui-selected': {
+                          bgcolor: 'var(--accent)',
+                          color: '#ffffff !important',
+                          boxShadow: '0 2px 6px var(--accent-soft)',
+                        },
+                      },
+                    }}
+                  >
+                    <ToggleButton value="just_me">
+                      <User size={13} style={{ marginRight: 4 }} /> Just Me
+                    </ToggleButton>
+                    <ToggleButton value="equal_split">
+                      <Users size={13} style={{ marginRight: 4 }} /> I Paid & Split
+                    </ToggleButton>
+                    <ToggleButton value="for_friend">
+                      <CreditCard size={13} style={{ marginRight: 4 }} /> 100% For Friend
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
+              )}
+            </Box>
+          )}
 
           {/* Core Form Fields */}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
@@ -715,7 +1232,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               value={activeDraft.description}
               onChange={(e) => setActiveDraft({ ...activeDraft, description: e.target.value })}
               placeholder="e.g. Poha"
-              InputProps={{ sx: { borderRadius: '6px' } }}
+              InputProps={{ sx: { borderRadius: '10px' } }}
             />
 
             <TextField
@@ -724,7 +1241,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               size="small"
               fullWidth
               value={activeDraft.amount || ''}
-              InputProps={{ sx: { borderRadius: '6px' } }}
+              InputProps={{ sx: { borderRadius: '10px' } }}
               onChange={(e) => {
                 const newAmt = Number(e.target.value) || 0;
                 const mode = activeDraft.splitMode || 'just_me';
@@ -740,13 +1257,16 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                 } else if (mode === 'just_me') {
                   my = newAmt;
                   fr = 0;
+                } else if (mode === 'by_friend' || activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other') {
+                  my = newAmt;
+                  fr = 0;
                 }
                 setActiveDraft({ ...activeDraft, amount: newAmt, myShare: my, friendShare: fr });
               }}
             />
 
             {/* Friend / Contact Input with Autocomplete & Multi-Select */}
-            {activeDraft.splitMode !== 'just_me' && (
+            {(activeDraft.splitMode !== 'just_me' || activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other') && activeDraft.flow !== 'in' && (
               <Autocomplete
                 multiple
                 freeSolo
@@ -783,23 +1303,27 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                       size="small"
                       {...getTagProps({ index })}
                       key={option}
-                      sx={{ borderRadius: '4px' }}
+                      sx={{ borderRadius: '99px' }}
                     />
                   ))
                 }
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Friends / Contacts"
+                    label={
+                      (activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other' || activeDraft.splitMode === 'by_friend')
+                        ? "Paid By (Friend / Contact)"
+                        : "Friends / Contacts"
+                    }
                     placeholder="Select or type..."
-                    InputProps={{ ...params.InputProps, sx: { borderRadius: '6px' } }}
+                    InputProps={{ ...params.InputProps, sx: { borderRadius: '10px' } }}
                   />
                 )}
               />
             )}
 
             {/* Shares if Equal / Custom Split */}
-            {activeDraft.splitMode === 'equal_split' && (
+            {activeDraft.splitMode === 'equal_split' && activeDraft.flow !== 'in' && (
               <>
                 <TextField
                   label={`My Share (${currency})`}
@@ -807,7 +1331,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   size="small"
                   fullWidth
                   value={activeDraft.myShare ?? ''}
-                  InputProps={{ sx: { borderRadius: '6px' } }}
+                  InputProps={{ sx: { borderRadius: '10px' } }}
                   onChange={(e) => {
                     const my = Number(e.target.value) || 0;
                     const fr = Math.max(0, activeDraft.amount - my);
@@ -820,7 +1344,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   size="small"
                   fullWidth
                   value={activeDraft.friendShare ?? ''}
-                  InputProps={{ sx: { borderRadius: '6px' } }}
+                  InputProps={{ sx: { borderRadius: '10px' } }}
                   onChange={(e) => {
                     const fr = Number(e.target.value) || 0;
                     const my = Math.max(0, activeDraft.amount - fr);
@@ -835,7 +1359,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               <Select
                 value={activeDraft.category}
                 label="Category"
-                sx={{ borderRadius: '6px' }}
+                sx={{ borderRadius: '10px' }}
                 onChange={(e) => setActiveDraft({ ...activeDraft, category: e.target.value })}
               >
                 {categories.map((cat) => (
@@ -851,7 +1375,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               <Select
                 value={activeDraft.walletName}
                 label="Wallet / Account"
-                sx={{ borderRadius: '6px' }}
+                sx={{ borderRadius: '10px' }}
                 onChange={(e) => setActiveDraft({ ...activeDraft, walletName: e.target.value })}
               >
                 {wallets.map((w) => (
@@ -870,7 +1394,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               value={activeDraft.date}
               onChange={(e) => setActiveDraft({ ...activeDraft, date: e.target.value })}
               InputLabelProps={{ shrink: true }}
-              InputProps={{ sx: { borderRadius: '6px' } }}
+              InputProps={{ sx: { borderRadius: '10px' } }}
             />
           </Box>
 
@@ -880,7 +1404,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               size="medium"
               color="inherit"
               onClick={() => setActiveDraft(null)}
-              sx={{ borderRadius: '6px', textTransform: 'none', fontWeight: 600 }}
+              sx={{ borderRadius: '99px', textTransform: 'none', fontWeight: 600, px: 2 }}
             >
               Discard
             </Button>
@@ -890,15 +1414,24 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               startIcon={<PlusCircle size={17} />}
               onClick={handleConfirmDraft}
               sx={{
-                borderRadius: '6px',
+                borderRadius: '99px',
                 fontWeight: 600,
-                px: 2.5,
+                px: 3,
                 py: 1,
                 textTransform: 'none',
-                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+                bgcolor: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--accent)',
+                boxShadow: '0 4px 12px var(--accent-soft)',
+                '&:hover': {
+                  bgcolor: activeDraft.flow === 'in' ? '#15803d' : 'var(--accent-dark, #1565c0)',
+                },
               }}
             >
-              {activeDraft.splitMode === 'equal_split' ? 'Add Split Expense' : 'Add Expense'}
+              {activeDraft.flow === 'in'
+                ? 'Add Income'
+                : ((activeDraft.whoPaid === 'other' || activeDraft.type === 'by_friend' || activeDraft.splitMode === 'by_friend')
+                    ? 'Record Owed Debt'
+                    : (activeDraft.splitMode === 'equal_split' ? 'Add Split Expense' : 'Add Expense'))
+              }
             </Button>
           </Box>
         </Paper>
@@ -911,13 +1444,13 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     <DialogActions
       sx={{
         p: { xs: 1.5, sm: 2 },
-        borderTop: '1px solid',
-        borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+        pt: 0.5,
+        borderTop: 'none',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'stretch',
         gap: 1.25,
-        bgcolor: 'background.paper',
+        bgcolor: 'var(--surface)',
       }}
     >
       {/* Quick Voice Suggestion Pills */}
@@ -943,18 +1476,20 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               sx={{
                 fontSize: '11.5px',
                 cursor: 'pointer',
-                borderRadius: '6px',
+                borderRadius: '99px',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
-                bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                bgcolor: 'var(--surface2)',
                 border: '1px solid',
-                borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#cbd5e1',
-                color: 'text.primary',
+                borderColor: 'var(--border2)',
+                color: 'var(--text-2)',
                 fontWeight: 500,
+                transition: 'all 0.15s ease',
                 '&:hover': {
-                  bgcolor: isDark ? 'rgba(37, 99, 235, 0.15)' : '#dbeafe',
-                  borderColor: '#2563eb',
-                  color: '#2563eb',
+                  bgcolor: 'var(--surface3)',
+                  borderColor: 'var(--accent)',
+                  color: 'var(--accent)',
+                  transform: 'translateY(-1px)',
                 },
               }}
             />
@@ -962,10 +1497,35 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         </Box>
       )}
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-        <TextField
-          placeholder={isListening ? 'Listening...' : 'Type e.g. "I paid 100 for me and Alex"...'}
-          size="medium"
+      {/* Floating Capsule Input Shell */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          width: '100%',
+          bgcolor: 'var(--surface2)',
+          borderRadius: '99px',
+          p: '5px 6px 5px 14px',
+          border: '1px solid',
+          borderColor: isListening ? 'var(--debit)' : 'var(--border2)',
+          boxShadow: isListening
+            ? `0 0 ${10 + volumeLevel * 12}px rgba(239, 68, 68, ${0.25 + volumeLevel * 0.25})`
+            : '0 2px 10px rgba(0, 0, 0, 0.03)',
+          transition: 'all 0.15s ease',
+          '&:focus-within': {
+            borderColor: isListening ? 'var(--debit)' : 'var(--accent)',
+            bgcolor: 'var(--surface)',
+            boxShadow: isListening
+              ? `0 0 16px rgba(239, 68, 68, 0.35)`
+              : '0 4px 16px var(--accent-soft)',
+          },
+        }}
+      >
+        <AudioWaveVisualizer volume={volumeLevel} isListening={isListening} />
+
+        <InputBase
+          placeholder={isListening ? 'Listening... Speak now...' : 'Type e.g. "Paid 30rs for poha"...'}
           fullWidth
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
@@ -977,47 +1537,63 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           }}
           disabled={loading}
           sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: '8px',
-              fontSize: '14px',
+            fontSize: '14px',
+            color: 'var(--text)',
+            '& input::placeholder': {
+              color: 'var(--text-3)',
+              opacity: 0.85,
             },
           }}
         />
 
         <Tooltip title={isListening ? 'Stop mic' : 'Speak to Max'}>
           <IconButton
-            color={isListening ? 'error' : 'primary'}
             onClick={toggleListening}
             sx={{
-              borderRadius: '8px',
-              bgcolor: isListening ? 'error.light' : (isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9'),
-              p: 1.25,
-              animation: isListening ? 'pulse 1.2s infinite' : 'none',
-              '@keyframes pulse': {
-                '0%': { transform: 'scale(1)' },
-                '50%': { transform: 'scale(1.15)' },
-                '100%': { transform: 'scale(1)' },
+              width: 38,
+              height: 38,
+              borderRadius: '50%',
+              bgcolor: isListening ? 'var(--debit)' : 'transparent',
+              color: isListening ? '#ffffff' : 'var(--text-2)',
+              flexShrink: 0,
+              transition: 'all 0.08s cubic-bezier(0, 0, 0.2, 1)',
+              boxShadow: isListening
+                ? `0 0 0 ${3 + volumeLevel * 6}px rgba(239, 68, 68, ${0.15 + volumeLevel * 0.25}), 0 0 ${12 + volumeLevel * 14}px rgba(239, 68, 68, ${0.3 + volumeLevel * 0.3})`
+                : 'none',
+              transform: isListening ? `scale(${1 + volumeLevel * 0.1})` : 'scale(1)',
+              '&:hover': {
+                bgcolor: isListening ? 'var(--debit)' : 'var(--surface3)',
+                color: isListening ? '#ffffff' : 'var(--text)',
               },
             }}
           >
-            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+            {isListening ? <MicOff size={18} /> : <Mic size={18} />}
           </IconButton>
         </Tooltip>
 
         <IconButton
-          color="primary"
           onClick={() => handleSend()}
           disabled={!inputText.trim() || loading}
           sx={{
-            borderRadius: '8px',
-            bgcolor: 'primary.main',
-            color: 'primary.contrastText',
-            '&:hover': { bgcolor: 'primary.dark' },
-            '&.Mui-disabled': { bgcolor: 'action.disabledBackground' },
-            p: 1.25,
+            width: 38,
+            height: 38,
+            borderRadius: '50%',
+            bgcolor: 'var(--accent)',
+            color: '#ffffff',
+            flexShrink: 0,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              bgcolor: 'var(--accent-dark, #1565c0)',
+              transform: 'scale(1.05)',
+            },
+            '&.Mui-disabled': {
+              bgcolor: 'var(--surface3)',
+              color: 'var(--text-3)',
+              opacity: 0.5,
+            },
           }}
         >
-          <Send size={18} />
+          <Send size={16} />
         </IconButton>
       </Box>
     </DialogActions>
@@ -1025,40 +1601,111 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
 
   if (isMobile) {
     return (
-      <Drawer
+      <SwipeableDrawer
         anchor="bottom"
         open={open}
         onClose={onClose}
+        onOpen={() => {}}
+        disableSwipeToOpen
         PaperProps={{
           sx: {
-            borderTopLeftRadius: '20px',
-            borderTopRightRadius: '20px',
+            borderTopLeftRadius: '24px',
+            borderTopRightRadius: '24px',
             height: '90vh',
             maxHeight: '90vh',
             width: '100vw',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            bgcolor: 'background.paper',
+            bgcolor: 'var(--surface)',
+            borderTop: '1px solid',
+            borderColor: 'var(--border2)',
+            transform: dragOffsetY > 0 ? `translateY(${dragOffsetY}px) !important` : undefined,
+            transition: dragOffsetY > 0 ? 'none !important' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important',
           },
         }}
       >
+        {/* Unified Header with Drag Handle */}
         <Box
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           sx={{
-            width: 38,
-            height: 4,
-            bgcolor: isDark ? 'rgba(255,255,255,0.2)' : '#cbd5e1',
-            borderRadius: 99,
-            mx: 'auto',
-            mt: 1.25,
-            mb: 0.25,
-            flexShrink: 0,
+            touchAction: 'none',
+            bgcolor: 'var(--surface)',
+            borderBottom: '1px solid',
+            borderColor: 'var(--border)',
+            pt: 1.25,
+            pb: 1.25,
+            px: 2,
+            cursor: 'grab',
+            userSelect: 'none',
+            '&:active': { cursor: 'grabbing' },
           }}
-        />
-        {headerContent}
+        >
+          {/* Drag Indicator Pill */}
+          <Box
+            sx={{
+              width: dragOffsetY > 0 ? 48 : 36,
+              height: 4,
+              bgcolor: dragOffsetY > 0
+                ? 'var(--text-2)'
+                : 'var(--border2)',
+              borderRadius: 99,
+              mx: 'auto',
+              mb: 1.25,
+              transition: dragOffsetY > 0 ? 'width 0.1s ease-out, background-color 0.15s ease' : 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          />
+          {/* Header Bar */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, var(--accent), #1e40af)',
+                  color: '#fff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  boxShadow: '0 4px 12px var(--accent-soft)',
+                }}
+              >
+                <Sparkles size={20} />
+              </Box>
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.01em', color: 'var(--text)' }}>
+                    Max AI
+                  </Typography>
+                  <Chip
+                    label="Financial Assistant"
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      bgcolor: 'var(--accent-soft)',
+                      color: 'var(--accent)',
+                      borderRadius: '99px',
+                      px: 0.5,
+                    }}
+                  />
+                </Box>
+                <Typography variant="caption" sx={{ color: 'var(--text-2)', fontSize: '11.5px', display: 'block' }}>
+                  Voice or text expense logger
+                </Typography>
+              </Box>
+            </Box>
+            <IconButton size="small" onClick={onClose} sx={{ color: 'var(--text-2)', p: 0.75, borderRadius: '50%', '&:hover': { bgcolor: 'var(--surface2)', color: 'var(--text)' } }}>
+              <X size={20} />
+            </IconButton>
+          </Box>
+        </Box>
         {mainBodyContent}
         {footerActions}
-      </Drawer>
+      </SwipeableDrawer>
     );
   }
 
@@ -1077,9 +1724,10 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           maxWidth: '740px',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
+          boxShadow: 'var(--shadow-lg)',
           border: '1px solid',
-          borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+          borderColor: 'var(--border2)',
+          bgcolor: 'var(--surface)',
         },
       }}
     >

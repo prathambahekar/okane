@@ -71,6 +71,8 @@ export interface Settings {
   defaultCategory: string;
   defaultStatus: ExpenseStatus;
   defaultWalletId: string;
+  enableAIAssistant?: boolean;
+  defaultAiEngine?: 'offline' | 'online';
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';

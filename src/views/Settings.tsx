@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useColorMode } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Download, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Download, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE } from '../db';
 import type { Category, AppDB } from '../types';
@@ -76,6 +76,31 @@ export default function Settings() {
 
   const { mode, toggleMode } = useColorMode();
   const isDark = mode === 'dark';
+
+  const [jsonSettings, setJsonSettings] = useState({
+    appName: "Okane",
+    appVersion: "0.8.0",
+    buildNumber: "104",
+    latestVersion: "0.8.0",
+    updateChannel: "beta",
+    autoCheckUpdates: true,
+    enableAIAssistant: true,
+    defaultAiEngine: "offline",
+    defaultCurrency: "INR",
+    lastUpdated: "2026-08-04"
+  });
+  const [showJsonView, setShowJsonView] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.appVersion) {
+          setJsonSettings(data);
+        }
+      })
+      .catch(err => console.log('Settings fetch notice:', err));
+  }, []);
 
   const startEditCategory = (c: Category) => {
     setEditingCat(c);
@@ -263,6 +288,107 @@ export default function Settings() {
               inputProps={{ 'aria-label': 'dark mode toggle' }}
             />
           </div>
+        </div>
+
+        {/* AI Assistant */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Sparkles size={18} style={{ color: 'var(--accent)' }} />
+              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>AI Assistant</h2>
+            </div>
+            <Switch
+              checked={settings.enableAIAssistant ?? true}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                updateSettings({ enableAIAssistant: enabled });
+                showToast(enabled ? 'AI Assistant enabled' : 'AI Assistant disabled');
+              }}
+              color="primary"
+              inputProps={{ 'aria-label': 'toggle ai assistant' }}
+            />
+          </div>
+
+          <p style={{ fontSize: 12.5, color: 'var(--text-3)', margin: 0, marginBottom: (settings.enableAIAssistant ?? true) ? 14 : 0 }}>
+            Quick-log expenses and splits with natural language or voice commands.
+          </p>
+
+          {(settings.enableAIAssistant ?? true) && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              paddingTop: 12,
+              borderTop: '1px solid var(--border)',
+              flexWrap: 'wrap',
+            }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>Processing Mode</div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                  {(settings.defaultAiEngine ?? 'offline') === 'offline'
+                    ? '100% local, no internet needed'
+                    : 'Powered by Gemini AI'}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 6, background: 'var(--surface2)', padding: 3, borderRadius: 10, border: '1px solid var(--border)' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateSettings({ defaultAiEngine: 'offline' });
+                    localStorage.setItem('ai_engine_mode', 'offline');
+                    showToast('Set default engine to Offline (100% Local)');
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '5px 12px',
+                    borderRadius: '7px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: 'none',
+                    background: (settings.defaultAiEngine ?? 'offline') === 'offline' ? 'var(--surface)' : 'transparent',
+                    color: (settings.defaultAiEngine ?? 'offline') === 'offline' ? '#16a34a' : 'var(--text-3)',
+                    boxShadow: (settings.defaultAiEngine ?? 'offline') === 'offline' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Zap size={13} />
+                  <span>Offline Mode</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateSettings({ defaultAiEngine: 'online' });
+                    localStorage.setItem('ai_engine_mode', 'online');
+                    showToast('Set default engine to Gemini Cloud');
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '5px 12px',
+                    borderRadius: '7px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: 'none',
+                    background: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--surface)' : 'transparent',
+                    color: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--accent)' : 'var(--text-3)',
+                    boxShadow: (settings.defaultAiEngine ?? 'offline') === 'online' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Sparkles size={13} />
+                  <span>Gemini Cloud</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         {/* Preferences */}
         <div className="card">
@@ -528,58 +654,113 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* About */}
+        {/* App Version & settings.json Card */}
         <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Version</h2>
-              <span style={{
-                fontSize: 12,
-                fontWeight: 600,
-                padding: '2px 10px',
-                borderRadius: 12,
-                background: 'var(--surface2)',
-                color: 'var(--accent)',
-                border: '1px solid var(--border)'
-              }}>
-                v0.7
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FileCode size={18} style={{ color: 'var(--accent)' }} />
+              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>App Version & Configuration</h2>
             </div>
+            <span style={{
+              fontSize: 11.5,
+              fontWeight: 700,
+              padding: '3px 10px',
+              borderRadius: '99px',
+              background: 'var(--accent-soft)',
+              color: 'var(--accent)',
+              border: '1px solid rgba(56, 189, 248, 0.3)'
+            }}>
+              v{jsonSettings.appVersion}
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 14 }}>
+            <div style={{ background: 'var(--surface2)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Update Channel</div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, textTransform: 'capitalize' }}>{jsonSettings.updateChannel}</div>
+            </div>
+            <div style={{ background: 'var(--surface2)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Last Updated</div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{jsonSettings.lastUpdated}</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setShowJsonView(!showJsonView)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: '1px solid var(--border)',
+                background: 'var(--surface2)',
+                color: 'var(--text)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <FileCode size={13} />
+              <span>{showJsonView ? 'Hide settings.json' : 'View settings.json'}</span>
+            </button>
 
             <a
               href="https://github.com/prathambahekar/okane/"
               target="_blank"
               rel="noopener noreferrer"
               style={{
+                marginLeft: 'auto',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 8,
-                fontSize: 13,
-                fontWeight: 500,
-                color: 'var(--text)',
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius)',
-                padding: '6px 12px',
-                textDecoration: 'none',
-                transition: 'all 0.15s ease'
+                gap: 6,
+                fontSize: 12,
+                color: 'var(--text-3)',
+                textDecoration: 'none'
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ display: 'inline-block' }}>
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-              </svg>
-              <span>GitHub Repository</span>
-              <ExternalLink size={13} style={{ color: 'var(--text-3)' }} />
+              <span>GitHub</span>
+              <ExternalLink size={12} />
             </a>
           </div>
+
+          {showJsonView && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)' }}>public/settings.json</span>
+                <a href="/settings.json" target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}>
+                  Open Raw File ↗
+                </a>
+              </div>
+              <pre style={{
+                fontSize: 11.5,
+                fontFamily: 'monospace',
+                background: 'var(--surface2)',
+                padding: 12,
+                borderRadius: 8,
+                overflowX: 'auto',
+                color: 'var(--text)',
+                border: '1px solid var(--border)',
+                margin: 0
+              }}>
+                {JSON.stringify(jsonSettings, null, 2)}
+              </pre>
+            </div>
+          )}
         </div>
       </div>
 
       {showReset && (
-        <ConfirmDialog title="Reset All Data"
+        <ConfirmDialog
+          title="Reset All Data"
           message="This will permanently delete ALL your data including expenses, friends, wallets, and settlements. This cannot be undone."
           confirmLabel="Reset Everything"
-          onConfirm={handleReset} onClose={() => setShowReset(false)} />
+          onConfirm={handleReset}
+          onClose={() => setShowReset(false)}
+        />
       )}
     </div>
   );

@@ -67,10 +67,12 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button className="btn btn-ghost desktop-only" onClick={() => onNavigate('recurring')}>
-            <RefreshCw size={15} /> Subscriptions & Autopay
+            <RefreshCw size={15} />
+            <span>Subscriptions & Autopay</span>
           </button>
           <button className="btn btn-primary desktop-only" onClick={onAddExpense}>
-            <Plus size={16} /> Add Expense
+            <Plus size={16} />
+            <span>Add Expense</span>
           </button>
         </div>
       </div>

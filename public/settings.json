@@ -1,0 +1,12 @@
+{
+  "appName": "Okane",
+  "appVersion": "0.8.1",
+  "buildNumber": "104",
+  "latestVersion": "0.8.1",
+  "updateChannel": "beta",
+  "autoCheckUpdates": true,
+  "enableAIAssistant": true,
+  "defaultAiEngine": "offline",
+  "defaultCurrency": "INR",
+  "lastUpdated": "2026-08-04"
+}

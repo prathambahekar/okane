@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, TrendingDown, TrendingUp, User, Users, Handshake, Briefcase, HeartHandshake, CheckSquare, Square, Search } from 'lucide-react';
+import { X, TrendingDown, TrendingUp, User, Users, Briefcase, CheckSquare, Square, Search, HeartHandshake } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types';
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
@@ -52,10 +52,8 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
     : '');
 
   const initialWhoPaid = initialData?.whoPaid ?? (expense?.type === 'by_friend' && expense?.flow === 'out' && !expense?.friendId ? 'other' : 'me');
-  const initialSplitMode = initialData?.splitMode ?? ((isGrp || expense?.type === 'for_friend')
+  const initialSplitMode = (initialData?.splitMode === 'pay_debt' ? 'just_me' : initialData?.splitMode) ?? ((isGrp || expense?.type === 'for_friend')
     ? 'for_friend'
-    : (expense?.type === 'by_friend' && expense?.flow === 'out')
-    ? 'pay_debt'
     : 'just_me');
   const initialFriendId = initialData?.friendId ?? forFriendItem?.friendId ?? expense?.friendId ?? '';
 
@@ -605,7 +603,7 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                           className={`segment-btn ${splitMode === 'just_me' ? 'active' : ''}`}
                           onClick={() => { setSplitMode('just_me'); setSelectedExpenseIds([]); }}
                         >
-                          <User size={18} />
+                          <User size={17} />
                           <span>Just For Me</span>
                         </button>
                         <button
@@ -617,23 +615,8 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                             if (!friendShare && amount) setFriendShare(amount);
                           }}
                         >
-                          <Handshake size={18} />
-                          <span>Split with Friend</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`segment-btn ${splitMode === 'pay_debt' ? 'active' : ''}`}
-                          onClick={() => {
-                            setSplitMode('pay_debt');
-                            setSelectedExpenseIds([]);
-                            if (friendId) {
-                              const found = db.friends.find(f => f.id === friendId);
-                              if (found) setDesc(`Debt repayment to ${found.name}`);
-                            }
-                          }}
-                        >
-                          <HeartHandshake size={18} />
-                          <span>Pay Back Debt</span>
+                          <Users size={17} />
+                          <span>With Friends / Group</span>
                         </button>
                       </div>
                     </div>
@@ -642,12 +625,12 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                   {/* Optional Contact/Vendor Selector for Personal Expense */}
                   {whoPaid === 'me' && splitMode === 'just_me' && db.friends.length > 0 && (
                     <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
-                      <label className="form-label">Contact / Vendor (Optional)</label>
+                      <label className="form-label">Contact / Store (Optional)</label>
                       <select className="form-select" value={friendId} onChange={e => setFriendId(e.target.value)}>
-                        <option value="">— None (Personal Expense) —</option>
+                        <option value="">— Personal Expense —</option>
                         {db.friends.map(f => {
                           const t = f.type || 'friend';
-                          const tag = t === 'vendor' ? ' (Vendor)' : t === 'subscription' ? ' (Subscription)' : ' (Friend)';
+                          const tag = t === 'vendor' ? ' (Store/Vendor)' : t === 'subscription' ? ' (Sub)' : '';
                           return <option key={f.id} value={f.id}>{f.name}{tag}</option>;
                         })}
                       </select>
@@ -657,10 +640,7 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                   {/* Vendor / Merchant Selector for Split Expense */}
                   {whoPaid === 'me' && splitMode === 'for_friend' && (
                     <div className="form-group" style={{ animation: 'fadein 0.15s ease', marginBottom: 14 }}>
-                      <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>Vendor / Merchant / Store (Optional)</span>
-                        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Where was this bill paid?</span>
-                      </label>
+                      <label className="form-label">Store / Merchant (Optional)</label>
                       <select
                         className="form-select"
                         value={selectedVendorId}
@@ -673,17 +653,17 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                           }
                         }}
                       >
-                        <option value="">— None / Direct Store —</option>
+                        <option value="">— Direct / No Specific Store —</option>
                         {db.friends.map(f => {
                           const t = f.type || 'friend';
-                          const tag = t === 'vendor' ? ' (Vendor)' : t === 'subscription' ? ' (Subscription)' : ' (Friend)';
+                          const tag = t === 'vendor' ? ' (Vendor)' : t === 'subscription' ? ' (Sub)' : '';
                           return <option key={f.id} value={f.id}>{f.name}{tag}</option>;
                         })}
                       </select>
 
                       {selectedVendorId && (
-                        <div style={{ marginTop: 10, background: 'var(--surface2)', border: '1px solid var(--border)', padding: 10, borderRadius: 'var(--radius)' }}>
-                          <label className="form-label" style={{ fontSize: 12, marginBottom: 6 }}>Payment to Vendor Status</label>
+                        <div style={{ marginTop: 8, background: 'var(--surface2)', border: '1px solid var(--border)', padding: 10, borderRadius: 'var(--radius)' }}>
+                          <label className="form-label" style={{ fontSize: 11.5, marginBottom: 6 }}>Payment to Merchant</label>
                           <div className="segment-control">
                             <button
                               type="button"
@@ -697,18 +677,9 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                               className={`segment-btn ${vendorPaymentStatus === 'unpaid' ? 'active' : ''}`}
                               onClick={() => setVendorPaymentStatus('unpaid')}
                             >
-                              <span>Unpaid / On Credit</span>
+                              <span>On Credit / Unpaid</span>
                             </button>
                           </div>
-                          {vendorPaymentStatus === 'unpaid' ? (
-                            <p style={{ fontSize: 11, color: 'var(--debit)', marginTop: 6, fontWeight: 500 }}>
-                              This will record that you owe <strong>{db.friends.find(f => f.id === selectedVendorId)?.name || 'the vendor'}</strong> {fmtMoney(parseFloat(amount) || 0, s.currency)} while your friends owe you.
-                            </p>
-                          ) : (
-                            <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>
-                              Paid from your wallet upfront. Friends will owe you their shares.
-                            </p>
-                          )}
                         </div>
                       )}
                     </div>
@@ -717,77 +688,94 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                   {/* Friend Selection & Custom Split Share: If Split with Friend */}
                   {whoPaid === 'me' && splitMode === 'for_friend' && (
                     <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <label className="form-label" style={{ margin: 0 }}>Select Friends to Split With *</label>
-                        {selectedFriendIds.length > 0 && (
-                          <span style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 600 }}>
-                            {selectedFriendIds.length} friend{selectedFriendIds.length > 1 ? 's' : ''} selected
-                          </span>
-                        )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <label className="form-label" style={{ margin: 0 }}>Select Friends *</label>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          {selectedFriendIds.length > 0 && (
+                            <span style={{ fontSize: 11, background: 'rgba(56, 189, 248, 0.12)', color: 'var(--accent)', fontWeight: 600, padding: '2px 8px', borderRadius: 99 }}>
+                              {selectedFriendIds.length} selected
+                            </span>
+                          )}
+                          {db.friends.length > 0 && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 6 }}
+                              onClick={() => {
+                                if (selectedFriendIds.length === db.friends.length) {
+                                  setSelectedFriendIds([]);
+                                } else {
+                                  setSelectedFriendIds(db.friends.map(f => f.id));
+                                }
+                              }}
+                            >
+                              {selectedFriendIds.length === db.friends.length ? 'Deselect All' : 'Select All'}
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Contact Type Filter Pills */}
-                      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                        <button
-                          type="button"
-                          className={`btn btn-sm ${contactTypeFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-                          style={{ fontSize: 11, padding: '3px 10px', borderRadius: 99 }}
-                          onClick={() => setContactTypeFilter('all')}
-                        >
-                          All Contacts
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn btn-sm ${contactTypeFilter === 'friend' ? 'btn-primary' : 'btn-secondary'}`}
-                          style={{ fontSize: 11, padding: '3px 10px', borderRadius: 99 }}
-                          onClick={() => setContactTypeFilter('friend')}
-                        >
-                          Friends Only
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn btn-sm ${contactTypeFilter === 'vendor' ? 'btn-primary' : 'btn-secondary'}`}
-                          style={{ fontSize: 11, padding: '3px 10px', borderRadius: 99 }}
-                          onClick={() => setContactTypeFilter('vendor')}
-                        >
-                          Vendors / Merchants
-                        </button>
-                      </div>
+                      {/* Clean Search & Category Filter Bar */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                        <div style={{ position: 'relative' }}>
+                          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
+                          <input
+                            type="text"
+                            className="form-input"
+                            style={{ paddingLeft: 30, fontSize: 12.5, height: 34, borderRadius: 'var(--radius)' }}
+                            placeholder="Search friends..."
+                            value={friendSearch}
+                            onChange={e => setFriendSearch(e.target.value)}
+                          />
+                          {friendSearch && (
+                            <button
+                              type="button"
+                              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer' }}
+                              onClick={() => setFriendSearch('')}
+                            >
+                              <X size={13} />
+                            </button>
+                          )}
+                        </div>
 
-                      {/* Search Bar for Friends */}
-                      <div style={{ position: 'relative', marginBottom: 8 }}>
-                        <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
-                        <input
-                          type="text"
-                          className="form-input"
-                          style={{ paddingLeft: 32, fontSize: 13, height: 36 }}
-                          placeholder="Search contacts by name..."
-                          value={friendSearch}
-                          onChange={e => setFriendSearch(e.target.value)}
-                        />
-                        {friendSearch && (
+                        {/* Filter Tabs */}
+                        <div style={{ display: 'flex', gap: 6 }}>
                           <button
                             type="button"
-                            style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', padding: 2 }}
-                            onClick={() => setFriendSearch('')}
+                            className={`btn btn-sm ${contactTypeFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ fontSize: 10.5, padding: '2px 10px', borderRadius: 99 }}
+                            onClick={() => setContactTypeFilter('all')}
                           >
-                            <X size={14} />
+                            All
                           </button>
-                        )}
+                          <button
+                            type="button"
+                            className={`btn btn-sm ${contactTypeFilter === 'friend' ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ fontSize: 10.5, padding: '2px 10px', borderRadius: 99 }}
+                            onClick={() => setContactTypeFilter('friend')}
+                          >
+                            Friends
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn btn-sm ${contactTypeFilter === 'vendor' ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ fontSize: 10.5, padding: '2px 10px', borderRadius: 99 }}
+                            onClick={() => setContactTypeFilter('vendor')}
+                          >
+                            Stores
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Checkable List of Friends */}
+                      {/* Clean Grid / Tile List of Friends */}
                       <div
                         style={{
-                          background: 'var(--surface2)',
-                          border: '1px solid var(--border)',
-                          borderRadius: 'var(--radius)',
-                          maxHeight: 180,
+                          maxHeight: 190,
                           overflowY: 'auto',
-                          padding: '4px 6px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 4,
+                          paddingRight: 2,
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                          gap: 6,
                         }}
                       >
                         {filteredFriends.length > 0 ? (
@@ -804,124 +792,97 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                                 style={{
                                   display: 'flex',
                                   alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '6px 10px',
+                                  gap: 8,
+                                  padding: '8px 10px',
                                   borderRadius: 'var(--radius)',
-                                  background: isSel ? 'var(--surface)' : 'transparent',
-                                  border: isSel ? '1px solid var(--accent)' : '1px solid transparent',
+                                  background: isSel ? 'rgba(56, 189, 248, 0.08)' : 'var(--surface2)',
+                                  border: isSel ? '1.5px solid var(--accent)' : '1px solid var(--border)',
                                   cursor: 'pointer',
                                   userSelect: 'none',
                                   transition: 'all 0.12s ease',
                                 }}
                               >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  {isSel ? (
-                                    <CheckSquare size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                                  ) : (
-                                    <Square size={16} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-                                  )}
-                                  <div
-                                    style={{
-                                      width: 24,
-                                      height: 24,
-                                      borderRadius: '50%',
-                                      background: f.color || 'var(--accent)',
-                                      color: '#fff',
-                                      fontSize: 11,
-                                      fontWeight: 700,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                    }}
-                                  >
-                                    {f.name[0]?.toUpperCase()}
-                                  </div>
-                                  <span style={{ fontSize: 13, fontWeight: isSel ? 600 : 400, color: 'var(--text)' }}>
-                                    {f.name}
-                                  </span>
-                                  {f.type === 'vendor' && (
-                                    <span style={{ fontSize: 9.5, padding: '1px 5px', borderRadius: 4, background: 'rgba(255, 152, 0, 0.15)', color: '#f57c00', fontWeight: 600 }}>
-                                      Vendor
-                                    </span>
-                                  )}
-                                  {f.type === 'subscription' && (
-                                    <span style={{ fontSize: 9.5, padding: '1px 5px', borderRadius: 4, background: 'rgba(156, 39, 176, 0.15)', color: '#ab47bc', fontWeight: 600 }}>
-                                      Sub
-                                    </span>
-                                  )}
+                                <div
+                                  style={{
+                                    width: 26,
+                                    height: 26,
+                                    borderRadius: '50%',
+                                    background: f.color || 'var(--accent)',
+                                    color: '#fff',
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {f.name[0]?.toUpperCase()}
                                 </div>
-                                {isSel && (
-                                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)' }}>
-                                    Selected
-                                  </span>
-                                )}
+                                <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                                  <div style={{
+                                    fontSize: 12.5,
+                                    fontWeight: isSel ? 600 : 500,
+                                    color: 'var(--text-1)',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                  }}>
+                                    {f.name}
+                                  </div>
+                                </div>
+                                <div
+                                  style={{
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: '50%',
+                                    background: isSel ? 'var(--accent)' : 'transparent',
+                                    border: isSel ? 'none' : '1.5px solid var(--text-3)',
+                                    display: 'grid',
+                                    placeItems: 'center',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {isSel && <CheckSquare size={12} style={{ color: '#fff' }} />}
+                                </div>
                               </div>
                             );
                           })
                         ) : (
-                          <div style={{ padding: '12px', textAlign: 'center', fontSize: 12, color: 'var(--text-3)' }}>
+                          <div style={{ gridColumn: '1 / -1', padding: '16px', textAlign: 'center', fontSize: 12, color: 'var(--text-3)' }}>
                             {friendSearch ? `No friends matching "${friendSearch}"` : 'No friends added yet'}
                           </div>
                         )}
                       </div>
 
-                      {db.friends.length > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: 11, padding: '2px 8px' }}
-                            onClick={() => {
-                              if (selectedFriendIds.length === db.friends.length) {
-                                setSelectedFriendIds([]);
-                              } else {
-                                setSelectedFriendIds(db.friends.map(f => f.id));
-                              }
-                            }}
-                          >
-                            {selectedFriendIds.length === db.friends.length ? 'Deselect All' : 'Select All Friends'}
-                          </button>
-                          {selectedFriendIds.length > 0 && (
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: 11, padding: '2px 8px', color: '#e53935' }}
-                              onClick={() => setSelectedFriendIds([])}
-                            >
-                              Clear Selection
-                            </button>
-                          )}
-                        </div>
-                      )}
-
                       {/* Multi-Friend Split Calculation Breakdown */}
                       {selectedFriendIds.length > 0 && (
                         <div style={{ animation: 'fadein 0.15s ease', marginTop: 14 }}>
-                          <label className="form-label" style={{ marginBottom: 6 }}>Split Rule</label>
+                          <label className="form-label" style={{ marginBottom: 6 }}>How to Divide Bill?</label>
                           <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
                             <button
                               type="button"
                               className={`btn btn-sm ${splitCalcMode === 'equal_all' ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{ flex: 1, fontSize: 11, padding: '6px 2px', whiteSpace: 'nowrap' }}
+                              style={{ flex: 1, fontSize: 11, padding: '6px 4px', textTransform: 'none' }}
                               onClick={() => setSplitCalcMode('equal_all')}
                             >
-                              You + {selectedFriendIds.length} Friend{selectedFriendIds.length > 1 ? 's' : ''}
+                              Split Equally
                             </button>
                             <button
                               type="button"
                               className={`btn btn-sm ${splitCalcMode === 'equal_friends' ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{ flex: 1, fontSize: 11, padding: '6px 2px', whiteSpace: 'nowrap' }}
+                              style={{ flex: 1, fontSize: 11, padding: '6px 4px', textTransform: 'none' }}
                               onClick={() => setSplitCalcMode('equal_friends')}
                             >
-                              {selectedFriendIds.length} Friend{selectedFriendIds.length > 1 ? 's' : ''} Only
+                              100% For Friend
                             </button>
                             <button
                               type="button"
                               className={`btn btn-sm ${splitCalcMode === 'custom' ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{ flex: 1, fontSize: 11, padding: '6px 2px', whiteSpace: 'nowrap' }}
+                              style={{ flex: 1, fontSize: 11, padding: '6px 4px', textTransform: 'none' }}
                               onClick={() => setSplitCalcMode('custom')}
                             >
-                              Custom
+                              Custom Amounts
                             </button>
                           </div>
 
@@ -1020,186 +981,7 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                     </div>
                   )}
 
-                  {/* Friend Selection & Debt Checklist: If Pay Back Debt */}
-                  {whoPaid === 'me' && splitMode === 'pay_debt' && (
-                    <>
-                      <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
-                        <label className="form-label">Who Are You Paying Back? *</label>
-                        <select
-                          className="form-select"
-                          value={friendId}
-                          onChange={e => {
-                            const fid = e.target.value;
-                            setFriendId(fid);
-                            setSelectedExpenseIds([]);
-                            const foundFriend = db.friends.find(f => f.id === fid);
-                            if (foundFriend) {
-                              setDesc(`Debt repayment to ${foundFriend.name}`);
-                            }
-                          }}
-                        >
-                          <option value="">— select friend you owe —</option>
-                          {db.friends.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                        </select>
-                      </div>
 
-                      {/* Friend Debt Balance & Unsettled Items Widget */}
-                      {friendId && selectedFriend && (
-                        <div
-                          style={{
-                            background: 'var(--surface2)',
-                            border: '1px solid var(--border)',
-                            borderRadius: 'var(--radius-lg)',
-                            padding: '12px 14px',
-                            marginBottom: 16,
-                            animation: 'fadein 0.15s ease',
-                          }}
-                        >
-                          {/* Top Balance Summary Header */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: unsettledList.length > 0 ? 10 : 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <div
-                                style={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: '50%',
-                                  background: selectedFriend.color || 'var(--accent)',
-                                  color: '#fff',
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}
-                              >
-                                {selectedFriend.name[0]?.toUpperCase()}
-                              </div>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-                                {selectedFriend.name}
-                              </span>
-                            </div>
-
-                            <div>
-                              {friendBal.owedByMe > 0 ? (
-                                <span
-                                  style={{
-                                    fontSize: 11.5,
-                                    fontWeight: 700,
-                                    color: '#d97706',
-                                    background: 'rgba(217, 119, 6, 0.15)',
-                                    padding: '3px 8px',
-                                    borderRadius: 'var(--radius-lg)',
-                                  }}
-                                >
-                                  You owe {fmtMoney(friendBal.owedByMe, s.currency)}
-                                </span>
-                              ) : friendBal.owedToMe > 0 ? (
-                                <span
-                                  style={{
-                                    fontSize: 11.5,
-                                    fontWeight: 600,
-                                    color: '#2e7d32',
-                                    background: 'rgba(46, 125, 50, 0.15)',
-                                    padding: '3px 8px',
-                                    borderRadius: 'var(--radius-lg)',
-                                  }}
-                                >
-                                  Owes you {fmtMoney(friendBal.owedToMe, s.currency)}
-                                </span>
-                              ) : (
-                                <span
-                                  style={{
-                                    fontSize: 11.5,
-                                    fontWeight: 500,
-                                    color: 'var(--text-3)',
-                                  }}
-                                >
-                                  Balanced
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Unsettled Debts Selector */}
-                          {unsettledList.length > 0 ? (
-                            <div style={{ marginTop: 8, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
-                                  Select Debt Being Paid Back:
-                                </span>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary btn-sm"
-                                  style={{ fontSize: 11, padding: '2px 8px', height: 24, borderRadius: 'var(--radius)' }}
-                                  onClick={handleSettleAllDebts}
-                                >
-                                  {unsettledList.every(e => selectedExpenseIds.includes(e.id)) ? 'Deselect All' : `Pay All Debts (${fmtMoney(friendBal.owedByMe, s.currency)})`}
-                                </button>
-                              </div>
-
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', paddingRight: 2 }}>
-                                {unsettledList.map(item => {
-                                  const isSel = selectedExpenseIds.includes(item.id);
-                                  return (
-                                    <div
-                                      key={item.id}
-                                      onClick={() => toggleSelectExpense(item.id)}
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        padding: '7px 10px',
-                                        borderRadius: 'var(--radius)',
-                                        border: isSel ? '1px solid var(--accent)' : '1px solid var(--border)',
-                                        background: isSel ? 'var(--surface)' : 'rgba(255,255,255,0.02)',
-                                        cursor: 'pointer',
-                                        userSelect: 'none',
-                                        transition: 'all 0.15s ease',
-                                      }}
-                                    >
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                                        {isSel ? (
-                                          <CheckSquare size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                                        ) : (
-                                          <Square size={16} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-                                        )}
-                                        <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                          <div style={{ fontSize: 12.5, fontWeight: isSel ? 600 : 500, color: 'var(--text)' }}>
-                                            {item.description}
-                                          </div>
-                                          <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
-                                            {item.date} • {item.category}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div style={{ fontSize: 12.5, fontWeight: 700, color: isSel ? 'var(--accent)' : 'var(--text)', flexShrink: 0, marginLeft: 8 }}>
-                                        {fmtMoney(item.amount, s.currency)}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-
-                              {selectedExpenseIds.length > 0 && (
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 11.5, color: 'var(--text-2)', cursor: 'pointer' }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={autoSettle}
-                                    onChange={e => setAutoSettle(e.target.checked)}
-                                  />
-                                  <span>Mark {selectedExpenseIds.length > 1 ? 'these debts' : 'this debt'} as settled in friend ledger</span>
-                                </label>
-                              )}
-                            </div>
-                          ) : (
-                            <div style={{ fontSize: 11.5, color: 'var(--text-3)', fontStyle: 'italic', marginTop: 4 }}>
-                              No specific pending bills where friend paid for you. General repayment will directly adjust friend ledger balance.
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
 
                   {/* Friend Selection: If Someone Else Paid */}
                   {whoPaid === 'other' && (

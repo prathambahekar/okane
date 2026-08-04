@@ -146,6 +146,8 @@ export function defaultDB(): AppDB {
       defaultCategory: 'Food',
       defaultStatus: 'paid',
       defaultWalletId: defaultWal,
+      enableAIAssistant: true,
+      defaultAiEngine: 'offline',
     },
     recurringRules: [],
   };

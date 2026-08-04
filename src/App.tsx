@@ -69,6 +69,8 @@ function AppInner() {
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
 
+  const enableAIAssistant = db.settings?.enableAIAssistant ?? true;
+
   const toggleSidebar = () => {
     setSidebarCollapsed(prev => {
       const next = !prev;
@@ -560,33 +562,35 @@ function AppInner() {
       </Drawer>
 
       {/* Floating Voice Assistant Trigger */}
-      <IconButton
-        onClick={() => setShowAIAssistant(true)}
-        sx={{
-          position: 'fixed',
-          bottom: { xs: 72, sm: 24 },
-          right: { xs: 16, sm: 24 },
-          width: 52,
-          height: 52,
-          borderRadius: '50%',
-          bgcolor: 'primary.main',
-          color: 'primary.contrastText',
-          boxShadow: '0 6px 20px rgba(25, 118, 210, 0.4)',
-          zIndex: 1000,
-          transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease',
-          '&:hover': {
-            bgcolor: 'primary.dark',
-            transform: 'scale(1.1) rotate(10deg)',
-            boxShadow: '0 8px 25px rgba(25, 118, 210, 0.55)',
-          },
-          '&:active': {
-            transform: 'scale(0.95)',
-          }
-        }}
-        title="Ask Max AI Assistant"
-      >
-        <Sparkles size={24} />
-      </IconButton>
+      {enableAIAssistant && (
+        <IconButton
+          onClick={() => setShowAIAssistant(true)}
+          sx={{
+            position: 'fixed',
+            bottom: { xs: 72, sm: 24 },
+            right: { xs: 16, sm: 24 },
+            width: 52,
+            height: 52,
+            borderRadius: '50%',
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+            boxShadow: '0 6px 20px rgba(25, 118, 210, 0.4)',
+            zIndex: 1000,
+            transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease',
+            '&:hover': {
+              bgcolor: 'primary.dark',
+              transform: 'scale(1.1) rotate(10deg)',
+              boxShadow: '0 8px 25px rgba(25, 118, 210, 0.55)',
+            },
+            '&:active': {
+              transform: 'scale(0.95)',
+            }
+          }}
+          title="Ask Max AI Assistant"
+        >
+          <Sparkles size={24} />
+        </IconButton>
+      )}
 
       {showAddExpense && (
         <ExpenseModal
