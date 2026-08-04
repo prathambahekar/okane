@@ -431,9 +431,15 @@ export function expenseFlow(e: Expense): ExpenseFlow {
   return e.flow === 'in' ? 'in' : 'out';
 }
 
-export function expenseWalletDelta(e: Expense): number {
+export function expenseWalletDelta(e: Expense, db?: AppDB): number {
   if (e.status === 'unpaid') return 0;
   if (e.type === 'by_friend') return 0;
+  // If this expense is part of a split group that contains a vendor bill / friend payment (by_friend),
+  // no money has left the user's wallet out-of-pocket for this transaction yet.
+  if (db && e.groupId) {
+    const group = db.expenses.filter(g => g.groupId === e.groupId);
+    if (group.some(g => g.type === 'by_friend')) return 0;
+  }
   const amt = Number(e.amount) || 0;
   return expenseFlow(e) === 'in' ? amt : -amt;
 }
@@ -443,7 +449,7 @@ export function walletBalance(db: AppDB, walletId: string): number {
   if (!w) return 0;
   let bal = Number(w.openingBalance) || 0;
   db.expenses.forEach(e => {
-    if (e.walletId === walletId) bal += expenseWalletDelta(e);
+    if (e.walletId === walletId) bal += expenseWalletDelta(e, db);
   });
   (db.settlements || []).forEach(s => {
     if (s.walletId === walletId) bal += Number(s.amount) || 0;
@@ -484,6 +490,7 @@ export function overallBalance(db: AppDB): { credit: number; debit: number; net:
 }
 
 export function personalNetAmount(e: Expense): number {
+  if (e.status === 'unpaid') return 0;
   if (e.type !== 'personal') return 0;
   if (e.category === 'Transfer') return 0;
   const amt = Number(e.amount) || 0;

@@ -406,6 +406,8 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
         }
       }
 
+      const isUnpaidVendor = Boolean(selectedVendorId && vendorPaymentStatus === 'unpaid');
+
       friendShareList.forEach(({ friendId: fId, share }) => {
         if (share > 0) {
           addExpense({
@@ -418,7 +420,7 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
             flow,
             friendId: fId,
             vendorId: selectedVendorId || null,
-            walletId,
+            walletId: isUnpaidVendor ? '' : walletId,
             status: 'unsettled',
             notes,
           });
