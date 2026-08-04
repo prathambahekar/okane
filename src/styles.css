@@ -130,13 +130,13 @@ html, body, #root {
 .sidebar-logo-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  background: var(--accent-gradient);
   border-radius: var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.25);
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px var(--accent-soft);
+  box-shadow: 0 3px 10px var(--accent-soft);
 }
 .sidebar-logo-icon svg [stroke], .sidebar-logo-icon svg [fill] {
   stroke: #fff !important;
@@ -218,9 +218,9 @@ html, body, #root {
   transform: translateY(-2px);
 }
 .nav-item.active { 
-  background: var(--accent-soft); 
+  background: var(--accent-gradient-soft); 
   color: var(--accent); 
-  font-weight: 500; 
+  font-weight: 600; 
   border-color: var(--accent);
   box-shadow: 0 2px 8px var(--accent-soft);
 }
@@ -1174,6 +1174,7 @@ input[type="number"] {
 }
 .progress-bar-fill {
   height: 100%;
+  background: var(--accent-gradient);
   border-radius: 99px;
   transition: width 0.4s ease;
 }

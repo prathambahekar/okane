@@ -78,7 +78,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
       </div>
 
       {/* Hero Financial Overview Header Card */}
-      <div className="card" style={{ marginBottom: 20, padding: 0, overflow: 'hidden', background: 'linear-gradient(135deg, var(--accent-soft) 0%, transparent 85%), var(--surface)' }}>
+      <div className="card" style={{ marginBottom: 20, padding: 0, overflow: 'hidden', background: 'var(--accent-gradient-soft), var(--surface)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
 
           {/* Left Column: Total Net Worth & Interactive Wallet Chips */}

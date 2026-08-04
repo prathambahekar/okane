@@ -19,7 +19,7 @@ function getInitialMode(): 'light' | 'dark' {
 
 function getInitialAccent(): AccentPreset {
   const saved = localStorage.getItem('accent-color') as AccentPreset | null;
-  if (saved && ['blue', 'monochrome', 'emerald', 'violet', 'rose', 'amber', 'custom'].includes(saved)) {
+  if (saved && ['blue', 'red', 'monochrome', 'emerald', 'violet', 'rose', 'amber', 'custom'].includes(saved)) {
     return saved;
   }
   return 'blue';
@@ -48,6 +48,8 @@ function Root() {
     document.documentElement.style.setProperty('--accent-soft', colors.soft);
     document.documentElement.style.setProperty('--accent-dark', colors.dark);
     document.documentElement.style.setProperty('--accent-contrast', colors.contrast || '#ffffff');
+    document.documentElement.style.setProperty('--accent-gradient', colors.gradient);
+    document.documentElement.style.setProperty('--accent-gradient-soft', colors.gradientSoft);
   }, [accent, mode, customColor]);
 
   const toggleMode = useCallback(() => {

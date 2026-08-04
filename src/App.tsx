@@ -367,7 +367,7 @@ function AppInner() {
                   display: 'inline-flex', alignItems: 'center', px: 1, py: 0.3, borderRadius: 99,
                   bgcolor: totalBal < 0
                     ? (mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)')
-                    : (mode === 'dark' ? 'rgba(66, 165, 245, 0.15)' : 'rgba(25, 118, 210, 0.08)'),
+                    : 'var(--accent-soft)',
                   color: totalBal < 0 ? 'error.main' : 'primary.main',
                   fontSize: { xs: '0.75rem', sm: '0.8rem' }, fontWeight: 700
                 }}>

@@ -1422,7 +1422,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                 bgcolor: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--accent)',
                 boxShadow: '0 4px 12px var(--accent-soft)',
                 '&:hover': {
-                  bgcolor: activeDraft.flow === 'in' ? '#15803d' : 'var(--accent-dark, #1565c0)',
+                  bgcolor: activeDraft.flow === 'in' ? '#15803d' : 'var(--accent-dark)',
                 },
               }}
             >
@@ -1578,12 +1578,12 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             width: 38,
             height: 38,
             borderRadius: '50%',
-            bgcolor: 'var(--accent)',
+            background: 'var(--accent-gradient)',
             color: '#ffffff',
             flexShrink: 0,
             transition: 'all 0.2s ease',
             '&:hover': {
-              bgcolor: 'var(--accent-dark, #1565c0)',
+              filter: 'brightness(1.18)',
               transform: 'scale(1.05)',
             },
             '&.Mui-disabled': {
@@ -1665,7 +1665,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   width: 38,
                   height: 38,
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))',
+                  background: 'var(--accent-gradient)',
                   color: 'var(--accent-contrast)',
                   display: 'grid',
                   placeItems: 'center',

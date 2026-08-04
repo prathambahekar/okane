@@ -1,7 +1,7 @@
 import React from 'react';
 import { createTheme } from '@mui/material/styles';
 
-export type AccentPreset = 'blue' | 'monochrome' | 'emerald' | 'violet' | 'rose' | 'amber' | 'custom';
+export type AccentPreset = 'blue' | 'red' | 'monochrome' | 'emerald' | 'violet' | 'rose' | 'amber' | 'custom';
 
 export interface AccentDefinition {
   id: AccentPreset;
@@ -20,6 +20,14 @@ export const ACCENT_PRESETS: AccentDefinition[] = [
     swatchDark: '#42a5f5',
     light: { main: '#1976d2', soft: 'rgba(25, 118, 210, 0.12)', dark: '#1565c0', contrast: '#ffffff' },
     dark: { main: '#42a5f5', soft: 'rgba(66, 165, 245, 0.16)', dark: '#1976d2', contrast: '#ffffff' },
+  },
+  {
+    id: 'red',
+    name: 'Crimson Red',
+    swatchLight: '#dc2626',
+    swatchDark: '#ef4444',
+    light: { main: '#dc2626', soft: 'rgba(220, 38, 38, 0.12)', dark: '#b91c1c', contrast: '#ffffff' },
+    dark: { main: '#ef4444', soft: 'rgba(239, 68, 68, 0.18)', dark: '#dc2626', contrast: '#ffffff' },
   },
   {
     id: 'monochrome',
@@ -93,15 +101,23 @@ export function getAccentColors(accent: AccentPreset, mode: 'light' | 'dark', cu
     if (hex.length === 4) {
       hex = `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
     }
+    const soft = hexToRgba(hex, mode === 'dark' ? 0.18 : 0.12);
     return {
       main: hex,
-      soft: hexToRgba(hex, mode === 'dark' ? 0.18 : 0.12),
+      soft,
       dark: hex,
       contrast: '#ffffff',
+      gradient: `linear-gradient(135deg, ${hex} 0%, ${hex} 100%)`,
+      gradientSoft: `linear-gradient(135deg, ${soft} 0%, rgba(0, 0, 0, 0.02) 100%)`,
     };
   }
   const preset = ACCENT_PRESETS.find(p => p.id === accent) || ACCENT_PRESETS[0];
-  return preset[mode];
+  const pColors = preset[mode];
+  return {
+    ...pColors,
+    gradient: `linear-gradient(135deg, ${pColors.main} 0%, ${pColors.dark} 100%)`,
+    gradientSoft: `linear-gradient(135deg, ${pColors.soft} 0%, rgba(0, 0, 0, 0.02) 100%)`,
+  };
 }
 
 export const ColorModeContext = React.createContext<{
@@ -135,6 +151,66 @@ export function buildTheme(mode: 'light' | 'dark', accent: AccentPreset = 'blue'
         main: safeMain,
         dark: safeDark,
         contrastText: colors.contrast || '#ffffff',
+      },
+    },
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          containedPrimary: {
+            background: colors.gradient,
+            color: colors.contrast || '#ffffff',
+            boxShadow: `0 3px 10px ${colors.soft}`,
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover': {
+              background: colors.gradient,
+              filter: 'brightness(1.08)',
+              boxShadow: `0 5px 16px ${colors.soft}`,
+              transform: 'translateY(-1px)',
+            },
+            '&:active': {
+              transform: 'translateY(0)',
+            },
+          },
+          outlinedPrimary: {
+            borderColor: safeMain,
+            color: safeMain,
+            '&:hover': {
+              borderColor: safeDark,
+              backgroundColor: colors.soft,
+            },
+          },
+        },
+      },
+      MuiFab: {
+        styleOverrides: {
+          primary: {
+            background: colors.gradient,
+            color: colors.contrast || '#ffffff',
+            boxShadow: `0 4px 16px ${colors.soft}`,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              background: colors.gradient,
+              filter: 'brightness(1.08)',
+              transform: 'scale(1.05)',
+            },
+          },
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          colorPrimary: {
+            background: colors.gradient,
+            color: colors.contrast || '#ffffff',
+            fontWeight: 600,
+          },
+        },
+      },
+      MuiLinearProgress: {
+        styleOverrides: {
+          barColorPrimary: {
+            background: colors.gradient,
+          },
+        },
       },
     },
   });
