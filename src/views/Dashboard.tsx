@@ -65,7 +65,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         <div>
           <h1 className="page-title">Dashboard</h1>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button className="btn btn-ghost desktop-only" onClick={() => onNavigate('recurring')}>
             <RefreshCw size={15} /> Subscriptions & Autopay
           </button>

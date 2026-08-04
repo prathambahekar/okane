@@ -30,7 +30,8 @@ import {
   TrendingDown,
   RefreshCw,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  Sparkles,
 } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import { useColorMode } from './theme';
@@ -47,6 +48,8 @@ import Analytics from './views/Analytics';
 import Settings from './views/Settings';
 import Recurring from './views/Recurring';
 import ExpenseModal from './components/ExpenseModal';
+import type { ExpenseInitialData } from './components/ExpenseModal';
+import AIAssistantModal from './components/AIAssistantModal';
 import Toast from './components/Toast';
 import NotificationBell from './components/NotificationBell';
 import './styles.css';
@@ -58,6 +61,8 @@ function AppInner() {
   const [view, setView] = useState<ViewName>('dashboard');
   const [friendDetailId, setFriendDetailId] = useState<string>('');
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [addExpenseInitialData, setAddExpenseInitialData] = useState<ExpenseInitialData | null>(null);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
   const { mode, toggleMode: toggleDark } = useColorMode();
@@ -220,7 +225,7 @@ function AppInner() {
             <button
               className="btn btn-primary btn-sm"
               style={{
-                margin: '8px 0',
+                margin: '4px 0 8px',
                 width: '100%',
                 justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                 padding: sidebarCollapsed ? '8px 0' : '8px 12px'
@@ -554,7 +559,50 @@ function AppInner() {
         </Box>
       </Drawer>
 
-      {showAddExpense && <ExpenseModal onClose={() => setShowAddExpense(false)} />}
+      {/* Floating Voice Assistant Trigger */}
+      <IconButton
+        onClick={() => setShowAIAssistant(true)}
+        sx={{
+          position: 'fixed',
+          bottom: { xs: 72, sm: 24 },
+          right: { xs: 16, sm: 24 },
+          width: 52,
+          height: 52,
+          borderRadius: '50%',
+          bgcolor: 'primary.main',
+          color: 'primary.contrastText',
+          boxShadow: '0 6px 20px rgba(25, 118, 210, 0.4)',
+          zIndex: 1000,
+          transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease',
+          '&:hover': {
+            bgcolor: 'primary.dark',
+            transform: 'scale(1.1) rotate(10deg)',
+            boxShadow: '0 8px 25px rgba(25, 118, 210, 0.55)',
+          },
+          '&:active': {
+            transform: 'scale(0.95)',
+          }
+        }}
+        title="Ask Max AI Assistant"
+      >
+        <Sparkles size={24} />
+      </IconButton>
+
+      {showAddExpense && (
+        <ExpenseModal
+          initialData={addExpenseInitialData || undefined}
+          onClose={() => {
+            setShowAddExpense(false);
+            setAddExpenseInitialData(null);
+          }}
+        />
+      )}
+      {showAIAssistant && (
+        <AIAssistantModal
+          open={showAIAssistant}
+          onClose={() => setShowAIAssistant(false)}
+        />
+      )}
       <Toast />
     </div>
   );

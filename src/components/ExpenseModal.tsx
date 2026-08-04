@@ -6,12 +6,27 @@ import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types'
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
 import { currencySymbol, fmtMoney } from '../utils';
 
+export interface ExpenseInitialData {
+  description?: string;
+  amount?: number | string;
+  category?: string;
+  type?: ExpenseType;
+  flow?: ExpenseFlow;
+  whoPaid?: 'me' | 'other';
+  splitMode?: 'just_me' | 'for_friend' | 'pay_debt';
+  walletId?: string;
+  friendId?: string;
+  date?: string;
+  notes?: string;
+}
+
 interface Props {
   expense?: Expense | null;
+  initialData?: ExpenseInitialData;
   onClose: () => void;
 }
 
-export default function ExpenseModal({ expense, onClose }: Props) {
+export default function ExpenseModal({ expense, initialData, onClose }: Props) {
   const { db, addExpense, updateExpense, deleteExpense, showToast } = useStore();
   const s = db.settings;
 
@@ -22,57 +37,60 @@ export default function ExpenseModal({ expense, onClose }: Props) {
   const isGrp = grpItems.length > 1;
   const forFriendItem = grpItems.find(e => e.type === 'for_friend');
 
-  const initialTotalAmount = isGrp
-    ? String(grpItems.reduce((sum, e) => sum + Number(e.amount), 0))
-    : (expense ? String(expense.amount) : '');
+  const initialTotalAmount = initialData?.amount !== undefined && initialData?.amount !== ''
+    ? String(initialData.amount)
+    : (isGrp
+      ? String(grpItems.reduce((sum, e) => sum + Number(e.amount), 0))
+      : (expense ? String(expense.amount) : ''));
 
   const initialFriendShare = forFriendItem
     ? String(forFriendItem.amount)
     : (expense ? String(expense.amount) : '');
 
-  const initialDesc = expense
+  const initialDesc = initialData?.description ?? (expense
     ? expense.description.replace(/\s*\(Friend share\)$/i, '').trim()
-    : '';
+    : '');
 
-  const initialWhoPaid = expense?.type === 'by_friend' && expense?.flow === 'out' && !expense?.friendId ? 'other' : 'me';
-  const initialSplitMode = (isGrp || expense?.type === 'for_friend')
+  const initialWhoPaid = initialData?.whoPaid ?? (expense?.type === 'by_friend' && expense?.flow === 'out' && !expense?.friendId ? 'other' : 'me');
+  const initialSplitMode = initialData?.splitMode ?? ((isGrp || expense?.type === 'for_friend')
     ? 'for_friend'
     : (expense?.type === 'by_friend' && expense?.flow === 'out')
     ? 'pay_debt'
-    : 'just_me';
-  const initialFriendId = forFriendItem?.friendId ?? expense?.friendId ?? '';
+    : 'just_me');
+  const initialFriendId = initialData?.friendId ?? forFriendItem?.friendId ?? expense?.friendId ?? '';
 
-  const initialIncomeMode = expense?.flow === 'in'
-    ? (expense.type === 'by_friend' || expense.friendId ? 'friend' : 'direct')
+  const initialIncomeMode = (initialData?.flow === 'in' || expense?.flow === 'in')
+    ? (initialData?.friendId || expense?.type === 'by_friend' || expense?.friendId ? 'friend' : 'direct')
     : 'direct';
 
   const [incomeMode, setIncomeMode] = useState<'direct' | 'friend'>(initialIncomeMode);
   const [desc, setDesc] = useState(initialDesc);
   const [amount, setAmount] = useState(initialTotalAmount);
   const [friendShare, setFriendShare] = useState(initialFriendShare);
-  const [category, setCategory] = useState(expense?.category ?? s.defaultCategory);
-  const [date, setDate] = useState(expense?.date ?? todayISO());
-  const [, setType] = useState<ExpenseType>(expense?.type ?? 'personal');
+  const [category, setCategory] = useState(initialData?.category ?? expense?.category ?? s.defaultCategory);
+  const [date, setDate] = useState(initialData?.date ?? expense?.date ?? todayISO());
+  const [, setType] = useState<ExpenseType>(initialData?.type ?? expense?.type ?? 'personal');
   const [whoPaid, setWhoPaid] = useState<'me' | 'other'>(initialWhoPaid);
   const [splitMode, setSplitMode] = useState<'just_me' | 'for_friend' | 'pay_debt'>(initialSplitMode);
-  const [flow, setFlow] = useState<ExpenseFlow>(expense?.flow ?? 'out');
+  const [flow, setFlow] = useState<ExpenseFlow>(initialData?.flow ?? expense?.flow ?? 'out');
   const [friendId, setFriendId] = useState(initialFriendId);
-  const [walletId, setWalletId] = useState(expense?.walletId ?? s.defaultWalletId);
+  const [walletId, setWalletId] = useState(initialData?.walletId ?? expense?.walletId ?? s.defaultWalletId);
   const [status, setStatus] = useState<ExpenseStatus>(expense?.status ?? s.defaultStatus);
-  const [notes, setNotes] = useState(expense?.notes ?? '');
+  const [notes, setNotes] = useState(initialData?.notes ?? expense?.notes ?? '');
   const [error, setError] = useState('');
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
   const [autoSettle, setAutoSettle] = useState(true);
 
   // Multi-friend selection state for splitting expenses
   const initialFriendIds = useMemo(() => {
+    if (initialData?.friendId) return [initialData.friendId];
     if (expense?.groupId) {
       const items = db.expenses.filter(e => e.groupId === expense.groupId && e.type === 'for_friend');
       if (items.length > 0) return items.map(e => e.friendId).filter(Boolean) as string[];
     }
     const fId = forFriendItem?.friendId ?? expense?.friendId;
     return fId ? [fId] : [];
-  }, [db.expenses, expense, forFriendItem]);
+  }, [db.expenses, expense, forFriendItem, initialData]);
 
   const initialVendorId = expense?.vendorId ?? (expense?.friendId && db.friends.find(f => f.id === expense.friendId)?.type === 'vendor' ? expense.friendId : '');
   const [selectedVendorId, setSelectedVendorId] = useState<string>(initialVendorId);

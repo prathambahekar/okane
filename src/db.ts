@@ -137,7 +137,7 @@ export function defaultDB(): AppDB {
   return {
     version: 3,
     friends: [],
-    expenses: defaultSampleExpenses(defaultWal),
+    expenses: [],
     settlements: [],
     wallets,
     settings: {
@@ -147,7 +147,7 @@ export function defaultDB(): AppDB {
       defaultStatus: 'paid',
       defaultWalletId: defaultWal,
     },
-    recurringRules: defaultSampleRecurringRules(defaultWal),
+    recurringRules: [],
   };
 }
 
@@ -347,12 +347,20 @@ export function loadDB(): AppDB {
     }
     const defaultWal = db.settings.defaultWalletId;
 
-    if (!Array.isArray(db.recurringRules) || db.recurringRules.length === 0) {
-      db.recurringRules = defaultSampleRecurringRules(defaultWal);
+    if (!Array.isArray(db.recurringRules)) {
+      db.recurringRules = [];
     }
 
-    if (!Array.isArray(db.expenses) || db.expenses.length === 0) {
-      db.expenses = defaultSampleExpenses(defaultWal);
+    if (!Array.isArray(db.expenses)) {
+      db.expenses = [];
+    }
+
+    if (!Array.isArray(db.friends)) {
+      db.friends = [];
+    }
+
+    if (!Array.isArray(db.settlements)) {
+      db.settlements = [];
     }
 
     db.expenses.forEach(e => {
@@ -390,93 +398,19 @@ export function loadDB(): AppDB {
       }
     });
 
-    // Ensure Tiffin / Tiffin Aunty is classified as a vendor while keeping expenses & balances intact
-    let tiffin = db.friends.find(f => f.name.toLowerCase().includes('tiffin'));
+    // If Tiffin / Tiffin Aunty exists in user data from prior versions, keep vendor attributes linked
+    const tiffin = db.friends.find(f => f.name.toLowerCase().includes('tiffin'));
     if (tiffin) {
       tiffin.type = 'vendor';
       if (!tiffin.category) tiffin.category = 'Food';
       if (!tiffin.defaultAmount) tiffin.defaultAmount = 2500;
       if (!tiffin.billingCycle) tiffin.billingCycle = 'monthly';
-    } else {
-      const tiffinId = uid('frnd');
-      const tiffinVendor: Friend = {
-        id: tiffinId,
-        name: 'Tiffin Aunty',
-        email: '',
-        phone: '',
-        type: 'vendor',
-        category: 'Food',
-        billingCycle: 'monthly',
-        defaultAmount: 2500,
-        color: '#F97362',
-        notes: 'Monthly tiffin service - pay at end of month',
-        createdAt: Date.now() - 30 * 86400000,
-      };
-      db.friends.push(tiffinVendor);
-      tiffin = tiffinVendor;
 
-      const d = (offsetDays: number): string => {
-        const dt = new Date();
-        dt.setDate(dt.getDate() + offsetDays);
-        return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
-      };
-
-      const defaultWal = db.settings.defaultWalletId || db.wallets[0]?.id || 'wal_cash';
-      const tiffinExps: Expense[] = [
-        {
-          id: uid('exp'),
-          groupId: null,
-          description: 'Monthly Tiffin Service (Lunch & Dinner)',
-          amount: 2500,
-          category: 'Food',
-          date: d(-5),
-          type: 'by_friend',
-          flow: 'out',
-          friendId: tiffinId,
-          walletId: defaultWal,
-          status: 'unsettled',
-          settled: false,
-          settlementId: null,
-          notes: 'Daily tiffin taken, to be paid at month end',
-          createdAt: Date.now() - 5 * 86400000,
-        },
-      ];
-      db.expenses.push(...tiffinExps);
-    }
-
-    // Connect Tiffin Aunty with Autopay / Subscriptions recurring rule
-    if (tiffin) {
-      if (!db.recurringRules) db.recurringRules = [];
-      const hasTiffinRule = db.recurringRules.some(r => r.friendId === tiffin.id || r.title.toLowerCase().includes('tiffin'));
-      if (!hasTiffinRule) {
-        const defaultWal = db.settings.defaultWalletId || db.wallets[0]?.id || 'wal_cash';
-        db.recurringRules.push({
-          id: uid('rec'),
-          title: 'Tiffin Service (Tiffin Aunty)',
-          kind: 'autopay',
-          amount: 2500,
-          category: 'Food',
-          walletId: defaultWal,
-          type: 'by_friend',
-          flow: 'out',
-          friendId: tiffin.id,
-          frequency: 'monthly',
-          intervalValue: 1,
-          startDate: todayISO(),
-          nextDueDate: todayISO(),
-          autoDeduct: true,
-          status: 'active',
-          notes: 'Monthly Tiffin Service autopay',
-          createdAt: Date.now(),
-        });
-      } else {
-        // Ensure existing tiffin recurring rule is linked to tiffin.id
-        db.recurringRules.forEach(r => {
-          if (r.title.toLowerCase().includes('tiffin') || r.friendId === tiffin.id) {
-            r.friendId = tiffin.id;
-          }
-        });
-      }
+      db.recurringRules.forEach(r => {
+        if (r.title.toLowerCase().includes('tiffin') || r.friendId === tiffin.id) {
+          r.friendId = tiffin.id;
+        }
+      });
     }
 
     db.version = 3;
@@ -881,25 +815,34 @@ export function seedSampleData(db: AppDB): AppDB {
   const { db: db3, friend: sam } = addFriend(current, { name: 'Sam Okafor' });
   current = db3;
 
+  const defaultWal = current.settings.defaultWalletId || current.wallets[0]?.id || 'wal_cash';
+
   const expenses = [
-    { description: 'Weekly groceries', amount: 64.20, category: 'Groceries', date: d(-2), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus },
-    { description: 'Metro card top-up', amount: 25, category: 'Transport', date: d(-4), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus },
-    { description: "Dinner at Otto's", amount: 88, category: 'Food', date: d(-5), type: 'for_friend' as ExpenseType, friendId: alex.id, status: 'unsettled' as ExpenseStatus },
-    { description: 'Movie night tickets', amount: 34, category: 'Entertainment', date: d(-6), type: 'for_friend' as ExpenseType, friendId: priya.id, status: 'unsettled' as ExpenseStatus },
-    { description: 'Uber to airport', amount: 41.50, category: 'Transport', date: d(-9), type: 'by_friend' as ExpenseType, friendId: alex.id, status: 'unsettled' as ExpenseStatus },
-    { description: 'Coffee run', amount: 12.75, category: 'Food', date: d(-10), type: 'for_friend' as ExpenseType, friendId: sam.id, status: 'unsettled' as ExpenseStatus },
-    { description: 'Electricity bill', amount: 76, category: 'Utilities', date: d(-12), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus },
-    { description: 'Weekend cabin trip', amount: 210, category: 'Travel', date: d(-15), type: 'for_friend' as ExpenseType, friendId: priya.id, status: 'unsettled' as ExpenseStatus },
-    { description: 'Groceries for the week', amount: 58.40, category: 'Groceries', date: d(-18), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus },
-    { description: 'New headphones', amount: 129, category: 'Shopping', date: d(-20), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus },
-    { description: 'Gym membership', amount: 45, category: 'Health', date: d(-22), type: 'personal' as ExpenseType, status: 'unpaid' as ExpenseStatus },
-    { description: 'Rent, shared apartment', amount: 900, category: 'Rent', date: d(-25), type: 'by_friend' as ExpenseType, friendId: sam.id, status: 'unsettled' as ExpenseStatus },
-    { description: 'Birthday dinner', amount: 96, category: 'Food', date: d(-33), type: 'for_friend' as ExpenseType, friendId: alex.id, status: 'unsettled' as ExpenseStatus },
-    { description: 'Streaming subscriptions', amount: 28, category: 'Entertainment', date: d(-40), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus },
-    { description: 'Flight tickets split', amount: 340, category: 'Travel', date: d(-48), type: 'for_friend' as ExpenseType, friendId: priya.id, status: 'unsettled' as ExpenseStatus },
+    { description: 'Weekly groceries', amount: 64.20, category: 'Groceries', date: d(-2), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Metro card top-up', amount: 25, category: 'Transport', date: d(-4), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus, walletId: defaultWal },
+    { description: "Dinner at Otto's", amount: 88, category: 'Food', date: d(-5), type: 'for_friend' as ExpenseType, friendId: alex.id, status: 'unsettled' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Movie night tickets', amount: 34, category: 'Entertainment', date: d(-6), type: 'for_friend' as ExpenseType, friendId: priya.id, status: 'unsettled' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Uber to airport', amount: 41.50, category: 'Transport', date: d(-9), type: 'by_friend' as ExpenseType, friendId: alex.id, status: 'unsettled' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Coffee run', amount: 12.75, category: 'Food', date: d(-10), type: 'for_friend' as ExpenseType, friendId: sam.id, status: 'unsettled' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Electricity bill', amount: 76, category: 'Utilities', date: d(-12), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Weekend cabin trip', amount: 210, category: 'Travel', date: d(-15), type: 'for_friend' as ExpenseType, friendId: priya.id, status: 'unsettled' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Groceries for the week', amount: 58.40, category: 'Groceries', date: d(-18), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus, walletId: defaultWal },
+    { description: 'New headphones', amount: 129, category: 'Shopping', date: d(-20), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Gym membership', amount: 45, category: 'Health', date: d(-22), type: 'personal' as ExpenseType, status: 'unpaid' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Rent, shared apartment', amount: 900, category: 'Rent', date: d(-25), type: 'by_friend' as ExpenseType, friendId: sam.id, status: 'unsettled' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Birthday dinner', amount: 96, category: 'Food', date: d(-33), type: 'for_friend' as ExpenseType, friendId: alex.id, status: 'unsettled' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Streaming subscriptions', amount: 28, category: 'Entertainment', date: d(-40), type: 'personal' as ExpenseType, status: 'paid' as ExpenseStatus, walletId: defaultWal },
+    { description: 'Flight tickets split', amount: 340, category: 'Travel', date: d(-48), type: 'for_friend' as ExpenseType, friendId: priya.id, status: 'unsettled' as ExpenseStatus, walletId: defaultWal },
   ];
 
   expenses.forEach(e => { current = addExpense(current, e); });
+
+  const sampleRules = defaultSampleRecurringRules(defaultWal);
+  current = {
+    ...current,
+    recurringRules: [...(current.recurringRules || []), ...sampleRules],
+  };
+
   return current;
 }
 
