@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Handshake, Search, ChevronDown, ChevronUp, MoreVertical, User, Users, Store, Tv, ArrowUpRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Handshake, Search, ChevronDown, ChevronUp, MoreVertical, User, Users, Store, Tv, ArrowUpRight, ArrowUpDown, LayoutGrid, List, SlidersHorizontal, X } from 'lucide-react';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -8,7 +8,7 @@ import ListItemText from '@mui/material/ListItemText';
 import { useStore } from '../store';
 import type { Friend, ContactType, ViewName } from '../types';
 import { friendBalance, contactTotalSpent, contactTransactionCount, contactLastTransaction } from '../db';
-import { fmtMoney, fmtDate, friendInitial } from '../utils';
+import { fmtMoney, friendInitial } from '../utils';
 import { renderBrandLogo } from '../components/BrandIcons';
 import FriendModal from '../components/FriendModal';
 import SettleModal from '../components/SettleModal';
@@ -20,6 +20,8 @@ interface Props {
 }
 
 type FriendFilterStatus = 'all' | 'owes_me' | 'i_owe' | 'settled';
+type SortOption = 'owed_desc' | 'owed_asc' | 'name' | 'recent' | 'expenses_count';
+type DensityOption = 'compact' | 'detailed' | 'grid';
 
 export default function Friends({ onNavigate }: Props) {
   const { db, deleteFriend, showToast } = useStore();
@@ -34,15 +36,12 @@ export default function Friends({ onNavigate }: Props) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<ContactType>('friend');
   const [statusFilter, setStatusFilter] = useState<FriendFilterStatus>('all');
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const [sortBy, setSortBy] = useState<SortOption>('owed_desc');
+  const [density, setDensity] = useState<DensityOption>('compact');
 
   // Three-dot menu state
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
   const [menuFriend, setMenuFriend] = useState<Friend | null>(null);
-
-  const toggleExpand = (id: string) => {
-    setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
-  };
 
   const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, friend: Friend) => {
     e.stopPropagation();
@@ -101,7 +100,7 @@ export default function Friends({ onNavigate }: Props) {
   }, [friends]);
 
   const filtered = useMemo(() => {
-    return friends.filter(f => {
+    const list = friends.filter(f => {
       const fType = f.type || 'friend';
       if (fType !== typeFilter) return false;
 
@@ -123,7 +122,26 @@ export default function Friends({ onNavigate }: Props) {
       }
       return true;
     });
-  }, [friends, search, typeFilter, statusFilter, db]);
+
+    return list.sort((a, b) => {
+      if (typeFilter === 'friend' && (sortBy === 'owed_desc' || sortBy === 'owed_asc')) {
+        const balA = friendBalance(db, a.id).net;
+        const balB = friendBalance(db, b.id).net;
+        if (sortBy === 'owed_desc') return balB - balA;
+        if (sortBy === 'owed_asc') return balA - balB;
+      }
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      if (sortBy === 'expenses_count') {
+        return contactTransactionCount(db, b.id) - contactTransactionCount(db, a.id);
+      }
+      if (sortBy === 'recent') {
+        const txA = contactLastTransaction(db, a.id)?.date || '';
+        const txB = contactLastTransaction(db, b.id)?.date || '';
+        return txB.localeCompare(txA);
+      }
+      return 0;
+    });
+  }, [friends, search, typeFilter, statusFilter, sortBy, db]);
 
   const [statsExpanded, setStatsExpanded] = useState(false);
 
@@ -139,17 +157,37 @@ export default function Friends({ onNavigate }: Props) {
         </div>
       </div>
 
-      {/* Unified Search Bar with merged Stat Pill & + Add button row */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-        <div className="search-input-wrap" style={{ flex: '1 1 auto', minWidth: 0 }}>
+      {/* Unified Search Bar with clear button & merged Stat Pill & + Add button row */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+        <div className="search-input-wrap" style={{ flex: '1 1 auto', minWidth: 0, position: 'relative' }}>
           <Search size={15} className="search-icon" />
           <input
             className="form-input"
-            style={{ height: 36, fontSize: 13 }}
-            placeholder="Search..."
+            style={{ height: 36, fontSize: 13, paddingRight: search ? 28 : 10 }}
+            placeholder="Search contacts..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              style={{
+                position: 'absolute',
+                right: 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-3)',
+                cursor: 'pointer',
+                display: 'grid',
+                placeItems: 'center'
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         {/* Merged Stat Summary Button */}
@@ -258,7 +296,7 @@ export default function Friends({ onNavigate }: Props) {
       )}
 
       {/* Filter Tabs - Only Friends, Vendors, Subscriptions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
         <div className="tab-list" style={{ marginBottom: 0 }}>
           <button className={`tab-btn ${typeFilter === 'friend' ? 'active' : ''}`} onClick={() => setTypeFilter('friend')}>
             <User size={13} style={{ flexShrink: 0 }} />
@@ -315,6 +353,101 @@ export default function Friends({ onNavigate }: Props) {
         )}
       </div>
 
+      {/* Sorting & Density Toolbar */}
+      {friends.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>{filtered.length} {typeFilter === 'friend' ? (filtered.length === 1 ? 'Friend' : 'Friends') : typeFilter === 'vendor' ? 'Vendors' : 'Subscriptions'}</span>
+            {search && <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>(filtered)</span>}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/* Sort Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--surface2)', padding: '2px 8px', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <ArrowUpDown size={12} style={{ color: 'var(--text-3)' }} />
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as SortOption)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: 11.5,
+                  fontWeight: 500,
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  padding: '2px 0'
+                }}
+              >
+                {typeFilter === 'friend' && <option value="owed_desc">Highest Owed</option>}
+                {typeFilter === 'friend' && <option value="owed_asc">You Owe Most</option>}
+                <option value="name">Name (A-Z)</option>
+                <option value="recent">Recent Activity</option>
+                <option value="expenses_count">Most Expenses</option>
+              </select>
+            </div>
+
+            {/* Density Selector */}
+            <div style={{ display: 'flex', background: 'var(--surface2)', padding: 2, borderRadius: 8, border: '1px solid var(--border)' }}>
+              <button
+                type="button"
+                onClick={() => setDensity('compact')}
+                title="Compact List View"
+                style={{
+                  padding: '3px 6px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: density === 'compact' ? 'var(--surface)' : 'transparent',
+                  color: density === 'compact' ? 'var(--accent)' : 'var(--text-3)',
+                  cursor: 'pointer',
+                  boxShadow: density === 'compact' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  display: 'grid',
+                  placeItems: 'center'
+                }}
+              >
+                <List size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setDensity('detailed')}
+                title="Detailed List View"
+                style={{
+                  padding: '3px 6px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: density === 'detailed' ? 'var(--surface)' : 'transparent',
+                  color: density === 'detailed' ? 'var(--accent)' : 'var(--text-3)',
+                  cursor: 'pointer',
+                  boxShadow: density === 'detailed' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  display: 'grid',
+                  placeItems: 'center'
+                }}
+              >
+                <SlidersHorizontal size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setDensity('grid')}
+                title="Card Grid View"
+                style={{
+                  padding: '3px 6px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: density === 'grid' ? 'var(--surface)' : 'transparent',
+                  color: density === 'grid' ? 'var(--accent)' : 'var(--text-3)',
+                  cursor: 'pointer',
+                  boxShadow: density === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  display: 'grid',
+                  placeItems: 'center'
+                }}
+              >
+                <LayoutGrid size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Contacts List / Dedicated Subscriptions View */}
       {friends.length === 0 ? (
         <div className="card">
@@ -327,145 +460,6 @@ export default function Friends({ onNavigate }: Props) {
             </button>
           </div>
         </div>
-      ) : typeFilter === 'subscription' ? (
-        /* SPECIAL DEDICATED SUBSCRIPTION GRID */
-        filtered.length === 0 ? (
-          <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)', marginBottom: 6 }}>No subscriptions match search</div>
-            <p style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 16 }}>Add subscriptions like Netflix, Spotify, Prime Video, or ChatGPT Plus to track monthly recurring bills.</p>
-            <button
-              className="btn btn-primary btn-sm"
-              style={{ margin: '0 auto' }}
-              onClick={() => {
-                setAddDefaultType('subscription');
-                setShowAdd(true);
-              }}
-            >
-              <Plus size={15} /> Add Subscription
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-            {filtered.map(f => {
-              const totalSpent = contactTotalSpent(db, f.id);
-              const txCount = contactTransactionCount(db, f.id);
-              const lastTx = contactLastTransaction(db, f.id);
-              const brandLogo = renderBrandLogo(f.name, 24);
-
-              return (
-                <div
-                  key={f.id}
-                  style={{
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 12,
-                    padding: 14,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    position: 'relative',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                  }}
-                >
-                  {/* Top Header Row */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                      <div
-                        style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 10,
-                          background: f.color || '#9333EA',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#FFFFFF',
-                          flexShrink: 0,
-                          boxShadow: `0 4px 10px ${f.color || '#9333EA'}33`,
-                        }}
-                      >
-                        {brandLogo || <Tv size={22} />}
-                      </div>
-
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {f.name}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 600,
-                              padding: '2px 6px',
-                              borderRadius: 4,
-                              background: 'rgba(168, 85, 247, 0.15)',
-                              color: '#A855F7',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.3px',
-                            }}
-                          >
-                            {f.category || 'Subscription'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <IconButton
-                      size="small"
-                      onClick={e => handleMenuOpen(e, f)}
-                      style={{ color: 'var(--text-3)', padding: 4 }}
-                    >
-                      <MoreVertical size={16} />
-                    </IconButton>
-                  </div>
-
-                  {/* Plan Price & Details */}
-                  <div style={{ background: 'var(--surface2)', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>Plan Price</span>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)' }}>
-                        {f.defaultAmount ? fmtMoney(f.defaultAmount, currency) : 'Custom'}
-                        <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', marginLeft: 3 }}>
-                          /{f.billingCycle || 'mo'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 6, borderTop: '1px dashed var(--border)', fontSize: 11.5 }}>
-                      <span style={{ color: 'var(--text-3)' }}>Total Paid ({txCount})</span>
-                      <span style={{ fontWeight: 600, color: 'var(--text-1)' }}>{fmtMoney(totalSpent, currency)}</span>
-                    </div>
-
-                    {lastTx && (
-                      <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 4, textAlign: 'right' }}>
-                        Last payment: {fmtDate(lastTx.date)}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      className="btn btn-primary btn-sm"
-                      style={{ flex: 1, height: 32, fontSize: 12, gap: 4 }}
-                      onClick={() => setAddExpFriend(f)}
-                    >
-                      <Plus size={14} /> Log Payment
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      style={{ height: 32, fontSize: 12, padding: '0 10px' }}
-                      onClick={() => onNavigate('friend-detail', f.id)}
-                    >
-                      History
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )
       ) : filtered.length === 0 ? (
         <div className="card">
           <div className="empty-state" style={{ padding: '32px' }}>
@@ -475,57 +469,47 @@ export default function Friends({ onNavigate }: Props) {
             </button>
           </div>
         </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      ) : density === 'grid' || typeFilter === 'subscription' ? (
+        /* GRID VIEW */
+        <div className="contact-grid">
           {filtered.map(f => {
             const fType: ContactType = f.type || 'friend';
             const contactExpenses = db.expenses.filter(e => e.friendId === f.id);
             const totalSpent = contactTotalSpent(db, f.id);
             const txCount = contactTransactionCount(db, f.id);
-            const lastTx = contactLastTransaction(db, f.id);
-            const recent3 = [...contactExpenses]
-              .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
-              .slice(0, 3);
-
             const bal = friendBalance(db, f.id);
             const unsettledCount = contactExpenses.filter(e => !e.settled && e.type !== 'personal').length;
-            const isExpanded = !!expandedIds[f.id];
             const isOwed = bal.net > 0.004;
             const isDebt = bal.net < -0.004;
+            const brandLogo = renderBrandLogo(f.name, 22);
 
             return (
               <div
                 key={f.id}
+                onClick={() => onNavigate('friend-detail', f.id)}
                 style={{
                   background: 'var(--surface)',
                   border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  overflow: 'hidden',
-                  transition: 'all var(--transition)',
-                  boxShadow: isExpanded ? 'var(--shadow)' : 'none',
+                  borderRadius: 12,
+                  padding: 12,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: 'var(--shadow-sm)'
                 }}
               >
-                {/* Collapsed Header */}
-                <div
-                  onClick={() => toggleExpand(f.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 12px',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    gap: 8,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                     <div
                       className="avatar"
                       style={{
                         background: f.color || '#3B82F6',
-                        width: 38,
-                        height: 38,
-                        fontSize: 14,
+                        width: 36,
+                        height: 36,
+                        fontSize: 13,
                         fontWeight: 700,
                         flexShrink: 0,
                         display: 'flex',
@@ -533,235 +517,219 @@ export default function Friends({ onNavigate }: Props) {
                         justifyContent: 'center',
                       }}
                     >
-                      {fType === 'subscription' ? (renderBrandLogo(f.name, 20) || <Tv size={18} />) : fType === 'vendor' ? <Store size={18} /> : friendInitial(f.name)}
+                      {fType === 'subscription' ? (brandLogo || <Tv size={18} />) : fType === 'vendor' ? <Store size={18} /> : friendInitial(f.name)}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {f.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
+                        {fType === 'friend' ? `${contactExpenses.length} expenses` : fType === 'vendor' ? `${txCount} orders` : (f.defaultAmount ? `${fmtMoney(f.defaultAmount, currency)}/${f.billingCycle || 'mo'}` : `${txCount} payments`)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMenuOpen(e, f);
+                    }}
+                    sx={{ color: 'text.secondary', p: 0.5 }}
+                  >
+                    <MoreVertical size={16} />
+                  </IconButton>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingTop: 6, borderTop: '1px solid var(--border)' }}>
+                  <div>
+                    {fType === 'friend' ? (
+                      isOwed ? (
+                        <span style={{ background: 'rgba(34, 197, 94, 0.12)', color: 'var(--credit)', border: '1px solid rgba(34, 197, 94, 0.25)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
+                          Owes {fmtMoney(Math.abs(bal.net), currency)}
+                        </span>
+                      ) : isDebt ? (
+                        <span style={{ background: 'rgba(239, 68, 68, 0.12)', color: 'var(--debit)', border: '1px solid rgba(239, 68, 68, 0.25)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
+                          You owe {fmtMoney(Math.abs(bal.net), currency)}
+                        </span>
+                      ) : (
+                        <span style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)', fontWeight: 500, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
+                          Settled Up ✓
+                        </span>
+                      )
+                    ) : (
+                      <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>
+                        {fmtMoney(totalSpent, currency)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {fType === 'friend' && unsettledCount > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSettleFriend(f);
+                        }}
+                        style={{ padding: '3px 8px', fontSize: 11, color: 'var(--credit)', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', gap: 3, borderRadius: 6 }}
+                      >
+                        <Handshake size={12} /> Settle
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAddExpFriend(f);
+                      }}
+                      style={{ padding: '3px 8px', fontSize: 11, gap: 3, borderRadius: 6 }}
+                    >
+                      <Plus size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* COMPACT / DETAILED SINGLE-CARD LIST VIEW */
+        <div className="contact-list-card">
+          {filtered.map(f => {
+            const fType: ContactType = f.type || 'friend';
+            const contactExpenses = db.expenses.filter(e => e.friendId === f.id);
+            const totalSpent = contactTotalSpent(db, f.id);
+            const txCount = contactTransactionCount(db, f.id);
+            const bal = friendBalance(db, f.id);
+            const unsettledCount = contactExpenses.filter(e => !e.settled && e.type !== 'personal').length;
+            const isOwed = bal.net > 0.004;
+            const isDebt = bal.net < -0.004;
+            const brandLogo = renderBrandLogo(f.name, 18);
+
+            return (
+              <div
+                key={f.id}
+                className={`contact-row ${density === 'compact' ? 'contact-row-compact' : ''}`}
+                onClick={() => onNavigate('friend-detail', f.id)}
+              >
+                {/* Contact Avatar & Name */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                  <div
+                    className="avatar"
+                    style={{
+                      background: f.color || '#3B82F6',
+                      width: density === 'compact' ? 32 : 38,
+                      height: density === 'compact' ? 32 : 38,
+                      fontSize: density === 'compact' ? 12 : 14,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {fType === 'subscription' ? (brandLogo || <Tv size={16} />) : fType === 'vendor' ? <Store size={16} /> : friendInitial(f.name)}
+                  </div>
+
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                      <span style={{ fontWeight: 600, fontSize: density === 'compact' ? 13.5 : 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {f.name}
+                      </span>
+                      {typeFilter !== fType && fType !== 'friend' && (
+                        <span style={{ fontSize: 9, fontWeight: 600, padding: '1px 5px', borderRadius: 4, textTransform: 'uppercase', background: 'var(--surface2)', color: 'var(--accent)', flexShrink: 0 }}>
+                          {fType}
+                        </span>
+                      )}
                     </div>
 
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                        <span style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {f.name}
-                        </span>
-                        {/* Show Type Badge only when viewing outside dedicated type tabs */}
-                        {typeFilter !== fType && fType !== 'friend' && (
-                          <span
-                            style={{
-                              fontSize: 9.5,
-                              fontWeight: 600,
-                              padding: '1px 5px',
-                              borderRadius: 4,
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.4px',
-                              background:
-                                fType === 'vendor'
-                                  ? 'rgba(245, 158, 11, 0.15)'
-                                  : fType === 'subscription'
-                                  ? 'rgba(168, 85, 247, 0.15)'
-                                  : 'rgba(59, 130, 246, 0.15)',
-                              color:
-                                fType === 'vendor'
-                                  ? '#D97706'
-                                  : fType === 'subscription'
-                                  ? '#9333EA'
-                                  : 'var(--accent)',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {fType}
-                          </span>
-                        )}
-                      </div>
-
-                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {density === 'detailed' && (
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {fType === 'friend' ? (
                           <>
                             {contactExpenses.length} expense{contactExpenses.length !== 1 ? 's' : ''}
                             {unsettledCount > 0 ? ` · ${unsettledCount} unsettled` : ''}
                           </>
                         ) : fType === 'vendor' ? (
-                          <>
-                            {f.category ? `${f.category} · ` : ''}
-                            {txCount} order{txCount !== 1 ? 's' : ''}
-                            {lastTx ? ` · Last: ${fmtDate(lastTx.date)}` : ''}
-                          </>
+                          <>{f.category ? `${f.category} · ` : ''}{txCount} order{txCount !== 1 ? 's' : ''}</>
                         ) : (
-                          <>
-                            {f.defaultAmount ? `${fmtMoney(f.defaultAmount, currency)}/${f.billingCycle || 'mo'} · ` : ''}
-                            {txCount} payment{txCount !== 1 ? 's' : ''}
-                          </>
+                          <>{f.defaultAmount ? `${fmtMoney(f.defaultAmount, currency)}/${f.billingCycle || 'mo'}` : `${txCount} payments`}</>
                         )}
                       </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                    {/* Status / Spend Pill Badge */}
-                    {fType === 'friend' ? (
-                      isOwed ? (
-                        <span
-                          style={{
-                            background: 'rgba(34, 197, 94, 0.12)',
-                            color: 'var(--credit)',
-                            border: '1px solid rgba(34, 197, 94, 0.25)',
-                            fontWeight: 600,
-                            fontSize: 11.5,
-                            padding: '3px 9px',
-                            borderRadius: 99,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          Owes {fmtMoney(Math.abs(bal.net), currency)}
-                        </span>
-                      ) : isDebt ? (
-                        <span
-                          style={{
-                            background: 'rgba(239, 68, 68, 0.12)',
-                            color: 'var(--debit)',
-                            border: '1px solid rgba(239, 68, 68, 0.25)',
-                            fontWeight: 600,
-                            fontSize: 11.5,
-                            padding: '3px 9px',
-                            borderRadius: 99,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          You owe {fmtMoney(Math.abs(bal.net), currency)}
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            background: 'var(--surface2)',
-                            color: 'var(--text-3)',
-                            border: '1px solid var(--border)',
-                            fontWeight: 500,
-                            fontSize: 11.5,
-                            padding: '3px 9px',
-                            borderRadius: 99,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          Settled Up ✓
-                        </span>
-                      )
-                    ) : (
-                      <span
-                        style={{
-                          background: 'var(--surface2)',
-                          color: 'var(--text)',
-                          border: '1px solid var(--border)',
-                          fontWeight: 700,
-                          fontSize: 12,
-                          padding: '3px 8px',
-                          borderRadius: 99,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {fmtMoney(totalSpent, currency)}
-                      </span>
                     )}
-
-                    {/* Three-Dot Menu Button */}
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMenuOpen(e, f);
-                      }}
-                      sx={{ color: 'text.secondary', p: 0.5 }}
-                    >
-                      <MoreVertical size={18} />
-                    </IconButton>
-
-                    {/* Chevron */}
-                    <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center' }}>
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </div>
                   </div>
                 </div>
 
-                {/* Expanded Section */}
-                {isExpanded && (
-                  <div style={{ padding: '0 14px 14px', borderTop: '1px solid var(--border)', animation: 'fadein 0.18s ease' }}>
-                    {/* Recent 3 Transactions */}
-                    <div style={{ paddingTop: 10, marginBottom: 12 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
-                        Recent Activity
-                      </div>
-                      {recent3.length === 0 ? (
-                        <div style={{ fontSize: 12, color: 'var(--text-3)', fontStyle: 'italic', padding: '4px 0' }}>
-                          No recorded transactions yet with {f.name}.
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {recent3.map(e => {
-                            const isIn = e.type === 'for_friend' || e.flow === 'in';
-                            return (
-                              <div
-                                key={e.id}
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  padding: '7px 10px',
-                                  background: 'var(--surface2)',
-                                  borderRadius: 8,
-                                  fontSize: 12.5,
-                                }}
-                              >
-                                <div>
-                                  <div style={{ fontWeight: 500 }}>{e.description}</div>
-                                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
-                                    {fmtDate(e.date)} · {e.category}
-                                  </div>
-                                </div>
-                                <div style={{ fontWeight: 600, fontSize: 13, color: fType === 'friend' ? (isIn ? 'var(--credit)' : 'var(--debit)') : 'var(--text-1)' }}>
-                                  {fType === 'friend' ? (isIn ? '+' : '-') : ''}{fmtMoney(e.amount, currency)}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                {/* Status Badge & Quick Action Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  {fType === 'friend' ? (
+                    isOwed ? (
+                      <span style={{ background: 'rgba(34, 197, 94, 0.12)', color: 'var(--credit)', border: '1px solid rgba(34, 197, 94, 0.25)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                        Owes {fmtMoney(Math.abs(bal.net), currency)}
+                      </span>
+                    ) : isDebt ? (
+                      <span style={{ background: 'rgba(239, 68, 68, 0.12)', color: 'var(--debit)', border: '1px solid rgba(239, 68, 68, 0.25)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                        You owe {fmtMoney(Math.abs(bal.net), currency)}
+                      </span>
+                    ) : (
+                      <span style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)', fontWeight: 500, fontSize: 11, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                        Settled Up ✓
+                      </span>
+                    )
+                  ) : (
+                    <span style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                      {fmtMoney(totalSpent, currency)}
+                    </span>
+                  )}
 
-                    {/* Primary Action Buttons */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: 12, padding: '5px 11px', borderRadius: 6, gap: 4 }}
-                          onClick={() => setAddExpFriend(f)}
-                        >
-                          <Plus size={14} /> {fType === 'vendor' ? 'Log Purchase' : fType === 'subscription' ? 'Log Payment' : 'Add Expense'}
-                        </button>
+                  {/* Settle Up Action Button if unsettled */}
+                  {fType === 'friend' && unsettledCount > 0 && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSettleFriend(f);
+                      }}
+                      style={{ padding: '3px 7px', fontSize: 11, color: 'var(--credit)', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', gap: 3, borderRadius: 6 }}
+                      title="Settle Up"
+                    >
+                      <Handshake size={13} />
+                      <span className="hide-on-mobile">Settle</span>
+                    </button>
+                  )}
 
-                        {fType === 'friend' && unsettledCount > 0 && (
-                          <button
-                            className="btn btn-primary btn-sm"
-                            style={{
-                              fontSize: 12,
-                              padding: '5px 11px',
-                              borderRadius: 6,
-                              gap: 4,
-                              background: 'linear-gradient(135deg, #2e7d32, #1b5e20)',
-                            }}
-                            onClick={() => setSettleFriend(f)}
-                          >
-                            <Handshake size={14} /> Settle Up
-                          </button>
-                        )}
-                      </div>
+                  {/* Add Expense Quick Action */}
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAddExpFriend(f);
+                    }}
+                    style={{ padding: '3px 7px', fontSize: 11, gap: 3, borderRadius: 6 }}
+                    title="Add Expense"
+                  >
+                    <Plus size={13} />
+                  </button>
 
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        style={{ fontSize: 12, padding: '5px 8px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
-                        onClick={() => onNavigate('friend-detail', f.id)}
-                      >
-                        <span>Full History ({contactExpenses.length})</span>
-                        <ArrowUpRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                )}
+                  {/* Three-Dot Overflow Menu */}
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMenuOpen(e, f);
+                    }}
+                    sx={{ color: 'text.secondary', p: 0.5 }}
+                  >
+                    <MoreVertical size={16} />
+                  </IconButton>
+
+                  <ArrowUpRight size={14} style={{ color: 'var(--text-3)' }} />
+                </div>
               </div>
             );
           })}
