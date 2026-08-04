@@ -141,7 +141,6 @@ export default function Recurring({ onNavigate }: Props) {
           style={{
             padding: '12px 14px',
             background: 'var(--surface)',
-            borderLeft: dueAutopays.length > 0 ? '3px solid #d32f2f' : '3px solid var(--accent)',
             cursor: 'pointer'
           }}
           onClick={() => setActiveTab('subscriptions')}

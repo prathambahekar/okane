@@ -113,7 +113,7 @@ interface DraftExpense {
   type: ExpenseType;
   flow: ExpenseFlow;
   whoPaid?: 'me' | 'other';
-  splitMode?: 'just_me' | 'equal_split' | 'custom_split' | 'for_friend' | 'pay_debt';
+  splitMode?: 'just_me' | 'equal_split' | 'custom_split' | 'for_friend' | 'pay_debt' | 'by_friend';
   myShare?: number | null;
   friendShare?: number | null;
   walletName: string;

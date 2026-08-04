@@ -77,11 +77,10 @@ export default function Settings() {
   const { mode, toggleMode } = useColorMode();
   const isDark = mode === 'dark';
 
-  const [jsonSettings, setJsonSettings] = useState({
+  const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
     appName: "Okane",
-    appVersion: "0.8.0",
+    appVersion: "0.8.1",
     buildNumber: "104",
-    latestVersion: "0.8.0",
     updateChannel: "beta",
     autoCheckUpdates: true,
     enableAIAssistant: true,
@@ -92,14 +91,36 @@ export default function Settings() {
   const [showJsonView, setShowJsonView] = useState(false);
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.appVersion) {
-          setJsonSettings(data);
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/settings.json?t=' + Date.now());
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.appVersion) {
+            delete data.latestVersion;
+            setJsonSettings(data);
+            return;
+          }
         }
-      })
-      .catch(err => console.log('Settings fetch notice:', err));
+      } catch (err) {
+        console.log('Direct settings.json fetch failed, trying /api/settings:', err);
+      }
+
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.appVersion) {
+            delete data.latestVersion;
+            setJsonSettings(data);
+          }
+        }
+      } catch (err) {
+        console.log('API settings fetch notice:', err);
+      }
+    };
+
+    loadSettings();
   }, []);
 
   const startEditCategory = (c: Category) => {
@@ -670,18 +691,18 @@ export default function Settings() {
               color: 'var(--accent)',
               border: '1px solid rgba(56, 189, 248, 0.3)'
             }}>
-              v{jsonSettings.appVersion}
+              v{String(jsonSettings.appVersion || '')}
             </span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 14 }}>
             <div style={{ background: 'var(--surface2)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
               <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Update Channel</div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, textTransform: 'capitalize' }}>{jsonSettings.updateChannel}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, textTransform: 'capitalize' }}>{String(jsonSettings.updateChannel || '')}</div>
             </div>
             <div style={{ background: 'var(--surface2)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
               <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Last Updated</div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{jsonSettings.lastUpdated}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{String(jsonSettings.lastUpdated || '')}</div>
             </div>
           </div>
 

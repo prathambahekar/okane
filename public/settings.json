@@ -1,8 +1,7 @@
 {
   "appName": "Okane",
-  "appVersion": "0.8.1",
+  "appVersion": "0.8.3",
   "buildNumber": "104",
-  "latestVersion": "0.8.1",
   "updateChannel": "beta",
   "autoCheckUpdates": true,
   "enableAIAssistant": true,

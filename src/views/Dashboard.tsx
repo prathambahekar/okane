@@ -78,13 +78,12 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
       </div>
 
       {/* Hero Financial Overview Header Card */}
-      <div className="card" style={{ marginBottom: 20, padding: 0, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', background: 'var(--surface)' }}>
+      <div className="card" style={{ marginBottom: 20, padding: 0, overflow: 'hidden', background: 'linear-gradient(180deg, rgba(56, 189, 248, 0.06) 0%, rgba(52, 211, 153, 0.05) 100%), var(--surface)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
 
           {/* Left Column: Total Net Worth & Interactive Wallet Chips */}
           <div style={{
             padding: '20px 24px',
-            background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.06) 0%, rgba(52, 211, 153, 0.04) 100%)',
             borderRight: '1px solid var(--border)',
             display: 'flex',
             flexDirection: 'column',
@@ -171,29 +170,29 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
 
             {/* 3 Metric Cards Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
-              <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.18)', borderRadius: 4, padding: '10px 12px' }}>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div className="dashboard-mini-stat">
+                <div className="dashboard-mini-stat-header">
                   <TrendingDown size={13} style={{ color: 'var(--debit)' }} /> {monthName} Spend
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--debit)', marginTop: 4 }}>
+                <div className="dashboard-mini-stat-val" style={{ color: 'var(--debit)' }}>
                   {fmtMoney(monthSpend, currency)}
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.18)', borderRadius: 4, padding: '10px 12px' }}>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div className="dashboard-mini-stat">
+                <div className="dashboard-mini-stat-header">
                   <TrendingUp size={13} style={{ color: 'var(--credit)' }} /> {monthName} Income
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--credit)', marginTop: 4 }}>
+                <div className="dashboard-mini-stat-val" style={{ color: 'var(--credit)' }}>
                   {fmtMoney(monthIncome, currency)}
                 </div>
               </div>
 
-              <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '10px 12px' }}>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)', textTransform: 'uppercase', fontWeight: 700 }}>
-                  Friends Net
+              <div className="dashboard-mini-stat">
+                <div className="dashboard-mini-stat-header">
+                  <Users size={13} style={{ color: (overallCredit - overallDebt) >= 0 ? 'var(--credit)' : 'var(--debit)' }} /> Friends Net
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: (overallCredit - overallDebt) >= 0 ? 'var(--credit)' : 'var(--debit)', marginTop: 4 }}>
+                <div className="dashboard-mini-stat-val" style={{ color: (overallCredit - overallDebt) >= 0 ? 'var(--credit)' : 'var(--debit)' }}>
                   {(overallCredit - overallDebt) >= 0 ? '+' : ''}{fmtMoney(overallCredit - overallDebt, currency)}
                 </div>
               </div>

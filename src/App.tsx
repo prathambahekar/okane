@@ -172,11 +172,14 @@ function AppInner() {
               sx={{ 
                 color: 'text.secondary', 
                 p: 0.8, 
-                borderRadius: '8px',
-                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease',
+                borderRadius: '10px',
+                border: '1px solid var(--border)',
+                bgcolor: 'var(--surface2)',
+                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease',
                 '&:hover': {
-                  transform: 'scale(1.15) rotate(-6deg)',
+                  transform: 'scale(1.1) rotate(-4deg)',
                   bgcolor: 'action.hover',
+                  borderColor: 'var(--border2)',
                 },
                 '&:active': {
                   transform: 'scale(0.92)',
@@ -248,10 +251,14 @@ function AppInner() {
                 onClick={toggleDark}
                 sx={{ 
                   color: 'text.secondary',
-                  transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.25s ease',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border)',
+                  bgcolor: 'var(--surface2)',
+                  transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.25s ease, border-color 0.2s ease',
                   '&:hover': {
-                    transform: 'rotate(20deg) scale(1.15)',
+                    transform: 'rotate(20deg) scale(1.1)',
                     color: 'text.primary',
+                    borderColor: 'var(--border2)',
                   },
                   '&:active': {
                     transform: 'scale(0.9)',
