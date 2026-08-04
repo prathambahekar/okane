@@ -423,7 +423,7 @@ export default function Analytics() {
           {selectedDate && (
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px',
-              background: 'rgba(56, 189, 248, 0.15)', border: '1px solid var(--accent)',
+              background: 'var(--accent-soft)', border: '1px solid var(--accent)',
               borderRadius: 99, fontSize: 12, color: 'var(--accent)', fontWeight: 600,
             }}>
               <Calendar size={13} />
@@ -1024,7 +1024,7 @@ export default function Analytics() {
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span>{row.dayName}</span>
-                            {row.isToday && <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.15)', color: 'var(--accent)', fontSize: 9, padding: '1px 5px' }}>Today</span>}
+                            {row.isToday && <span className="badge" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9, padding: '1px 5px' }}>Today</span>}
                             {row.isYesterday && <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#8B5CF6', fontSize: 9, padding: '1px 5px' }}>Yest.</span>}
                           </div>
                           <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

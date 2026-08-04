@@ -442,9 +442,7 @@ function AppInner() {
                   },
                   '& .MuiSvgIcon-root, & svg': {
                     transform: 'translateY(-3px) scale(1.18)',
-                    filter: mode === 'dark'
-                      ? 'drop-shadow(0 3px 6px rgba(66, 165, 245, 0.45))'
-                      : 'drop-shadow(0 3px 6px rgba(25, 118, 210, 0.35))',
+                    filter: 'drop-shadow(0 3px 6px var(--accent-soft))',
                   },
                 },
                 '&:active .MuiSvgIcon-root, &:active svg': {
@@ -468,15 +466,11 @@ function AppInner() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: mode === 'dark'
-                      ? '0 4px 14px rgba(66, 165, 245, 0.45)'
-                      : '0 4px 12px rgba(25, 118, 210, 0.35)',
+                    boxShadow: '0 4px 14px var(--accent-soft)',
                     transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, background-color 0.2s ease',
                     '&:hover': {
                       transform: 'translateY(-3px) scale(1.1) rotate(90deg)',
-                      boxShadow: mode === 'dark'
-                        ? '0 6px 20px rgba(66, 165, 245, 0.6)'
-                        : '0 6px 18px rgba(25, 118, 210, 0.48)',
+                      boxShadow: '0 6px 20px var(--accent-soft)',
                     },
                     '&:active': {
                       transform: 'scale(0.92) rotate(90deg)',
@@ -581,13 +575,13 @@ function AppInner() {
             borderRadius: '50%',
             bgcolor: 'primary.main',
             color: 'primary.contrastText',
-            boxShadow: '0 6px 20px rgba(25, 118, 210, 0.4)',
+            boxShadow: '0 6px 20px var(--accent-soft)',
             zIndex: 1000,
             transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease',
             '&:hover': {
               bgcolor: 'primary.dark',
               transform: 'scale(1.1) rotate(10deg)',
-              boxShadow: '0 8px 25px rgba(25, 118, 210, 0.55)',
+              boxShadow: '0 8px 25px var(--accent-soft)',
             },
             '&:active': {
               transform: 'scale(0.95)',

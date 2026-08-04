@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { useColorMode } from '../theme';
+import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Download, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Download, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE } from '../db';
 import type { Category, AppDB } from '../types';
@@ -74,7 +74,7 @@ export default function Settings() {
   const [editColor, setEditColor] = useState('#F97362');
   const [editIcon, setEditIcon] = useState('other');
 
-  const { mode, toggleMode } = useColorMode();
+  const { mode, toggleMode, accent, setAccent, customColor, setCustomColor } = useColorMode();
   const isDark = mode === 'dark';
 
   const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
@@ -308,6 +308,119 @@ export default function Settings() {
               color="primary"
               inputProps={{ 'aria-label': 'dark mode toggle' }}
             />
+          </div>
+
+          <div style={{ margin: '16px 0', borderTop: '1px solid var(--border)' }} />
+
+          <div>
+            <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 4 }}>Accent Color</div>
+            <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 14 }}>
+              Choose primary theme accent color across buttons, navigation, and badges
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+              gap: 10
+            }}>
+              {ACCENT_PRESETS.map(preset => {
+                const isSelected = accent === preset.id;
+                const colorHex = isDark ? preset.swatchDark : preset.swatchLight;
+
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setAccent(preset.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                      background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <div style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      background: preset.id === 'monochrome'
+                        ? (isDark ? '#ffffff' : '#111111')
+                        : colorHex,
+                      border: preset.id === 'monochrome' && isDark ? '1px solid #555' : '1px solid rgba(0,0,0,0.12)',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+                      flexShrink: 0,
+                      display: 'grid',
+                      placeItems: 'center'
+                    }}>
+                      {isSelected && <Check size={13} style={{ color: preset.id === 'monochrome' && isDark ? '#000' : '#fff' }} />}
+                    </div>
+                    <span style={{ fontSize: 12.5, fontWeight: isSelected ? 600 : 500, color: 'var(--text)', lineHeight: 1.2 }}>
+                      {preset.name}
+                    </span>
+                  </button>
+                );
+              })}
+
+              {/* Custom option */}
+              <button
+                type="button"
+                onClick={() => setAccent('custom')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: accent === 'custom' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                  background: accent === 'custom' ? 'var(--accent-soft)' : 'var(--surface2)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  background: customColor,
+                  border: '1px solid rgba(0,0,0,0.12)',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+                  flexShrink: 0,
+                  display: 'grid',
+                  placeItems: 'center'
+                }}>
+                  {accent === 'custom' && <Check size={13} style={{ color: '#fff' }} />}
+                </div>
+                <span style={{ fontSize: 12.5, fontWeight: accent === 'custom' ? 600 : 500, color: 'var(--text)' }}>
+                  Custom Hex
+                </span>
+              </button>
+            </div>
+
+            {accent === 'custom' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+                <input
+                  type="color"
+                  value={customColor}
+                  onChange={e => setCustomColor(e.target.value)}
+                  style={{ width: 36, height: 36, padding: 0, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'none' }}
+                />
+                <input
+                  type="text"
+                  className="input"
+                  value={customColor}
+                  onChange={e => setCustomColor(e.target.value)}
+                  placeholder="#6366f1"
+                  style={{ width: 120, fontSize: 13, fontFamily: 'monospace' }}
+                />
+              </div>
+            )}
           </div>
         </div>
 

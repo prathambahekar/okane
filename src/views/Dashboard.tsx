@@ -78,7 +78,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
       </div>
 
       {/* Hero Financial Overview Header Card */}
-      <div className="card" style={{ marginBottom: 20, padding: 0, overflow: 'hidden', background: 'linear-gradient(180deg, rgba(56, 189, 248, 0.06) 0%, rgba(52, 211, 153, 0.05) 100%), var(--surface)' }}>
+      <div className="card" style={{ marginBottom: 20, padding: 0, overflow: 'hidden', background: 'linear-gradient(135deg, var(--accent-soft) 0%, transparent 85%), var(--surface)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
 
           {/* Left Column: Total Net Worth & Interactive Wallet Chips */}
@@ -242,7 +242,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                               fontWeight: 600,
                               padding: '1px 5px',
                               borderRadius: 4,
-                              background: 'rgba(56, 189, 248, 0.12)',
+                              background: 'var(--accent-soft)',
                               color: 'var(--accent)',
                               whiteSpace: 'nowrap',
                               flexShrink: 0
