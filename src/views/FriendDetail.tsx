@@ -498,7 +498,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
       )}
 
       {/* Transactions List */}
-      <div className="card" style={{ padding: 0 }}>
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '12px 18px 0', borderBottom: '1px solid var(--border)' }}>
           {(contactType === 'friend' || activeExps.length > 0 || settledExps.length > 0) ? (
             <div className="tab-list" style={{ marginBottom: 0 }}>

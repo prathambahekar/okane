@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Download, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Download, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE } from '../db';
 import type { Category, AppDB } from '../types';
@@ -76,6 +76,9 @@ export default function Settings() {
 
   const { mode, toggleMode, accent, setAccent, customColor, setCustomColor } = useColorMode();
   const isDark = mode === 'dark';
+  const [accentExpanded, setAccentExpanded] = useState(false);
+  const [categoriesListExpanded, setCategoriesListExpanded] = useState(false);
+  const [showAddCategory, setShowAddCategory] = useState(false);
 
   const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
     appName: "Okane",
@@ -157,6 +160,7 @@ export default function Settings() {
     updateSettings({ categories: [...settings.categories, { name: trimmed, color: newCatColor, icon: newCatIcon }] });
     setNewCatName('');
     setNewCatIcon('other');
+    setShowAddCategory(false);
     showToast(`Category "${trimmed}" added!`);
   };
 
@@ -313,112 +317,153 @@ export default function Settings() {
           <div style={{ margin: '16px 0', borderTop: '1px solid var(--border)' }} />
 
           <div>
-            <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 4 }}>Accent Color</div>
-            <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 14 }}>
-              Choose primary theme accent color across buttons, navigation, and badges
+            <div
+              onClick={() => setAccentExpanded(!accentExpanded)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                userSelect: 'none',
+                padding: '2px 0',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 500 }}>Accent Color</div>
+                <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>
+                  {accentExpanded
+                    ? 'Choose primary theme accent color across buttons, navigation, and badges'
+                    : 'Customize interface primary theme accent'}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {/* Active selection badge preview when collapsed/expanded */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  padding: '4px 10px',
+                  borderRadius: 20,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: 'var(--text-2)',
+                }}>
+                  <div style={{
+                    width: 13,
+                    height: 13,
+                    borderRadius: '50%',
+                    background: accent === 'custom'
+                      ? customColor
+                      : (accent === 'monochrome' ? (isDark ? '#ffffff' : '#111111') : (isDark ? ACCENT_PRESETS.find(p => p.id === accent)?.swatchDark : ACCENT_PRESETS.find(p => p.id === accent)?.swatchLight)),
+                    border: '1px solid rgba(0,0,0,0.15)',
+                    flexShrink: 0
+                  }} />
+                  <span>
+                    {accent === 'custom' ? 'Custom' : (ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic Blue')}
+                  </span>
+                </div>
+
+                <div style={{
+                  padding: 4,
+                  color: 'var(--text-3)',
+                  display: 'grid',
+                  placeItems: 'center',
+                }}>
+                  {accentExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+              </div>
             </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-              gap: 10
-            }}>
-              {ACCENT_PRESETS.map(preset => {
-                const isSelected = accent === preset.id;
-                const colorHex = isDark ? preset.swatchDark : preset.swatchLight;
+            {accentExpanded && (
+              <div style={{ marginTop: 14 }}>
+                <div className="accent-picker-grid">
+                  {ACCENT_PRESETS.map(preset => {
+                    const isSelected = accent === preset.id;
+                    const colorHex = isDark ? preset.swatchDark : preset.swatchLight;
 
-                return (
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setAccent(preset.id)}
+                        className="accent-picker-btn"
+                        style={{
+                          border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                        }}
+                      >
+                        <div style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: '50%',
+                          background: preset.id === 'monochrome'
+                            ? (isDark ? '#ffffff' : '#111111')
+                            : colorHex,
+                          border: preset.id === 'monochrome' && isDark ? '1px solid #555' : '1px solid rgba(0,0,0,0.12)',
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+                          flexShrink: 0,
+                          display: 'grid',
+                          placeItems: 'center'
+                        }}>
+                          {isSelected && <Check size={12} style={{ color: preset.id === 'monochrome' && isDark ? '#000' : '#fff' }} />}
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: isSelected ? 600 : 500, color: 'var(--text)', lineHeight: 1.2 }}>
+                          {preset.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+
+                  {/* Custom option */}
                   <button
-                    key={preset.id}
                     type="button"
-                    onClick={() => setAccent(preset.id)}
+                    onClick={() => setAccent('custom')}
+                    className="accent-picker-btn"
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '10px 12px',
-                      borderRadius: 10,
-                      border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
-                      background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.2s ease',
+                      border: accent === 'custom' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                      background: accent === 'custom' ? 'var(--accent-soft)' : 'var(--surface2)',
                     }}
                   >
                     <div style={{
-                      width: 22,
-                      height: 22,
+                      width: 20,
+                      height: 20,
                       borderRadius: '50%',
-                      background: preset.id === 'monochrome'
-                        ? (isDark ? '#ffffff' : '#111111')
-                        : colorHex,
-                      border: preset.id === 'monochrome' && isDark ? '1px solid #555' : '1px solid rgba(0,0,0,0.12)',
+                      background: customColor,
+                      border: '1px solid rgba(0,0,0,0.12)',
                       boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
                       flexShrink: 0,
                       display: 'grid',
                       placeItems: 'center'
                     }}>
-                      {isSelected && <Check size={13} style={{ color: preset.id === 'monochrome' && isDark ? '#000' : '#fff' }} />}
+                      {accent === 'custom' && <Check size={12} style={{ color: '#fff' }} />}
                     </div>
-                    <span style={{ fontSize: 12.5, fontWeight: isSelected ? 600 : 500, color: 'var(--text)', lineHeight: 1.2 }}>
-                      {preset.name}
+                    <span style={{ fontSize: 12, fontWeight: accent === 'custom' ? 600 : 500, color: 'var(--text)' }}>
+                      Custom Hex
                     </span>
                   </button>
-                );
-              })}
-
-              {/* Custom option */}
-              <button
-                type="button"
-                onClick={() => setAccent('custom')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: accent === 'custom' ? '2px solid var(--accent)' : '1px solid var(--border)',
-                  background: accent === 'custom' ? 'var(--accent-soft)' : 'var(--surface2)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <div style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
-                  background: customColor,
-                  border: '1px solid rgba(0,0,0,0.12)',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
-                  flexShrink: 0,
-                  display: 'grid',
-                  placeItems: 'center'
-                }}>
-                  {accent === 'custom' && <Check size={13} style={{ color: '#fff' }} />}
                 </div>
-                <span style={{ fontSize: 12.5, fontWeight: accent === 'custom' ? 600 : 500, color: 'var(--text)' }}>
-                  Custom Hex
-                </span>
-              </button>
-            </div>
 
-            {accent === 'custom' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
-                <input
-                  type="color"
-                  value={customColor}
-                  onChange={e => setCustomColor(e.target.value)}
-                  style={{ width: 36, height: 36, padding: 0, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'none' }}
-                />
-                <input
-                  type="text"
-                  className="input"
-                  value={customColor}
-                  onChange={e => setCustomColor(e.target.value)}
-                  placeholder="#6366f1"
-                  style={{ width: 120, fontSize: 13, fontFamily: 'monospace' }}
-                />
+                {accent === 'custom' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+                    <input
+                      type="color"
+                      value={customColor}
+                      onChange={e => setCustomColor(e.target.value)}
+                      style={{ width: 36, height: 36, padding: 0, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'none' }}
+                    />
+                    <input
+                      type="text"
+                      className="input"
+                      value={customColor}
+                      onChange={e => setCustomColor(e.target.value)}
+                      placeholder="#6366f1"
+                      style={{ width: 120, fontSize: 13, fontFamily: 'monospace' }}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -584,7 +629,7 @@ export default function Settings() {
 
           {/* Chips Grid */}
           <div className="category-chip-list">
-            {settings.categories.map((c: Category) => {
+            {(categoriesListExpanded ? settings.categories : settings.categories.slice(0, 5)).map((c: Category) => {
               const bgTint = c.color.startsWith('#') && c.color.length === 7 ? `${c.color}20` : 'var(--accent-soft)';
               return (
                 <div key={c.name} className="category-chip">
@@ -625,64 +670,129 @@ export default function Settings() {
                 </div>
               );
             })}
+
+            {!categoriesListExpanded && settings.categories.length > 5 && (
+              <button
+                type="button"
+                className="category-chip"
+                onClick={() => setCategoriesListExpanded(true)}
+                style={{
+                  background: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  borderColor: 'var(--accent)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: '6px 12px',
+                }}
+              >
+                +{settings.categories.length - 5} more...
+              </button>
+            )}
           </div>
 
-          {/* Add Category Section */}
-          <div className="category-add-box">
-            <div className="category-add-header">Add New Category</div>
-            <div className="category-add-form" style={{ gridTemplateColumns: '1fr', gap: 16 }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontSize: 11.5 }}>Category Name</label>
-                <input
-                  className="form-input"
-                  value={newCatName}
-                  onChange={e => setNewCatName(e.target.value)}
-                  placeholder="e.g. Subscriptions, Fuel, Food..."
-                  onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontSize: 11.5 }}>Color Tag</label>
-                <ColorPickerSection color={newCatColor} onChangeColor={setNewCatColor} />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontSize: 11.5 }}>Category Icon</label>
-                <div className="category-icon-picker">
-                  {AVAILABLE_ICONS.map(({ id, label, Icon }) => {
-                    const isSelected = newCatIcon === id;
-                    const bgStyle = isSelected
-                      ? (newCatColor.startsWith('#') && newCatColor.length === 7 ? `${newCatColor}20` : 'var(--accent-soft)')
-                      : undefined;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        className={`icon-picker-btn ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setNewCatIcon(id)}
-                        title={label}
-                        style={{
-                          color: isSelected ? newCatColor : 'var(--text-2)',
-                          borderColor: isSelected ? newCatColor : undefined,
-                          background: bgStyle,
-                        }}
-                      >
-                        <Icon size={16} />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
+          {settings.categories.length > 5 && (
+            <div style={{ textAlign: 'center', marginTop: -6, marginBottom: 14 }}>
               <button
-                className="btn btn-primary"
-                onClick={handleAddCategory}
-                style={{ padding: '9px 16px', gap: 6, justifyContent: 'center', justifySelf: 'start', marginTop: 4 }}
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setCategoriesListExpanded(!categoriesListExpanded)}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--accent)',
+                  gap: 6,
+                  padding: '4px 12px',
+                  margin: '0 auto',
+                  borderRadius: 20,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)'
+                }}
               >
-                <Plus size={18} /> Add Category
+                {categoriesListExpanded ? (
+                  <>Show Less <ChevronUp size={14} /></>
+                ) : (
+                  <>Show All ({settings.categories.length} categories) <ChevronDown size={14} /></>
+                )}
               </button>
             </div>
+          )}
+
+          {/* Add Category Section */}
+          <div className="category-add-box" style={{ marginTop: 12 }}>
+            <div
+              onClick={() => setShowAddCategory(!showAddCategory)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13 }}>
+                <Plus size={16} style={{ color: 'var(--accent)' }} />
+                <span>Add New Category</span>
+              </div>
+              <div style={{ color: 'var(--text-3)', display: 'grid', placeItems: 'center' }}>
+                {showAddCategory ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </div>
+            </div>
+
+            {showAddCategory && (
+              <div className="category-add-form" style={{ gridTemplateColumns: '1fr', gap: 16, marginTop: 14 }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: 11.5 }}>Category Name</label>
+                  <input
+                    className="form-input"
+                    value={newCatName}
+                    onChange={e => setNewCatName(e.target.value)}
+                    placeholder="e.g. Subscriptions, Fuel, Food..."
+                    onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: 11.5 }}>Color Tag</label>
+                  <ColorPickerSection color={newCatColor} onChangeColor={setNewCatColor} />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: 11.5 }}>Category Icon</label>
+                  <div className="category-icon-picker">
+                    {AVAILABLE_ICONS.map(({ id, label, Icon }) => {
+                      const isSelected = newCatIcon === id;
+                      const bgStyle = isSelected
+                        ? (newCatColor.startsWith('#') && newCatColor.length === 7 ? `${newCatColor}20` : 'var(--accent-soft)')
+                        : undefined;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          className={`icon-picker-btn ${isSelected ? 'selected' : ''}`}
+                          onClick={() => setNewCatIcon(id)}
+                          title={label}
+                          style={{
+                            color: isSelected ? newCatColor : 'var(--text-2)',
+                            borderColor: isSelected ? newCatColor : undefined,
+                            background: bgStyle,
+                          }}
+                        >
+                          <Icon size={16} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <button
+                  className="btn btn-primary"
+                  onClick={handleAddCategory}
+                  style={{ padding: '9px 16px', gap: 6, justifyContent: 'center', justifySelf: 'start', marginTop: 4 }}
+                >
+                  <Plus size={18} /> Add Category
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

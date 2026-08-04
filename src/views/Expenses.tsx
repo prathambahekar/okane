@@ -187,7 +187,7 @@ export default function Expenses() {
         )}
       </div>
 
-      <div className="card" style={{ padding: 0 }}>
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {filtered.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon"><ReceiptText size={36} /></div>
@@ -458,7 +458,7 @@ export default function Expenses() {
                               borderRadius: 10,
                               fontSize: 10,
                               fontWeight: 600,
-                              background: 'rgba(56, 189, 248, 0.12)',
+                              background: 'var(--accent-soft)',
                               color: 'var(--accent)'
                             }}>
                               <Users size={11} /> Split

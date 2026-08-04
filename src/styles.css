@@ -1510,6 +1510,8 @@ table.desktop-only { display: table !important; }
 .mobile-expense-list {
   display: flex;
   flex-direction: column;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
 .mobile-expense-card {
@@ -1597,7 +1599,7 @@ table.desktop-only { display: table !important; }
 .mobile-expense-details {
   padding: 12px 14px 14px;
   border-top: 1px dashed var(--border2);
-  background: var(--surface);
+  background: transparent;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2203,7 +2205,7 @@ table.desktop-only { display: table !important; }
 }
 
 .data-table tr.date-row-odd {
-  background-color: rgba(25, 118, 210, 0.04);
+  background-color: var(--surface2);
 }
 
 [data-color-scheme="dark"] .data-table tr.date-row-odd {
@@ -2221,7 +2223,7 @@ table.desktop-only { display: table !important; }
 }
 
 .mobile-expense-card.date-card-odd {
-  background: rgba(25, 118, 210, 0.04);
+  background: var(--surface2);
 }
 
 [data-color-scheme="dark"] .mobile-expense-card.date-card-odd {
@@ -2229,7 +2231,7 @@ table.desktop-only { display: table !important; }
 }
 
 .mobile-expense-card.date-card-first:not(:first-child) {
-  margin-top: 6px;
+  margin-top: 0;
 }
 
 /* Monthly Spending Trend Responsive Styles */
@@ -2333,6 +2335,47 @@ table.desktop-only { display: table !important; }
     border: 1px solid var(--border);
   }
 }
+
+.accent-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .accent-picker-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+}
+
+.accent-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+@media (max-width: 600px) {
+  .accent-picker-btn {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .category-chip-list {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .category-chip {
+    padding: 5px 10px;
+    font-size: 12px;
+    gap: 6px;
+  }
+}
+
 
 
 
