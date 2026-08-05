@@ -587,7 +587,7 @@ function AppInner() {
               transform: 'scale(0.95)',
             }
           }}
-          title="Ask Max AI Assistant"
+          title="Ask Max Assistant"
         >
           <Sparkles size={24} />
         </IconButton>

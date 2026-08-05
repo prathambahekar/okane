@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Handshake, Search, ChevronDown, ChevronUp, MoreVertical, User, Users, Store, Tv, ArrowUpRight, ArrowUpDown, LayoutGrid, List, SlidersHorizontal, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Handshake, Search, ChevronDown, ChevronUp, MoreVertical, User, Users, Store, Tv, ArrowUpDown, LayoutGrid, List, SlidersHorizontal, X } from 'lucide-react';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -545,11 +545,11 @@ export default function Friends({ onNavigate }: Props) {
                   <div>
                     {fType === 'friend' ? (
                       isOwed ? (
-                        <span style={{ background: 'rgba(34, 197, 94, 0.12)', color: 'var(--credit)', border: '1px solid rgba(34, 197, 94, 0.25)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
+                        <span style={{ background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
                           Owes {fmtMoney(Math.abs(bal.net), currency)}
                         </span>
                       ) : isDebt ? (
-                        <span style={{ background: 'rgba(239, 68, 68, 0.12)', color: 'var(--debit)', border: '1px solid rgba(239, 68, 68, 0.25)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
+                        <span style={{ background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
                           You owe {fmtMoney(Math.abs(bal.net), currency)}
                         </span>
                       ) : (
@@ -573,9 +573,10 @@ export default function Friends({ onNavigate }: Props) {
                           e.stopPropagation();
                           setSettleFriend(f);
                         }}
-                        style={{ padding: '3px 8px', fontSize: 11, color: 'var(--credit)', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', gap: 3, borderRadius: 6 }}
+                        style={{ padding: '3px 7px', fontSize: 11, color: 'var(--credit)', background: 'var(--credit-bg)', border: '1px solid var(--credit-border)', gap: 3, borderRadius: 6 }}
+                        title="Settle Up"
                       >
-                        <Handshake size={12} /> Settle
+                        <Handshake size={12} />
                       </button>
                     )}
                     <button
@@ -616,14 +617,14 @@ export default function Friends({ onNavigate }: Props) {
                 onClick={() => onNavigate('friend-detail', f.id)}
               >
                 {/* Contact Avatar & Name */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
                   <div
                     className="avatar"
                     style={{
                       background: f.color || '#3B82F6',
-                      width: density === 'compact' ? 32 : 38,
-                      height: density === 'compact' ? 32 : 38,
-                      fontSize: density === 'compact' ? 12 : 14,
+                      width: density === 'compact' ? 32 : 36,
+                      height: density === 'compact' ? 32 : 36,
+                      fontSize: density === 'compact' ? 12 : 13.5,
                       fontWeight: 700,
                       flexShrink: 0,
                       display: 'flex',
@@ -636,7 +637,7 @@ export default function Friends({ onNavigate }: Props) {
 
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                      <span style={{ fontWeight: 600, fontSize: density === 'compact' ? 13.5 : 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 600, fontSize: density === 'compact' ? 13 : 13.5, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {f.name}
                       </span>
                       {typeFilter !== fType && fType !== 'friend' && (
@@ -647,7 +648,7 @@ export default function Friends({ onNavigate }: Props) {
                     </div>
 
                     {density === 'detailed' && (
-                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {fType === 'friend' ? (
                           <>
                             {contactExpenses.length} expense{contactExpenses.length !== 1 ? 's' : ''}
@@ -664,57 +665,26 @@ export default function Friends({ onNavigate }: Props) {
                 </div>
 
                 {/* Status Badge & Quick Action Buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                   {fType === 'friend' ? (
                     isOwed ? (
-                      <span style={{ background: 'rgba(34, 197, 94, 0.12)', color: 'var(--credit)', border: '1px solid rgba(34, 197, 94, 0.25)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                      <span style={{ background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', fontWeight: 600, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
                         Owes {fmtMoney(Math.abs(bal.net), currency)}
                       </span>
                     ) : isDebt ? (
-                      <span style={{ background: 'rgba(239, 68, 68, 0.12)', color: 'var(--debit)', border: '1px solid rgba(239, 68, 68, 0.25)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                      <span style={{ background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)', fontWeight: 600, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
                         You owe {fmtMoney(Math.abs(bal.net), currency)}
                       </span>
                     ) : (
-                      <span style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)', fontWeight: 500, fontSize: 11, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                      <span style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)', fontWeight: 500, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
                         Settled Up ✓
                       </span>
                     )
                   ) : (
-                    <span style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                    <span style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)', fontWeight: 600, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
                       {fmtMoney(totalSpent, currency)}
                     </span>
                   )}
-
-                  {/* Settle Up Action Button if unsettled */}
-                  {fType === 'friend' && unsettledCount > 0 && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSettleFriend(f);
-                      }}
-                      style={{ padding: '3px 7px', fontSize: 11, color: 'var(--credit)', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)', gap: 3, borderRadius: 6 }}
-                      title="Settle Up"
-                    >
-                      <Handshake size={13} />
-                      <span className="hide-on-mobile">Settle</span>
-                    </button>
-                  )}
-
-                  {/* Add Expense Quick Action */}
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setAddExpFriend(f);
-                    }}
-                    style={{ padding: '3px 7px', fontSize: 11, gap: 3, borderRadius: 6 }}
-                    title="Add Expense"
-                  >
-                    <Plus size={13} />
-                  </button>
 
                   {/* Three-Dot Overflow Menu */}
                   <IconButton
@@ -723,12 +693,10 @@ export default function Friends({ onNavigate }: Props) {
                       e.stopPropagation();
                       handleMenuOpen(e, f);
                     }}
-                    sx={{ color: 'text.secondary', p: 0.5 }}
+                    sx={{ color: 'text.secondary', p: 0.25 }}
                   >
                     <MoreVertical size={16} />
                   </IconButton>
-
-                  <ArrowUpRight size={14} style={{ color: 'var(--text-3)' }} />
                 </div>
               </div>
             );

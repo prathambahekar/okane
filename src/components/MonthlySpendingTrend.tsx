@@ -491,13 +491,13 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
               className="filter-pill-select"
               value={comparisonBaseline}
               onChange={(e) => setComparisonBaseline(e.target.value as 'prev_month' | 'prev_year' | 'avg_month')}
-              style={{ color: '#a855f7', borderColor: 'rgba(168, 85, 247, 0.25)' }}
+              style={{ color: 'var(--accent)', borderColor: 'var(--accent-soft)' }}
             >
               <option value="prev_month">vs Prev Month</option>
               <option value="prev_year">vs Prev Year</option>
               <option value="avg_month">vs Avg Month</option>
             </select>
-            <ChevronDown size={13} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#a855f7' }} />
+            <ChevronDown size={13} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--accent)' }} />
           </div>
         )}
 

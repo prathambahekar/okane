@@ -109,45 +109,50 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
       <div
         className="card"
         style={{
-          padding: '18px 20px',
+          padding: '16px 18px',
           marginBottom: 16,
-          background: 'var(--surface)',
+          background: 'var(--accent-gradient-soft), var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: 8,
+          borderRadius: 12,
+          boxShadow: '0 4px 16px -4px var(--accent-soft)',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
           <div
             className="avatar"
             style={{
-              background: friend.color || '#3B82F6',
-              width: 50,
-              height: 50,
-              fontSize: 20,
+              background: friend.color || 'var(--accent)',
+              width: 44,
+              height: 44,
+              fontSize: 18,
               fontWeight: 700,
               flexShrink: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              borderRadius: 10,
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
             }}
           >
             {contactType === 'subscription' ? (
-              renderBrandLogo(friend.name, 26) || <Tv size={24} />
+              renderBrandLogo(friend.name, 22) || <Tv size={20} />
             ) : contactType === 'vendor' ? (
-              <Store size={24} />
+              <Store size={20} />
             ) : (
               friendInitial(friend.name)
             )}
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{friend.name}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{friend.name}</h2>
               <span
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 10,
                   fontWeight: 600,
-                  padding: '2px 8px',
+                  padding: '2px 7px',
                   borderRadius: 4,
                   textTransform: 'uppercase',
                   letterSpacing: '0.4px',
@@ -155,13 +160,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     contactType === 'vendor'
                       ? 'rgba(245, 158, 11, 0.15)'
                       : contactType === 'subscription'
-                      ? 'rgba(168, 85, 247, 0.15)'
-                      : 'rgba(59, 130, 246, 0.15)',
+                      ? 'var(--accent-soft)'
+                      : 'var(--accent-soft)',
                   color:
                     contactType === 'vendor'
                       ? '#D97706'
                       : contactType === 'subscription'
-                      ? '#9333EA'
+                      ? 'var(--accent)'
                       : 'var(--accent)',
                 }}
               >
@@ -170,7 +175,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             </div>
 
             {(friend.email || friend.phone || friend.website) && (
-              <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 {friend.email && <span>{friend.email}</span>}
                 {friend.phone && <span>· {friend.phone}</span>}
                 {friend.website && (
@@ -180,13 +185,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     rel="noreferrer"
                     style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: 2 }}
                   >
-                    <span>Website</span> <ExternalLink size={12} />
+                    <span>Website</span> <ExternalLink size={11} />
                   </a>
                 )}
               </div>
             )}
             {friend.notes && (
-              <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, fontStyle: 'italic' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, fontStyle: 'italic' }}>
                 {friend.notes}
               </div>
             )}
@@ -199,47 +204,47 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           <div
             style={{
               background: bal.net > 0.004
-                ? 'rgba(34, 197, 94, 0.08)'
+                ? 'var(--credit-bg)'
                 : bal.net < -0.004
-                  ? 'rgba(239, 68, 68, 0.08)'
+                  ? 'var(--debit-bg)'
                   : 'var(--surface2)',
               border: `1px solid ${bal.net > 0.004
-                ? 'rgba(34, 197, 94, 0.22)'
+                ? 'var(--credit-border)'
                 : bal.net < -0.004
-                  ? 'rgba(239, 68, 68, 0.22)'
-                  : 'var(--border2)'
+                  ? 'var(--debit-border)'
+                  : 'var(--border)'
                 }`,
-              borderRadius: 8,
-              padding: '14px 16px',
-              marginBottom: 16,
+              borderRadius: 'var(--radius-sm, 8px)',
+              padding: '8px 12px',
+              marginBottom: 12,
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: 12,
+              gap: 8,
             }}
           >
             <div>
-              <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)' }}>
+              <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)' }}>
                 Net Balance Status
               </span>
-              <div style={{ fontSize: 24, fontWeight: 700, color: bal.net > 0.004 ? 'var(--credit)' : bal.net < -0.004 ? 'var(--debit)' : 'var(--text-2)', marginTop: 2 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: bal.net > 0.004 ? 'var(--credit)' : bal.net < -0.004 ? 'var(--debit)' : 'var(--text-2)', marginTop: 0 }}>
                 {bal.net > 0.004 ? fmtMoney(bal.net, currency) : bal.net < -0.004 ? fmtMoney(Math.abs(bal.net), currency) : 'Settled Up ✓'}
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 0 }}>
                 {bal.net > 0.004 ? `${friend.name} owes you in total` : bal.net < -0.004 ? `You owe ${friend.name} in total` : 'All shared bills are settled'}
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>Owes You</div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--credit)', marginTop: 1 }}>{fmtMoney(bal.owedToMe, currency)}</div>
+                <div style={{ fontSize: 9, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>Owes You</div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--credit)', marginTop: 1 }}>{fmtMoney(bal.owedToMe, currency)}</div>
               </div>
-              <div style={{ width: 1, background: 'var(--border)', height: 26 }} />
+              <div style={{ width: 1, background: 'var(--border)', height: 20 }} />
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: 10, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>You Owe</div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--debit)', marginTop: 1 }}>{fmtMoney(bal.owedByMe, currency)}</div>
+                <div style={{ fontSize: 9, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>You Owe</div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--debit)', marginTop: 1 }}>{fmtMoney(bal.owedByMe, currency)}</div>
               </div>
             </div>
           </div>
@@ -249,25 +254,25 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             {Math.abs(bal.net) > 0.004 && (
               <div
                 style={{
-                  background: bal.net > 0.004 ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                  border: `1px solid ${bal.net > 0.004 ? 'rgba(34, 197, 94, 0.22)' : 'rgba(239, 68, 68, 0.22)'}`,
-                  borderRadius: 8,
-                  padding: '12px 16px',
-                  marginBottom: 12,
+                  background: bal.net > 0.004 ? 'var(--credit-bg)' : 'var(--debit-bg)',
+                  border: `1px solid ${bal.net > 0.004 ? 'var(--credit-border)' : 'var(--debit-border)'}`,
+                  borderRadius: 'var(--radius-sm, 8px)',
+                  padding: '8px 12px',
+                  marginBottom: 10,
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}
               >
                 <div>
-                  <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>
+                  <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>
                     Outstanding Balance
                   </span>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: bal.net > 0.004 ? 'var(--credit)' : 'var(--debit)', marginTop: 2 }}>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: bal.net > 0.004 ? 'var(--credit)' : 'var(--debit)', marginTop: 0 }}>
                     {bal.net > 0.004 ? fmtMoney(bal.net, currency) : fmtMoney(Math.abs(bal.net), currency)}
                   </div>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: bal.net > 0.004 ? 'var(--credit)' : 'var(--debit)' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: bal.net > 0.004 ? 'var(--credit)' : 'var(--debit)' }}>
                   {bal.net > 0.004 ? 'Owes You' : 'You Owe Vendor'}
                 </div>
               </div>
@@ -276,39 +281,39 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
               style={{
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
-                borderRadius: 8,
-                padding: '14px 16px',
-                marginBottom: 16,
+                borderRadius: 'var(--radius-sm, 8px)',
+                padding: '10px 14px',
+                marginBottom: 12,
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                gap: 12,
+                gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+                gap: 10,
               }}
             >
               <div>
-                <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Spent</span>
-                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginTop: 2 }}>
+                <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Spent</span>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
                   {fmtMoney(totalSpent, currency)}
                 </div>
               </div>
 
               <div>
-                <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Orders</span>
-                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginTop: 2 }}>
+                <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Orders</span>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
                   {allExps.length}
                 </div>
               </div>
 
               <div>
-                <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Avg / Order</span>
-                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginTop: 2 }}>
+                <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Avg / Order</span>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
                   {fmtMoney(avgOrderVal, currency)}
                 </div>
               </div>
 
               <div>
-                <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Category</span>
-                <div style={{ marginTop: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Category</span>
+                <div style={{ marginTop: 2 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: 'var(--surface)', border: '1px solid var(--border)' }}>
                     {friend.category || 'General'}
                   </span>
                 </div>
@@ -319,63 +324,87 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           /* Subscription Hero Stats Box */
           <div
             style={{
-              background: 'rgba(168, 85, 247, 0.06)',
-              border: '1px solid rgba(168, 85, 247, 0.2)',
-              borderRadius: 8,
-              padding: '14px 16px',
-              marginBottom: 16,
+              background: 'var(--accent-soft)',
+              border: '1px solid var(--accent)',
+              borderRadius: 'var(--radius-sm, 8px)',
+              padding: '10px 14px',
+              marginBottom: 12,
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-              gap: 12,
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: 10,
             }}
           >
             <div>
-              <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Plan Cost</span>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#9333EA', marginTop: 2 }}>
-                {friend.defaultAmount ? fmtMoney(friend.defaultAmount, currency) : 'Flexible'} <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-3)' }}>/ {friend.billingCycle || 'mo'}</span>
+              <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Plan Cost</span>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', marginTop: 1 }}>
+                {friend.defaultAmount ? fmtMoney(friend.defaultAmount, currency) : 'Flexible'} <span style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--text-3)' }}>/ {friend.billingCycle || 'mo'}</span>
               </div>
             </div>
 
             <div>
-              <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Lifetime Spend</span>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginTop: 2 }}>
+              <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Lifetime Spend</span>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
                 {fmtMoney(totalSpent, currency)}
               </div>
             </div>
 
             <div>
-              <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Payments</span>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-1)', marginTop: 2 }}>
+              <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Payments</span>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
                 {allExps.length}
               </div>
             </div>
           </div>
         )}
 
-        {/* Primary Action Buttons */}
+        {/* Primary Action Buttons with Accent Gradient & Compact Design */}
         <div style={{ display: 'flex', gap: 10 }}>
           <button
-            className="btn btn-primary"
-            style={{ flex: 1, padding: '9px 14px', fontSize: 13, gap: 6, justifyContent: 'center' }}
+            style={{
+              flex: 1,
+              padding: '9px 12px',
+              fontSize: 12.5,
+              fontWeight: 600,
+              gap: 5,
+              justifyContent: 'center',
+              display: 'inline-flex',
+              alignItems: 'center',
+              borderRadius: 'var(--radius, 12px)',
+              border: 'none',
+              background: 'var(--accent-gradient)',
+              color: 'var(--accent-contrast, #ffffff)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 10px var(--accent-soft)',
+              transition: 'opacity 0.15s ease',
+            }}
             onClick={() => setShowAddExp(true)}
           >
-            <Plus size={16} /> {contactType === 'vendor' ? 'Log Vendor Purchase' : contactType === 'subscription' ? 'Log Subscription Payment' : 'Add Shared Expense'}
+            <Plus size={15} /> {contactType === 'vendor' ? 'Log Purchase' : contactType === 'subscription' ? 'Log Payment' : 'Add Expense'}
           </button>
 
           {activeExps.length > 0 && (
             <button
-              className="btn btn-primary"
               style={{
                 flex: 1,
-                padding: '9px 14px',
-                fontSize: 13,
-                gap: 6,
+                padding: '9px 12px',
+                fontSize: 12.5,
+                fontWeight: 600,
+                gap: 5,
                 justifyContent: 'center',
-                background: 'linear-gradient(135deg, #2e7d32, #1b5e20)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                borderRadius: 'var(--radius, 12px)',
+                border: '1px solid var(--credit-border)',
+                background: 'var(--credit-bg)',
+                color: 'var(--credit)',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
               }}
               onClick={() => setShowSettle(true)}
             >
-              <Handshake size={16} /> Settle Up
+              <Handshake size={15} /> Settle Up
             </button>
           )}
         </div>
@@ -499,18 +528,18 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
       {/* Transactions List */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '12px 18px 0', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
           {(contactType === 'friend' || activeExps.length > 0 || settledExps.length > 0) ? (
-            <div className="tab-list" style={{ marginBottom: 0 }}>
-              <button className={`tab-btn ${tab === 'active' ? 'active' : ''}`} onClick={() => setTab('active')}>
+            <div className="tab-list" style={{ marginBottom: 0, padding: 4, background: 'var(--surface2)', borderRadius: 10 }}>
+              <button className={`tab-btn ${tab === 'active' ? 'active' : ''}`} onClick={() => setTab('active')} style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
                 Active ({activeExps.length})
               </button>
-              <button className={`tab-btn ${tab === 'settled' ? 'active' : ''}`} onClick={() => setTab('settled')}>
+              <button className={`tab-btn ${tab === 'settled' ? 'active' : ''}`} onClick={() => setTab('settled')} style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
                 Settled ({settledExps.length})
               </button>
             </div>
           ) : (
-            <div style={{ fontWeight: 600, fontSize: 14, paddingBottom: 10 }}>
+            <div style={{ fontWeight: 600, fontSize: 14, padding: '2px 0' }}>
               Payment & Order History ({allExps.length})
             </div>
           )}

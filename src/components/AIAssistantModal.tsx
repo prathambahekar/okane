@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Dialog from '@mui/material/Dialog';
+import Fade from '@mui/material/Fade';
+import type { TransitionProps } from '@mui/material/transitions';
 import SwipeableDrawer from '@mui/material/SwipeableDrawer';
+
+const ModalFadeTransition = React.forwardRef(function Transition(
+  props: TransitionProps & {
+    children: React.ReactElement;
+  },
+  ref: React.Ref<unknown>,
+) {
+  return <Fade ref={ref} {...props} timeout={180} />;
+});
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
@@ -22,7 +33,6 @@ import Tooltip from '@mui/material/Tooltip';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
 import {
   Mic,
   MicOff,
@@ -138,8 +148,7 @@ interface AIAssistantModalProps {
 }
 
 export default function AIAssistantModal({ open, onClose }: AIAssistantModalProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery('(max-width: 640px)');
 
   const { db, addExpense, addFriend, showToast } = useStore();
   const [inputText, setInputText] = useState('');
@@ -589,7 +598,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         friendId: resolvedFriends[0] ? resolvedFriends[0].id : null,
         walletId: itemWalletId,
         status: 'paid',
-        notes: activeDraft.notes || 'Added via Max AI',
+        notes: activeDraft.notes || 'Added via Max',
       });
       showToast(`Recorded Income: ${itemDesc} (${currencySymbol(currency)}${totalAmt})`);
     } else if (mode === 'equal_split' || mode === 'custom_split') {
@@ -692,7 +701,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         friendId: null,
         walletId: itemWalletId,
         status: 'paid',
-        notes: activeDraft.notes || 'Added via Max AI',
+        notes: activeDraft.notes || 'Added via Max',
       });
       showToast(`Added ${itemDesc} (${currencySymbol(currency)}${totalAmt})`);
     }
@@ -738,37 +747,32 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             width: 38,
             height: 38,
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))',
-            color: 'var(--accent-contrast)',
+            background: 'var(--accent-gradient)',
+            color: 'var(--accent-contrast, #ffffff)',
             display: 'grid',
             placeItems: 'center',
             boxShadow: '0 4px 12px var(--accent-soft)',
           }}
         >
-          <Sparkles size={20} />
+          <Sparkles size={20} color="#ffffff" />
         </Box>
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.01em', color: 'var(--text)' }}>
-              Max AI
-            </Typography>
-            <Chip
-              label="Financial Assistant"
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: '10px',
-                fontWeight: 600,
-                bgcolor: 'var(--accent-soft)',
-                color: 'var(--accent)',
-                borderRadius: '99px',
-                px: 0.5,
-              }}
-            />
-          </Box>
-          <Typography variant="caption" sx={{ color: 'var(--text-2)', fontSize: '11.5px', display: 'block' }}>
-            Voice or text expense logger
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.01em', color: 'var(--text)' }}>
+            Max
           </Typography>
+          <Chip
+            label="Financial Assistant"
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: '10px',
+              fontWeight: 600,
+              bgcolor: 'var(--accent-soft)',
+              color: 'var(--accent)',
+              borderRadius: '99px',
+              px: 0.5,
+            }}
+          />
         </Box>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -790,9 +794,9 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             userSelect: 'none',
             fontSize: '11px',
             fontWeight: 600,
-            bgcolor: aiEngineMode === 'offline' ? 'rgba(34, 197, 94, 0.12)' : 'var(--accent-soft)',
-            color: aiEngineMode === 'offline' ? '#16a34a' : 'var(--accent)',
-            border: `1px solid ${aiEngineMode === 'offline' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+            bgcolor: aiEngineMode === 'offline' ? 'var(--credit-bg)' : 'var(--accent-soft)',
+            color: aiEngineMode === 'offline' ? 'var(--credit)' : 'var(--accent)',
+            border: `1px solid ${aiEngineMode === 'offline' ? 'var(--credit-border)' : 'var(--accent-soft)'}`,
             transition: 'all 0.15s ease',
             '&:hover': {
               opacity: 0.9,
@@ -856,14 +860,16 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   width: 32,
                   height: 32,
                   borderRadius: '10px',
-                  bgcolor: 'var(--accent-soft)',
+                  background: 'var(--accent-gradient)',
+                  color: '#ffffff',
                   display: 'grid',
                   placeItems: 'center',
                   flexShrink: 0,
                   mt: 0.25,
+                  boxShadow: '0 2px 6px var(--accent-soft)',
                 }}
               >
-                <Sparkles size={16} color="var(--accent)" />
+                <Sparkles size={16} color="#ffffff" />
               </Box>
             )}
 
@@ -932,12 +938,12 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   px: 2,
                   py: 1.25,
                   borderRadius: m.sender === 'user' ? '18px 18px 6px 18px' : '18px 18px 18px 6px',
-                  bgcolor: m.sender === 'user' ? 'var(--accent)' : 'var(--surface)',
+                  background: m.sender === 'user' ? 'var(--accent-gradient)' : 'var(--surface)',
                   color: m.sender === 'user' ? '#ffffff' : 'var(--text)',
                   maxWidth: { xs: '90%', sm: '82%' },
                   whiteSpace: 'pre-line',
                   border: '1px solid',
-                  borderColor: m.sender === 'user' ? 'var(--accent)' : 'var(--border)',
+                  borderColor: m.sender === 'user' ? 'transparent' : 'var(--border)',
                   boxShadow: m.sender === 'bot' ? 'var(--shadow)' : '0 2px 8px var(--accent-soft)',
                 }}
               >
@@ -953,7 +959,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   width: 32,
                   height: 32,
                   borderRadius: '10px',
-                  bgcolor: 'var(--accent)',
+                  background: 'var(--accent-gradient)',
                   color: '#ffffff',
                   display: 'grid',
                   placeItems: 'center',
@@ -1607,12 +1613,21 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         onClose={onClose}
         onOpen={() => {}}
         disableSwipeToOpen
+        slotProps={{
+          backdrop: {
+            sx: {
+              backdropFilter: 'blur(6px)',
+              backgroundColor: 'rgba(17,17,17,0.55)',
+              animation: 'fadein 0.15s ease',
+            },
+          },
+        }}
         PaperProps={{
           sx: {
-            borderTopLeftRadius: '24px',
-            borderTopRightRadius: '24px',
-            height: '90vh',
-            maxHeight: '90vh',
+            borderTopLeftRadius: '20px',
+            borderTopRightRadius: '20px',
+            height: '88vh',
+            maxHeight: '88vh',
             width: '100vw',
             display: 'flex',
             flexDirection: 'column',
@@ -1621,7 +1636,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             borderTop: '1px solid',
             borderColor: 'var(--border2)',
             transform: dragOffsetY > 0 ? `translateY(${dragOffsetY}px) !important` : undefined,
-            transition: dragOffsetY > 0 ? 'none !important' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important',
+            transition: dragOffsetY > 0 ? 'none !important' : undefined,
           },
         }}
       >
@@ -1666,36 +1681,31 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   height: 38,
                   borderRadius: '12px',
                   background: 'var(--accent-gradient)',
-                  color: 'var(--accent-contrast)',
+                  color: '#ffffff',
                   display: 'grid',
                   placeItems: 'center',
                   boxShadow: '0 4px 12px var(--accent-soft)',
                 }}
               >
-                <Sparkles size={20} />
+                <Sparkles size={20} color="#ffffff" />
               </Box>
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.01em', color: 'var(--text)' }}>
-                    Max AI
-                  </Typography>
-                  <Chip
-                    label="Financial Assistant"
-                    size="small"
-                    sx={{
-                      height: 20,
-                      fontSize: '10px',
-                      fontWeight: 600,
-                      bgcolor: 'var(--accent-soft)',
-                      color: 'var(--accent)',
-                      borderRadius: '99px',
-                      px: 0.5,
-                    }}
-                  />
-                </Box>
-                <Typography variant="caption" sx={{ color: 'var(--text-2)', fontSize: '11.5px', display: 'block' }}>
-                  Voice or text expense logger
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.01em', color: 'var(--text)' }}>
+                  Max
                 </Typography>
+                <Chip
+                  label="Financial Assistant"
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    bgcolor: 'var(--accent-soft)',
+                    color: 'var(--accent)',
+                    borderRadius: '99px',
+                    px: 0.5,
+                  }}
+                />
               </Box>
             </Box>
             <IconButton size="small" onClick={onClose} sx={{ color: 'var(--text-2)', p: 0.75, borderRadius: '50%', '&:hover': { bgcolor: 'var(--surface2)', color: 'var(--text)' } }}>
@@ -1713,11 +1723,21 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     <Dialog
       open={open}
       onClose={onClose}
+      TransitionComponent={ModalFadeTransition}
       maxWidth="md"
       fullWidth
+      slotProps={{
+        backdrop: {
+          sx: {
+            backdropFilter: 'blur(6px)',
+            backgroundColor: 'rgba(17,17,17,0.55)',
+            animation: 'fadein 0.15s ease',
+          },
+        },
+      }}
       PaperProps={{
         sx: {
-          borderRadius: '14px',
+          borderRadius: '16px',
           overflow: 'hidden',
           height: '82vh',
           maxHeight: '780px',
@@ -1728,6 +1748,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           border: '1px solid',
           borderColor: 'var(--border2)',
           bgcolor: 'var(--surface)',
+          animation: 'slidein 0.18s ease',
         },
       }}
     >

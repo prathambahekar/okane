@@ -441,8 +441,8 @@ export default function Analytics() {
           {selectedMonth && (
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px',
-              background: 'rgba(139, 92, 246, 0.15)', border: '1px solid #8B5CF6',
-              borderRadius: 99, fontSize: 12, color: '#8B5CF6', fontWeight: 600,
+              background: 'var(--accent-soft)', border: '1px solid var(--accent)',
+              borderRadius: 99, fontSize: 12, color: 'var(--accent)', fontWeight: 600,
             }}>
               <Calendar size={13} />
               Month: {selectedMonthObj?.fullMonthName || selectedMonth}
@@ -459,8 +459,8 @@ export default function Analytics() {
           {selectedCategory && (
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px',
-              background: 'rgba(168, 85, 247, 0.15)', border: '1px solid #A855F7',
-              borderRadius: 99, fontSize: 12, color: '#A855F7', fontWeight: 600,
+              background: 'var(--accent-soft)', border: '1px solid var(--accent)',
+              borderRadius: 99, fontSize: 12, color: 'var(--accent)', fontWeight: 600,
             }}>
               <Tag size={13} />
               Category: {selectedCategory}
@@ -503,9 +503,9 @@ export default function Analytics() {
                   gap: 5,
                   padding: '4px 10px',
                   borderRadius: 'var(--radius)',
-                  border: selectedMonth ? '1px solid #8B5CF6' : '1px solid var(--border)',
-                  background: selectedMonth ? 'rgba(139, 92, 246, 0.12)' : 'var(--surface2)',
-                  color: selectedMonth ? '#8B5CF6' : 'var(--text-2)',
+                  border: selectedMonth ? '1px solid var(--accent)' : '1px solid var(--border)',
+                  background: selectedMonth ? 'var(--accent-soft)' : 'var(--surface2)',
+                  color: selectedMonth ? 'var(--accent)' : 'var(--text-2)',
                   fontSize: 11.5,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -513,7 +513,7 @@ export default function Analytics() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <Calendar size={12} style={{ color: selectedMonth ? '#8B5CF6' : 'var(--text-3)' }} />
+                <Calendar size={12} style={{ color: selectedMonth ? 'var(--accent)' : 'var(--text-3)' }} />
                 <span>{selectedMonthObj ? selectedMonthObj.fullMonthName : 'All Months (Rolling)'}</span>
                 <ChevronDown size={12} style={{ opacity: 0.7, transform: isMonthPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
               </button>
@@ -589,9 +589,9 @@ export default function Analytics() {
                             justifyContent: 'space-between',
                             padding: '7px 10px',
                             borderRadius: 'var(--radius)',
-                            background: isSelected ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
+                            background: isSelected ? 'var(--accent-soft)' : 'transparent',
                             border: 'none',
-                            color: isSelected ? '#8B5CF6' : 'var(--text)',
+                            color: isSelected ? 'var(--accent)' : 'var(--text)',
                             fontSize: 12,
                             fontWeight: isSelected ? 700 : 500,
                             cursor: 'pointer',
@@ -602,7 +602,7 @@ export default function Analytics() {
                             <Calendar size={12} style={{ opacity: 0.6 }} />
                             <span>{m.fullMonthName}</span>
                           </div>
-                          <span style={{ fontSize: 11, color: isSelected ? '#8B5CF6' : 'var(--text-3)', fontWeight: 600 }}>
+                          <span style={{ fontSize: 11, color: isSelected ? 'var(--accent)' : 'var(--text-3)', fontWeight: 600 }}>
                             {fmtMoney(m.spend, currency)}
                           </span>
                         </button>
@@ -716,10 +716,10 @@ export default function Analytics() {
                           style={{
                             fontSize: 10,
                             fontWeight: isSelected || m.isCurrentMonth ? 700 : 600,
-                            color: isSelected ? '#8B5CF6' : m.isCurrentMonth ? 'var(--accent)' : 'var(--debit)',
+                            color: isSelected ? 'var(--accent)' : m.isCurrentMonth ? 'var(--accent)' : 'var(--accent)',
                             whiteSpace: 'nowrap',
                             letterSpacing: '-0.2px',
-                            background: isSelected ? 'rgba(139, 92, 246, 0.18)' : undefined,
+                            background: isSelected ? 'var(--accent-soft)' : undefined,
                             padding: isSelected ? '1px 5px' : undefined,
                             borderRadius: 4,
                           }}
@@ -736,19 +736,13 @@ export default function Analytics() {
                       <div
                         style={{
                           width: 32,
-                          background: isSelected
-                            ? '#8B5CF6'
-                            : m.isCurrentMonth
-                            ? 'var(--accent)'
-                            : 'var(--debit)',
+                          background: 'var(--accent)',
                           borderRadius: '6px 6px 0 0',
                           height: m.spend > 0 ? `${barHeightPct}%` : '4px',
-                          opacity: m.spend > 0 ? (isSelected ? 1 : 0.88) : 0.2,
+                          opacity: m.spend > 0 ? (selectedMonth ? (isSelected ? 1 : 0.75) : 1) : 0.2,
                           transition: 'all 0.25s ease',
                           boxShadow: isSelected
-                            ? '0 0 0 2px #8B5CF6, 0 0 14px rgba(139, 92, 246, 0.6)'
-                            : m.isCurrentMonth
-                            ? '0 0 10px var(--accent-soft)'
+                            ? '0 0 0 2px var(--surface), 0 0 0 4px var(--accent), 0 0 14px var(--accent-soft)'
                             : undefined,
                         }}
                         title={`${m.fullMonthName}: ${fmtMoney(m.spend, currency)} (${m.count} items, Avg ${fmtMoney(m.dailyAvg, currency)}/day)`}
@@ -760,7 +754,7 @@ export default function Analytics() {
                       <span
                         style={{
                           fontSize: 11,
-                          color: isSelected ? '#8B5CF6' : m.isCurrentMonth ? 'var(--accent)' : 'var(--text-2)',
+                          color: isSelected ? 'var(--accent)' : m.isCurrentMonth ? 'var(--accent)' : 'var(--text-2)',
                           fontWeight: isSelected || m.isCurrentMonth ? 700 : 500,
                           whiteSpace: 'nowrap',
                           display: 'block',
@@ -861,10 +855,10 @@ export default function Analytics() {
                                     <span style={{
                                       fontSize: 9,
                                       fontWeight: isSelected || d.isToday ? 700 : 600,
-                                      color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--debit)',
+                                      color: isSelected ? 'var(--accent)' : d.isToday ? 'var(--accent)' : 'var(--accent)',
                                       whiteSpace: 'nowrap',
                                       letterSpacing: '-0.2px',
-                                      background: isSelected ? 'rgba(139, 92, 246, 0.18)' : undefined,
+                                      background: isSelected ? 'var(--accent-soft)' : undefined,
                                       padding: isSelected ? '1px 3px' : undefined,
                                       borderRadius: 3,
                                     }}>
@@ -881,19 +875,13 @@ export default function Analytics() {
                                     style={{
                                       width: '80%',
                                       maxWidth: 28,
-                                      background: isSelected
-                                        ? '#8B5CF6'
-                                        : d.isToday
-                                        ? 'var(--accent)'
-                                        : 'var(--debit)',
+                                      background: 'var(--accent)',
                                       borderRadius: '4px 4px 0 0',
                                       height: d.spend > 0 ? `${barHeightPct}%` : '4px',
-                                      opacity: d.spend > 0 ? (isSelected ? 1 : 0.88) : 0.18,
+                                      opacity: d.spend > 0 ? (selectedDate ? (isSelected ? 1 : 0.75) : 1) : 0.2,
                                       transition: 'all 0.2s ease',
                                       boxShadow: isSelected
-                                        ? '0 0 0 2px #8B5CF6, 0 0 12px rgba(139, 92, 246, 0.6)'
-                                        : d.isToday
-                                        ? '0 0 8px var(--accent-soft)'
+                                        ? '0 0 0 2px var(--surface), 0 0 0 4px var(--accent), 0 0 12px var(--accent-soft)'
                                         : undefined,
                                     }}
                                     title={`${d.label}: ${fmtMoney(d.spend, currency)} (${d.count} items)`}
@@ -904,7 +892,7 @@ export default function Analytics() {
                                 <div style={{ marginTop: 6, textAlign: 'center' }}>
                                   <span style={{
                                     fontSize: 10,
-                                    color: isSelected ? '#8B5CF6' : d.isToday ? 'var(--accent)' : 'var(--text-2)',
+                                    color: isSelected ? 'var(--accent)' : d.isToday ? 'var(--accent)' : 'var(--text-2)',
                                     fontWeight: isSelected || d.isToday ? 700 : 500,
                                     whiteSpace: 'nowrap',
                                     display: 'block',
@@ -930,34 +918,7 @@ export default function Analytics() {
           </div>
         )}
 
-        {/* Chart Legend */}
-        <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 11, color: 'var(--text-3)', paddingTop: 8, borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
-          {chartMode === 'monthly' ? (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 8, height: 8, background: 'var(--debit)', borderRadius: 2 }} /> Past Months
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 8, height: 8, background: 'var(--accent)', borderRadius: 2 }} /> Current Month
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 8, height: 8, background: '#8B5CF6', borderRadius: 2 }} /> Selected Month
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 8, height: 8, background: 'var(--debit)', borderRadius: 2 }} /> Past Days
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 8, height: 8, background: 'var(--accent)', borderRadius: 2 }} /> Today
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 8, height: 8, background: '#8B5CF6', borderRadius: 2 }} /> Selected Day
-              </div>
-            </>
-          )}
-        </div>
+
       </div>
 
       {/* Grid: Daily Expenditure Log & Category Share */}
@@ -999,8 +960,8 @@ export default function Analytics() {
                     style={{
                       background: 'var(--surface2)',
                       borderRadius: 8,
-                      border: selectedDate === row.dateStr ? '1px solid #8B5CF6' : '1px solid var(--border)',
-                      boxShadow: selectedDate === row.dateStr ? '0 0 10px rgba(139, 92, 246, 0.2)' : undefined,
+                      border: selectedDate === row.dateStr ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      boxShadow: selectedDate === row.dateStr ? '0 0 10px var(--accent-soft)' : undefined,
                       overflow: 'hidden',
                       transition: 'all 0.2s ease',
                     }}
@@ -1025,7 +986,7 @@ export default function Analytics() {
                           <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span>{row.dayName}</span>
                             {row.isToday && <span className="badge" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9, padding: '1px 5px' }}>Today</span>}
-                            {row.isYesterday && <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#8B5CF6', fontSize: 9, padding: '1px 5px' }}>Yest.</span>}
+                            {row.isYesterday && <span className="badge" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9, padding: '1px 5px' }}>Yest.</span>}
                           </div>
                           <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {row.count} {row.count === 1 ? 'item' : 'items'} · {row.topCategory}
