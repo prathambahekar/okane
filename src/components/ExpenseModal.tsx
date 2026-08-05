@@ -810,7 +810,7 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                                     height: 26,
                                     borderRadius: '50%',
                                     background: f.color || 'var(--accent)',
-                                    color: '#fff',
+                                    color: f.color ? '#fff' : 'var(--accent-contrast)',
                                     fontSize: 11,
                                     fontWeight: 700,
                                     display: 'flex',
@@ -845,7 +845,7 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                                     flexShrink: 0,
                                   }}
                                 >
-                                  {isSel && <CheckSquare size={12} style={{ color: '#fff' }} />}
+                                  {isSel && <CheckSquare size={12} style={{ color: 'var(--accent-contrast)' }} />}
                                 </div>
                               </div>
                             );

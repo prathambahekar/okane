@@ -57,8 +57,6 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
       category: type !== 'friend' ? category : undefined,
       defaultAmount: type === 'subscription' && defaultAmount ? parseFloat(defaultAmount) : undefined,
       billingCycle: type === 'subscription' ? billingCycle : undefined,
-      email: friend?.email ?? '',
-      phone: friend?.phone ?? '',
       website: website.trim(),
       notes: notes.trim(),
       color,

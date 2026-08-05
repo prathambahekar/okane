@@ -32,6 +32,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   Sparkles,
+  Database,
 } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import { useColorMode } from './theme';
@@ -47,6 +48,7 @@ import Settlements from './views/Settlements';
 import Analytics from './views/Analytics';
 import Settings from './views/Settings';
 import Recurring from './views/Recurring';
+import DevSQLConsole from './views/DevSQLConsole';
 import ExpenseModal from './components/ExpenseModal';
 import type { ExpenseInitialData } from './components/ExpenseModal';
 import AIAssistantModal from './components/AIAssistantModal';
@@ -54,7 +56,7 @@ import Toast from './components/Toast';
 import NotificationBell from './components/NotificationBell';
 import './styles.css';
 
-const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'recurring', 'analytics', 'settings'];
+const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'recurring', 'analytics', 'settings', 'dev-sql'];
 
 function AppInner() {
   const { db } = useStore();
@@ -69,7 +71,9 @@ function AppInner() {
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
 
-  const enableAIAssistant = db.settings?.enableAIAssistant ?? true;
+  const isDevMode = db.settings?.devMode ?? false;
+  const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
+  const enableAIAssistant = isDevMode && (db.settings?.enableAIAssistant ?? true);
 
   const toggleSidebar = () => {
     setSidebarCollapsed(prev => {
@@ -122,6 +126,7 @@ function AppInner() {
     { id: 'settlements', label: 'Settlements', icon: <Handshake size={18} /> },
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} />, section: 'Insights' },
     { id: 'settings', label: 'Settings', icon: <SettingsIconLucide size={18} />, section: 'System' },
+    ...(enableDevSQLConsole ? [{ id: 'dev-sql' as ViewName, label: 'Dev SQL Console', icon: <Database size={18} />, section: 'Developer' }] : []),
   ];
 
   const moreItems: { id: ViewName; label: string; icon: React.ReactNode }[] = [
@@ -130,6 +135,7 @@ function AppInner() {
     { id: 'settlements', label: 'Settlements', icon: <Handshake size={20} /> },
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
     { id: 'settings', label: 'Settings', icon: <SettingsIconLucide size={20} /> },
+    ...(enableDevSQLConsole ? [{ id: 'dev-sql' as ViewName, label: 'Dev SQL Console', icon: <Database size={20} /> }] : []),
   ];
 
   const activeView = view === 'friend-detail' ? 'friends' : view;
@@ -149,7 +155,8 @@ function AppInner() {
       case 'friend-detail': return <FriendDetail friendId={friendDetailId} onNavigate={navigate} />;
       case 'settlements': return <Settlements />;
       case 'analytics': return <Analytics />;
-      case 'settings': return <Settings />;
+      case 'settings': return <Settings onNavigate={navigate} />;
+      case 'dev-sql': return <DevSQLConsole onNavigate={navigate} />;
       default: return <Dashboard onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
     }
   };

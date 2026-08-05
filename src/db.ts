@@ -1,6 +1,235 @@
-import type { AppDB, Wallet, Friend, Expense, Settlement, ExpenseFlow, ExpenseType, ExpenseStatus, RecurringRule, FrequencyType } from './types';
+import alasql from 'alasql';
+import type { AppDB, Wallet, Friend, Expense, Settlement, ExpenseFlow, ExpenseType, ExpenseStatus, RecurringRule, FrequencyType, ContactType, RecurringKind } from './types';
 
-const DB_KEY = 'ledger_app_db_v2';
+const SQL_STORAGE_KEY = 'okane_sql_database_dump_v1';
+const LEGACY_JSON_KEY = 'ledger_app_db_v2';
+
+let isSQLInitialized = false;
+
+export function resetSQLTables() {
+  try {
+    alasql('DROP TABLE IF EXISTS friends');
+    alasql('DROP TABLE IF EXISTS wallets');
+    alasql('DROP TABLE IF EXISTS expenses');
+    alasql('DROP TABLE IF EXISTS settlements');
+    alasql('DROP TABLE IF EXISTS recurring_rules');
+    alasql('DROP TABLE IF EXISTS categories');
+    alasql('DROP TABLE IF EXISTS settings');
+  } catch (err) {
+    console.error('Failed to drop SQL tables:', err);
+  }
+  isSQLInitialized = false;
+  initSQLTables();
+}
+
+export function initSQLTables() {
+  if (isSQLInitialized) return;
+  try {
+    alasql('CREATE TABLE IF NOT EXISTS friends (id STRING PRIMARY KEY, name STRING, notes STRING, color STRING, createdAt INT, type STRING, category STRING, billingCycle STRING, defaultAmount NUMBER, website STRING)');
+    alasql('CREATE TABLE IF NOT EXISTS wallets (id STRING PRIMARY KEY, name STRING, openingBalance NUMBER, currentBalance NUMBER, color STRING)');
+    alasql('CREATE TABLE IF NOT EXISTS expenses (id STRING PRIMARY KEY, groupId STRING, description STRING, amount NUMBER, category STRING, date STRING, type STRING, flow STRING, friendId STRING, walletId STRING, status STRING, settled INT, settlementId STRING, notes STRING, createdAt INT)');
+    alasql('CREATE TABLE IF NOT EXISTS settlements (id STRING PRIMARY KEY, friendId STRING, amount NUMBER, date STRING, note STRING, walletId STRING, createdAt INT, expenseIds STRING)');
+    alasql('CREATE TABLE IF NOT EXISTS recurring_rules (id STRING PRIMARY KEY, title STRING, kind STRING, amount NUMBER, category STRING, walletId STRING, friendId STRING, type STRING, flow STRING, frequency STRING, intervalValue INT, startDate STRING, nextDueDate STRING, autoDeduct INT, status STRING, notes STRING, createdAt INT)');
+    alasql('CREATE TABLE IF NOT EXISTS categories (name STRING PRIMARY KEY, color STRING, icon STRING)');
+    alasql('CREATE TABLE IF NOT EXISTS settings (st_key STRING PRIMARY KEY, st_val STRING)');
+    isSQLInitialized = true;
+  } catch (err) {
+    console.error('Failed to initialize SQL tables:', err);
+  }
+}
+
+export function splitSQLStatements(sqlText: string): string[] {
+  const statements: string[] = [];
+  let current = '';
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = 0; i < sqlText.length; i++) {
+    const char = sqlText[i];
+    const nextChar = sqlText[i + 1];
+
+    if (inLineComment) {
+      if (char === '\n' || char === '\r') {
+        inLineComment = false;
+      }
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === '*' && nextChar === '/') {
+        inBlockComment = false;
+        i++;
+      }
+      continue;
+    }
+
+    if (!inSingleQuote && !inDoubleQuote) {
+      if (char === '-' && nextChar === '-') {
+        inLineComment = true;
+        i++;
+        continue;
+      }
+      if (char === '/' && nextChar === '*') {
+        inBlockComment = true;
+        i++;
+        continue;
+      }
+    }
+
+    if (char === "'" && !inDoubleQuote) {
+      if (inSingleQuote && nextChar === "'") {
+        current += "''";
+        i++;
+        continue;
+      }
+      inSingleQuote = !inSingleQuote;
+      current += char;
+      continue;
+    }
+
+    if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+      current += char;
+      continue;
+    }
+
+    if (char === ';' && !inSingleQuote && !inDoubleQuote) {
+      const trimmed = current.trim();
+      if (trimmed) statements.push(trimmed);
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  const lastTrimmed = current.trim();
+  if (lastTrimmed) statements.push(lastTrimmed);
+
+  return statements;
+}
+
+export function executeRawSQL(sqlQuery: string): unknown {
+  initSQLTables();
+  const res = alasql(sqlQuery);
+
+  const upper = sqlQuery.trim().toUpperCase();
+  if (
+    upper.startsWith('INSERT') ||
+    upper.startsWith('UPDATE') ||
+    upper.startsWith('DELETE') ||
+    upper.startsWith('DROP') ||
+    upper.startsWith('ALTER') ||
+    upper.startsWith('CREATE') ||
+    upper.startsWith('REPLACE') ||
+    upper.startsWith('TRUNCATE')
+  ) {
+    try {
+      const updatedDB = loadDBFromSQLTables();
+      syncDBToSQLTables(updatedDB);
+    } catch (e) {
+      console.warn('Error auto-syncing after raw SQL write:', e);
+    }
+  }
+
+  return res;
+}
+
+export function generateSQLDumpString(): string {
+  initSQLTables();
+  const dump = {
+    friends: (alasql('SELECT * FROM friends') as Record<string, unknown>[]) || [],
+    wallets: (alasql('SELECT * FROM wallets') as Record<string, unknown>[]) || [],
+    expenses: (alasql('SELECT * FROM expenses') as Record<string, unknown>[]) || [],
+    settlements: (alasql('SELECT * FROM settlements') as Record<string, unknown>[]) || [],
+    recurring_rules: (alasql('SELECT * FROM recurring_rules') as Record<string, unknown>[]) || [],
+    categories: (alasql('SELECT * FROM categories') as Record<string, unknown>[]) || [],
+    settings: (alasql('SELECT * FROM settings') as Record<string, unknown>[]) || [],
+  };
+
+  let sql = `-- OKANE RELATIONAL SQL DATABASE BACKUP
+-- Generated: ${new Date().toISOString()}
+
+CREATE TABLE IF NOT EXISTS friends (id TEXT PRIMARY KEY, name TEXT, notes TEXT, color TEXT, createdAt INTEGER, type TEXT, category TEXT, billingCycle TEXT, defaultAmount REAL, website TEXT);
+CREATE TABLE IF NOT EXISTS wallets (id TEXT PRIMARY KEY, name TEXT, openingBalance REAL, currentBalance REAL, color TEXT);
+CREATE TABLE IF NOT EXISTS expenses (id TEXT PRIMARY KEY, groupId TEXT, description TEXT, amount REAL, category TEXT, date TEXT, type TEXT, flow TEXT, friendId TEXT, walletId TEXT, status TEXT, settled INTEGER, settlementId TEXT, notes TEXT, createdAt INTEGER);
+CREATE TABLE IF NOT EXISTS settlements (id TEXT PRIMARY KEY, friendId TEXT, amount REAL, date TEXT, note TEXT, walletId TEXT, createdAt INTEGER, expenseIds TEXT);
+CREATE TABLE IF NOT EXISTS recurring_rules (id TEXT PRIMARY KEY, title TEXT, kind TEXT, amount REAL, category TEXT, walletId TEXT, friendId TEXT, type TEXT, flow TEXT, frequency TEXT, intervalValue INTEGER, startDate TEXT, nextDueDate TEXT, autoDeduct INTEGER, status TEXT, notes TEXT, createdAt INTEGER);
+CREATE TABLE IF NOT EXISTS categories (name TEXT PRIMARY KEY, color TEXT, icon TEXT);
+CREATE TABLE IF NOT EXISTS settings (st_key TEXT PRIMARY KEY, st_val TEXT);
+
+`;
+
+  const escapeVal = (v: unknown): string => {
+    if (v === null || v === undefined) return 'NULL';
+    if (typeof v === 'number') return String(v);
+    if (typeof v === 'boolean') return v ? '1' : '0';
+    if (typeof v === 'object') {
+      return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
+    }
+    return `'${String(v).replace(/'/g, "''")}'`;
+  };
+
+  sql += `DELETE FROM friends;\n`;
+  dump.friends.forEach(f => {
+    sql += `INSERT INTO friends VALUES (${escapeVal(f.id)}, ${escapeVal(f.name)}, ${escapeVal(f.notes)}, ${escapeVal(f.color)}, ${escapeVal(f.createdAt)}, ${escapeVal(f.type)}, ${escapeVal(f.category)}, ${escapeVal(f.billingCycle)}, ${escapeVal(f.defaultAmount)}, ${escapeVal(f.website)});\n`;
+  });
+
+  sql += `\nDELETE FROM wallets;\n`;
+  dump.wallets.forEach(w => {
+    sql += `INSERT INTO wallets VALUES (${escapeVal(w.id)}, ${escapeVal(w.name)}, ${escapeVal(w.openingBalance)}, ${escapeVal(w.currentBalance ?? w.openingBalance)}, ${escapeVal(w.color)});\n`;
+  });
+
+  sql += `\nDELETE FROM expenses;\n`;
+  dump.expenses.forEach(e => {
+    sql += `INSERT INTO expenses VALUES (${escapeVal(e.id)}, ${escapeVal(e.groupId)}, ${escapeVal(e.description)}, ${escapeVal(e.amount)}, ${escapeVal(e.category)}, ${escapeVal(e.date)}, ${escapeVal(e.type)}, ${escapeVal(e.flow)}, ${escapeVal(e.friendId)}, ${escapeVal(e.walletId)}, ${escapeVal(e.status)}, ${escapeVal(e.settled)}, ${escapeVal(e.settlementId)}, ${escapeVal(e.notes)}, ${escapeVal(e.createdAt)});\n`;
+  });
+
+  sql += `\nDELETE FROM settlements;\n`;
+  dump.settlements.forEach(s => {
+    sql += `INSERT INTO settlements VALUES (${escapeVal(s.id)}, ${escapeVal(s.friendId)}, ${escapeVal(s.amount)}, ${escapeVal(s.date)}, ${escapeVal(s.note)}, ${escapeVal(s.walletId)}, ${escapeVal(s.createdAt)}, ${escapeVal(s.expenseIds)});\n`;
+  });
+
+  sql += `\nDELETE FROM recurring_rules;\n`;
+  dump.recurring_rules.forEach(r => {
+    sql += `INSERT INTO recurring_rules VALUES (${escapeVal(r.id)}, ${escapeVal(r.title)}, ${escapeVal(r.kind)}, ${escapeVal(r.amount)}, ${escapeVal(r.category)}, ${escapeVal(r.walletId)}, ${escapeVal(r.friendId)}, ${escapeVal(r.type)}, ${escapeVal(r.flow)}, ${escapeVal(r.frequency)}, ${escapeVal(r.intervalValue)}, ${escapeVal(r.startDate)}, ${escapeVal(r.nextDueDate)}, ${escapeVal(r.autoDeduct)}, ${escapeVal(r.status)}, ${escapeVal(r.notes)}, ${escapeVal(r.createdAt)});\n`;
+  });
+
+  sql += `\nDELETE FROM categories;\n`;
+  dump.categories.forEach(c => {
+    sql += `INSERT INTO categories VALUES (${escapeVal(c.name)}, ${escapeVal(c.color)}, ${escapeVal(c.icon)});\n`;
+  });
+
+  sql += `\nDELETE FROM settings;\n`;
+  dump.settings.forEach(st => {
+    const k = st.st_key ?? st.key ?? st['key'];
+    const v = st.st_val ?? st.value ?? st['value'];
+    if (k) {
+      sql += `INSERT INTO settings VALUES (${escapeVal(k)}, ${escapeVal(v)});\n`;
+    }
+  });
+
+  return sql;
+}
+
+export function importSQLDumpString(sqlText: string): AppDB {
+  initSQLTables();
+  const statements = splitSQLStatements(sqlText);
+
+  statements.forEach(stmt => {
+    try {
+      alasql(stmt);
+    } catch (err) {
+      console.warn('SQL import statement error:', stmt, err);
+    }
+  });
+
+  const db = loadDBFromSQLTables();
+  syncDBToSQLTables(db);
+  return db;
+}
 
 export function computeNextDueDate(currentDateISO: string, frequency: FrequencyType, intervalValue: number = 1): string {
   const parts = currentDateISO.split('-').map(Number);
@@ -334,97 +563,349 @@ export function defaultSampleExpenses(walletId: string): Expense[] {
   ];
 }
 
-export function loadDB(): AppDB {
+export function syncDBToSQLTables(db: AppDB): void {
+  resetSQLTables();
   try {
-    const raw = localStorage.getItem(DB_KEY);
-    if (!raw) return defaultDB();
-    const parsed = JSON.parse(raw) as Partial<AppDB>;
-    const d = defaultDB();
-    const db: AppDB = { ...d, ...parsed, settings: { ...d.settings, ...(parsed.settings || {}) } };
-    if (!Array.isArray(db.wallets) || db.wallets.length === 0) {
-      db.wallets = JSON.parse(JSON.stringify(DEFAULT_WALLETS));
-    }
-    if (!db.settings.defaultWalletId || !db.wallets.some(w => w.id === db.settings.defaultWalletId)) {
-      db.settings.defaultWalletId = db.wallets[0].id;
-    }
-    const defaultWal = db.settings.defaultWalletId;
-
-    if (!Array.isArray(db.recurringRules)) {
-      db.recurringRules = [];
-    }
-
-    if (!Array.isArray(db.expenses)) {
-      db.expenses = [];
-    }
-
-    if (!Array.isArray(db.friends)) {
-      db.friends = [];
-    }
-
-    if (!Array.isArray(db.settlements)) {
-      db.settlements = [];
-    }
-
-    db.expenses.forEach(e => {
-      if (!e.flow) e.flow = 'out';
-      if (e.type !== 'by_friend' && (!e.walletId || !db.wallets.some(w => w.id === e.walletId))) {
-        e.walletId = defaultWal;
+    const safeInsert = (sql: string, params: unknown[]) => {
+      try {
+        alasql(sql, params);
+      } catch (e) {
+        console.warn('SQL Insert warning:', e);
       }
+    };
+
+    const seenFriends = new Set<string>();
+    (db.friends || []).forEach(f => {
+      if (!f.id || seenFriends.has(f.id)) return;
+      seenFriends.add(f.id);
+      safeInsert('INSERT INTO friends VALUES (?,?,?,?,?,?,?,?,?,?)', [
+        f.id, f.name, f.notes || '', f.color || '',
+        f.createdAt || Date.now(), f.type || 'friend', f.category || null, f.billingCycle || null,
+        f.defaultAmount !== undefined ? Number(f.defaultAmount) : null, f.website || ''
+      ]);
     });
 
-    // Migrate un-grouped split expenses (e.g. "Poha" & "Poha (Friend share)")
-    const processedIds = new Set<string>();
-    db.expenses.forEach((e1) => {
-      if (e1.groupId || processedIds.has(e1.id)) return;
-      if (e1.type === 'for_friend' && e1.description.includes('(Friend share)')) {
-        const baseDesc = e1.description.replace(/\s*\(Friend share\)$/i, '').trim();
-        const match = db.expenses.find(e2 =>
-          e2.id !== e1.id &&
-          !e2.groupId &&
-          !processedIds.has(e2.id) &&
-          e2.type === 'personal' &&
-          e2.category === e1.category &&
-          e2.date === e1.date &&
-          (e2.description.trim() === baseDesc || e2.description.trim() === e1.description.trim()) &&
-          Math.abs((e2.createdAt || 0) - (e1.createdAt || 0)) < 120000
-        );
-        if (match) {
-          const newGrpId = uid('grp');
-          e1.groupId = newGrpId;
-          e1.description = baseDesc;
-          match.groupId = newGrpId;
-          match.description = baseDesc;
-          processedIds.add(e1.id);
-          processedIds.add(match.id);
-        }
-      }
+    const seenWallets = new Set<string>();
+    (db.wallets || []).forEach(w => {
+      if (!w.id || seenWallets.has(w.id)) return;
+      seenWallets.add(w.id);
+      safeInsert('INSERT INTO wallets VALUES (?,?,?,?,?)', [
+        w.id, w.name, Number(w.openingBalance) || 0, walletBalance(db, w.id), w.color || ''
+      ]);
     });
 
-    // If Tiffin / Tiffin Aunty exists in user data from prior versions, keep vendor attributes linked
-    const tiffin = db.friends.find(f => f.name.toLowerCase().includes('tiffin'));
-    if (tiffin) {
-      tiffin.type = 'vendor';
-      if (!tiffin.category) tiffin.category = 'Food';
-      if (!tiffin.defaultAmount) tiffin.defaultAmount = 2500;
-      if (!tiffin.billingCycle) tiffin.billingCycle = 'monthly';
+    const seenExpenses = new Set<string>();
+    (db.expenses || []).forEach(e => {
+      if (!e.id || seenExpenses.has(e.id)) return;
+      seenExpenses.add(e.id);
+      safeInsert('INSERT INTO expenses VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+        e.id, e.groupId || null, e.description, Number(e.amount) || 0, e.category, e.date,
+        e.type, e.flow, e.friendId || null, e.walletId || null, e.status, e.settled ? 1 : 0,
+        e.settlementId || null, e.notes || '', e.createdAt || Date.now()
+      ]);
+    });
 
-      db.recurringRules.forEach(r => {
-        if (r.title.toLowerCase().includes('tiffin') || r.friendId === tiffin.id) {
-          r.friendId = tiffin.id;
+    const seenSettlements = new Set<string>();
+    (db.settlements || []).forEach(s => {
+      if (!s.id || seenSettlements.has(s.id)) return;
+      seenSettlements.add(s.id);
+      safeInsert('INSERT INTO settlements VALUES (?,?,?,?,?,?,?,?)', [
+        s.id, s.friendId, Number(s.amount) || 0, s.date, s.note || '', s.walletId || null,
+        s.createdAt || Date.now(), JSON.stringify(s.expenseIds || [])
+      ]);
+    });
+
+    const seenRules = new Set<string>();
+    (db.recurringRules || []).forEach(r => {
+      if (!r.id || seenRules.has(r.id)) return;
+      seenRules.add(r.id);
+      safeInsert('INSERT INTO recurring_rules VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+        r.id, r.title, r.kind, Number(r.amount) || 0, r.category, r.walletId, r.friendId || null,
+        r.type, r.flow, r.frequency, r.intervalValue, r.startDate, r.nextDueDate || r.startDate,
+        r.autoDeduct ? 1 : 0, r.status, r.notes || '', r.createdAt || Date.now()
+      ]);
+    });
+
+    const seenCats = new Set<string>();
+    (db.settings?.categories || DEFAULT_CATEGORIES).forEach(c => {
+      if (!c.name || seenCats.has(c.name)) return;
+      seenCats.add(c.name);
+      safeInsert('INSERT INTO categories VALUES (?,?,?)', [c.name, c.color, c.icon || '']);
+    });
+
+    if (db.settings) {
+      const seenSettingsKeys = new Set<string>();
+      Object.entries(db.settings).forEach(([k, v]) => {
+        if (k !== 'categories' && !seenSettingsKeys.has(k)) {
+          seenSettingsKeys.add(k);
+          safeInsert('INSERT INTO settings VALUES (?,?)', [k, typeof v === 'object' ? JSON.stringify(v) : String(v)]);
         }
       });
     }
 
-    db.version = 3;
+    const sqlDump = {
+      friends: alasql('SELECT * FROM friends'),
+      wallets: alasql('SELECT * FROM wallets'),
+      expenses: alasql('SELECT * FROM expenses'),
+      settlements: alasql('SELECT * FROM settlements'),
+      recurring_rules: alasql('SELECT * FROM recurring_rules'),
+      categories: alasql('SELECT * FROM categories'),
+      settings: alasql('SELECT * FROM settings'),
+    };
+    localStorage.setItem(SQL_STORAGE_KEY, JSON.stringify(sqlDump));
+    localStorage.setItem(LEGACY_JSON_KEY, JSON.stringify(db));
+  } catch (err) {
+    console.error('Error syncing DB to SQL tables:', err);
+  }
+}
+
+export function loadDBFromSQLTables(): AppDB {
+  initSQLTables();
+  try {
+    const sqlFriends = (alasql('SELECT * FROM friends') as Record<string, unknown>[]) || [];
+    const sqlWallets = (alasql('SELECT * FROM wallets') as Record<string, unknown>[]) || [];
+    const sqlExpenses = (alasql('SELECT * FROM expenses') as Record<string, unknown>[]) || [];
+    const sqlSettlements = (alasql('SELECT * FROM settlements') as Record<string, unknown>[]) || [];
+    const sqlRecurring = (alasql('SELECT * FROM recurring_rules') as Record<string, unknown>[]) || [];
+    const sqlCategories = (alasql('SELECT * FROM categories') as Record<string, unknown>[]) || [];
+    const sqlSettings = (alasql('SELECT * FROM settings') as Record<string, unknown>[]) || [];
+
+    const friends: Friend[] = sqlFriends.map(f => ({
+      id: String(f.id),
+      name: String(f.name),
+      notes: String(f.notes || ''),
+      color: String(f.color || '#7B89F5'),
+      createdAt: Number(f.createdAt) || Date.now(),
+      type: (f.type as ContactType) || 'friend',
+      category: f.category ? String(f.category) : undefined,
+      billingCycle: f.billingCycle ? String(f.billingCycle) as Friend['billingCycle'] : undefined,
+      defaultAmount: f.defaultAmount != null ? Number(f.defaultAmount) : undefined,
+      website: String(f.website || ''),
+    }));
+
+    const wallets: Wallet[] = sqlWallets.map(w => ({
+      id: String(w.id),
+      name: String(w.name),
+      openingBalance: Number(w.openingBalance) || 0,
+      currentBalance: w.currentBalance != null ? Number(w.currentBalance) : undefined,
+      color: String(w.color || '#38BDF8'),
+    }));
+
+    const expenses: Expense[] = sqlExpenses.map(e => ({
+      id: String(e.id),
+      groupId: e.groupId ? String(e.groupId) : null,
+      description: String(e.description),
+      amount: Number(e.amount) || 0,
+      category: String(e.category),
+      date: String(e.date),
+      type: (e.type as ExpenseType) || 'personal',
+      flow: (e.flow as ExpenseFlow) || 'out',
+      friendId: e.friendId ? String(e.friendId) : null,
+      walletId: String(e.walletId || ''),
+      status: (e.status as ExpenseStatus) || 'paid',
+      settled: Boolean(e.settled),
+      settlementId: e.settlementId ? String(e.settlementId) : null,
+      notes: String(e.notes || ''),
+      createdAt: Number(e.createdAt) || Date.now(),
+    }));
+
+    const settlements: Settlement[] = sqlSettlements.map(s => {
+      let expIds: string[] = [];
+      try {
+        expIds = typeof s.expenseIds === 'string' ? JSON.parse(s.expenseIds) : (Array.isArray(s.expenseIds) ? (s.expenseIds as string[]) : []);
+      } catch {
+        expIds = [];
+      }
+      return {
+        id: String(s.id),
+        friendId: String(s.friendId),
+        amount: Number(s.amount) || 0,
+        date: String(s.date),
+        note: String(s.note || ''),
+        walletId: s.walletId ? String(s.walletId) : undefined,
+        createdAt: Number(s.createdAt) || Date.now(),
+        expenseIds: expIds,
+      };
+    });
+
+    const recurringRules: RecurringRule[] = sqlRecurring.map(r => ({
+      id: String(r.id),
+      title: String(r.title),
+      kind: (r.kind as RecurringKind) || 'quick_log',
+      amount: Number(r.amount) || 0,
+      category: String(r.category),
+      walletId: String(r.walletId),
+      friendId: r.friendId ? String(r.friendId) : null,
+      type: (r.type as ExpenseType) || 'personal',
+      flow: (r.flow as ExpenseFlow) || 'out',
+      frequency: (r.frequency as FrequencyType) || 'monthly',
+      intervalValue: Number(r.intervalValue) || 1,
+      startDate: String(r.startDate),
+      nextDueDate: String(r.nextDueDate || r.startDate),
+      autoDeduct: Boolean(r.autoDeduct),
+      status: (r.status as 'active' | 'paused') || 'active',
+      notes: String(r.notes || ''),
+      createdAt: Number(r.createdAt) || Date.now(),
+    }));
+
+    const categories = sqlCategories.length > 0
+      ? sqlCategories.map(c => ({ name: String(c.name), color: String(c.color), icon: c.icon ? String(c.icon) : undefined }))
+      : JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+
+    const settingsObj: Record<string, unknown> = {
+      currency: 'INR',
+      categories,
+      defaultCategory: 'Food',
+      defaultStatus: 'paid',
+      defaultWalletId: wallets[0]?.id || 'wal_cash',
+      enableAIAssistant: true,
+      defaultAiEngine: 'offline',
+    };
+
+    sqlSettings.forEach(st => {
+      const keyStr = String(st.st_key ?? st.key ?? '');
+      const valStr = String(st.st_val ?? st.value ?? '');
+      if (!keyStr) return;
+      try {
+        settingsObj[keyStr] = JSON.parse(valStr);
+      } catch {
+        settingsObj[keyStr] = valStr === 'true' ? true : valStr === 'false' ? false : valStr;
+      }
+    });
+
+    settingsObj.categories = categories;
+
+    const db: AppDB = {
+      version: 3,
+      friends,
+      wallets: wallets.length > 0 ? wallets : JSON.parse(JSON.stringify(DEFAULT_WALLETS)),
+      expenses,
+      settlements,
+      recurringRules,
+      settings: (settingsObj as unknown) as AppDB['settings'],
+    };
+
     return db;
-  } catch (e) {
-    console.error('Failed to load DB, starting fresh', e);
+  } catch (err) {
+    console.error('Error loading DB from SQL tables:', err);
     return defaultDB();
   }
 }
 
+export function loadDB(): AppDB {
+  initSQLTables();
+  try {
+    const rawSQLDump = localStorage.getItem(SQL_STORAGE_KEY);
+    if (rawSQLDump) {
+      const dump = JSON.parse(rawSQLDump);
+      if (dump && typeof dump === 'object') {
+        resetSQLTables();
+
+        const insertSafe = (sql: string, params: unknown[]) => {
+          try {
+            alasql(sql, params);
+          } catch (e) {
+            console.warn('SQL Load Row Warning:', e);
+          }
+        };
+
+        const seenFriends = new Set<string>();
+        if (Array.isArray(dump.friends)) {
+          dump.friends.forEach((row: Record<string, unknown>) => {
+            const id = String(row.id ?? '');
+            if (!id || seenFriends.has(id)) return;
+            seenFriends.add(id);
+            insertSafe('INSERT INTO friends VALUES (?,?,?,?,?,?,?,?,?,?)', [row.id, row.name, row.notes, row.color, row.createdAt, row.type, row.category, row.billingCycle, row.defaultAmount, row.website]);
+          });
+        }
+
+        const seenWallets = new Set<string>();
+        if (Array.isArray(dump.wallets)) {
+          dump.wallets.forEach((row: Record<string, unknown>) => {
+            const id = String(row.id ?? '');
+            if (!id || seenWallets.has(id)) return;
+            seenWallets.add(id);
+            insertSafe('INSERT INTO wallets VALUES (?,?,?,?,?)', [row.id, row.name, row.openingBalance, row.currentBalance ?? row.openingBalance, row.color]);
+          });
+        }
+
+        const seenExpenses = new Set<string>();
+        if (Array.isArray(dump.expenses)) {
+          dump.expenses.forEach((row: Record<string, unknown>) => {
+            const id = String(row.id ?? '');
+            if (!id || seenExpenses.has(id)) return;
+            seenExpenses.add(id);
+            insertSafe('INSERT INTO expenses VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [row.id, row.groupId, row.description, row.amount, row.category, row.date, row.type, row.flow, row.friendId, row.walletId, row.status, row.settled, row.settlementId, row.notes, row.createdAt]);
+          });
+        }
+
+        const seenSettlements = new Set<string>();
+        if (Array.isArray(dump.settlements)) {
+          dump.settlements.forEach((row: Record<string, unknown>) => {
+            const id = String(row.id ?? '');
+            if (!id || seenSettlements.has(id)) return;
+            seenSettlements.add(id);
+            insertSafe('INSERT INTO settlements VALUES (?,?,?,?,?,?,?,?)', [row.id, row.friendId, row.amount, row.date, row.note, row.walletId, row.createdAt, row.expenseIds]);
+          });
+        }
+
+        const seenRules = new Set<string>();
+        if (Array.isArray(dump.recurring_rules)) {
+          dump.recurring_rules.forEach((row: Record<string, unknown>) => {
+            const id = String(row.id ?? '');
+            if (!id || seenRules.has(id)) return;
+            seenRules.add(id);
+            insertSafe('INSERT INTO recurring_rules VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [row.id, row.title, row.kind, row.amount, row.category, row.walletId, row.friendId, row.type, row.flow, row.frequency, row.intervalValue, row.startDate, row.nextDueDate, row.autoDeduct, row.status, row.notes, row.createdAt]);
+          });
+        }
+
+        const seenCats = new Set<string>();
+        if (Array.isArray(dump.categories)) {
+          dump.categories.forEach((row: Record<string, unknown>) => {
+            const name = String(row.name ?? '');
+            if (!name || seenCats.has(name)) return;
+            seenCats.add(name);
+            insertSafe('INSERT INTO categories VALUES (?,?,?)', [row.name, row.color, row.icon]);
+          });
+        }
+
+        const seenKeys = new Set<string>();
+        if (Array.isArray(dump.settings)) {
+          dump.settings.forEach((row: Record<string, unknown>) => {
+            const key = String(row.st_key ?? row.key ?? '');
+            const val = row.st_val ?? row.value ?? '';
+            if (!key || seenKeys.has(key)) return;
+            seenKeys.add(key);
+            insertSafe('INSERT INTO settings VALUES (?,?)', [key, typeof val === 'object' ? JSON.stringify(val) : String(val)]);
+          });
+        }
+
+        return loadDBFromSQLTables();
+      }
+    }
+
+    const legacyRaw = localStorage.getItem(LEGACY_JSON_KEY);
+    let initialDB: AppDB;
+    if (legacyRaw) {
+      const parsed = JSON.parse(legacyRaw) as Partial<AppDB>;
+      const d = defaultDB();
+      initialDB = { ...d, ...parsed, settings: { ...d.settings, ...(parsed.settings || {}) } };
+    } else {
+      initialDB = defaultDB();
+    }
+
+    syncDBToSQLTables(initialDB);
+    return loadDBFromSQLTables();
+  } catch (e) {
+    console.error('Failed to load DB, starting fresh SQL DB', e);
+    const fresh = defaultDB();
+    syncDBToSQLTables(fresh);
+    return fresh;
+  }
+}
+
 export function saveDB(db: AppDB): void {
-  localStorage.setItem(DB_KEY, JSON.stringify(db));
+  syncDBToSQLTables(db);
 }
 
 export function expenseFlow(e: Expense): ExpenseFlow {
@@ -680,8 +1161,6 @@ export function addFriend(db: AppDB, data: Partial<Friend>): { db: AppDB; friend
   const friend: Friend = {
     id: uid('frnd'),
     name: data.name || 'Unnamed',
-    email: data.email || '',
-    phone: data.phone || '',
     notes: data.notes || '',
     color: data.color || FRIEND_PALETTE[db.friends.length % FRIEND_PALETTE.length],
     createdAt: Date.now(),
@@ -817,9 +1296,9 @@ export function seedSampleData(db: AppDB): AppDB {
     return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
   };
 
-  const { db: db1, friend: alex } = addFriend(current, { name: 'Alex Rivera', email: 'alex@example.com' });
+  const { db: db1, friend: alex } = addFriend(current, { name: 'Alex Rivera' });
   current = db1;
-  const { db: db2, friend: priya } = addFriend(current, { name: 'Priya Shah', email: 'priya@example.com' });
+  const { db: db2, friend: priya } = addFriend(current, { name: 'Priya Shah' });
   current = db2;
   const { db: db3, friend: sam } = addFriend(current, { name: 'Sam Okafor' });
   current = db3;

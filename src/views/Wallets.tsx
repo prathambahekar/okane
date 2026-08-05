@@ -188,8 +188,7 @@ export default function Wallets() {
                       <WalletIcon style={{ color: w.color }} size={20} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 15.5 }}>{w.name}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Opening: {fmtMoney(w.openingBalance, currency)}</div>
+                      <div style={{ fontWeight: 700, fontSize: 16 }}>{w.name}</div>
                     </div>
                   </div>
 
@@ -209,8 +208,18 @@ export default function Wallets() {
                   </div>
                 </div>
 
-                <div style={{ fontSize: 24, fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)', marginBottom: 14 }}>
-                  {fmtMoney(bal, currency)}
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
+                    Current Balance
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>
+                    {fmtMoney(bal, currency)}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ padding: '3px 8px', borderRadius: 6, background: 'var(--surface-hover)', border: '1px solid var(--border)', fontSize: 11, fontWeight: 600, color: 'var(--text-2)' }}>
+                      Opening Balance: <strong style={{ color: 'var(--text)' }}>{fmtMoney(w.openingBalance, currency)}</strong>
+                    </span>
+                  </div>
                 </div>
               </div>
 

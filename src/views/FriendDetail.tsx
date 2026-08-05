@@ -174,20 +174,16 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
               </span>
             </div>
 
-            {(friend.email || friend.phone || friend.website) && (
+            {friend.website && (
               <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                {friend.email && <span>{friend.email}</span>}
-                {friend.phone && <span>· {friend.phone}</span>}
-                {friend.website && (
-                  <a
-                    href={friend.website.startsWith('http') ? friend.website : `https://${friend.website}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: 2 }}
-                  >
-                    <span>Website</span> <ExternalLink size={11} />
-                  </a>
-                )}
+                <a
+                  href={friend.website.startsWith('http') ? friend.website : `https://${friend.website}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: 2 }}
+                >
+                  <span>Website</span> <ExternalLink size={11} />
+                </a>
               </div>
             )}
             {friend.notes && (

@@ -8,6 +8,7 @@ export interface Wallet {
   id: string;
   name: string;
   openingBalance: number;
+  currentBalance?: number;
   color: string;
 }
 
@@ -16,8 +17,6 @@ export type ContactType = 'friend' | 'vendor' | 'subscription';
 export interface Friend {
   id: string;
   name: string;
-  email?: string;
-  phone?: string;
   notes: string;
   color: string;
   createdAt: number;
@@ -72,7 +71,10 @@ export interface Settings {
   defaultStatus: ExpenseStatus;
   defaultWalletId: string;
   enableAIAssistant?: boolean;
+  enableDevSQLConsole?: boolean;
+  enableSampleData?: boolean;
   defaultAiEngine?: 'offline' | 'online';
+  devMode?: boolean;
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';
@@ -128,7 +130,8 @@ export type ViewName =
   | 'settlements'
   | 'analytics'
   | 'settings'
-  | 'recurring';
+  | 'recurring'
+  | 'dev-sql';
 
 export interface ExpenseFilters {
   search: string;

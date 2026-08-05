@@ -106,8 +106,6 @@ export default function Friends({ onNavigate }: Props) {
 
       const matchesSearch =
         f.name.toLowerCase().includes(search.toLowerCase()) ||
-        (f.email || '').toLowerCase().includes(search.toLowerCase()) ||
-        (f.phone || '').includes(search) ||
         (f.category || '').toLowerCase().includes(search.toLowerCase());
       if (!matchesSearch) return false;
 

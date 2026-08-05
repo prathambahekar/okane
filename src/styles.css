@@ -139,6 +139,7 @@ html, body, #root {
   width: 36px;
   height: 36px;
   background: var(--accent-gradient);
+  color: var(--accent-contrast, #ffffff);
   border-radius: var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.25);
   display: grid;
@@ -146,9 +147,14 @@ html, body, #root {
   flex-shrink: 0;
   box-shadow: 0 3px 10px var(--accent-soft);
 }
-.sidebar-logo-icon svg [stroke], .sidebar-logo-icon svg [fill] {
-  stroke: #fff !important;
-  fill: #fff !important;
+.sidebar-logo-icon svg {
+  color: var(--accent-contrast, #ffffff) !important;
+}
+.sidebar-logo-icon svg [stroke] {
+  stroke: var(--accent-contrast, #ffffff) !important;
+}
+.sidebar-logo-icon svg [fill] {
+  fill: var(--accent-contrast, #ffffff) !important;
 }
 .sidebar-logo-text {
   font-size: 17px;

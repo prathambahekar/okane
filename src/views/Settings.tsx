@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Download, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal } from 'lucide-react';
 import { useStore } from '../store';
-import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE } from '../db';
-import type { Category, AppDB } from '../types';
+import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
+import type { Category, AppDB, ViewName } from '../types';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
@@ -60,7 +60,7 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
   );
 }
 
-export default function Settings() {
+export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) => void }) {
   const { db, updateSettings, updateCategory, resetDB, restoreDB, loadSampleData, showToast } = useStore();
   const { settings } = db;
   const fileRef = useRef<HTMLInputElement>(null);
@@ -79,6 +79,7 @@ export default function Settings() {
   const [accentExpanded, setAccentExpanded] = useState(false);
   const [categoriesListExpanded, setCategoriesListExpanded] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
+  const [devExpanded, setDevExpanded] = useState(!!settings.devMode);
 
   const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
     appName: "Okane",
@@ -174,33 +175,38 @@ export default function Settings() {
 
 
 
-  const handleExport = async () => {
+  const handleExport = async (format: 'db' | 'json' = 'db') => {
     try {
-      const exportData: AppDB = {
-        ...db,
-        recurringRules: db.recurringRules || [],
-      };
-      const json = JSON.stringify(exportData, null, 2);
-      const fileName = `ledger-backup-${new Date()
-        .toISOString()
-        .slice(0, 10)}.json`;
+      let dataContent = '';
+      let contentType = 'application/octet-stream';
+      let ext = 'db';
+
+      if (format === 'db') {
+        dataContent = generateSQLDumpString();
+        contentType = 'application/octet-stream';
+        ext = 'db';
+      } else {
+        const exportData: AppDB = {
+          ...db,
+          recurringRules: db.recurringRules || [],
+        };
+        dataContent = JSON.stringify(exportData, null, 2);
+        contentType = 'application/json';
+        ext = 'json';
+      }
+
+      const fileName = `okane-database-${new Date().toISOString().slice(0, 10)}.${ext}`;
 
       // Web
       if (Capacitor.getPlatform() === "web") {
-        const blob = new Blob([json], {
-          type: "application/json",
-        });
-
+        const blob = new Blob([dataContent], { type: contentType });
         const url = URL.createObjectURL(blob);
-
         const a = document.createElement("a");
         a.href = url;
         a.download = fileName;
         a.click();
-
         URL.revokeObjectURL(url);
-
-        showToast("Backup downloaded successfully");
+        showToast(`${ext.toUpperCase()} database backup downloaded`);
         return;
       }
 
@@ -218,7 +224,7 @@ export default function Settings() {
         try {
           await Filesystem.writeFile({
             path: `Download/${fileName}`,
-            data: json,
+            data: dataContent,
             directory: Directory.ExternalStorage,
             encoding: Encoding.UTF8,
             recursive: true,
@@ -232,7 +238,7 @@ export default function Settings() {
       // Write to Cache directory so Share plugin can share the file via FileProvider
       const result = await Filesystem.writeFile({
         path: fileName,
-        data: json,
+        data: dataContent,
         directory: Directory.Cache,
         encoding: Encoding.UTF8,
         recursive: true,
@@ -240,8 +246,8 @@ export default function Settings() {
 
       try {
         await Share.share({
-          title: "Ledger Backup",
-          text: "Ledger backup file",
+          title: `Okane ${format.toUpperCase()} Backup`,
+          text: `Okane database backup file (${format.toUpperCase()})`,
           url: result.uri,
           dialogTitle: "Save or Share Backup",
         });
@@ -250,9 +256,9 @@ export default function Settings() {
       }
 
       if (savedToDownloadFolder) {
-        showToast("Backup saved to Download folder!");
+        showToast(`Backup saved to Download folder (${ext})!`);
       } else {
-        showToast("Backup created successfully");
+        showToast(`Backup created successfully (${ext})`);
       }
     } catch (err) {
       console.error(err);
@@ -263,15 +269,23 @@ export default function Settings() {
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const isSql = file.name.endsWith('.sql') || file.name.endsWith('.db');
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const data = JSON.parse(ev.target?.result as string) as AppDB;
-        if (!data.expenses || !data.friends || !data.settings) throw new Error('Invalid format');
-        restoreDB(data);
-        showToast('Data imported successfully');
+        const text = ev.target?.result as string;
+        if (isSql || text.trim().startsWith('--') || text.includes('INSERT INTO') || text.includes('DELETE FROM')) {
+          const restoredDB = importSQLDumpString(text);
+          restoreDB(restoredDB);
+          showToast('SQL database imported successfully');
+        } else {
+          const data = JSON.parse(text) as AppDB;
+          if (!data.expenses || !data.friends || !data.settings) throw new Error('Invalid format');
+          restoreDB(data);
+          showToast('JSON data imported successfully');
+        }
       } catch {
-        showToast('Invalid file format. Please use a valid Okane backup.');
+        showToast('Invalid file format. Please upload a valid JSON or SQL backup.');
       }
     };
     reader.readAsText(file);
@@ -469,106 +483,7 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* AI Assistant */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Sparkles size={18} style={{ color: 'var(--accent)' }} />
-              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>AI Assistant</h2>
-            </div>
-            <Switch
-              checked={settings.enableAIAssistant ?? true}
-              onChange={(e) => {
-                const enabled = e.target.checked;
-                updateSettings({ enableAIAssistant: enabled });
-                showToast(enabled ? 'AI Assistant enabled' : 'AI Assistant disabled');
-              }}
-              color="primary"
-              inputProps={{ 'aria-label': 'toggle ai assistant' }}
-            />
-          </div>
 
-          <p style={{ fontSize: 12.5, color: 'var(--text-3)', margin: 0, marginBottom: (settings.enableAIAssistant ?? true) ? 14 : 0 }}>
-            Quick-log expenses and splits with natural language or voice commands.
-          </p>
-
-          {(settings.enableAIAssistant ?? true) && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              paddingTop: 12,
-              borderTop: '1px solid var(--border)',
-              flexWrap: 'wrap',
-            }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>Processing Mode</div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
-                  {(settings.defaultAiEngine ?? 'offline') === 'offline'
-                    ? '100% local, no internet needed'
-                    : 'Powered by Gemini AI'}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 6, background: 'var(--surface2)', padding: 3, borderRadius: 10, border: '1px solid var(--border)' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateSettings({ defaultAiEngine: 'offline' });
-                    localStorage.setItem('ai_engine_mode', 'offline');
-                    showToast('Set default engine to Offline (100% Local)');
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '5px 12px',
-                    borderRadius: '7px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    border: 'none',
-                    background: (settings.defaultAiEngine ?? 'offline') === 'offline' ? 'var(--surface)' : 'transparent',
-                    color: (settings.defaultAiEngine ?? 'offline') === 'offline' ? '#16a34a' : 'var(--text-3)',
-                    boxShadow: (settings.defaultAiEngine ?? 'offline') === 'offline' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <Zap size={13} />
-                  <span>Offline Mode</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateSettings({ defaultAiEngine: 'online' });
-                    localStorage.setItem('ai_engine_mode', 'online');
-                    showToast('Set default engine to Gemini Cloud');
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '5px 12px',
-                    borderRadius: '7px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    border: 'none',
-                    background: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--surface)' : 'transparent',
-                    color: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--accent)' : 'var(--text-3)',
-                    boxShadow: (settings.defaultAiEngine ?? 'offline') === 'online' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <Sparkles size={13} />
-                  <span>Gemini Cloud</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
         {/* Preferences */}
         <div className="card">
           <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Preferences</h2>
@@ -861,32 +776,293 @@ export default function Settings() {
           </div>
         )}
 
+        {/* Developer Mode Card */}
+        <div className="card" style={{ padding: '20px 22px', borderLeft: '4px solid var(--accent)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: settings.devMode ? 'pointer' : 'default', flex: 1, minWidth: 220 }}
+              onClick={() => settings.devMode && setDevExpanded(!devExpanded)}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: 10, background: 'var(--accent-soft)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}>
+                <Database size={20} style={{ color: 'var(--accent)' }} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>Developer Mode</h2>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+                    background: 'var(--accent-soft)', color: 'var(--accent)', letterSpacing: '0.02em'
+                  }}>
+                    DEV TOOLS
+                  </span>
+                  {settings.devMode && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDevExpanded(!devExpanded);
+                      }}
+                      style={{
+                        fontSize: 11, color: 'var(--text-2)', fontWeight: 600, display: 'inline-flex',
+                        alignItems: 'center', gap: 4, background: 'var(--surface2)', border: '1px solid var(--border)',
+                        padding: '2px 8px', borderRadius: 12, cursor: 'pointer', marginLeft: 2
+                      }}
+                    >
+                      {devExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                      <span>{devExpanded ? 'Collapse' : 'Expand'}</span>
+                    </button>
+                  )}
+                </div>
+                <p style={{ fontSize: 12.5, color: 'var(--text-3)', marginTop: 3, marginBottom: 0, maxWidth: 520 }}>
+                  Unlocks advanced developer tools: SQL Console, AI Assistant trigger, and demo sample data loader.
+                </p>
+              </div>
+            </div>
+
+            <Switch
+              checked={!!settings.devMode}
+              onChange={e => {
+                const checked = e.target.checked;
+                updateSettings({ devMode: checked });
+                if (checked) setDevExpanded(true);
+                showToast(checked ? 'Developer Mode enabled!' : 'Developer Mode disabled.');
+              }}
+              color="primary"
+              inputProps={{ 'aria-label': 'toggle developer mode' }}
+            />
+          </div>
+
+          {settings.devMode && devExpanded && (
+            <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              
+              {/* 1. SQL Console Tool */}
+              <div style={{
+                padding: '14px 16px', borderRadius: 'var(--radius)', background: 'var(--surface2)', border: '1px solid var(--border)',
+                transition: 'border-color 0.15s ease'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 8, background: (settings.enableDevSQLConsole ?? true) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease'
+                    }}>
+                      <Terminal size={17} style={{ color: (settings.enableDevSQLConsole ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>SQL Dev Console</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>Execute raw AlaSQL queries, inspect schemas & table data</div>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings.enableDevSQLConsole ?? true}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      updateSettings({ enableDevSQLConsole: enabled });
+                      showToast(enabled ? 'SQL Dev Console enabled' : 'SQL Dev Console disabled');
+                    }}
+                    color="primary"
+                    size="small"
+                  />
+                </div>
+                {(settings.enableDevSQLConsole ?? true) && onNavigate && (
+                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => onNavigate('dev-sql')}
+                      style={{ gap: 6, fontSize: 12 }}
+                    >
+                      <Database size={14} /> Open SQL Console
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. AI Assistant Tool */}
+              <div style={{
+                padding: '14px 16px', borderRadius: 'var(--radius)', background: 'var(--surface2)', border: '1px solid var(--border)',
+                transition: 'border-color 0.15s ease'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 8, background: (settings.enableAIAssistant ?? true) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease'
+                    }}>
+                      <Sparkles size={17} style={{ color: (settings.enableAIAssistant ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>AI Assistant (Max)</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>Floating voice & natural language AI assistant trigger on screen</div>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings.enableAIAssistant ?? true}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      updateSettings({ enableAIAssistant: enabled });
+                      showToast(enabled ? 'AI Assistant enabled' : 'AI Assistant disabled');
+                    }}
+                    color="primary"
+                    size="small"
+                  />
+                </div>
+
+                {(settings.enableAIAssistant ?? true) && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+                    marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)'
+                  }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-2)' }}>
+                      Processing Engine: <strong style={{ color: 'var(--text)' }}>
+                        {(settings.defaultAiEngine ?? 'offline') === 'offline' ? 'Offline (100% Local)' : 'Gemini Cloud'}
+                      </strong>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 4, background: 'var(--surface)', padding: 3, borderRadius: 8, border: '1px solid var(--border)' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateSettings({ defaultAiEngine: 'offline' });
+                          localStorage.setItem('ai_engine_mode', 'offline');
+                          showToast('Set AI engine to Offline (Local)');
+                        }}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6,
+                          fontSize: 11.5, fontWeight: 600, border: 'none', cursor: 'pointer',
+                          background: (settings.defaultAiEngine ?? 'offline') === 'offline' ? 'var(--accent-soft)' : 'transparent',
+                          color: (settings.defaultAiEngine ?? 'offline') === 'offline' ? 'var(--accent)' : 'var(--text-3)',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <Zap size={12} /> Offline
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateSettings({ defaultAiEngine: 'online' });
+                          localStorage.setItem('ai_engine_mode', 'online');
+                          showToast('Set AI engine to Gemini Cloud');
+                        }}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6,
+                          fontSize: 11.5, fontWeight: 600, border: 'none', cursor: 'pointer',
+                          background: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--accent-soft)' : 'transparent',
+                          color: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--accent)' : 'var(--text-3)',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <Sparkles size={12} /> Gemini
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. Demo Sample Data Loader */}
+              <div style={{
+                padding: '14px 16px', borderRadius: 'var(--radius)', background: 'var(--surface2)', border: '1px solid var(--border)',
+                transition: 'border-color 0.15s ease'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 8, background: (settings.enableSampleData ?? true) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease'
+                    }}>
+                      <FlaskConical size={17} style={{ color: (settings.enableSampleData ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>Sample Data Loader</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>Populate demo transactions, contacts, wallets & recurring rules</div>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings.enableSampleData ?? true}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      updateSettings({ enableSampleData: enabled });
+                      showToast(enabled ? 'Sample Data Loader enabled' : 'Sample Data Loader disabled');
+                    }}
+                    color="primary"
+                    size="small"
+                  />
+                </div>
+                {(settings.enableSampleData ?? true) && (
+                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleLoadSample}
+                      style={{ gap: 6, fontSize: 12 }}
+                    >
+                      <FlaskConical size={14} /> Load Sample Data
+                    </button>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+
+          {settings.devMode && !devExpanded && (
+            <div
+              onClick={() => setDevExpanded(true)}
+              style={{
+                marginTop: 12, padding: '10px 14px', borderRadius: 'var(--radius)',
+                background: 'var(--surface2)', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--border)'
+              }}
+            >
+              <span>Developer mode active. Click to expand tool toggles (SQL Console, AI Assistant, Sample Data).</span>
+              <ChevronDown size={14} style={{ color: 'var(--accent)' }} />
+            </div>
+          )}
+
+          {!settings.devMode && (
+            <div style={{
+              marginTop: 12, padding: '10px 14px', borderRadius: 'var(--radius)',
+              background: 'var(--surface2)', fontSize: 12, color: 'var(--text-3)', border: '1px dashed var(--border)'
+            }}>
+              Enable Developer Mode above to activate Dev SQL Console, AI Assistant, and Demo Sample Data generator.
+            </div>
+          )}
+        </div>
+
         {/* Data Management */}
         <div className="card" style={{ padding: '20px 22px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Data</h2>
-
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Data & Database Backup</h2>
           </div>
-          <p style={{ fontSize: 13.5, color: 'var(--text-3)', margin: 0 }}>
-            Nothing leaves your browser.
+          <p style={{ fontSize: 13.5, color: 'var(--text-3)', marginBottom: 14 }}>
+            All data operates on an offline relational SQL engine inside your browser. Export or restore using SQL database dumps or legacy formats.
           </p>
 
-          <div className="data-action-grid">
-            <button type="button" className="data-action-card" onClick={handleExport}>
-              <Download size={26} />
-              <span className="data-action-label">Export</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 16 }}>
+            <button type="button" className="data-action-card" onClick={() => handleExport('db')}>
+              <Database size={24} style={{ color: 'var(--accent)' }} />
+              <span className="data-action-label" style={{ fontWeight: 600 }}>Export DB</span>
+              <span style={{ fontSize: 10, color: 'var(--text-3)' }}>.db file</span>
             </button>
 
             <button type="button" className="data-action-card" onClick={() => fileRef.current?.click()}>
-              <Upload size={26} />
-              <span className="data-action-label">Import</span>
+              <Upload size={24} />
+              <span className="data-action-label" style={{ fontWeight: 600 }}>Restore Data</span>
+              <span style={{ fontSize: 10, color: 'var(--text-3)' }}>.sql, .db, .json</span>
             </button>
 
-            <button type="button" className="data-action-card" onClick={handleLoadSample}>
-              <FlaskConical size={26} />
-              <span className="data-action-label">Sample</span>
-            </button>
-            <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+            {settings.devMode && (settings.enableSampleData ?? true) && (
+              <button type="button" className="data-action-card" onClick={handleLoadSample}>
+                <FlaskConical size={24} />
+                <span className="data-action-label" style={{ fontWeight: 600 }}>Sample Data</span>
+                <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Load Demo</span>
+              </button>
+            )}
+            <input ref={fileRef} type="file" accept=".json,.sql,.db,text/plain" style={{ display: 'none' }} onChange={handleImport} />
           </div>
 
           <div className="data-reset-row" onClick={() => setShowReset(true)} role="button" tabIndex={0}>

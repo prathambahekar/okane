@@ -861,7 +861,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   height: 32,
                   borderRadius: '10px',
                   background: 'var(--accent-gradient)',
-                  color: '#ffffff',
+                  color: 'var(--accent-contrast)',
                   display: 'grid',
                   placeItems: 'center',
                   flexShrink: 0,
@@ -869,7 +869,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   boxShadow: '0 2px 6px var(--accent-soft)',
                 }}
               >
-                <Sparkles size={16} color="#ffffff" />
+                <Sparkles size={16} color="var(--accent-contrast)" />
               </Box>
             )}
 
@@ -960,7 +960,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   height: 32,
                   borderRadius: '10px',
                   background: 'var(--accent-gradient)',
-                  color: '#ffffff',
+                  color: 'var(--accent-contrast)',
                   display: 'grid',
                   placeItems: 'center',
                   flexShrink: 0,
@@ -1015,7 +1015,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               <Chip
                 label={`${currencySymbol(currency)} ${activeDraft.amount}`}
                 size="small"
-                sx={{ fontWeight: 700, fontSize: '13.5px', borderRadius: '99px', px: 0.75, bgcolor: 'var(--accent)', color: '#ffffff' }}
+                sx={{ fontWeight: 700, fontSize: '13.5px', borderRadius: '99px', px: 0.75, bgcolor: 'var(--accent)', color: 'var(--accent-contrast)' }}
               />
             </Box>
           </Box>
@@ -1137,7 +1137,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                       border: 'none !important',
                       '&.Mui-selected': {
                         bgcolor: 'var(--accent)',
-                        color: '#ffffff !important',
+                        color: 'var(--accent-contrast) !important',
                         boxShadow: '0 2px 6px var(--accent-soft)',
                       },
                     },
@@ -1585,7 +1585,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             height: 38,
             borderRadius: '50%',
             background: 'var(--accent-gradient)',
-            color: '#ffffff',
+            color: 'var(--accent-contrast)',
             flexShrink: 0,
             transition: 'all 0.2s ease',
             '&:hover': {
@@ -1681,13 +1681,13 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   height: 38,
                   borderRadius: '12px',
                   background: 'var(--accent-gradient)',
-                  color: '#ffffff',
+                  color: 'var(--accent-contrast)',
                   display: 'grid',
                   placeItems: 'center',
                   boxShadow: '0 4px 12px var(--accent-soft)',
                 }}
               >
-                <Sparkles size={20} color="#ffffff" />
+                <Sparkles size={20} color="var(--accent-contrast)" />
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.01em', color: 'var(--text)' }}>
