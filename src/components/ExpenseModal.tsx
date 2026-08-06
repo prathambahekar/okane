@@ -4,7 +4,7 @@ import { X, TrendingDown, TrendingUp, User, Users, Briefcase, CheckSquare, Squar
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types';
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
-import { currencySymbol, fmtMoney } from '../utils';
+import { currencySymbol, fmtMoney, getAvatarStyle } from '../utils';
 
 export interface ExpenseInitialData {
   description?: string;
@@ -809,8 +809,7 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                                     width: 26,
                                     height: 26,
                                     borderRadius: '50%',
-                                    background: f.color || 'var(--accent)',
-                                    color: f.color ? '#fff' : 'var(--accent-contrast)',
+                                    ...getAvatarStyle(f.color),
                                     fontSize: 11,
                                     fontWeight: 700,
                                     display: 'flex',
@@ -937,8 +936,7 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                                           width: 22,
                                           height: 22,
                                           borderRadius: '50%',
-                                          background: friendObj.color || 'var(--accent)',
-                                          color: '#fff',
+                                          ...getAvatarStyle(friendObj.color),
                                           fontSize: 10,
                                           fontWeight: 700,
                                           display: 'flex',
@@ -1193,8 +1191,7 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                                   width: 28,
                                   height: 28,
                                   borderRadius: '50%',
-                                  background: selectedFriend.color || 'var(--accent)',
-                                  color: '#fff',
+                                  ...getAvatarStyle(selectedFriend.color),
                                   fontSize: 12,
                                   fontWeight: 700,
                                   display: 'flex',

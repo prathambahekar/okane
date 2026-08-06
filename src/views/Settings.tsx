@@ -79,7 +79,8 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
   const [accentExpanded, setAccentExpanded] = useState(false);
   const [categoriesListExpanded, setCategoriesListExpanded] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
-  const [devExpanded, setDevExpanded] = useState(!!settings.devMode);
+  const isDevMode = settings.devMode ?? true;
+  const [devExpanded, setDevExpanded] = useState(isDevMode);
 
   const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
     appName: "Okane",
@@ -274,14 +275,25 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
     reader.onload = (ev) => {
       try {
         const text = ev.target?.result as string;
-        if (isSql || text.trim().startsWith('--') || text.includes('INSERT INTO') || text.includes('DELETE FROM')) {
+        const isSqlText = isSql || text.trim().startsWith('--') || text.includes('INSERT INTO') || text.includes('DELETE FROM') || text.includes('CREATE TABLE');
+        if (isSqlText) {
           const restoredDB = importSQLDumpString(text);
           restoreDB(restoredDB);
           showToast('SQL database imported successfully');
         } else {
-          const data = JSON.parse(text) as AppDB;
-          if (!data.expenses || !data.friends || !data.settings) throw new Error('Invalid format');
-          restoreDB(data);
+          let data: Record<string, unknown>;
+          try {
+            data = JSON.parse(text) as Record<string, unknown>;
+          } catch {
+            throw new Error('Invalid JSON format');
+          }
+          const friendsList = Array.isArray(data.friends) ? data.friends : (Array.isArray(data.contacts) ? data.contacts : []);
+          if (Array.isArray(data.contacts) && (!Array.isArray(data.friends) || data.friends.length === 0)) {
+            data.friends = data.contacts;
+          }
+          if (!data.expenses || !data.settings) throw new Error('Invalid format');
+          data.friends = friendsList;
+          restoreDB(data as unknown as AppDB);
           showToast('JSON data imported successfully');
         }
       } catch {
@@ -322,7 +334,11 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
             </div>
             <Switch
               checked={isDark}
-              onChange={() => toggleMode()}
+              onChange={() => {
+                const nextMode = isDark ? 'light' : 'dark';
+                toggleMode();
+                updateSettings({ colorMode: nextMode });
+              }}
               color="primary"
               inputProps={{ 'aria-label': 'dark mode toggle' }}
             />
@@ -402,7 +418,10 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                       <button
                         key={preset.id}
                         type="button"
-                        onClick={() => setAccent(preset.id)}
+                        onClick={() => {
+                          setAccent(preset.id);
+                          updateSettings({ accent: preset.id });
+                        }}
                         className="accent-picker-btn"
                         style={{
                           border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
@@ -434,7 +453,10 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                   {/* Custom option */}
                   <button
                     type="button"
-                    onClick={() => setAccent('custom')}
+                    onClick={() => {
+                      setAccent('custom');
+                      updateSettings({ accent: 'custom', customAccentColor: customColor });
+                    }}
                     className="accent-picker-btn"
                     style={{
                       border: accent === 'custom' ? '2px solid var(--accent)' : '1px solid var(--border)',
@@ -465,14 +487,22 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                     <input
                       type="color"
                       value={customColor}
-                      onChange={e => setCustomColor(e.target.value)}
+                      onChange={e => {
+                        const hex = e.target.value;
+                        setCustomColor(hex);
+                        updateSettings({ accent: 'custom', customAccentColor: hex });
+                      }}
                       style={{ width: 36, height: 36, padding: 0, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'none' }}
                     />
                     <input
                       type="text"
                       className="input"
                       value={customColor}
-                      onChange={e => setCustomColor(e.target.value)}
+                      onChange={e => {
+                        const hex = e.target.value;
+                        setCustomColor(hex);
+                        updateSettings({ accent: 'custom', customAccentColor: hex });
+                      }}
                       placeholder="#6366f1"
                       style={{ width: 120, fontSize: 13, fontFamily: 'monospace' }}
                     />
@@ -777,53 +807,30 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
         )}
 
         {/* Developer Mode Card */}
-        <div className="card" style={{ padding: '20px 22px', borderLeft: '4px solid var(--accent)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div
-              style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: settings.devMode ? 'pointer' : 'default', flex: 1, minWidth: 220 }}
-              onClick={() => settings.devMode && setDevExpanded(!devExpanded)}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: isDevMode ? 'pointer' : 'default', flex: 1 }}
+              onClick={() => isDevMode && setDevExpanded(!devExpanded)}
             >
-              <div style={{
-                width: 40, height: 40, borderRadius: 10, background: 'var(--accent-soft)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-              }}>
-                <Database size={20} style={{ color: 'var(--accent)' }} />
-              </div>
+              <Database size={18} style={{ color: 'var(--accent)' }} />
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>Developer Mode</h2>
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
-                    background: 'var(--accent-soft)', color: 'var(--accent)', letterSpacing: '0.02em'
-                  }}>
-                    DEV TOOLS
-                  </span>
-                  {settings.devMode && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDevExpanded(!devExpanded);
-                      }}
-                      style={{
-                        fontSize: 11, color: 'var(--text-2)', fontWeight: 600, display: 'inline-flex',
-                        alignItems: 'center', gap: 4, background: 'var(--surface2)', border: '1px solid var(--border)',
-                        padding: '2px 8px', borderRadius: 12, cursor: 'pointer', marginLeft: 2
-                      }}
-                    >
-                      {devExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                      <span>{devExpanded ? 'Collapse' : 'Expand'}</span>
-                    </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Developer Mode</h2>
+                  {isDevMode && (
+                    <span style={{ fontSize: 12, color: 'var(--text-3)', display: 'inline-flex', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
+                      {devExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </span>
                   )}
                 </div>
-                <p style={{ fontSize: 12.5, color: 'var(--text-3)', marginTop: 3, marginBottom: 0, maxWidth: 520 }}>
-                  Unlocks advanced developer tools: SQL Console, AI Assistant trigger, and demo sample data loader.
+                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                  Enable SQL Console, AI Assistant, and demo sample data tools
                 </p>
               </div>
             </div>
 
             <Switch
-              checked={!!settings.devMode}
+              checked={isDevMode}
               onChange={e => {
                 const checked = e.target.checked;
                 updateSettings({ devMode: checked });
@@ -835,7 +842,7 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
             />
           </div>
 
-          {settings.devMode && devExpanded && (
+          {isDevMode && devExpanded && (
             <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
               
               {/* 1. SQL Console Tool */}
@@ -1009,7 +1016,7 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
             </div>
           )}
 
-          {settings.devMode && !devExpanded && (
+          {isDevMode && !devExpanded && (
             <div
               onClick={() => setDevExpanded(true)}
               style={{
@@ -1023,7 +1030,7 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
             </div>
           )}
 
-          {!settings.devMode && (
+          {!isDevMode && (
             <div style={{
               marginTop: 12, padding: '10px 14px', borderRadius: 'var(--radius)',
               background: 'var(--surface2)', fontSize: 12, color: 'var(--text-3)', border: '1px dashed var(--border)'

@@ -25,6 +25,7 @@ export interface Friend {
   billingCycle?: 'monthly' | 'yearly' | 'custom' | 'one_time';
   defaultAmount?: number;
   website?: string;
+  avatarNumber?: string;
 }
 
 export type Contact = Friend;
@@ -75,6 +76,10 @@ export interface Settings {
   enableSampleData?: boolean;
   defaultAiEngine?: 'offline' | 'online';
   devMode?: boolean;
+  colorMode?: 'light' | 'dark';
+  accent?: string;
+  customAccentColor?: string;
+  sidebarCollapsed?: boolean;
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';

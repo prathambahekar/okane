@@ -4,6 +4,7 @@ import { X, User, Store, Tv, Pipette } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend, ContactType } from '../types';
 import { FRIEND_PALETTE } from '../db';
+import { getAvatarStyle } from '../utils';
 import { POPULAR_SUBSCRIPTIONS, renderBrandLogo, detectBrandPreset } from './BrandIcons';
 
 interface Props {
@@ -22,6 +23,8 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
   const [website, setWebsite] = useState(friend?.website ?? '');
   const [notes, setNotes] = useState(friend?.notes ?? '');
   const [color, setColor] = useState(() => friend?.color ?? FRIEND_PALETTE[Math.floor(Math.random() * FRIEND_PALETTE.length)]);
+  const [avatarNumber, setAvatarNumber] = useState(friend?.avatarNumber ?? '');
+  const [showNumberPicker, setShowNumberPicker] = useState(() => Boolean(friend?.avatarNumber));
   const [error, setError] = useState('');
 
   const handleNameChange = (val: string) => {
@@ -60,6 +63,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
       website: website.trim(),
       notes: notes.trim(),
       color,
+      avatarNumber: type === 'friend' && avatarNumber.trim() ? avatarNumber.trim() : undefined,
     };
 
     if (friend) {
@@ -347,113 +351,210 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
 
               {/* Avatar Theme Color */}
               <div className="form-group">
-                <label className="form-label" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', marginBottom: 3 }}>
-                  Avatar Color
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <label className="form-label" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', margin: 0 }}>
+                    Avatar Color
+                  </label>
+                  {type === 'friend' && (
+                    <button
+                      type="button"
+                      onClick={() => setShowNumberPicker(!showNumberPicker)}
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 600,
+                        color: showNumberPicker || avatarNumber ? 'var(--accent)' : 'var(--text-3)',
+                        background: showNumberPicker || avatarNumber ? 'var(--accent-soft)' : 'transparent',
+                        border: '1px solid ' + (showNumberPicker || avatarNumber ? 'var(--accent)' : 'var(--border)'),
+                        padding: '2px 8px',
+                        borderRadius: 12,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        transition: 'all 0.15s ease',
+                      }}
+                      title="Secret option: Use custom number badge instead of initial"
+                    >
+                      <span># Number Badge</span>
+                      {avatarNumber ? (
+                        <span style={{ background: 'var(--accent)', color: '#fff', padding: '0 5px', borderRadius: 8, fontSize: 9, fontWeight: 700 }}>
+                          {avatarNumber}
+                        </span>
+                      ) : null}
+                    </button>
+                  )}
+                </div>
                 <div
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
                     background: 'var(--surface2)',
                     padding: '8px 10px',
                     borderRadius: 10,
                     border: '1px solid var(--border)',
                   }}
                 >
-                  {/* Live Avatar Preview */}
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: '50%',
-                      background: color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#FFFFFF',
-                      fontSize: 14,
-                      fontWeight: 700,
-                      flexShrink: 0,
-                      boxShadow: `0 3px 8px ${color}44`,
-                      border: '1.5px solid rgba(255,255,255,0.2)',
-                    }}
-                  >
-                    {type === 'subscription' && renderBrandLogo(name, 20)
-                      ? renderBrandLogo(name, 20)
-                      : type === 'vendor'
-                      ? <Store size={18} />
-                      : type === 'subscription'
-                      ? <Tv size={18} />
-                      : name ? name.slice(0, 2).toUpperCase() : <User size={18} />}
-                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {/* Live Avatar Preview */}
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: '50%',
+                        ...getAvatarStyle(color),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: avatarNumber && avatarNumber.length > 2 ? 11 : 14,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {type === 'subscription' && renderBrandLogo(name, 20)
+                        ? renderBrandLogo(name, 20)
+                        : type === 'vendor'
+                        ? <Store size={18} />
+                        : type === 'subscription'
+                        ? <Tv size={18} />
+                        : (avatarNumber.trim() || (name ? name.slice(0, 1).toUpperCase() : <User size={18} />))}
+                    </div>
 
-                  {/* Swatches Grid */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                      {FRIEND_PALETTE.map(c => {
-                        const isSelected = color === c;
-                        return (
-                          <button
-                            key={c}
-                            type="button"
-                            onClick={() => setColor(c)}
+                    {/* Swatches Grid */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                        {FRIEND_PALETTE.map(c => {
+                          const isSelected = color === c;
+                          return (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => setColor(c)}
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: '50%',
+                                background: c,
+                                border: isSelected ? '2px solid #FFFFFF' : 'none',
+                                boxShadow: isSelected ? `0 0 0 2px ${c}` : 'none',
+                                cursor: 'pointer',
+                                transform: isSelected ? 'scale(1.15)' : 'scale(1)',
+                                transition: 'transform 0.15s ease',
+                                outline: 'none',
+                              }}
+                            />
+                          );
+                        })}
+
+                        {/* Custom Color Picker Swatch */}
+                        <label
+                          style={{
+                            position: 'relative',
+                            width: 20,
+                            height: 20,
+                            borderRadius: '50%',
+                            background: !FRIEND_PALETTE.includes(color)
+                              ? color
+                              : 'conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
+                            border: !FRIEND_PALETTE.includes(color) ? '2px solid #FFFFFF' : 'none',
+                            boxShadow: !FRIEND_PALETTE.includes(color) ? `0 0 0 2px ${color}` : 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transform: !FRIEND_PALETTE.includes(color) ? 'scale(1.15)' : 'scale(1)',
+                            transition: 'transform 0.15s ease',
+                            outline: 'none',
+                          }}
+                          title="Pick custom color"
+                        >
+                          <input
+                            type="color"
+                            value={color.startsWith('#') ? color : '#3B82F6'}
+                            onChange={e => setColor(e.target.value)}
                             style={{
-                              width: 20,
-                              height: 20,
-                              borderRadius: '50%',
-                              background: c,
-                              border: isSelected ? '2px solid #FFFFFF' : 'none',
-                              boxShadow: isSelected ? `0 0 0 2px ${c}` : 'none',
+                              position: 'absolute',
+                              opacity: 0,
+                              width: '100%',
+                              height: '100%',
                               cursor: 'pointer',
-                              transform: isSelected ? 'scale(1.15)' : 'scale(1)',
-                              transition: 'transform 0.15s ease',
-                              outline: 'none',
+                              top: 0,
+                              left: 0,
                             }}
                           />
-                        );
-                      })}
-
-                      {/* Custom Color Picker Swatch */}
-                      <label
-                        style={{
-                          position: 'relative',
-                          width: 20,
-                          height: 20,
-                          borderRadius: '50%',
-                          background: !FRIEND_PALETTE.includes(color)
-                            ? color
-                            : 'conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
-                          border: !FRIEND_PALETTE.includes(color) ? '2px solid #FFFFFF' : 'none',
-                          boxShadow: !FRIEND_PALETTE.includes(color) ? `0 0 0 2px ${color}` : 'none',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transform: !FRIEND_PALETTE.includes(color) ? 'scale(1.15)' : 'scale(1)',
-                          transition: 'transform 0.15s ease',
-                          outline: 'none',
-                        }}
-                        title="Pick custom color"
-                      >
-                        <input
-                          type="color"
-                          value={color.startsWith('#') ? color : '#3B82F6'}
-                          onChange={e => setColor(e.target.value)}
-                          style={{
-                            position: 'absolute',
-                            opacity: 0,
-                            width: '100%',
-                            height: '100%',
-                            cursor: 'pointer',
-                            top: 0,
-                            left: 0,
-                          }}
-                        />
-                        <Pipette size={10} color="#FFFFFF" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))', pointerEvents: 'none' }} />
-                      </label>
+                          <Pipette size={10} color="#FFFFFF" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))', pointerEvents: 'none' }} />
+                        </label>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Secret Number Option Box */}
+                  {type === 'friend' && showNumberPicker && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        paddingTop: 8,
+                        borderTop: '1px dashed var(--border)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span>Secret Number Badge (0 to 99)</span>
+                        </span>
+                        {avatarNumber ? (
+                          <button
+                            type="button"
+                            onClick={() => setAvatarNumber('')}
+                            style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          >
+                            Reset to Initial ({name ? name.slice(0, 1).toUpperCase() : 'A'})
+                          </button>
+                        ) : null}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <input
+                          type="text"
+                          maxLength={2}
+                          placeholder="0-99"
+                          value={avatarNumber}
+                          onChange={e => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+                            setAvatarNumber(val);
+                          }}
+                          style={{
+                            width: 68,
+                            padding: '4px 8px',
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                            borderRadius: 6,
+                            border: '1px solid var(--border)',
+                            background: 'var(--surface)',
+                            color: 'var(--text)',
+                            textAlign: 'center',
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                          {['00', '07', '10', '23', '35', '69', '99'].map(num => (
+                            <button
+                              key={num}
+                              type="button"
+                              onClick={() => setAvatarNumber(num)}
+                              style={{
+                                padding: '2px 7px',
+                                fontSize: 10.5,
+                                fontWeight: 600,
+                                borderRadius: 5,
+                                border: avatarNumber === num ? '1px solid var(--accent)' : '1px solid var(--border)',
+                                background: avatarNumber === num ? 'var(--accent-soft)' : 'var(--surface)',
+                                color: avatarNumber === num ? 'var(--accent)' : 'var(--text-2)',
+                                cursor: 'pointer',
+                                transition: 'all 0.1s ease',
+                              }}
+                            >
+                              {num}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

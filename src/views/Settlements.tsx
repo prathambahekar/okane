@@ -3,7 +3,7 @@ import { RotateCcw, Handshake, ArrowUpRight, ArrowDownLeft, Clock } from 'lucide
 import { useStore } from '../store';
 import type { Friend } from '../types';
 import { friendBalance } from '../db';
-import { fmtMoney, fmtDate, friendInitial } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle } from '../utils';
 import SettleModal from '../components/SettleModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 
@@ -126,7 +126,7 @@ export default function Settlements() {
                     <div
                       className="avatar"
                       style={{
-                        background: f.color,
+                        ...getAvatarStyle(f.color),
                         width: 32,
                         height: 32,
                         fontSize: 12,
@@ -135,7 +135,7 @@ export default function Settlements() {
                         flexShrink: 0,
                       }}
                     >
-                      {friendInitial(f.name)}
+                      {friendInitial(f.name, f.avatarNumber)}
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div
@@ -209,70 +209,72 @@ export default function Settlements() {
           </div>
         ) : (
           <>
-            <table className="data-table desktop-only">
-              <thead>
-                <tr>
-                  <th>Friend</th>
-                  <th>Amount</th>
-                  <th>Date</th>
-                  <th>Wallet / Method</th>
-                  <th>Expenses</th>
-                  <th>Note</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map(s => {
-                  const friend = db.friends.find(f => f.id === s.friendId);
-                  const wallet = db.wallets.find(w => w.id === s.walletId);
-                  const walletName = wallet?.name || s.paymentMethod;
-                  const isEvenGroup = dateGroupInfo.groupMap[s.id] === 0;
-                  const isFirstOfDate = dateGroupInfo.isFirstMap[s.id];
-                  const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}`;
+            <div className="table-wrapper desktop-only">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Friend</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Wallet / Method</th>
+                    <th>Expenses</th>
+                    <th>Note</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map(s => {
+                    const friend = db.friends.find(f => f.id === s.friendId);
+                    const wallet = db.wallets.find(w => w.id === s.walletId);
+                    const walletName = wallet?.name || s.paymentMethod;
+                    const isEvenGroup = dateGroupInfo.groupMap[s.id] === 0;
+                    const isFirstOfDate = dateGroupInfo.isFirstMap[s.id];
+                    const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}`;
 
-                  return (
-                    <tr key={s.id} className={rowClass}>
-                      <td>
-                        {friend ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div className="avatar avatar-sm" style={{ background: friend.color }}>{friendInitial(friend.name)}</div>
-                            <span style={{ fontSize: 13, fontWeight: 600 }}>{friend.name}</span>
-                          </div>
-                        ) : <span style={{ color: 'var(--text-3)' }}>Deleted friend</span>}
-                      </td>
-                      <td style={{ fontWeight: 700, fontSize: 13.5, color: s.amount >= 0 ? 'var(--credit)' : 'var(--debit)' }}>
-                        {s.amount >= 0 ? '+' : '-'}{fmtMoney(Math.abs(s.amount), currency)}
-                      </td>
-                      <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(s.date)}</td>
-                      <td>
-                        {wallet ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span className="cat-dot" style={{ background: wallet.color }} />
-                            <span style={{ fontSize: 12, fontWeight: 500 }}>{wallet.name}</span>
-                          </div>
-                        ) : (
-                          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{walletName || '—'}</span>
-                        )}
-                      </td>
-                      <td style={{ fontSize: 12, color: 'var(--text-3)' }}>{s.expenseIds.length} expense{s.expenseIds.length !== 1 ? 's' : ''}</td>
-                      <td style={{ fontSize: 12, color: 'var(--text-2)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {s.note || '—'}
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => setDelId(s.id)}
-                          title="Undo settlement"
-                          style={{ color: '#d97706', borderColor: 'rgba(217, 119, 6, 0.3)', padding: '4px 10px', fontSize: 11.5, gap: 4 }}
-                        >
-                          <RotateCcw size={13} /> Undo
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    return (
+                      <tr key={s.id} className={rowClass}>
+                        <td>
+                          {friend ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div className="avatar avatar-sm" style={getAvatarStyle(friend.color)}>{friendInitial(friend.name, friend.avatarNumber)}</div>
+                              <span style={{ fontSize: 13, fontWeight: 600 }}>{friend.name}</span>
+                            </div>
+                          ) : <span style={{ color: 'var(--text-3)' }}>Deleted friend</span>}
+                        </td>
+                        <td style={{ fontWeight: 700, fontSize: 13.5, color: s.amount >= 0 ? 'var(--credit)' : 'var(--debit)' }}>
+                          {s.amount >= 0 ? '+' : '-'}{fmtMoney(Math.abs(s.amount), currency)}
+                        </td>
+                        <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(s.date)}</td>
+                        <td>
+                          {wallet ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span className="cat-dot" style={{ background: wallet.color }} />
+                              <span style={{ fontSize: 12, fontWeight: 500 }}>{wallet.name}</span>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{walletName || '—'}</span>
+                          )}
+                        </td>
+                        <td style={{ fontSize: 12, color: 'var(--text-3)' }}>{s.expenseIds.length} expense{s.expenseIds.length !== 1 ? 's' : ''}</td>
+                        <td style={{ fontSize: 12, color: 'var(--text-2)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {s.note || '—'}
+                        </td>
+                        <td>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => setDelId(s.id)}
+                            title="Undo settlement"
+                            style={{ color: '#d97706', borderColor: 'rgba(217, 119, 6, 0.3)', padding: '4px 10px', fontSize: 11.5, gap: 4 }}
+                          >
+                            <RotateCcw size={13} /> Undo
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
             {/* Mobile View for Settlements */}
             <div className="mobile-expense-list mobile-only">
@@ -286,7 +288,7 @@ export default function Settlements() {
                       <div className="mobile-expense-top">
                         <div className="mobile-expense-desc-wrap">
                           {friend ? (
-                            <div className="avatar avatar-sm" style={{ background: friend.color, width: 24, height: 24, fontSize: 11 }}>{friendInitial(friend.name)}</div>
+                            <div className="avatar avatar-sm" style={{ ...getAvatarStyle(friend.color), width: 24, height: 24, fontSize: 11 }}>{friendInitial(friend.name, friend.avatarNumber)}</div>
                           ) : null}
                           <span className="mobile-expense-title">{friend ? friend.name : 'Deleted friend'}</span>
                         </div>

@@ -5,7 +5,7 @@ import CategoryIcon from './CategoryIcon';
 import { useStore } from '../store';
 import type { Friend } from '../types';
 import { expenseFlow, unsettledExpensesForFriend } from '../db';
-import { fmtMoney, fmtDate, friendInitial } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle } from '../utils';
 
 interface Props {
   friend: Friend;
@@ -51,7 +51,7 @@ export default function SettleModal({ friend, onClose }: Props) {
       <div className="modal modal-lg">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="avatar" style={{ background: friend.color }}>{friendInitial(friend.name)}</div>
+            <div className="avatar" style={getAvatarStyle(friend.color)}>{friendInitial(friend.name, friend.avatarNumber)}</div>
             <div>
               <div className="modal-title">Settle with {friend.name}</div>
               <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>{unsettled.length} unsettled expense{unsettled.length !== 1 ? 's' : ''}</div>

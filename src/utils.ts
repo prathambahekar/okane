@@ -308,8 +308,56 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[]): GroupedE
   return result;
 }
 
-export function friendInitial(name: string): string {
-  return (name || '?').trim().charAt(0).toUpperCase();
+export function friendInitial(
+  nameOrFriend?: string | { name?: string; avatarNumber?: string },
+  avatarNumber?: string
+): string {
+  if (!nameOrFriend) return '?';
+  if (typeof nameOrFriend === 'object') {
+    if (nameOrFriend.avatarNumber && nameOrFriend.avatarNumber.trim()) {
+      return nameOrFriend.avatarNumber.trim();
+    }
+    return (nameOrFriend.name || '?').trim().charAt(0).toUpperCase();
+  }
+  if (avatarNumber && avatarNumber.trim()) {
+    return avatarNumber.trim();
+  }
+  return nameOrFriend.trim().charAt(0).toUpperCase();
+}
+
+export function getAvatarStyle(color?: string): React.CSSProperties {
+  if (!color) {
+    return {
+      background: 'var(--accent-soft)',
+      color: 'var(--accent)',
+      border: '1px solid var(--border)',
+    };
+  }
+
+  // Hex color (#RRGGBB)
+  if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+    return {
+      background: `${color}1A`,
+      color: color,
+      border: `1px solid ${color}33`,
+    };
+  }
+
+  // Short hex (#RGB)
+  if (/^#[0-9A-Fa-f]{3}$/.test(color)) {
+    const fullHex = '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
+    return {
+      background: `${fullHex}1A`,
+      color: fullHex,
+      border: `1px solid ${fullHex}33`,
+    };
+  }
+
+  return {
+    background: 'var(--accent-soft)',
+    color: color || 'var(--accent)',
+    border: '1px solid var(--border)',
+  };
 }
 
 export function generateInsights(

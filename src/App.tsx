@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import AppBar from '@mui/material/AppBar';
@@ -35,7 +35,7 @@ import {
   Database,
 } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
-import { useColorMode } from './theme';
+import { useColorMode, type AccentPreset } from './theme';
 import type { ViewName } from './types';
 import { expenseFlow, friendBalance, totalWalletBalance, todayISO, monthKey } from './db';
 import { fmtMoney } from './utils';
@@ -59,28 +59,45 @@ import './styles.css';
 const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'recurring', 'analytics', 'settings', 'dev-sql'];
 
 function AppInner() {
-  const { db } = useStore();
+  const { db, updateSettings } = useStore();
   const [view, setView] = useState<ViewName>('dashboard');
   const [friendDetailId, setFriendDetailId] = useState<string>('');
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [addExpenseInitialData, setAddExpenseInitialData] = useState<ExpenseInitialData | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
-  const { mode, toggleMode: toggleDark } = useColorMode();
+  const { mode, setMode, toggleMode: toggleDark, accent, setAccent, customColor, setCustomColor } = useColorMode();
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
 
-  const isDevMode = db.settings?.devMode ?? false;
+  const sidebarCollapsed = db.settings?.sidebarCollapsed ?? (localStorage.getItem('sidebar_collapsed') === 'true');
+
+  useEffect(() => {
+    if (db.settings?.colorMode && db.settings.colorMode !== mode) {
+      setMode(db.settings.colorMode);
+    }
+    if (db.settings?.accent && db.settings.accent !== accent) {
+      setAccent(db.settings.accent as AccentPreset);
+    }
+    if (db.settings?.customAccentColor && db.settings.customAccentColor !== customColor) {
+      setCustomColor(db.settings.customAccentColor);
+    }
+  }, [db.settings?.colorMode, db.settings?.accent, db.settings?.customAccentColor, mode, accent, customColor, setMode, setAccent, setCustomColor]);
+
+  const isDevMode = db.settings?.devMode ?? true;
   const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
   const enableAIAssistant = isDevMode && (db.settings?.enableAIAssistant ?? true);
 
   const toggleSidebar = () => {
-    setSidebarCollapsed(prev => {
-      const next = !prev;
-      localStorage.setItem('sidebar_collapsed', String(next));
-      return next;
-    });
+    const next = !sidebarCollapsed;
+    localStorage.setItem('sidebar_collapsed', String(next));
+    updateSettings({ sidebarCollapsed: next });
+  };
+
+  const handleToggleDark = () => {
+    const nextMode = mode === 'dark' ? 'light' : 'dark';
+    toggleDark();
+    updateSettings({ colorMode: nextMode });
   };
 
   const { expenses, friends, currency } = useMemo(() => ({
@@ -255,7 +272,7 @@ function AppInner() {
               <NotificationBell onNavigate={navigate} placement="top-left" />
               <IconButton
                 size="small"
-                onClick={toggleDark}
+                onClick={handleToggleDark}
                 sx={{ 
                   color: 'text.secondary',
                   borderRadius: '10px',
@@ -384,7 +401,7 @@ function AppInner() {
 
               <NotificationBell onNavigate={navigate} />
 
-              <IconButton size="small" onClick={toggleDark} sx={{ color: 'text.secondary', p: 0.5 }}>
+              <IconButton size="small" onClick={handleToggleDark} sx={{ color: 'text.secondary', p: 0.5 }}>
                 {mode === 'dark'
                   ? <Sun size={18} />
                   : <Moon size={18} />}

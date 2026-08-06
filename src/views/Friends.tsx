@@ -8,7 +8,7 @@ import ListItemText from '@mui/material/ListItemText';
 import { useStore } from '../store';
 import type { Friend, ContactType, ViewName } from '../types';
 import { friendBalance, contactTotalSpent, contactTransactionCount, contactLastTransaction } from '../db';
-import { fmtMoney, friendInitial } from '../utils';
+import { fmtMoney, friendInitial, getAvatarStyle } from '../utils';
 import { renderBrandLogo } from '../components/BrandIcons';
 import FriendModal from '../components/FriendModal';
 import SettleModal from '../components/SettleModal';
@@ -504,7 +504,7 @@ export default function Friends({ onNavigate }: Props) {
                     <div
                       className="avatar"
                       style={{
-                        background: f.color || '#3B82F6',
+                        ...getAvatarStyle(f.color),
                         width: 36,
                         height: 36,
                         fontSize: 13,
@@ -515,7 +515,7 @@ export default function Friends({ onNavigate }: Props) {
                         justifyContent: 'center',
                       }}
                     >
-                      {fType === 'subscription' ? (brandLogo || <Tv size={18} />) : fType === 'vendor' ? <Store size={18} /> : friendInitial(f.name)}
+                      {fType === 'subscription' ? (brandLogo || <Tv size={18} />) : fType === 'vendor' ? <Store size={18} /> : friendInitial(f.name, f.avatarNumber)}
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -619,7 +619,7 @@ export default function Friends({ onNavigate }: Props) {
                   <div
                     className="avatar"
                     style={{
-                      background: f.color || '#3B82F6',
+                      ...getAvatarStyle(f.color),
                       width: density === 'compact' ? 32 : 36,
                       height: density === 'compact' ? 32 : 36,
                       fontSize: density === 'compact' ? 12 : 13.5,
@@ -630,7 +630,7 @@ export default function Friends({ onNavigate }: Props) {
                       justifyContent: 'center',
                     }}
                   >
-                    {fType === 'subscription' ? (brandLogo || <Tv size={16} />) : fType === 'vendor' ? <Store size={16} /> : friendInitial(f.name)}
+                    {fType === 'subscription' ? (brandLogo || <Tv size={16} />) : fType === 'vendor' ? <Store size={16} /> : friendInitial(f.name, f.avatarNumber)}
                   </div>
 
                   <div style={{ minWidth: 0, flex: 1 }}>

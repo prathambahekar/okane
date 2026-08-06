@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { ArrowLeft, Handshake, Plus, ChevronDown, ChevronUp, Edit2, Trash2, Store, Tv, ExternalLink, RefreshCw, Zap, Play } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, expenseFlow, contactTotalSpent } from '../db';
-import { fmtMoney, fmtDate, friendInitial, typeLabel, statusLabel } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, statusLabel } from '../utils';
 import type { ViewName, Expense } from '../types';
 import FriendModal from '../components/FriendModal';
 import { renderBrandLogo } from '../components/BrandIcons';
@@ -123,7 +123,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           <div
             className="avatar"
             style={{
-              background: friend.color || 'var(--accent)',
+              ...getAvatarStyle(friend.color),
               width: 44,
               height: 44,
               fontSize: 18,
@@ -133,7 +133,6 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: 10,
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
             }}
           >
             {contactType === 'subscription' ? (
@@ -141,7 +140,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             ) : contactType === 'vendor' ? (
               <Store size={20} />
             ) : (
-              friendInitial(friend.name)
+              friendInitial(friend.name, friend.avatarNumber)
             )}
           </div>
 
@@ -548,53 +547,55 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
         ) : (
           <>
             {/* Desktop Table View */}
-            <table className="data-table desktop-only">
-              <thead>
-                <tr>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map(e => {
-                  const cat = db.settings.categories.find(c => c.name === e.category);
-                  const isIn = expenseFlow(e) === 'in';
-                  const isEvenGroup = dateGroupInfo.groupMap[e.id] === 0;
-                  const isFirstOfDate = dateGroupInfo.isFirstMap[e.id];
-                  const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}`;
+            <div className="table-wrapper desktop-only">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map(e => {
+                    const cat = db.settings.categories.find(c => c.name === e.category);
+                    const isIn = expenseFlow(e) === 'in';
+                    const isEvenGroup = dateGroupInfo.groupMap[e.id] === 0;
+                    const isFirstOfDate = dateGroupInfo.isFirstMap[e.id];
+                    const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}`;
 
-                  return (
-                    <tr key={e.id} className={rowClass}>
-                      <td style={{ fontWeight: 500, fontSize: 13 }}>{e.description}</td>
-                      <td style={{ fontWeight: 500, color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
-                        {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
-                      </td>
-                      <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
-                      <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type, contactType)}</td>
-                      <td>
-                        <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} />
-                      </td>
-                      <td>
-                        <span className={`badge badge-${e.settled ? 'settled' : e.status}`}>
-                          {e.settled ? 'Settled' : e.status.charAt(0).toUpperCase() + e.status.slice(1)}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
-                          <button className="btn-icon" onClick={() => setEditingExpense(e)} title="Edit"><Edit2 size={15} /></button>
-                          <button className="btn-icon" onClick={() => setDeletingExpenseId(e.groupId || e.id)} title="Delete" style={{ color: 'var(--debit)' }}><Trash2 size={15} /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    return (
+                      <tr key={e.id} className={rowClass}>
+                        <td style={{ fontWeight: 500, fontSize: 13 }}>{e.description}</td>
+                        <td style={{ fontWeight: 500, color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
+                          {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
+                        </td>
+                        <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
+                        <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type, contactType)}</td>
+                        <td>
+                          <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} />
+                        </td>
+                        <td>
+                          <span className={`badge badge-${e.settled ? 'settled' : e.status}`}>
+                            {e.settled ? 'Settled' : e.status.charAt(0).toUpperCase() + e.status.slice(1)}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
+                            <button className="btn-icon" onClick={() => setEditingExpense(e)} title="Edit"><Edit2 size={15} /></button>
+                            <button className="btn-icon" onClick={() => setDeletingExpenseId(e.groupId || e.id)} title="Delete" style={{ color: 'var(--debit)' }}><Trash2 size={15} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
             {/* Mobile Expandable Cards View */}
             <div className="mobile-expense-list mobile-only">

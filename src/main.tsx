@@ -68,7 +68,7 @@ function Root() {
   const theme = useMemo(() => buildTheme(mode, accent, customColor), [mode, accent, customColor]);
 
   return (
-    <ColorModeContext.Provider value={{ mode, toggleMode, accent, setAccent, customColor, setCustomColor }}>
+    <ColorModeContext.Provider value={{ mode, setMode, toggleMode, accent, setAccent, customColor, setCustomColor }}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <App />

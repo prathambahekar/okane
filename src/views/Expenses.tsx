@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, Filter, Users, Layers, ArrowUpRight, ArrowDownLeft, RotateCcw, User, ReceiptText } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense } from '../types';
-import { fmtMoney, fmtDate, typeLabel, statusLabel, friendInitial, groupExpenses } from '../utils';
+import { fmtMoney, fmtDate, typeLabel, statusLabel, friendInitial, getAvatarStyle, groupExpenses } from '../utils';
 import ExpenseModal from '../components/ExpenseModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CategoryIcon, { CategoryBadge } from '../components/CategoryIcon';
@@ -198,212 +198,235 @@ export default function Expenses() {
         ) : (
           <>
             {/* Desktop Table View */}
-            <table className="data-table desktop-only">
-              <thead>
-                <tr>
-                  <th style={{ width: 32 }}></th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Date</th>
-                  <th>Category</th>
-                  <th>Type</th>
-                  <th>Wallet</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(ge => {
-                  const primaryItem = ge.items[0];
-                  const cat = db.settings.categories.find(c => c.name === ge.category);
-                  const stl = ge.items.reduce<typeof db.settlements[0] | null | undefined>((found, item) => {
-                    if (found) return found;
-                    if (item.settlementId) return db.settlements.find(s => s.id === item.settlementId);
-                    return db.settlements.find(s => s.expenseIds.includes(item.id));
-                  }, null);
-                  const stlWallet = stl?.walletId ? db.wallets.find(w => w.id === stl.walletId) : undefined;
-                  const wallet = ge.items.reduce<typeof db.wallets[0] | null | undefined>((found, item) => {
-                    if (found) return found;
-                    return item.walletId ? db.wallets.find(w => w.id === item.walletId) : null;
-                  }, null) || db.wallets.find(w => w.id === ge.walletId);
-                  let effectiveWalletName = wallet?.name || stlWallet?.name || stl?.paymentMethod || '—';
-                  if (ge.category === 'Transfer') {
-                    if (ge.fromWalletName && ge.toWalletName) {
-                      effectiveWalletName = `${ge.fromWalletName} → ${ge.toWalletName}`;
-                    } else {
-                      const outItem = ge.items.find(i => i.flow === 'out');
-                      const inItem = ge.items.find(i => i.flow === 'in');
-                      const fromW = outItem ? db.wallets.find(w => w.id === outItem.walletId) : null;
-                      const toW = inItem ? db.wallets.find(w => w.id === inItem.walletId) : null;
-                      if (fromW || toW) {
-                        effectiveWalletName = `${fromW?.name || 'Wallet'} → ${toW?.name || 'Wallet'}`;
+            <div className="table-wrapper desktop-only">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th>Wallet</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(ge => {
+                    const primaryItem = ge.items[0];
+                    const cat = db.settings.categories.find(c => c.name === ge.category);
+                    const stl = ge.items.reduce<typeof db.settlements[0] | null | undefined>((found, item) => {
+                      if (found) return found;
+                      if (item.settlementId) return db.settlements.find(s => s.id === item.settlementId);
+                      return db.settlements.find(s => s.expenseIds.includes(item.id));
+                    }, null);
+                    const stlWallet = stl?.walletId ? db.wallets.find(w => w.id === stl.walletId) : undefined;
+                    const wallet = ge.items.reduce<typeof db.wallets[0] | null | undefined>((found, item) => {
+                      if (found) return found;
+                      return item.walletId ? db.wallets.find(w => w.id === item.walletId) : null;
+                    }, null) || db.wallets.find(w => w.id === ge.walletId);
+                    let effectiveWalletName = wallet?.name || stlWallet?.name || stl?.paymentMethod || '—';
+                    if (ge.category === 'Transfer') {
+                      if (ge.fromWalletName && ge.toWalletName) {
+                        effectiveWalletName = `${ge.fromWalletName} → ${ge.toWalletName}`;
+                      } else {
+                        const outItem = ge.items.find(i => i.flow === 'out');
+                        const inItem = ge.items.find(i => i.flow === 'in');
+                        const fromW = outItem ? db.wallets.find(w => w.id === outItem.walletId) : null;
+                        const toW = inItem ? db.wallets.find(w => w.id === inItem.walletId) : null;
+                        if (fromW || toW) {
+                          effectiveWalletName = `${fromW?.name || 'Wallet'} → ${toW?.name || 'Wallet'}`;
+                        }
                       }
                     }
-                  }
-                  const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
-                  const isExpanded = !!expandedIds[ge.id];
-                  const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
+                    const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
+                    const isExpanded = !!expandedIds[ge.id];
+                    const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
 
-                  const isEvenGroup = dateGroupInfo.groupMap[ge.id] === 0;
-                  const isFirstOfDate = dateGroupInfo.isFirstMap[ge.id];
-                  const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}${isExpanded ? ' is-expanded-row' : ''}`;
+                    const isEvenGroup = dateGroupInfo.groupMap[ge.id] === 0;
+                    const isFirstOfDate = dateGroupInfo.isFirstMap[ge.id];
+                    const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}${isExpanded ? ' is-expanded-row' : ''}`;
 
-                  return (
-                    <React.Fragment key={ge.id}>
-                      <tr className={rowClass}>
-                        <td style={{ textAlign: 'center', padding: '8px 2px' }}>
-                          {ge.isSplit && (
-                            <button
-                              className="btn-icon"
-                              style={{ width: 22, height: 22, opacity: 0.8 }}
-                              onClick={() => toggleExpand(ge.id)}
-                              title={isExpanded ? "Collapse breakdown" : "Expand breakdown"}
-                            >
-                              {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                            </button>
-                          )}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: 600, fontSize: 13.5 }}>{ge.description}</span>
-                            {ge.isSplit && (
-                              <span style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                padding: '2px 8px',
-                                borderRadius: 12,
-                                fontSize: 11,
-                                fontWeight: 600,
-                                background: 'var(--accent-soft)',
-                                color: 'var(--accent)',
-                                whiteSpace: 'nowrap',
-                                flexShrink: 0
-                              }}>
-                                <Users size={12} /> Split
-                              </span>
-                            )}
-                          </div>
-                          {friendsInGroup.length > 0 && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, fontSize: 11.5, color: 'var(--text-3)' }}>
-                              {friendsInGroup.map(f => f && (
-                                <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                  <div className="avatar avatar-sm" style={{ background: f.color, width: 16, height: 16, fontSize: 8 }}>{friendInitial(f.name)}</div>
-                                  <span>{f.name}</span>
-                                </span>
-                              ))}
+                    return (
+                      <React.Fragment key={ge.id}>
+                        <tr className={rowClass}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 600, fontSize: 13.5 }}>{ge.description}</span>
+                              {ge.isSplit && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpand(ge.id)}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    padding: '2px 8px',
+                                    borderRadius: 12,
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    background: 'var(--accent-soft)',
+                                    color: 'var(--accent)',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0,
+                                    border: 'none',
+                                    cursor: 'pointer'
+                                  }}
+                                  title={isExpanded ? "Collapse breakdown" : "Expand breakdown"}
+                                >
+                                  <Users size={12} /> Split {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                </button>
+                              )}
                             </div>
-                          )}
-                        </td>
-                        <td style={{ fontWeight: 700, fontSize: 14, color: isIn ? 'var(--credit)' : undefined, whiteSpace: 'nowrap' }}>
-                          {isIn ? '+' : ''}{fmtMoney(ge.totalAmount, currency)}
-                        </td>
-                        <td style={{ color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(ge.date)}</td>
-                        <td>
-                          <CategoryBadge category={ge.category} color={cat?.color} icon={cat?.icon} />
-                        </td>
-                        <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
-                          {ge.isSplit ? 'Split Expense' : typeLabel(primaryItem.type, undefined, primaryItem.category)}
-                        </td>
-                        <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{effectiveWalletName}</td>
-                        <td>
-                          {(() => {
-                            const isAllSettled = ge.items.every(i => i.settled);
-                            if (ge.isSplit) {
+                            {friendsInGroup.length > 0 && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, fontSize: 11.5, color: 'var(--text-3)' }}>
+                                {friendsInGroup.map(f => f && (
+                                  <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                    <div className="avatar avatar-sm" style={{ ...getAvatarStyle(f.color), width: 16, height: 16, fontSize: 8 }}>{friendInitial(f.name, f.avatarNumber)}</div>
+                                    <span>{f.name}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap' }}>
+                            {(() => {
+                              const isAllSettled = ge.items.every(i => i.settled);
+                              if (isIn) return <span style={{ color: 'var(--credit)' }}>+{fmtMoney(ge.totalAmount, currency)}</span>;
+                              if (ge.isSplit) {
+                                if (isAllSettled) {
+                                  if (ge.personalShare > 0) return <span style={{ color: 'var(--debit)' }}>-{fmtMoney(ge.personalShare, currency)}</span>;
+                                  return null;
+                                }
+                                return <span style={{ color: 'var(--debit)' }}>-{fmtMoney(ge.totalAmount, currency)}</span>;
+                              }
+                              return <span style={{ color: ge.flow === 'out' ? 'var(--debit)' : 'var(--credit)' }}>{ge.flow === 'out' ? '-' : '+'}{fmtMoney(ge.totalAmount, currency)}</span>;
+                            })()}
+                          </td>
+                          <td style={{ color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(ge.date)}</td>
+                          <td>
+                            <CategoryBadge category={ge.category} color={cat?.color} icon={cat?.icon} />
+                          </td>
+                          <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
+                            {ge.isSplit ? 'Split Expense' : typeLabel(primaryItem.type, undefined, primaryItem.category)}
+                          </td>
+                          <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{effectiveWalletName}</td>
+                          <td>
+                            {(() => {
+                              const isAllSettled = ge.items.every(i => i.settled);
+                              if (ge.isSplit) {
+                                return (
+                                  <span className={`badge badge-${isAllSettled ? 'settled' : 'unsettled'}`} style={{ whiteSpace: 'nowrap' }}>
+                                    {isAllSettled ? 'Settled' : 'Unsettled'}
+                                  </span>
+                                );
+                              }
+
+                              const isTransfer = primaryItem.category === 'Transfer';
+                              const isSettled = primaryItem.settled || isTransfer;
+
                               return (
-                                <span className={`badge badge-${isAllSettled ? 'settled' : 'unsettled'}`} style={{ whiteSpace: 'nowrap' }}>
-                                  {isAllSettled ? 'Settled' : 'Unsettled'}
+                                <span className={`badge badge-${isSettled ? 'settled' : primaryItem.status}`} style={{ whiteSpace: 'nowrap' }}>
+                                  {isTransfer ? 'Completed' : (isSettled ? 'Settled' : statusLabel(primaryItem.status))}
                                 </span>
                               );
-                            }
-
-                            const isTransfer = primaryItem.category === 'Transfer';
-                            const isSettled = primaryItem.settled || isTransfer;
-
-                            return (
-                              <span className={`badge badge-${isSettled ? 'settled' : primaryItem.status}`} style={{ whiteSpace: 'nowrap' }}>
-                                {isTransfer ? 'Completed' : (isSettled ? 'Settled' : statusLabel(primaryItem.status))}
-                              </span>
-                            );
-                          })()}
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
-                            {ge.items.some(i => i.settled) && (
-                              <button
-                                className="btn-icon"
-                                onClick={() => setUndoExpId(primaryItem.id)}
-                                title="Undo Settlement (Restore money to wallet)"
-                                style={{ color: '#d97706', background: 'rgba(217, 119, 6, 0.12)', borderRadius: 4, padding: 3 }}
-                              >
-                                <RotateCcw size={14} />
-                              </button>
-                            )}
-                            <button className="btn-icon" onClick={() => setEditExp(primaryItem)} title="Edit"><Edit2 size={15} /></button>
-                            <button className="btn-icon" onClick={() => setDelId(ge.id)} title="Delete" style={{ color: 'var(--debit)' }}><Trash2 size={15} /></button>
-                          </div>
-                        </td>
-                      </tr>
-                      {isExpanded && ge.isSplit && (
-                        <tr style={{ background: 'var(--surface2)' }}>
-                          <td></td>
-                          <td colSpan={8} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <Users size={14} style={{ color: 'var(--accent)' }} /> Split Breakdown (Total {fmtMoney(ge.totalAmount, currency)})
-                            </div>
-                            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                              {ge.items.map((item, idx) => {
-                                const itemFriend = item.friendId ? db.friends.find(f => f.id === item.friendId) : null;
-                                const isMine = item.type === 'personal';
-                                return (
-                                  <div key={item.id || idx} style={{
-                                    background: 'var(--surface)',
-                                    border: '1px solid var(--border)',
-                                    borderRadius: 6,
-                                    padding: '8px 12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 12,
-                                    minWidth: 210,
-                                  }}>
-                                    {isMine ? (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <User size={16} style={{ color: 'var(--text-2)' }} />
-                                        <div>
-                                          <div style={{ fontWeight: 600, fontSize: 12 }}>My Share</div>
-                                          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Your Expense</div>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <div className="avatar avatar-sm" style={{ background: itemFriend?.color ?? 'var(--accent)', width: 22, height: 22, fontSize: 10 }}>
-                                          {friendInitial(itemFriend?.name ?? '?')}
-                                        </div>
-                                        <div>
-                                          <div style={{ fontWeight: 600, fontSize: 12 }}>
-                                            {itemFriend?.name ?? 'Contact'}{item.type === 'by_friend' ? ' (Vendor Owed)' : "'s Share"}
-                                          </div>
-                                          <div style={{ fontSize: 11, color: item.settled ? 'var(--credit)' : (item.type === 'by_friend' ? '#d32f2f' : 'var(--accent)') }}>
-                                            {item.settled ? 'Settled ✓' : item.type === 'by_friend' ? 'You Owe Vendor' : 'Owes You'}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-                                    <div style={{ marginLeft: 'auto', fontWeight: 700, fontSize: 13 }}>
-                                      {fmtMoney(item.amount, currency)}
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                            })()}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
+                              {ge.items.some(i => i.settled) && (
+                                <button
+                                  className="btn-icon"
+                                  onClick={() => setUndoExpId(primaryItem.id)}
+                                  title="Undo Settlement (Restore money to wallet)"
+                                  style={{ color: '#d97706', background: 'rgba(217, 119, 6, 0.12)', borderRadius: 4, padding: 3 }}
+                                >
+                                  <RotateCcw size={14} />
+                                </button>
+                              )}
+                              <button className="btn-icon" onClick={() => setEditExp(primaryItem)} title="Edit"><Edit2 size={15} /></button>
+                              <button className="btn-icon" onClick={() => setDelId(ge.id)} title="Delete" style={{ color: 'var(--debit)' }}><Trash2 size={15} /></button>
                             </div>
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+                        {isExpanded && ge.isSplit && (
+                          <tr style={{ background: 'var(--surface2)' }}>
+                            <td colSpan={8} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Users size={14} style={{ color: 'var(--accent)' }} /> Split Breakdown (Total {fmtMoney(ge.totalAmount, currency)})
+                              </div>
+                              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                                {ge.items.map((item, idx) => {
+                                  const itemFriend = item.friendId ? db.friends.find(f => f.id === item.friendId) : null;
+                                  const isMine = item.type === 'personal';
+                                  const isVendorOwed = item.type === 'by_friend';
+                                  const name = itemFriend?.name ?? 'Contact';
+
+                                  let roleLabel = 'My Share';
+                                  let statusText = item.settled ? 'Settled ✓' : 'Your Expense';
+                                  if (item.type === 'for_friend') {
+                                    roleLabel = item.settled ? `${name} paid you` : `${name} owes you`;
+                                    statusText = item.settled ? 'Settled ✓' : 'Owes You';
+                                  } else if (item.type === 'by_friend') {
+                                    roleLabel = item.settled ? `Paid to ${name}` : `You owe ${name}`;
+                                    statusText = item.settled ? 'Settled ✓' : 'You Owe Vendor';
+                                  }
+
+                                  const isSubDebit = item.type === 'by_friend' || item.type === 'personal';
+                                  const subSign = isSubDebit ? '-' : '+';
+                                  const subColor = isSubDebit ? 'var(--debit)' : 'var(--credit)';
+
+                                  return (
+                                    <div key={item.id || idx} style={{
+                                      background: 'var(--surface)',
+                                      border: '1px solid var(--border)',
+                                      borderRadius: 6,
+                                      padding: '8px 12px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 12,
+                                      minWidth: 210,
+                                    }}>
+                                      {isMine ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                          <User size={16} style={{ color: 'var(--text-2)' }} />
+                                          <div>
+                                            <div style={{ fontWeight: 600, fontSize: 12 }}>My Share</div>
+                                            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Your Expense</div>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                          <div className="avatar avatar-sm" style={{ ...getAvatarStyle(itemFriend?.color), width: 22, height: 22, fontSize: 10 }}>
+                                            {friendInitial(itemFriend?.name ?? '?', itemFriend?.avatarNumber)}
+                                          </div>
+                                          <div>
+                                            <div style={{ fontWeight: 600, fontSize: 12 }}>
+                                              {roleLabel}
+                                            </div>
+                                            <div style={{ fontSize: 11, color: item.settled ? 'var(--credit)' : (isVendorOwed ? '#d32f2f' : 'var(--accent)') }}>
+                                              {statusText}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+                                      <div style={{ marginLeft: 'auto', fontWeight: 700, fontSize: 13, color: subColor }}>
+                                        {subSign}{fmtMoney(item.amount, currency)}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
             {/* Mobile Expandable Cards View */}
             <div className="mobile-expense-list mobile-only">
@@ -465,8 +488,19 @@ export default function Expenses() {
                             </span>
                           )}
                         </div>
-                        <div className="mobile-expense-amount" style={{ color: isIn ? 'var(--credit)' : undefined }}>
-                          {isIn ? '+' : ''}{fmtMoney(ge.totalAmount, currency)}
+                        <div className="mobile-expense-amount">
+                          {(() => {
+                            const isAllSettled = ge.items.every(i => i.settled);
+                            if (isIn) return <span style={{ color: 'var(--credit)' }}>+{fmtMoney(ge.totalAmount, currency)}</span>;
+                            if (ge.isSplit) {
+                              if (isAllSettled) {
+                                if (ge.personalShare > 0) return <span style={{ color: 'var(--debit)' }}>-{fmtMoney(ge.personalShare, currency)}</span>;
+                                return null;
+                              }
+                              return <span style={{ color: 'var(--debit)' }}>-{fmtMoney(ge.totalAmount, currency)}</span>;
+                            }
+                            return <span style={{ color: ge.flow === 'out' ? 'var(--debit)' : 'var(--credit)' }}>{ge.flow === 'out' ? '-' : '+'}{fmtMoney(ge.totalAmount, currency)}</span>;
+                          })()}
                         </div>
                       </div>
 
@@ -478,7 +512,7 @@ export default function Expenses() {
                           {friendsInGroup.map(f => f && (
                             <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                               <span>·</span>
-                              <span className="avatar avatar-sm" style={{ background: f.color, width: 15, height: 15, fontSize: 8 }}>{friendInitial(f.name)}</span>
+                              <span className="avatar avatar-sm" style={{ ...getAvatarStyle(f.color), width: 15, height: 15, fontSize: 8 }}>{friendInitial(f.name, f.avatarNumber)}</span>
                               {f.name}
                             </span>
                           ))}
@@ -507,6 +541,22 @@ export default function Expenses() {
                                 const itemFriend = item.friendId ? db.friends.find(f => f.id === item.friendId) : null;
                                 const isMine = item.type === 'personal';
                                 const isVendorOwed = item.type === 'by_friend';
+                                const name = itemFriend?.name ?? 'Contact';
+
+                                let roleLabel = 'Mine (Your share)';
+                                let statusText = item.settled ? 'Settled ✓' : 'Your Expense';
+                                if (item.type === 'for_friend') {
+                                  roleLabel = item.settled ? `${name} paid you` : `${name} owes you`;
+                                  statusText = item.settled ? 'Settled ✓' : 'Owes You';
+                                } else if (item.type === 'by_friend') {
+                                  roleLabel = item.settled ? `Paid to ${name}` : `You owe ${name}`;
+                                  statusText = item.settled ? 'Settled ✓' : 'You Owe Vendor';
+                                }
+
+                                const isSubDebit = item.type === 'by_friend' || item.type === 'personal';
+                                const subSign = isSubDebit ? '-' : '+';
+                                const subColor = isSubDebit ? 'var(--debit)' : 'var(--credit)';
+
                                 return (
                                   <div key={item.id || idx} style={{
                                     display: 'flex',
@@ -521,27 +571,29 @@ export default function Expenses() {
                                         <>
                                           <User size={16} style={{ color: 'var(--text-2)' }} />
                                           <div>
-                                            <div style={{ fontWeight: 600 }}>Mine <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>(Your share)</span></div>
-                                            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Your Expense</div>
+                                            <div style={{ fontWeight: 600 }}>{roleLabel}</div>
+                                            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{statusText}</div>
                                           </div>
                                         </>
                                       ) : (
                                         <>
-                                          <span className="avatar avatar-sm" style={{ background: itemFriend?.color ?? 'var(--accent)', width: 22, height: 22, fontSize: 10 }}>
-                                            {friendInitial(itemFriend?.name ?? '?')}
+                                          <span className="avatar avatar-sm" style={{ ...getAvatarStyle(itemFriend?.color), width: 22, height: 22, fontSize: 10 }}>
+                                            {friendInitial(itemFriend?.name ?? '?', itemFriend?.avatarNumber)}
                                           </span>
                                           <div>
                                             <div style={{ fontWeight: 600 }}>
-                                              {itemFriend?.name ?? 'Contact'}{isVendorOwed ? ' (Vendor Owed)' : "'s share"}
+                                              {roleLabel}
                                             </div>
                                             <div style={{ fontSize: 11, fontWeight: 500, color: item.settled ? 'var(--credit)' : (isVendorOwed ? '#d32f2f' : 'var(--accent)') }}>
-                                              {item.settled ? 'Settled ✓' : isVendorOwed ? 'You Owe Vendor' : 'Owes You'}
+                                              {statusText}
                                             </div>
                                           </div>
                                         </>
                                       )}
                                     </div>
-                                    <span style={{ fontWeight: 700, fontSize: 13, marginLeft: 'auto' }}>{fmtMoney(item.amount, currency)}</span>
+                                    <span style={{ fontWeight: 700, fontSize: 13, marginLeft: 'auto', color: subColor }}>
+                                      {subSign}{fmtMoney(item.amount, currency)}
+                                    </span>
                                   </div>
                                 );
                               })}

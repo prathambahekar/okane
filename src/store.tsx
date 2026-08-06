@@ -295,19 +295,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const restoreDB = useCallback((data: AppDB) => {
     const defaultWal = data.settings?.defaultWalletId || data.wallets?.[0]?.id || 'wal_cash';
+    const rawData = data as unknown as Record<string, unknown>;
+    const friendsArr = (Array.isArray(data.friends) && data.friends.length > 0)
+      ? data.friends
+      : (Array.isArray(rawData.contacts) ? (rawData.contacts as Friend[]) : (Array.isArray(data.friends) ? data.friends : []));
     const normalized: AppDB = {
       version: data.version || 3,
-      friends: Array.isArray(data.friends) ? data.friends : [],
+      friends: friendsArr,
       expenses: Array.isArray(data.expenses) ? data.expenses : [],
       settlements: Array.isArray(data.settlements) ? data.settlements : [],
       wallets: Array.isArray(data.wallets) && data.wallets.length > 0 ? data.wallets : JSON.parse(JSON.stringify(DEFAULT_WALLETS)),
-      settings: {
-        currency: data.settings?.currency || 'INR',
-        categories: data.settings?.categories || JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
-        defaultCategory: data.settings?.defaultCategory || 'Food',
-        defaultStatus: data.settings?.defaultStatus || 'paid',
-        defaultWalletId: defaultWal,
-      },
+      settings: Object.assign(
+        {
+          currency: 'INR',
+          categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+          defaultCategory: 'Food',
+          defaultStatus: 'paid',
+          defaultWalletId: defaultWal,
+        },
+        data.settings || {}
+      ),
       recurringRules: Array.isArray(data.recurringRules) ? data.recurringRules : [],
     };
     persist(normalized);

@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useStore } from '../store';
-import { expenseFlow } from '../db';
-import { fmtMoney } from '../utils';
+import { fmtMoney, groupExpenses, type GroupedExpense } from '../utils';
 import { CategoryBadge } from '../components/CategoryIcon';
 import ExpenseModal from '../components/ExpenseModal';
 import type { Expense } from '../types';
@@ -49,6 +48,7 @@ export default function Analytics() {
   const [chartMode, setChartMode] = useState<'weekly' | 'monthly'>('weekly');
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Record<string, boolean>>({});
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -61,22 +61,22 @@ export default function Analytics() {
     return formatISO(y);
   }, [now]);
 
-  // Base expense filter
-  const typeFilteredExpenses = expenses;
+  // Base expense filter using grouped expenses
+  const groupedExpenses = useMemo(() => groupExpenses(expenses, wallets), [expenses, wallets]);
 
   // Filtered expenses according to category, date, or month
   const filteredExpenses = useMemo(() => {
-    return typeFilteredExpenses.filter(e => {
-      if (selectedCategory && e.category !== selectedCategory) return false;
-      if (selectedDate) return e.date === selectedDate;
-      if (selectedMonth) return e.date.slice(0, 7) === selectedMonth;
+    return groupedExpenses.filter(ge => {
+      if (selectedCategory && ge.category !== selectedCategory) return false;
+      if (selectedDate) return ge.date === selectedDate;
+      if (selectedMonth) return ge.date.slice(0, 7) === selectedMonth;
       return true;
     });
-  }, [typeFilteredExpenses, selectedCategory, selectedDate, selectedMonth]);
+  }, [groupedExpenses, selectedCategory, selectedDate, selectedMonth]);
 
   // Outflow total
   const totalSpent = useMemo(() =>
-    filteredExpenses.filter(e => expenseFlow(e) === 'out').reduce((sum, e) => sum + Number(e.amount), 0),
+    filteredExpenses.filter(ge => ge.flow === 'out').reduce((sum, ge) => sum + Number(ge.totalAmount), 0),
   [filteredExpenses]);
 
   // Days in selected timeframe or selected month
@@ -88,13 +88,13 @@ export default function Analytics() {
       const totalDaysInM = new Date(y, m, 0).getDate();
       return Math.max(1, isCurrentM ? Math.min(now.getDate(), totalDaysInM) : totalDaysInM);
     }
-    if (typeFilteredExpenses.length === 0) return 30;
-    const dates = typeFilteredExpenses.map(e => new Date(e.date).getTime()).filter(t => !isNaN(t));
+    if (groupedExpenses.length === 0) return 30;
+    const dates = groupedExpenses.map(ge => new Date(ge.date).getTime()).filter(t => !isNaN(t));
     if (dates.length === 0) return 30;
     const minDate = Math.min(...dates);
     const diffDays = Math.ceil((now.getTime() - minDate) / (1000 * 60 * 60 * 24));
     return Math.max(1, diffDays);
-  }, [now, typeFilteredExpenses, selectedDate, selectedMonth, todayStr]);
+  }, [now, groupedExpenses, selectedDate, selectedMonth, todayStr]);
 
   const dailyAvgSpend = totalSpent / daysInPeriod;
 
@@ -102,12 +102,12 @@ export default function Analytics() {
 
   // Multi-month Chart Data for Interactive Monthly Spending Chart
   const monthlyMonths = useMemo(() => {
-    const baseList = typeFilteredExpenses.filter(e => !selectedCategory || e.category === selectedCategory);
+    const baseList = groupedExpenses.filter(ge => !selectedCategory || ge.category === selectedCategory);
     const currentMonthKey = todayStr.slice(0, 7);
 
     let numMonths = 12;
     if (baseList.length > 0) {
-      const earliest = baseList.reduce((min, e) => (e.date < min ? e.date : min), todayStr);
+      const earliest = baseList.reduce((min, ge) => (ge.date < min ? ge.date : min), todayStr);
       const [ey, em] = earliest.split('-').map(Number);
       const [cy, cm] = todayStr.split('-').map(Number);
       const monthsDiff = (cy - ey) * 12 + (cm - em) + 1;
@@ -124,8 +124,8 @@ export default function Analytics() {
       const fullMonthName = d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
       const isCurrentMonth = monthKey === currentMonthKey;
 
-      const monthExps = baseList.filter(e => e.date.slice(0, 7) === monthKey);
-      const spend = monthExps.filter(e => expenseFlow(e) === 'out').reduce((s, e) => s + Number(e.amount), 0);
+      const monthExps = baseList.filter(ge => ge.date.slice(0, 7) === monthKey);
+      const spend = monthExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + Number(ge.totalAmount), 0);
       const count = monthExps.length;
 
       const daysInM = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
@@ -145,7 +145,7 @@ export default function Analytics() {
     }
 
     return months;
-  }, [typeFilteredExpenses, selectedCategory, todayStr, now]);
+  }, [groupedExpenses, selectedCategory, todayStr, now]);
 
   const maxMonthlyVal = useMemo(() => {
     return Math.max(...monthlyMonths.map(m => m.spend), dailyAvgSpend, 10);
@@ -159,7 +159,7 @@ export default function Analytics() {
 
   // Multi-week Chart Data for Horizontal Scrolling across Past Weeks or Weeks of Selected Month
   const weeklyWeeks = useMemo(() => {
-    const baseList = typeFilteredExpenses.filter(e => !selectedCategory || e.category === selectedCategory);
+    const baseList = groupedExpenses.filter(ge => !selectedCategory || ge.category === selectedCategory);
 
     if (selectedMonth) {
       const [sy, sm] = selectedMonth.split('-').map(Number);
@@ -200,8 +200,8 @@ export default function Analytics() {
           const dayNum = cur.getDate();
 
           const inSelectedMonth = dateStr.slice(0, 7) === selectedMonth;
-          const dayExps = baseList.filter(e => e.date === dateStr && inSelectedMonth);
-          const spend = dayExps.filter(e => expenseFlow(e) === 'out').reduce((s, e) => s + Number(e.amount), 0);
+          const dayExps = baseList.filter(ge => ge.date === dateStr && inSelectedMonth);
+          const spend = dayExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + Number(ge.totalAmount), 0);
 
           weekTotal += spend;
 
@@ -244,7 +244,7 @@ export default function Analytics() {
     // Determine how many weeks back to generate (min 8 weeks, up to 26)
     let numWeeks = 8;
     if (baseList.length > 0) {
-      const earliest = baseList.reduce((min, e) => (e.date < min ? e.date : min), todayStr);
+      const earliest = baseList.reduce((min, ge) => (ge.date < min ? ge.date : min), todayStr);
       const [ey, em, ed] = earliest.split('-').map(Number);
       const earliestObj = new Date(ey, em - 1, ed);
       const msDiff = currentMon.getTime() - earliestObj.getTime();
@@ -283,8 +283,8 @@ export default function Analytics() {
         const dateStr = formatISO(cur);
         const dayName = cur.toLocaleDateString(undefined, { weekday: 'short' });
         const dayNum = cur.getDate();
-        const dayExps = baseList.filter(e => e.date === dateStr);
-        const spend = dayExps.filter(e => expenseFlow(e) === 'out').reduce((s, e) => s + Number(e.amount), 0);
+        const dayExps = baseList.filter(ge => ge.date === dateStr);
+        const spend = dayExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + Number(ge.totalAmount), 0);
 
         weekTotal += spend;
 
@@ -313,7 +313,7 @@ export default function Analytics() {
     }
 
     return weeks;
-  }, [typeFilteredExpenses, selectedCategory, selectedMonth, todayStr, yesterdayStr]);
+  }, [groupedExpenses, selectedCategory, selectedMonth, todayStr, yesterdayStr]);
 
   // Auto-scroll to the rightmost week (This Week) on load or week update
   useEffect(() => {
@@ -324,20 +324,20 @@ export default function Analytics() {
 
   // Daily log breakdown
   const perDayList = useMemo(() => {
-    const map: Record<string, { spend: number; income: number; items: Expense[]; categories: Record<string, number> }> = {};
+    const map: Record<string, { spend: number; income: number; items: GroupedExpense[]; categories: Record<string, number> }> = {};
 
-    filteredExpenses.forEach(e => {
-      const d = e.date;
+    filteredExpenses.forEach(ge => {
+      const d = ge.date;
       if (!map[d]) {
         map[d] = { spend: 0, income: 0, items: [], categories: {} };
       }
-      map[d].items.push(e);
-      const flow = expenseFlow(e);
-      if (flow === 'out') {
-        map[d].spend += Number(e.amount);
-        map[d].categories[e.category] = (map[d].categories[e.category] || 0) + Number(e.amount);
+      map[d].items.push(ge);
+      if (ge.flow === 'out') {
+        map[d].spend += Number(ge.totalAmount);
+        map[d].categories[ge.category] = (map[d].categories[ge.category] || 0) + Number(ge.totalAmount);
       } else {
-        map[d].income += Number(e.amount);
+        map[d].income += Number(ge.totalAmount);
+        map[d].categories[ge.category] = (map[d].categories[ge.category] || 0) + Number(ge.totalAmount);
       }
     });
 
@@ -367,11 +367,11 @@ export default function Analytics() {
   // Category breakdown
   const categoryBreakdown = useMemo(() => {
     const map: Record<string, { amount: number; count: number }> = {};
-    filteredExpenses.forEach(e => {
-      if (expenseFlow(e) !== 'out') return;
-      if (!map[e.category]) map[e.category] = { amount: 0, count: 0 };
-      map[e.category].amount += Number(e.amount);
-      map[e.category].count += 1;
+    filteredExpenses.forEach(ge => {
+      if (ge.flow !== 'out') return;
+      if (!map[ge.category]) map[ge.category] = { amount: 0, count: 0 };
+      map[ge.category].amount += Number(ge.totalAmount);
+      map[ge.category].count += 1;
     });
 
     return Object.entries(map)
@@ -995,9 +995,31 @@ export default function Analytics() {
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                        <div style={{ textAlign: 'right', fontWeight: 700, fontSize: 13.5, color: row.spend > 0 ? 'var(--debit)' : 'var(--credit)', whiteSpace: 'nowrap' }}>
-                          {fmtMoney(row.spend, currency)}
-                        </div>
+                        {(() => {
+                          const net = row.income - row.spend;
+                          let amountText = fmtMoney(0, currency);
+                          let amountColor = 'var(--text-3)';
+
+                          if (row.spend > 0 && row.income === 0) {
+                            amountText = fmtMoney(row.spend, currency);
+                            amountColor = 'var(--debit)';
+                          } else if (row.income > 0 && row.spend === 0) {
+                            amountText = `+${fmtMoney(row.income, currency)}`;
+                            amountColor = 'var(--credit)';
+                          } else if (net > 0) {
+                            amountText = `+${fmtMoney(net, currency)}`;
+                            amountColor = 'var(--credit)';
+                          } else if (net < 0) {
+                            amountText = `-${fmtMoney(Math.abs(net), currency)}`;
+                            amountColor = 'var(--debit)';
+                          }
+
+                          return (
+                            <div style={{ textAlign: 'right', fontWeight: 700, fontSize: 13.5, color: amountColor, whiteSpace: 'nowrap' }}>
+                              {amountText}
+                            </div>
+                          );
+                        })()}
                         <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center', padding: '2px', flexShrink: 0 }}>
                           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </div>
@@ -1015,94 +1037,199 @@ export default function Analytics() {
                         gap: 6,
                         animation: 'fadein 0.15s ease',
                       }}>
-                        {row.items.map(item => {
-                          const isDebit = expenseFlow(item) === 'out';
-                          const itemCat = db.settings.categories.find(c => c.name === item.category);
-                          const walletObj = wallets.find(w => w.id === item.walletId);
-                          const friendObj = friends.find(f => f.id === item.friendId);
+                        {row.items.map(ge => {
+                          const isDebit = ge.flow === 'out';
+                          const itemCat = db.settings.categories.find(c => c.name === ge.category);
+                          const primaryItem = ge.items[0];
+                          const walletObj = wallets.find(w => w.id === ge.walletId);
+                          const isGroupExpanded = !!expandedGroupIds[ge.id];
+
+                          // Settlement status calculation
+                          const allSettled = ge.items.every(i => i.settled || i.status === 'paid');
+                          const someSettled = ge.items.some(i => i.settled || i.status === 'paid');
 
                           return (
                             <div
-                              key={item.id}
+                              key={ge.id}
                               style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '8px 10px',
-                                borderRadius: 6,
+                                borderRadius: 8,
                                 background: 'var(--surface2)',
-                                gap: 8,
-                                fontSize: 12,
+                                border: '1px solid var(--border)',
+                                overflow: 'hidden',
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-                                <CategoryBadge category={item.category} color={itemCat?.color} icon={itemCat?.icon} size={13} showLabel={false} />
-                                <div style={{ minWidth: 0, flex: 1 }}>
-                                  <div style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {item.description || 'Expense'}
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '8px 10px',
+                                  gap: 8,
+                                  fontSize: 12,
+                                  cursor: ge.items.length > 1 ? 'pointer' : 'default',
+                                }}
+                                onClick={() => {
+                                  if (ge.items.length > 1) {
+                                    setExpandedGroupIds(prev => ({ ...prev, [ge.id]: !prev[ge.id] }));
+                                  }
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                                  {ge.items.length > 1 && (
+                                    <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center' }}>
+                                      {isGroupExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    </div>
+                                  )}
+                                  <CategoryBadge category={ge.category} color={itemCat?.color} icon={itemCat?.icon} size={13} showLabel={false} />
+                                  <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {ge.description || 'Expense'}
+                                    </div>
+                                    <div style={{ fontSize: 10.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+                                      {ge.isSplit ? (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--accent)' }}>
+                                          <User size={10} /> Split Expense
+                                        </span>
+                                      ) : (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                          <Wallet size={10} /> {walletObj?.name || 'Personal'}
+                                        </span>
+                                      )}
+                                      <span>·</span>
+                                      <span style={{
+                                        padding: '1px 5px',
+                                        borderRadius: 4,
+                                        fontSize: 9.5,
+                                        fontWeight: 600,
+                                        background: allSettled ? 'rgba(34, 197, 94, 0.15)' : (someSettled ? 'rgba(234, 179, 8, 0.15)' : 'rgba(239, 68, 68, 0.15)'),
+                                        color: allSettled ? '#22C55E' : (someSettled ? '#EAB308' : '#EF4444'),
+                                      }}>
+                                        {allSettled ? 'Settled' : (someSettled ? 'Partially Settled' : 'Unsettled')}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div style={{ fontSize: 10.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
-                                    {item.type === 'personal' ? (
-                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                                        <Wallet size={10} /> {walletObj?.name || 'Personal'}
-                                      </span>
-                                    ) : (
-                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--accent)' }}>
-                                        <User size={10} /> {item.type === 'by_friend' ? `Paid by ${friendObj?.name || 'Friend'}` : `Split with ${friendObj?.name || 'Friend'}`}
-                                      </span>
-                                    )}
-                                    <span>·</span>
-                                    <span style={{
-                                      padding: '1px 5px',
-                                      borderRadius: 4,
-                                      fontSize: 9.5,
-                                      fontWeight: 600,
-                                      background: item.status === 'paid' || item.settled ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                      color: item.status === 'paid' || item.settled ? '#22C55E' : '#EF4444',
-                                      textTransform: 'capitalize',
-                                    }}>
-                                      {item.settled ? 'Settled' : item.status}
-                                    </span>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                  {(() => {
+                                    let displayAmount: string | null = null;
+                                    let displayColor = isDebit ? 'var(--debit)' : 'var(--credit)';
+
+                                    if (ge.flow === 'in' && ge.category !== 'Transfer') {
+                                      displayAmount = `+${fmtMoney(ge.totalAmount, currency)}`;
+                                      displayColor = 'var(--credit)';
+                                    } else if (ge.isSplit) {
+                                      if (allSettled) {
+                                        if (ge.personalShare > 0) {
+                                          displayAmount = `-${fmtMoney(ge.personalShare, currency)}`;
+                                          displayColor = 'var(--debit)';
+                                        } else {
+                                          displayAmount = null;
+                                        }
+                                      } else {
+                                        displayAmount = `-${fmtMoney(ge.totalAmount, currency)}`;
+                                        displayColor = 'var(--debit)';
+                                      }
+                                    } else {
+                                      displayAmount = `${isDebit ? '-' : '+'}${fmtMoney(ge.totalAmount, currency)}`;
+                                      displayColor = isDebit ? 'var(--debit)' : 'var(--credit)';
+                                    }
+
+                                    if (!displayAmount) return null;
+
+                                    return (
+                                      <div style={{
+                                        fontWeight: 700,
+                                        fontSize: 12.5,
+                                        color: displayColor,
+                                        whiteSpace: 'nowrap',
+                                      }}>
+                                        {displayAmount}
+                                      </div>
+                                    );
+                                  })()}
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                                    <button
+                                      className="btn-icon"
+                                      style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0 }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (primaryItem) setEditingExpense(primaryItem);
+                                      }}
+                                      title="Edit expense"
+                                    >
+                                      <Edit2 size={12} />
+                                    </button>
+
+                                    <button
+                                      className="btn-icon"
+                                      style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0, color: '#EF4444' }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (primaryItem) setDeletingId(primaryItem.id);
+                                      }}
+                                      title="Delete expense"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
                                   </div>
                                 </div>
                               </div>
 
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                              {/* Breakdown if split and expanded */}
+                              {ge.items.length > 1 && isGroupExpanded && (
                                 <div style={{
-                                  fontWeight: 700,
-                                  fontSize: 12.5,
-                                  color: isDebit ? 'var(--debit)' : 'var(--credit)',
-                                  whiteSpace: 'nowrap',
+                                  borderTop: '1px solid var(--border)',
+                                  background: 'var(--surface)',
+                                  padding: '6px 10px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 4,
+                                  fontSize: 11,
                                 }}>
-                                  {isDebit ? '-' : '+'}{fmtMoney(item.amount, currency)}
-                                </div>
+                                  {ge.items.map(sub => {
+                                    const frObj = friends.find(f => f.id === sub.friendId);
+                                    const isSubSettled = sub.settled || sub.status === 'paid';
+                                    const name = frObj?.name || 'Contact';
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                                  <button
-                                    className="btn-icon"
-                                    style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0 }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditingExpense(item);
-                                    }}
-                                    title="Edit expense"
-                                  >
-                                    <Edit2 size={12} />
-                                  </button>
+                                    let roleLabel = 'Personal Share';
+                                    if (sub.type === 'for_friend') {
+                                      roleLabel = isSubSettled ? `${name} paid you` : `${name} owes you`;
+                                    } else if (sub.type === 'by_friend') {
+                                      roleLabel = isSubSettled ? `Paid to ${name}` : `You owe ${name}`;
+                                    }
 
-                                  <button
-                                    className="btn-icon"
-                                    style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0, color: '#EF4444' }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setDeletingId(item.id);
-                                    }}
-                                    title="Delete expense"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
+                                    const isSubDebit = sub.type === 'by_friend' || sub.type === 'personal';
+                                    const subSign = isSubDebit ? '-' : '+';
+                                    const subColor = isSubDebit ? 'var(--debit)' : 'var(--credit)';
+
+                                    return (
+                                      <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 0' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-2)' }}>
+                                          <User size={10} style={{ opacity: 0.7 }} />
+                                          <span>{roleLabel}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                          <span style={{ fontWeight: 600, color: subColor }}>
+                                            {subSign}{fmtMoney(sub.amount, currency)}
+                                          </span>
+                                          <span style={{
+                                            padding: '1px 5px',
+                                            borderRadius: 4,
+                                            fontSize: 9,
+                                            fontWeight: 600,
+                                            background: isSubSettled ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                            color: isSubSettled ? '#22C55E' : '#EF4444',
+                                          }}>
+                                            {isSubSettled ? 'Settled' : 'Unsettled'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                              </div>
+                              )}
                             </div>
                           );
                         })}

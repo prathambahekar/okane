@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, RefreshCw, ArrowLeftRight } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey } from '../db';
-import { fmtMoney, fmtDate, friendInitial, groupExpenses } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses } from '../utils';
 import type { Friend, ViewName } from '../types';
 import { CategoryBadge } from '../components/CategoryIcon';
 import TransferModal from '../components/TransferModal';
@@ -281,7 +281,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               {balancedFriends.map(({ friend, net }: { friend: Friend; net: number }) => (
                 <div key={friend.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
                   onClick={() => onNavigate('friend-detail', friend.id)}>
-                  <div className="avatar avatar-sm" style={{ background: friend.color, width: 22, height: 22, fontSize: 10 }}>{friendInitial(friend.name)}</div>
+                  <div className="avatar avatar-sm" style={{ ...getAvatarStyle(friend.color), width: 22, height: 22, fontSize: 10 }}>{friendInitial(friend.name, friend.avatarNumber)}</div>
                   <span style={{ flex: 1, fontSize: 12.5, fontWeight: 500 }}>{friend.name}</span>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: net > 0 ? 'var(--credit)' : 'var(--debit)' }}>

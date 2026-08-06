@@ -122,6 +122,7 @@ export function getAccentColors(accent: AccentPreset, mode: 'light' | 'dark', cu
 
 export const ColorModeContext = React.createContext<{
   mode: 'light' | 'dark';
+  setMode: (mode: 'light' | 'dark') => void;
   toggleMode: () => void;
   accent: AccentPreset;
   setAccent: (accent: AccentPreset) => void;
@@ -129,6 +130,7 @@ export const ColorModeContext = React.createContext<{
   setCustomColor: (hex: string) => void;
 }>({
   mode: 'light',
+  setMode: () => {},
   toggleMode: () => {},
   accent: 'blue',
   setAccent: () => {},
