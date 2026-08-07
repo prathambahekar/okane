@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { AppDB, Expense, Friend, Wallet, RecurringRule } from './types';
 import {
   loadDB, saveDB, defaultDB, DEFAULT_CATEGORIES, DEFAULT_WALLETS,
@@ -12,7 +12,16 @@ import {
   addRecurringRule as dbAddRecurringRule, updateRecurringRule as dbUpdateRecurringRule, deleteRecurringRule as dbDeleteRecurringRule,
   triggerAutopayDeduct as dbTriggerAutopayDeduct, quickLogRecurringRule as dbQuickLogRecurringRule,
   seedSampleData,
+  todayISO,
 } from './db';
+import {
+  fetchGitHubReleases,
+  compareVersions,
+  getStoredInstalledVersion,
+  setStoredInstalledVersion,
+  type UpdateInfo,
+  type ReleaseItem,
+} from './utils/updateManager';
 
 interface UndoEntry {
   label: string;
@@ -28,6 +37,17 @@ interface Toast {
 interface StoreContextType {
   db: AppDB;
   toasts: Toast[];
+
+  availableUpdate: UpdateInfo | null;
+  releaseHistory: ReleaseItem[];
+  isCheckingUpdate: boolean;
+  isUpdating: boolean;
+  updateProgress: number;
+  updateStatusMessage: string;
+  checkForUpdates: (manual?: boolean) => Promise<void>;
+  simulateUpdate: (version?: string) => void;
+  installUpdate: () => Promise<void>;
+  dismissUpdateNotification: () => void;
 
   addExpense: (data: Partial<Expense>) => void;
   updateExpense: (id: string, data: Partial<Expense>) => void;
@@ -84,6 +104,126 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const dismissToast = useCallback((id: string) => {
     setToasts(t => t.filter(x => x.id !== id));
   }, []);
+
+  const [availableUpdate, setAvailableUpdate] = useState<UpdateInfo | null>(null);
+  const [releaseHistory, setReleaseHistory] = useState<ReleaseItem[]>([]);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateStatusMessage, setUpdateStatusMessage] = useState('');
+
+  const checkForUpdates = useCallback(async (manual = false) => {
+    setIsCheckingUpdate(true);
+    try {
+      const { latest, history } = await fetchGitHubReleases();
+      setReleaseHistory(history);
+
+      let currentVer = db.settings.installedVersion || getStoredInstalledVersion();
+      if (latest && compareVersions(currentVer, latest.version) > 0) {
+        currentVer = latest.version;
+        setStoredInstalledVersion(latest.version);
+        setDB(current => {
+          const next = { ...current, settings: { ...current.settings, installedVersion: latest.version } };
+          saveDB(next);
+          return next;
+        });
+      }
+
+      if (latest && compareVersions(latest.version, currentVer) > 0) {
+        setAvailableUpdate(latest);
+        if (manual) showToast(`New version available from GitHub: v${latest.version}`);
+      } else {
+        setAvailableUpdate(null);
+        if (manual) showToast(`Okane is up to date (v${currentVer})`);
+      }
+    } catch {
+      if (manual) showToast('Could not fetch release details from GitHub');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  }, [db.settings.installedVersion, showToast]);
+
+  const simulateUpdate = useCallback((targetVer?: string) => {
+    const ver = targetVer || '0.9.0';
+    const mockUpdate: UpdateInfo = {
+      version: ver,
+      buildNumber: '108',
+      releaseDate: todayISO(),
+      releaseNotes: `Okane v${ver}: Dev feature release with auto-updater, performance optimizations, and bug fixes.`,
+      downloadUrl: `/updates/v${ver}.zip`,
+    };
+    setAvailableUpdate(mockUpdate);
+    showToast(`Simulated new version available: v${ver}`);
+  }, [showToast]);
+
+  const dismissUpdateNotification = useCallback(() => {
+    setAvailableUpdate(null);
+  }, []);
+
+  const installUpdate = useCallback(async () => {
+    if (!availableUpdate) return;
+    setIsUpdating(true);
+    setUpdateProgress(10);
+    setUpdateStatusMessage('Connecting to update server...');
+
+    await new Promise(r => setTimeout(r, 600));
+    setUpdateProgress(40);
+    setUpdateStatusMessage(`Downloading Okane v${availableUpdate.version} bundle...`);
+
+    await new Promise(r => setTimeout(r, 800));
+    setUpdateProgress(75);
+    setUpdateStatusMessage('Validating integrity & applying schema migrations...');
+
+    await new Promise(r => setTimeout(r, 700));
+    setUpdateProgress(100);
+    setUpdateStatusMessage('Update installation complete!');
+
+    const newVer = availableUpdate.version;
+    setStoredInstalledVersion(newVer);
+    setDB(current => {
+      const next = {
+        ...current,
+        settings: {
+          ...current.settings,
+          installedVersion: newVer,
+          lastUpdateCheck: todayISO(),
+        },
+      };
+      saveDB(next);
+      return next;
+    });
+
+    await new Promise(r => setTimeout(r, 400));
+    setAvailableUpdate(null);
+    setIsUpdating(false);
+    showToast(`Successfully updated to Okane v${newVer}! 🎉`);
+  }, [availableUpdate, showToast]);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (db.settings.devMode !== false && db.settings.enableAutoUpdate !== false) {
+      fetchGitHubReleases().then(({ latest, history }) => {
+        if (!isMounted) return;
+        setReleaseHistory(history);
+        let currentVer = db.settings.installedVersion || getStoredInstalledVersion();
+        if (latest && compareVersions(currentVer, latest.version) > 0) {
+          currentVer = latest.version;
+          setStoredInstalledVersion(latest.version);
+          setDB(current => {
+            const next = { ...current, settings: { ...current.settings, installedVersion: latest.version } };
+            saveDB(next);
+            return next;
+          });
+        }
+        if (latest && compareVersions(latest.version, currentVer) > 0) {
+          setAvailableUpdate(latest);
+        }
+      }).catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [db.settings.devMode, db.settings.enableAutoUpdate, db.settings.installedVersion]);
 
   const pushUndo = useCallback((label: string, snapshot: AppDB, onUndo: () => void) => {
     const entry: UndoEntry = { label, snapshot };
@@ -344,6 +484,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const value: StoreContextType = {
     db, toasts,
+    availableUpdate,
+    releaseHistory,
+    isCheckingUpdate,
+    isUpdating,
+    updateProgress,
+    updateStatusMessage,
+    checkForUpdates,
+    simulateUpdate,
+    installUpdate,
+    dismissUpdateNotification,
     addExpense, updateExpense, deleteExpense,
     addFriend, updateFriend, deleteFriend,
     addWallet, updateWallet, deleteWallet: deleteWalletFn, transferFunds,

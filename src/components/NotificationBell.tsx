@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, RefreshCw, Zap, CheckCircle2, ArrowRight, X } from 'lucide-react';
+import { Bell, RefreshCw, Zap, CheckCircle2, ArrowRight, X, ArrowUpCircle, Sparkles } from 'lucide-react';
 import { useStore } from '../store';
 import { todayISO } from '../db';
 import { fmtMoney } from '../utils';
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function NotificationBell({ onNavigate }: Props) {
-  const { db, triggerAutopayDeduct, quickLogRecurringRule } = useStore();
+  const { db, triggerAutopayDeduct, quickLogRecurringRule, availableUpdate } = useStore();
   const [open, setOpen] = useState(false);
 
   const today = todayISO();
@@ -27,7 +27,7 @@ export default function NotificationBell({ onNavigate }: Props) {
     r => r.kind === 'quick_log' && r.status === 'active' && r.lastLoggedDate !== today
   );
 
-  const totalCount = dueAutopays.length + unloggedQuickLogs.length;
+  const totalCount = dueAutopays.length + unloggedQuickLogs.length + (availableUpdate ? 1 : 0);
 
   useEffect(() => {
     if (open) {
@@ -150,6 +150,71 @@ export default function NotificationBell({ onNavigate }: Props) {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {/* Software Update Card */}
+                    {availableUpdate && (
+                      <div
+                        style={{
+                          padding: '12px 14px',
+                          background: 'var(--accent-soft)',
+                          border: '1px solid var(--accent)',
+                          borderRadius: 'var(--radius-lg)',
+                          boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                          <div
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: 8,
+                              background: 'var(--accent)',
+                              color: 'var(--accent-contrast, #fff)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Sparkles size={16} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+                              Software Update Available: v{availableUpdate.version}
+                            </div>
+                            <div style={{ fontSize: 11.5, color: 'var(--text-2)' }}>
+                              Build #{availableUpdate.buildNumber} · Released {availableUpdate.releaseDate}
+                            </div>
+                          </div>
+                        </div>
+
+                        <p style={{ fontSize: 12, color: 'var(--text-2)', margin: '6px 0 10px 0', lineHeight: 1.4 }}>
+                          {availableUpdate.releaseNotes}
+                        </p>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-primary"
+                            style={{
+                              fontSize: 12,
+                              padding: '5px 12px',
+                              borderRadius: 8,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                            onClick={() => {
+                              setOpen(false);
+                              onNavigate('settings');
+                            }}
+                          >
+                            <ArrowUpCircle size={14} />
+                            <span>Download in Settings</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Due Autopays Section */}
                     {dueAutopays.length > 0 && (
                       <div>

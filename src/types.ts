@@ -74,6 +74,9 @@ export interface Settings {
   enableAIAssistant?: boolean;
   enableDevSQLConsole?: boolean;
   enableSampleData?: boolean;
+  enableAutoUpdate?: boolean;
+  installedVersion?: string;
+  lastUpdateCheck?: string;
   defaultAiEngine?: 'offline' | 'online';
   devMode?: boolean;
   colorMode?: 'light' | 'dark';

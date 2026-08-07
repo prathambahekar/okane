@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -61,7 +61,11 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
 }
 
 export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) => void }) {
-  const { db, updateSettings, updateCategory, resetDB, restoreDB, loadSampleData, showToast } = useStore();
+  const {
+    db, updateSettings, updateCategory, resetDB, restoreDB, loadSampleData, showToast,
+    availableUpdate, releaseHistory, isCheckingUpdate, isUpdating, updateProgress, updateStatusMessage,
+    checkForUpdates, installUpdate
+  } = useStore();
   const { settings } = db;
   const fileRef = useRef<HTMLInputElement>(null);
   const [showReset, setShowReset] = useState(false);
@@ -81,6 +85,8 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
   const [showAddCategory, setShowAddCategory] = useState(false);
   const isDevMode = settings.devMode ?? true;
   const [devExpanded, setDevExpanded] = useState(isDevMode);
+  const [showHistory, setShowHistory] = useState(true);
+  const [showAllReleases, setShowAllReleases] = useState(false);
 
   const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
     appName: "Okane",
@@ -1081,38 +1087,165 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
           </div>
         </div>
 
-        {/* App Version & settings.json Card */}
+        {/* App Version & Software Auto-Update Card */}
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <FileCode size={18} style={{ color: 'var(--accent)' }} />
-              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>App Version & Configuration</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>App Version & Auto-Updater</h2>
             </div>
             <span style={{
               fontSize: 11.5,
               fontWeight: 700,
               padding: '3px 10px',
               borderRadius: '99px',
-              background: 'var(--accent-soft)',
-              color: 'var(--accent)',
-              border: '1px solid rgba(56, 189, 248, 0.3)'
+              background: availableUpdate ? 'rgba(59, 130, 246, 0.15)' : 'var(--accent-soft)',
+              color: availableUpdate ? '#2563eb' : 'var(--accent)',
+              border: '1px solid var(--border)'
             }}>
-              v{String(jsonSettings.appVersion || '')}
+              v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 14 }}>
-            <div style={{ background: 'var(--surface2)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Update Channel</div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, textTransform: 'capitalize' }}>{String(jsonSettings.updateChannel || '')}</div>
+          {/* Software Update Status Panel */}
+          {availableUpdate ? (
+            <div style={{
+              padding: '14px',
+              borderRadius: 'var(--radius)',
+              background: 'var(--accent-soft)',
+              border: '1.5px solid var(--accent)',
+              marginBottom: 14,
+              boxShadow: 'var(--shadow)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: 10, background: 'var(--accent)', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                  <ArrowUpCircle size={18} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+                    New Version Available: v{availableUpdate.version}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-2)', marginTop: 2 }}>
+                    Build #{availableUpdate.buildNumber} · Released {availableUpdate.releaseDate}
+                  </div>
+                  {availableUpdate.releaseNotes && availableUpdate.releaseNotes !== 'No release notes provided.' && (
+                    <p style={{ fontSize: 12, color: 'var(--text)', marginTop: 6, marginBottom: 10, lineHeight: 1.4 }}>
+                      {availableUpdate.releaseNotes}
+                    </p>
+                  )}
+
+                  {isUpdating ? (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 600, marginBottom: 4 }}>
+                        <span>{updateStatusMessage}</span>
+                        <span>{updateProgress}%</span>
+                      </div>
+                      <div style={{ height: 6, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${updateProgress}%`,
+                          background: 'var(--accent-gradient)',
+                          borderRadius: 99,
+                          transition: 'width 0.3s ease-in-out'
+                        }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={installUpdate}
+                        style={{ gap: 6, padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+                      >
+                        <Download size={14} /> Download & Install Update v{availableUpdate.version}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            <div style={{ background: 'var(--surface2)', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Last Updated</div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{String(jsonSettings.lastUpdated || '')}</div>
+          ) : (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: 'var(--radius)',
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              marginBottom: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: '50%', background: 'rgba(34, 197, 94, 0.12)', color: '#22c55e',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                  <CheckCircle2 size={16} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Okane is up to date</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Current version: v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}</div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => checkForUpdates(true)}
+                disabled={isCheckingUpdate}
+                style={{ gap: 6, fontSize: 12, padding: '4px 10px' }}
+              >
+                <RefreshCw size={12} className={isCheckingUpdate ? 'spin' : ''} />
+                {isCheckingUpdate ? 'Checking...' : 'Check for Updates'}
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 12 }}>
+            <div style={{ background: 'var(--surface2)', padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Update Channel</div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 1, textTransform: 'capitalize' }}>{String(jsonSettings.updateChannel || 'Release')}</div>
+            </div>
+            <div style={{ background: 'var(--surface2)', padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Last Checked</div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 1 }}>{settings.lastUpdateCheck || String(jsonSettings.lastUpdated || 'Today')}</div>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setShowHistory(!showHistory)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '5px 12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: '1px solid var(--border)',
+                background: 'var(--surface2)',
+                color: 'var(--text)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <History size={13} />
+              <span>{showHistory ? 'Hide Version History' : 'View Version History'}</span>
+              {releaseHistory.length > 0 && (
+                <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, background: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 700 }}>
+                  {releaseHistory.length}
+                </span>
+              )}
+            </button>
+
             <button
               type="button"
               onClick={() => setShowJsonView(!showJsonView)}
@@ -1120,7 +1253,7 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '6px 12px',
+                padding: '5px 12px',
                 borderRadius: '8px',
                 fontSize: '12px',
                 fontWeight: 600,
@@ -1136,23 +1269,179 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
             </button>
 
             <a
-              href="https://github.com/prathambahekar/okane/"
+              href="https://github.com/prathambahekar/okane/releases"
               target="_blank"
               rel="noopener noreferrer"
               style={{
                 marginLeft: 'auto',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 4,
                 fontSize: 12,
-                color: 'var(--text-3)',
+                color: 'var(--accent)',
+                fontWeight: 600,
                 textDecoration: 'none'
               }}
             >
-              <span>GitHub</span>
+              <span>GitHub Releases</span>
               <ExternalLink size={12} />
             </a>
           </div>
+
+          {/* GitHub Release History Compact List */}
+          {showHistory && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <GitCommit size={13} style={{ color: 'var(--accent)' }} />
+                  <span>GitHub Version History</span>
+                </div>
+                <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>repo: prathambahekar/okane</span>
+              </div>
+
+              {releaseHistory.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '8px 0', fontStyle: 'italic' }}>
+                  No release history loaded. Click "Check for Updates" to fetch.
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {(showAllReleases ? releaseHistory : releaseHistory.slice(0, 2)).map((item, idx) => {
+                      const currentVer = settings.installedVersion || jsonSettings.appVersion || '0.8.2';
+                      const normalizedItemVer = item.version.replace(/^v/, '');
+                      const normalizedCurrentVer = String(currentVer).replace(/^v/, '');
+                      const isCurrent = normalizedItemVer === normalizedCurrentVer;
+                      const hasNotes = item.releaseNotes && item.releaseNotes.trim() !== 'No release notes provided.';
+
+                      return (
+                        <div
+                          key={item.version + '_' + idx}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            background: isCurrent ? 'var(--accent-soft)' : 'var(--surface2)',
+                            border: isCurrent ? '1px solid var(--accent)' : '1px solid var(--border)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                                {item.name || `v${item.version}`}
+                              </span>
+                              {isCurrent && (
+                                <span style={{
+                                  fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
+                                  background: 'var(--accent)', color: 'var(--accent-contrast, #fff)'
+                                }}>
+                                  Installed
+                                </span>
+                              )}
+                              {item.isPrerelease && (
+                                <span style={{
+                                  fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
+                                  background: 'rgba(234, 179, 8, 0.15)', color: '#ca8a04', border: '1px solid rgba(234, 179, 8, 0.3)'
+                                }}>
+                                  Pre-release
+                                </span>
+                              )}
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                                {item.releaseDate}
+                              </span>
+                              <a
+                                href={item.htmlUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="View release on GitHub"
+                                style={{
+                                  fontSize: 11,
+                                  color: 'var(--accent)',
+                                  fontWeight: 600,
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3
+                                }}
+                              >
+                                <span>View</span>
+                                <ExternalLink size={10} />
+                              </a>
+                              {item.downloadUrl && (
+                                <a
+                                  href={item.downloadUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Download release asset"
+                                  style={{
+                                    fontSize: 11,
+                                    color: 'var(--text-2)',
+                                    fontWeight: 500,
+                                    textDecoration: 'none',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3
+                                  }}
+                                >
+                                  <Download size={10} />
+                                  <span>Download</span>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+
+                          {hasNotes && (
+                            <p style={{
+                              fontSize: 11.5,
+                              color: 'var(--text-2)',
+                              margin: '4px 0 2px 0',
+                              lineHeight: 1.4,
+                              whiteSpace: 'pre-line'
+                            }}>
+                              {item.releaseNotes}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {releaseHistory.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllReleases(!showAllReleases)}
+                      style={{
+                        marginTop: 8,
+                        width: '100%',
+                        padding: '7px 12px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: 'var(--accent)',
+                        background: 'var(--surface2)',
+                        border: '1px dashed var(--border)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span>
+                        {showAllReleases
+                          ? 'Show Top 2 Releases Only'
+                          : `Show ${releaseHistory.length - 2} Earlier ${releaseHistory.length - 2 === 1 ? 'Release' : 'Releases'}`}
+                      </span>
+                      {showAllReleases ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {showJsonView && (
             <div style={{ marginTop: 12 }}>
