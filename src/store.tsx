@@ -62,7 +62,7 @@ interface StoreContextType {
   deleteWallet: (id: string) => boolean;
   transferFunds: (fromWalletId: string, toWalletId: string, amount: number, date: string, note?: string) => void;
 
-  recordSettlement: (friendId: string, expenseIds: string[], note: string, walletId?: string) => void;
+  recordSettlement: (friendId: string, expenseIds: string[], note: string, walletId?: string, customAmount?: number, date?: string) => void;
   deleteSettlement: (id: string) => void;
   unsettleExpense: (expenseId: string) => void;
 
@@ -375,9 +375,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   }, [pushUndo, persist]);
 
-  const recordSettlement = useCallback((friendId: string, expenseIds: string[], note: string, walletId?: string) => {
+  const recordSettlement = useCallback((friendId: string, expenseIds: string[], note: string, walletId?: string, customAmount?: number, date?: string) => {
     setDB(current => {
-      const next = dbRecordSettlement(current, friendId, expenseIds, note, walletId);
+      const next = dbRecordSettlement(current, friendId, expenseIds, note, walletId, customAmount, date);
       saveDB(next);
       return next;
     });

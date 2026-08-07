@@ -22,7 +22,7 @@ export default function Settlements() {
     db.expenses.some(e => e.friendId === f.id && !e.settled && e.type !== 'personal')
   );
 
-  const sorted = useMemo(() => [...settlements].sort((a, b) => b.createdAt - a.createdAt), [settlements]);
+  const sorted = useMemo(() => [...settlements].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt), [settlements]);
 
   const dateGroupInfo = useMemo(() => {
     const groupMap: Record<string, number> = {};

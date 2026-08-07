@@ -1052,9 +1052,19 @@ export function friendBalance(db: AppDB, friendId: string): { owedToMe: number; 
   db.expenses.forEach(e => {
     if (e.friendId !== friendId || e.type === 'personal' || e.settled) return;
     const amt = Number(e.amount) || 0;
-    const sign = expenseFlow(e) === 'in' ? -1 : 1;
-    if (e.type === 'for_friend') owedToMe += sign * amt;
-    else if (e.type === 'by_friend') owedByMe += sign * amt;
+    if (e.type === 'for_friend') {
+      if (e.flow === 'in') {
+        owedToMe -= amt; // Repayment received from friend reduces what friend owes me
+      } else {
+        owedToMe += amt; // Money spent for friend increases what friend owes me
+      }
+    } else if (e.type === 'by_friend') {
+      if (e.walletId || e.flow === 'in') {
+        owedByMe -= amt; // Repayment paid to friend reduces what I owe friend
+      } else {
+        owedByMe += amt; // Expense paid by friend for me increases what I owe friend
+      }
+    }
   });
   return { owedToMe, owedByMe, net: owedToMe - owedByMe };
 }
@@ -1343,7 +1353,16 @@ export function deleteWallet(db: AppDB, id: string): AppDB | null {
   };
 }
 
-export function recordSettlement(db: AppDB, friendId: string, expenseIds: string[], note: string, walletId?: string): AppDB {
+export function recordSettlement(
+  db: AppDB,
+  friendId: string,
+  expenseIds: string[],
+  note: string,
+  walletId?: string,
+  customAmount?: number,
+  date?: string
+): AppDB {
+  const settlementDate = date || todayISO();
   const exps = db.expenses.filter(e => expenseIds.includes(e.id));
   let owedToMe = 0, owedByMe = 0;
   exps.forEach(e => {
@@ -1351,23 +1370,67 @@ export function recordSettlement(db: AppDB, friendId: string, expenseIds: string
     if (e.type === 'for_friend') owedToMe += amt;
     else if (e.type === 'by_friend') owedByMe += amt;
   });
-  const amount = owedToMe - owedByMe;
+  const fullNet = owedToMe - owedByMe;
+  const actualSettleAmount = (customAmount !== undefined && !isNaN(customAmount) && customAmount > 0)
+    ? customAmount
+    : Math.abs(fullNet);
+
   const wallet = walletId ? db.wallets.find(w => w.id === walletId) : undefined;
   const s: Settlement = {
     id: uid('stl'),
     friendId,
-    amount,
-    date: todayISO(),
+    amount: fullNet >= 0 ? actualSettleAmount : -actualSettleAmount,
+    date: settlementDate,
     note: note || '',
     expenseIds: expenseIds.slice(),
     createdAt: Date.now(),
     walletId: walletId || undefined,
     paymentMethod: wallet?.name || undefined,
   };
-  const expenses = db.expenses.map(e =>
-    expenseIds.includes(e.id) ? { ...e, settled: true, settlementId: s.id } : e
-  );
-  return { ...db, settlements: [s, ...(db.settlements || [])], expenses };
+
+  let remainingCover = actualSettleAmount;
+  const selectedSet = new Set(expenseIds);
+  const updatedExpenses: Expense[] = [];
+  const newExpenses: Expense[] = [];
+
+  db.expenses.forEach(e => {
+    if (!selectedSet.has(e.id)) {
+      updatedExpenses.push(e);
+      return;
+    }
+
+    const amt = Number(e.amount) || 0;
+    if (remainingCover >= amt) {
+      remainingCover -= amt;
+      updatedExpenses.push({ ...e, settled: true, settlementId: s.id, date: settlementDate });
+    } else if (remainingCover > 0) {
+      const coveredPortion = remainingCover;
+      const remainingPortion = amt - coveredPortion;
+      remainingCover = 0;
+
+      updatedExpenses.push({
+        ...e,
+        amount: coveredPortion,
+        settled: true,
+        settlementId: s.id,
+        date: settlementDate,
+      });
+
+      newExpenses.push({
+        ...e,
+        id: uid('exp'),
+        amount: remainingPortion,
+        description: e.description.includes('Remaining') ? e.description : `${e.description} (Remaining)`,
+        settled: false,
+        settlementId: null,
+        createdAt: Date.now() + 1,
+      });
+    } else {
+      updatedExpenses.push({ ...e, settled: false, settlementId: null });
+    }
+  });
+
+  return { ...db, settlements: [s, ...(db.settlements || [])], expenses: [...newExpenses, ...updatedExpenses] };
 }
 
 export function deleteSettlement(db: AppDB, id: string): AppDB {

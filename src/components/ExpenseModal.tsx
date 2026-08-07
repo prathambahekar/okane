@@ -247,7 +247,7 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
   };
 
   const calculatedType: ExpenseType = flow === 'in'
-    ? (incomeMode === 'friend' ? 'by_friend' : 'personal')
+    ? (incomeMode === 'friend' ? 'for_friend' : 'personal')
     : whoPaid === 'other' || splitMode === 'pay_debt'
     ? 'by_friend'
     : splitMode === 'for_friend'
@@ -281,7 +281,8 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
       }
       setError('');
 
-      const targetType: ExpenseType = incomeMode === 'friend' ? 'by_friend' : 'personal';
+      const targetType: ExpenseType = incomeMode === 'friend' ? 'for_friend' : 'personal';
+      const isAutoSettling = autoSettle && selectedExpenseIds.length > 0;
 
       const data: Partial<Expense> = {
         description: finalDesc,
@@ -293,13 +294,33 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
         friendId: targetType === 'personal' ? null : (friendId || null),
         walletId,
         status: 'paid',
+        settled: isAutoSettling,
         notes,
         groupId: null,
       };
 
       if (autoSettle && selectedExpenseIds.length > 0) {
+        let coverRemaining = totalAmt;
         selectedExpenseIds.forEach(id => {
-          updateExpense(id, { settled: true });
+          const item = db.expenses.find(ex => ex.id === id);
+          if (!item) return;
+          const amt = Number(item.amount) || 0;
+          if (coverRemaining >= amt) {
+            coverRemaining -= amt;
+            updateExpense(id, { settled: true, date: date || item.date });
+          } else if (coverRemaining > 0) {
+            const covered = coverRemaining;
+            const rem = amt - covered;
+            coverRemaining = 0;
+            updateExpense(id, { amount: covered, settled: true, date: date || item.date });
+            addExpense({
+              ...item,
+              amount: rem,
+              description: item.description.includes('Remaining') ? item.description : `${item.description} (Remaining)`,
+              settled: false,
+              settlementId: null,
+            });
+          }
         });
       }
 
@@ -329,11 +350,31 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
       setError('');
 
       if (autoSettle && selectedExpenseIds.length > 0) {
+        let coverRemaining = totalAmt;
         selectedExpenseIds.forEach(id => {
-          updateExpense(id, { settled: true });
+          const item = db.expenses.find(ex => ex.id === id);
+          if (!item) return;
+          const amt = Number(item.amount) || 0;
+          if (coverRemaining >= amt) {
+            coverRemaining -= amt;
+            updateExpense(id, { settled: true, date: date || item.date });
+          } else if (coverRemaining > 0) {
+            const covered = coverRemaining;
+            const rem = amt - covered;
+            coverRemaining = 0;
+            updateExpense(id, { amount: covered, settled: true, date: date || item.date });
+            addExpense({
+              ...item,
+              amount: rem,
+              description: item.description.includes('Remaining') ? item.description : `${item.description} (Remaining)`,
+              settled: false,
+              settlementId: null,
+            });
+          }
         });
       }
 
+      const isAutoSettling = autoSettle && selectedExpenseIds.length > 0;
       const data: Partial<Expense> = {
         description: finalDesc,
         amount: totalAmt,
@@ -344,6 +385,7 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
         friendId,
         walletId,
         status: 'paid',
+        settled: isAutoSettling,
         notes,
         groupId: null,
       };
@@ -1159,10 +1201,23 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                           onChange={e => {
                             const fid = e.target.value;
                             setFriendId(fid);
-                            setSelectedExpenseIds([]);
                             const foundFriend = db.friends.find(f => f.id === fid);
-                            if (foundFriend) {
-                              setDesc(`Debt repayment from ${foundFriend.name}`);
+                            const rawList = fid ? unsettledExpensesForFriend(db, fid).filter(ex => ex.type === 'for_friend') : [];
+                            if (rawList.length > 0) {
+                              const allIds = rawList.map(ex => ex.id);
+                              setSelectedExpenseIds(allIds);
+                              const sum = rawList.reduce((s, ex) => s + (Number(ex.amount) || 0), 0);
+                              setAmount(String(sum));
+                              if (rawList.length === 1) {
+                                setDesc(`Repayment for ${rawList[0].description}`);
+                              } else if (foundFriend) {
+                                setDesc(`Debt repayment from ${foundFriend.name}`);
+                              }
+                            } else {
+                              setSelectedExpenseIds([]);
+                              if (foundFriend) {
+                                setDesc(`Debt repayment from ${foundFriend.name}`);
+                              }
                             }
                           }}
                         >
@@ -1307,15 +1362,102 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
                                 })}
                               </div>
 
-                              {selectedExpenseIds.length > 0 && (
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 11.5, color: 'var(--text-2)', cursor: 'pointer' }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={autoSettle}
-                                    onChange={e => setAutoSettle(e.target.checked)}
-                                  />
-                                  <span>Mark {selectedExpenseIds.length > 1 ? 'these debts' : 'this debt'} as settled in friend ledger</span>
-                                </label>
+                              {selectedExpenseIds.length > 0 ? (() => {
+                                const selectedSum = selectedExpenseIds.reduce((acc, id) => {
+                                  const item = db.expenses.find(ex => ex.id === id);
+                                  return acc + (item ? Number(item.amount) || 0 : 0);
+                                }, 0);
+                                const currentAmt = parseFloat(amount) || 0;
+                                const diff = selectedSum - currentAmt;
+                                const isPartial = currentAmt > 0 && diff > 0.01;
+
+                                return (
+                                  <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                                    {/* Segment Toggle for Full vs Partial */}
+                                    <div style={{ marginBottom: 10 }}>
+                                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                        Payback Amount Type:
+                                      </div>
+                                      <div className="segment-control" style={{ display: 'flex', gap: 6 }}>
+                                        <button
+                                          type="button"
+                                          className={`segment-btn ${!isPartial && currentAmt === selectedSum ? 'active' : ''}`}
+                                          style={{ flex: 1, textAlign: 'center', justifyContent: 'center', padding: '5px 8px', fontSize: 11.5 }}
+                                          onClick={() => setAmount(String(selectedSum))}
+                                        >
+                                          Full Payback ({fmtMoney(selectedSum, s.currency)})
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className={`segment-btn ${isPartial ? 'active' : ''}`}
+                                          style={{ flex: 1, textAlign: 'center', justifyContent: 'center', padding: '5px 8px', fontSize: 11.5 }}
+                                          onClick={() => {
+                                            if (!isPartial) setAmount(String(Math.round(selectedSum / 2)));
+                                          }}
+                                        >
+                                          Custom / Partial Payback
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Inline Custom Amount Input */}
+                                    <div style={{ marginBottom: 10 }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
+                                          Amount Paid Back ({s.currency})
+                                        </label>
+                                        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                                          Full Owed: {fmtMoney(selectedSum, s.currency)}
+                                        </span>
+                                      </div>
+                                      <input
+                                        type="number"
+                                        step="any"
+                                        className="form-input"
+                                        placeholder={`e.g. 20 (Full is ${selectedSum})`}
+                                        value={amount}
+                                        onChange={e => setAmount(e.target.value)}
+                                        style={{ fontWeight: 700, fontSize: 15, color: 'var(--accent)' }}
+                                      />
+                                    </div>
+
+                                    {/* Partial Payback Feedback Box */}
+                                    {isPartial ? (
+                                      <div style={{ fontSize: 11.5, color: '#d97706', background: 'rgba(217, 119, 6, 0.12)', border: '1px solid rgba(217, 119, 6, 0.25)', padding: '8px 10px', borderRadius: 6, marginBottom: 10 }}>
+                                        <div style={{ fontWeight: 700, marginBottom: 2 }}>⚡ Custom Partial Payback Active</div>
+                                        <div>
+                                          Receiving <strong>{fmtMoney(currentAmt, s.currency)}</strong> now. 
+                                          The remaining <strong>{fmtMoney(diff, s.currency)}</strong> debt will stay active for {selectedFriend.name}.
+                                        </div>
+                                      </div>
+                                    ) : currentAmt >= selectedSum && selectedSum > 0 ? (
+                                      <div style={{ fontSize: 11.5, color: '#2e7d32', background: 'rgba(46, 125, 50, 0.12)', border: '1px solid rgba(46, 125, 50, 0.25)', padding: '6px 10px', borderRadius: 6, marginBottom: 10 }}>
+                                        ✓ Full payback of {fmtMoney(selectedSum, s.currency)} will completely clear this debt!
+                                      </div>
+                                    ) : null}
+
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text-2)', cursor: 'pointer' }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={autoSettle}
+                                        onChange={e => setAutoSettle(e.target.checked)}
+                                      />
+                                      <span>Auto-update debt ledger upon saving</span>
+                                    </label>
+                                  </div>
+                                );
+                              })() : (
+                                <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(217, 119, 6, 0.12)', border: '1px solid rgba(217, 119, 6, 0.25)', borderRadius: 'var(--radius)', fontSize: 12, color: '#d97706', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  <span>⚠️ Click a debt item above to link your payback (Full or Partial).</span>
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ alignSelf: 'flex-start', fontSize: 11, padding: '3px 10px', height: 26 }}
+                                    onClick={handleSettleAllDebts}
+                                  >
+                                    Select Debt ({fmtMoney(friendBal.owedToMe, s.currency)})
+                                  </button>
+                                </div>
                               )}
                             </div>
                           ) : (
