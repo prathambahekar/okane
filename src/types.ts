@@ -73,6 +73,7 @@ export interface Settings {
   defaultWalletId: string;
   enableAIAssistant?: boolean;
   enableDevSQLConsole?: boolean;
+  enableSplitTrips?: boolean;
   enableSampleData?: boolean;
   enableAutoUpdate?: boolean;
   installedVersion?: string;

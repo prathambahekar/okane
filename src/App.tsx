@@ -90,6 +90,14 @@ function AppInner() {
   const isDevMode = db.settings?.devMode ?? true;
   const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
   const enableAIAssistant = isDevMode && (db.settings?.enableAIAssistant ?? true);
+  const enableSplitTrips = db.settings?.enableSplitTrips ?? true;
+
+  useEffect(() => {
+    if (view === 'split-trips' && !enableSplitTrips) {
+      const timer = setTimeout(() => setView('dashboard'), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [view, enableSplitTrips]);
 
   const toggleSidebar = () => {
     const next = !sidebarCollapsed;
@@ -191,7 +199,7 @@ function AppInner() {
       items: [
         { id: 'friends' as ViewName, label: 'Contacts', icon: <Users size={18} /> },
         { id: 'settlements' as ViewName, label: 'Settlements', icon: <Handshake size={18} />, badge: pendingSettlements, badgeColor: 'var(--accent)', badgeBg: 'var(--accent-soft)' },
-        { id: 'split-trips' as ViewName, label: 'Split & Trips', icon: <Plane size={18} /> },
+        ...(enableSplitTrips ? [{ id: 'split-trips' as ViewName, label: 'Split & Trips', icon: <Plane size={18} /> }] : []),
       ]
     },
     {
@@ -215,7 +223,7 @@ function AppInner() {
   ];
 
   const moreItems: { id: ViewName; label: string; icon: React.ReactNode }[] = [
-    { id: 'split-trips', label: 'Split & Trips', icon: <Plane size={20} /> },
+    ...(enableSplitTrips ? [{ id: 'split-trips' as ViewName, label: 'Split & Trips', icon: <Plane size={20} /> }] : []),
     { id: 'recurring', label: 'Autopay', icon: <RefreshCw size={20} /> },
     { id: 'wallets', label: 'Wallets', icon: <Wallet size={20} /> },
     { id: 'settlements', label: 'Settlements', icon: <Handshake size={20} /> },

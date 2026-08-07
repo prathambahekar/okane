@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -976,7 +976,50 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                 )}
               </div>
 
-              {/* 3. Demo Sample Data Loader */}
+              {/* 3. Split & Trips Module */}
+              <div style={{
+                padding: '14px 16px', borderRadius: 'var(--radius)', background: 'var(--surface2)', border: '1px solid var(--border)',
+                transition: 'border-color 0.15s ease'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 8, background: (settings.enableSplitTrips ?? true) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease'
+                    }}>
+                      <Plane size={17} style={{ color: (settings.enableSplitTrips ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>Split & Trips Module</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>Group expense ledgers, trip budgets, and bill splitting calculations</div>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings.enableSplitTrips ?? true}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      updateSettings({ enableSplitTrips: enabled });
+                      showToast(enabled ? 'Split & Trips enabled' : 'Split & Trips disabled');
+                    }}
+                    color="primary"
+                    size="small"
+                  />
+                </div>
+                {(settings.enableSplitTrips ?? true) && onNavigate && (
+                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => onNavigate('split-trips')}
+                      style={{ gap: 6, fontSize: 12 }}
+                    >
+                      <Plane size={14} /> Open Split & Trips
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Demo Sample Data Loader */}
               <div style={{
                 padding: '14px 16px', borderRadius: 'var(--radius)', background: 'var(--surface2)', border: '1px solid var(--border)',
                 transition: 'border-color 0.15s ease'
