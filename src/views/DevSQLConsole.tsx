@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { executeRawSQL, generateSQLDumpString, importSQLDumpString } from '../db';
 import { useStore } from '../store';
-import type { ViewName } from '../types';
+import type { ViewName, AppDB } from '../types';
 
 interface DevSQLConsoleProps {
   onNavigate?: (v: ViewName) => void;
@@ -148,7 +148,39 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const text = ev.target?.result as string;
+        let text = (ev.target?.result as string) || '';
+        if (text.charCodeAt(0) === 0xFEFF) {
+          text = text.slice(1);
+        }
+        text = text.trim();
+
+        if (!text) {
+          showToast('Selected file is empty.');
+          return;
+        }
+
+        if (text.startsWith('SQLite format 3')) {
+          showToast('Binary SQLite file detected. Please import an Okane .db/.sql text dump or .json backup.');
+          return;
+        }
+
+        if (text.startsWith('{') || text.startsWith('[')) {
+          try {
+            const data = JSON.parse(text) as Record<string, unknown>;
+            const friendsList = Array.isArray(data.friends) ? data.friends : (Array.isArray(data.contacts) ? data.contacts : []);
+            if (data.expenses || data.settings || data.wallets) {
+              data.friends = friendsList;
+              restoreDB(data as unknown as AppDB);
+              refreshTableCounts();
+              runQuery(`SELECT * FROM ${activeTable} LIMIT 20`);
+              showToast('JSON database backup restored successfully!');
+              return;
+            }
+          } catch (jsonErr) {
+            console.warn('JSON parse attempt failed:', jsonErr);
+          }
+        }
+
         const restored = importSQLDumpString(text);
         restoreDB(restored);
         refreshTableCounts();
@@ -160,6 +192,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
       }
     };
     reader.readAsText(file);
+    if (e.target) e.target.value = '';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -369,7 +402,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
             }}
           >
             <Upload size={14} style={{ color: 'var(--accent)' }} /> Import
-            <input type="file" accept=".db,.sql,.json,text/plain" onChange={handleImportFile} style={{ display: 'none' }} />
+            <input type="file" accept="*/*" onChange={handleImportFile} style={{ display: 'none' }} />
           </label>
         </div>
       </div>

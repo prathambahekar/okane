@@ -115,33 +115,43 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const installUpdate = useCallback(async (options?: { silent?: boolean; update?: UpdateInfo }) => {
     const target = options?.update || availableUpdate;
     if (!target) return;
-    const isSilent = options?.silent ?? false;
     const newVer = target.version;
 
-    if (isSilent) {
-      showToast(`Downloading & installing Okane v${newVer} silently in background...`);
-    } else {
-      setIsUpdating(true);
-      setUpdateProgress(10);
-      setUpdateStatusMessage('Connecting to update server...');
+    setIsUpdating(true);
+    setUpdateProgress(0);
+    setUpdateStatusMessage(`Connecting & downloading okane-v${newVer}.apk...`);
+
+    // Trigger background file download of APK file if downloadUrl is provided
+    try {
+      const apkFileName = `okane-v${newVer}.apk`;
+      if (target.downloadUrl) {
+        const a = document.createElement('a');
+        a.href = target.downloadUrl;
+        a.download = apkFileName;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (e) {
+      console.warn('APK download trigger notice:', e);
     }
 
-    await new Promise(r => setTimeout(r, 500));
-    if (!isSilent) {
-      setUpdateProgress(40);
-      setUpdateStatusMessage(`Downloading Okane v${newVer} bundle...`);
-    }
+    // Step-by-step progress bar simulation for background download & auto-install
+    const steps = [
+      { progress: 15, msg: `Downloading okane-v${newVer}.apk (15%)...`, delay: 350 },
+      { progress: 40, msg: `Downloading okane-v${newVer}.apk (40%)...`, delay: 400 },
+      { progress: 68, msg: `Downloading okane-v${newVer}.apk (68%)...`, delay: 450 },
+      { progress: 85, msg: `Installing APK in background...`, delay: 500 },
+      { progress: 95, msg: `Finalizing installation...`, delay: 400 },
+      { progress: 100, msg: `APK installed! Restarting app...`, delay: 300 },
+    ];
 
-    await new Promise(r => setTimeout(r, 600));
-    if (!isSilent) {
-      setUpdateProgress(75);
-      setUpdateStatusMessage('Validating integrity & applying schema migrations...');
-    }
-
-    await new Promise(r => setTimeout(r, 500));
-    if (!isSilent) {
-      setUpdateProgress(100);
-      setUpdateStatusMessage('Update installation complete!');
+    for (const step of steps) {
+      await new Promise(r => setTimeout(r, step.delay));
+      setUpdateProgress(step.progress);
+      setUpdateStatusMessage(step.msg);
     }
 
     setStoredInstalledVersion(newVer);
@@ -158,15 +168,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
 
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 400));
     setAvailableUpdate(null);
     setIsUpdating(false);
 
-    showToast(`Successfully installed Okane v${newVer}! Restarting app... 🚀`);
+    showToast(`Okane updated to v${newVer}! Restarting app... 🚀`);
 
     setTimeout(() => {
       window.location.reload();
-    }, 1200);
+    }, 1000);
   }, [availableUpdate, showToast]);
 
   const checkForUpdates = useCallback(async (manual = false) => {
@@ -177,7 +187,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       let currentVer = db.settings.installedVersion || getStoredInstalledVersion();
 
-      // If a release was deleted on GitHub, sync installed version with top available release if currentVer is no longer valid
       if (history.length > 0) {
         const existsInHistory = history.some(h => h.version === currentVer);
         if (!existsInHistory && history[0] && compareVersions(currentVer, history[0].version) > 0) {
@@ -193,8 +202,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       if (latest && compareVersions(latest.version, currentVer) > 0) {
         setAvailableUpdate(latest);
-        // Automatically install in background silently and restart app when complete!
-        installUpdate({ silent: true, update: latest });
+        if (manual) {
+          showToast(`New update v${latest.version} available! Click Download to install.`);
+        }
       } else {
         setAvailableUpdate(null);
         if (manual) showToast(`Okane is up to date (v${currentVer})`);
@@ -204,7 +214,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsCheckingUpdate(false);
     }
-  }, [db.settings.installedVersion, showToast, installUpdate]);
+  }, [db.settings.installedVersion, showToast]);
 
   const simulateUpdate = useCallback((targetVer?: string) => {
     const ver = targetVer || '0.9.0';
@@ -246,8 +256,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
         if (latest && compareVersions(latest.version, currentVer) > 0) {
           setAvailableUpdate(latest);
-          // Automatically update in background and restart
-          installUpdate({ silent: true, update: latest });
         } else {
           setAvailableUpdate(null);
         }

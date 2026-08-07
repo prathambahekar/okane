@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -85,8 +86,8 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
   const [showAddCategory, setShowAddCategory] = useState(false);
   const isDevMode = settings.devMode ?? true;
   const [devExpanded, setDevExpanded] = useState(isDevMode);
-  const [showHistory, setShowHistory] = useState(true);
-  const [showAllReleases, setShowAllReleases] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
     appName: "Okane",
@@ -182,130 +183,260 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
 
 
 
-  const handleExport = async (format: 'db' | 'json' = 'db') => {
+  const getExportContent = () => {
+    return {
+      content: generateSQLDumpString(),
+      contentType: 'application/octet-stream',
+      fileName: `okane-backup-${new Date().toISOString().slice(0, 10)}.db`,
+    };
+  };
+
+  const handleExportClick = () => {
+    const isMobile = window.innerWidth <= 768 || Capacitor.isNativePlatform() || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      setExportModalOpen(true);
+    } else {
+      handleSaveToStorage();
+    }
+  };
+
+  const handleSaveToStorage = async () => {
+    const { content, contentType, fileName } = getExportContent();
     try {
-      let dataContent = '';
-      let contentType = 'application/octet-stream';
-      let ext = 'db';
+      let savedToDevice = false;
 
-      if (format === 'db') {
-        dataContent = generateSQLDumpString();
-        contentType = 'application/octet-stream';
-        ext = 'db';
-      } else {
-        const exportData: AppDB = {
-          ...db,
-          recurringRules: db.recurringRules || [],
-        };
-        dataContent = JSON.stringify(exportData, null, 2);
-        contentType = 'application/json';
-        ext = 'json';
-      }
-
-      const fileName = `okane-database-${new Date().toISOString().slice(0, 10)}.${ext}`;
-
-      // Web
-      if (Capacitor.getPlatform() === "web") {
-        const blob = new Blob([dataContent], { type: contentType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast(`${ext.toUpperCase()} database backup downloaded`);
-        return;
-      }
-
-      // Android / iOS native
-      try {
-        await Filesystem.requestPermissions();
-      } catch {
-        // Ignore if permissions request isn't implemented/supported
-      }
-
-      let savedToDownloadFolder = false;
-
-      // On Android, attempt writing directly to the Download folder on external storage
-      if (Capacitor.getPlatform() === "android") {
+      // Native Mobile (Capacitor)
+      if (Capacitor.isNativePlatform()) {
         try {
-          await Filesystem.writeFile({
-            path: `Download/${fileName}`,
-            data: dataContent,
-            directory: Directory.ExternalStorage,
-            encoding: Encoding.UTF8,
-            recursive: true,
-          });
-          savedToDownloadFolder = true;
-        } catch (e) {
-          console.warn("Direct write to ExternalStorage Download folder failed:", e);
+          await Filesystem.requestPermissions();
+        } catch {
+          // ignore
+        }
+
+        if (Capacitor.getPlatform() === 'android') {
+          try {
+            await Filesystem.writeFile({
+              path: `Download/${fileName}`,
+              data: content,
+              directory: Directory.ExternalStorage,
+              encoding: Encoding.UTF8,
+              recursive: true,
+            });
+            savedToDevice = true;
+          } catch (e) {
+            console.warn('Direct ExternalStorage Download write failed, attempting Documents:', e);
+          }
+        }
+
+        if (!savedToDevice) {
+          try {
+            await Filesystem.writeFile({
+              path: fileName,
+              data: content,
+              directory: Directory.Documents,
+              encoding: Encoding.UTF8,
+              recursive: true,
+            });
+            savedToDevice = true;
+          } catch (e) {
+            console.warn('Documents write failed:', e);
+          }
         }
       }
 
-      // Write to Cache directory so Share plugin can share the file via FileProvider
-      const result = await Filesystem.writeFile({
-        path: fileName,
-        data: dataContent,
-        directory: Directory.Cache,
-        encoding: Encoding.UTF8,
-        recursive: true,
-      });
+      // Always trigger browser blob download link so file lands in browser download manager
+      const blob = new Blob([content], { type: contentType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-      try {
-        await Share.share({
-          title: `Okane ${format.toUpperCase()} Backup`,
-          text: `Okane database backup file (${format.toUpperCase()})`,
-          url: result.uri,
-          dialogTitle: "Save or Share Backup",
-        });
-      } catch (shareErr) {
-        console.warn("Share sheet dismissed or skipped:", shareErr);
-      }
-
-      if (savedToDownloadFolder) {
-        showToast(`Backup saved to Download folder (${ext})!`);
-      } else {
-        showToast(`Backup created successfully (${ext})`);
-      }
+      setExportModalOpen(false);
+      showToast(`Backup saved to Downloads!`);
     } catch (err) {
-      console.error(err);
-      showToast("Failed to export data");
+      console.error('Save to storage error:', err);
+      showToast('Failed to save backup file.');
+    }
+  };
+
+  const handleShareToApps = async () => {
+    const { content, contentType, fileName } = getExportContent();
+    try {
+      // 1. Native Mobile (Capacitor)
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await Filesystem.requestPermissions();
+        } catch {
+          // ignore
+        }
+
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: content,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8,
+          recursive: true,
+        });
+
+        await Share.share({
+          title: 'Okane Backup',
+          text: 'My Okane data backup file',
+          url: result.uri,
+          dialogTitle: 'Share Backup to Apps',
+        });
+
+        setExportModalOpen(false);
+        showToast('Share sheet opened!');
+        return;
+      }
+
+      // 2. Web Share API (Mobile Web Browsers: Chrome on Android, Safari on iOS)
+      if (navigator.share) {
+        try {
+          const blob = new Blob([content], { type: contentType });
+          const fileObj = new File([blob], fileName, { type: contentType });
+
+          if (navigator.canShare && navigator.canShare({ files: [fileObj] })) {
+            await navigator.share({
+              title: 'Okane Backup',
+              text: 'My Okane data backup file',
+              files: [fileObj],
+            });
+            setExportModalOpen(false);
+            showToast('Shared successfully!');
+            return;
+          }
+        } catch (shareErr) {
+          if ((shareErr as Error).name === 'AbortError') {
+            setExportModalOpen(false);
+            return;
+          }
+          console.warn('Web Share API file share failed, using fallback download:', shareErr);
+        }
+      }
+
+      // Download fallback for desktop browsers
+      const blob = new Blob([content], { type: contentType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setExportModalOpen(false);
+      showToast('Backup saved to Downloads! Attach it to share on WhatsApp or Telegram.');
+    } catch (err) {
+      console.error('Share to apps failed:', err);
+      showToast('Failed to share backup file.');
     }
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const isSql = file.name.endsWith('.sql') || file.name.endsWith('.db');
+
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const text = ev.target?.result as string;
-        const isSqlText = isSql || text.trim().startsWith('--') || text.includes('INSERT INTO') || text.includes('DELETE FROM') || text.includes('CREATE TABLE');
-        if (isSqlText) {
+        let text = (ev.target?.result as string) || '';
+
+        // Strip UTF-8 BOM if present
+        if (text.charCodeAt(0) === 0xFEFF) {
+          text = text.slice(1);
+        }
+        text = text.trim();
+
+        if (!text) {
+          showToast('Selected backup file is empty.');
+          return;
+        }
+
+        // Check for raw binary SQLite header
+        if (text.startsWith('SQLite format 3')) {
+          showToast('Selected file is a binary SQLite database. Okane expects an Okane .db/.sql text dump or .json backup file.');
+          return;
+        }
+
+        // 1. Try parsing JSON first if content looks like JSON
+        if (text.startsWith('{') || text.startsWith('[')) {
+          try {
+            const data = JSON.parse(text) as Record<string, unknown>;
+            const friendsList = Array.isArray(data.friends)
+              ? data.friends
+              : (Array.isArray(data.contacts) ? data.contacts : []);
+
+            if (Array.isArray(data.contacts) && (!Array.isArray(data.friends) || data.friends.length === 0)) {
+              data.friends = data.contacts;
+            }
+
+            if (data.expenses || data.settings || data.wallets) {
+              data.friends = friendsList;
+              restoreDB(data as unknown as AppDB);
+              showToast('JSON database backup imported successfully!');
+              return;
+            }
+          } catch (jsonErr) {
+            console.warn('JSON parse attempt failed, trying SQL dump format...', jsonErr);
+          }
+        }
+
+        // 2. Try SQL dump parse if content contains SQL keywords
+        const isSqlSyntax =
+          text.includes('CREATE TABLE') ||
+          text.includes('INSERT INTO') ||
+          text.includes('DELETE FROM') ||
+          text.startsWith('--');
+
+        if (isSqlSyntax) {
+          try {
+            const restoredDB = importSQLDumpString(text);
+            restoreDB(restoredDB);
+            showToast('SQL database dump (.db) imported successfully!');
+            return;
+          } catch (sqlErr) {
+            console.warn('Primary SQL dump import failed, attempting fallback...', sqlErr);
+          }
+        }
+
+        // 3. Fallback: Try regex extraction for JSON object if prefixed with comments or headers
+        try {
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const data = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+            if (data.expenses || data.settings || data.wallets) {
+              restoreDB(data as unknown as AppDB);
+              showToast('Database backup imported successfully!');
+              return;
+            }
+          }
+        } catch {
+          // ignore
+        }
+
+        // 4. Last fallback: Force SQL dump import
+        try {
           const restoredDB = importSQLDumpString(text);
           restoreDB(restoredDB);
-          showToast('SQL database imported successfully');
-        } else {
-          let data: Record<string, unknown>;
-          try {
-            data = JSON.parse(text) as Record<string, unknown>;
-          } catch {
-            throw new Error('Invalid JSON format');
-          }
-          const friendsList = Array.isArray(data.friends) ? data.friends : (Array.isArray(data.contacts) ? data.contacts : []);
-          if (Array.isArray(data.contacts) && (!Array.isArray(data.friends) || data.friends.length === 0)) {
-            data.friends = data.contacts;
-          }
-          if (!data.expenses || !data.settings) throw new Error('Invalid format');
-          data.friends = friendsList;
-          restoreDB(data as unknown as AppDB);
-          showToast('JSON data imported successfully');
+          showToast('SQL database dump imported successfully!');
+          return;
+        } catch (finalSqlErr) {
+          console.error('Final SQL import attempt failed:', finalSqlErr);
         }
-      } catch {
-        showToast('Invalid file format. Please upload a valid JSON or SQL backup.');
+
+        showToast('Invalid file format. Please select a valid Okane .db, .sql, or .json backup file.');
+      } catch (err) {
+        console.error('Import error:', err);
+        showToast('Failed to import database file.');
       }
     };
+
     reader.readAsText(file);
     if (fileRef.current) fileRef.current.value = '';
   };
@@ -1027,10 +1158,10 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{
-                      width: 34, height: 34, borderRadius: 8, background: (settings.enableSampleData ?? true) ? 'var(--accent-soft)' : 'var(--border)',
+                      width: 34, height: 34, borderRadius: 8, background: (settings.enableSampleData ?? false) ? 'var(--accent-soft)' : 'var(--border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease'
                     }}>
-                      <FlaskConical size={17} style={{ color: (settings.enableSampleData ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
+                      <FlaskConical size={17} style={{ color: (settings.enableSampleData ?? false) ? 'var(--accent)' : 'var(--text-3)' }} />
                     </div>
                     <div>
                       <div style={{ fontSize: 13.5, fontWeight: 600 }}>Sample Data Loader</div>
@@ -1038,7 +1169,7 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                     </div>
                   </div>
                   <Switch
-                    checked={settings.enableSampleData ?? true}
+                    checked={settings.enableSampleData ?? false}
                     onChange={(e) => {
                       const enabled = e.target.checked;
                       updateSettings({ enableSampleData: enabled });
@@ -1048,7 +1179,7 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                     size="small"
                   />
                 </div>
-                {(settings.enableSampleData ?? true) && (
+                {(settings.enableSampleData ?? false) && (
                   <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                       type="button"
@@ -1092,33 +1223,33 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
         {/* Data Management */}
         <div className="card" style={{ padding: '20px 22px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Data & Database Backup</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Data Backup & Restore</h2>
           </div>
           <p style={{ fontSize: 13.5, color: 'var(--text-3)', marginBottom: 14 }}>
-            All data operates on an offline relational SQL engine inside your browser. Export or restore using SQL database dumps or legacy formats.
+            Export a backup file to keep your data safe, or restore from a previously exported backup.
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 16 }}>
-            <button type="button" className="data-action-card" onClick={() => handleExport('db')}>
-              <Database size={24} style={{ color: 'var(--accent)' }} />
-              <span className="data-action-label" style={{ fontWeight: 600 }}>Export DB</span>
-              <span style={{ fontSize: 10, color: 'var(--text-3)' }}>.db file</span>
+            <button type="button" className="data-action-card" onClick={handleExportClick}>
+              <Download size={24} />
+              <span className="data-action-label" style={{ fontWeight: 600 }}>Export</span>
+              <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Save or share backup</span>
             </button>
 
             <button type="button" className="data-action-card" onClick={() => fileRef.current?.click()}>
               <Upload size={24} />
-              <span className="data-action-label" style={{ fontWeight: 600 }}>Restore Data</span>
-              <span style={{ fontSize: 10, color: 'var(--text-3)' }}>.sql, .db, .json</span>
+              <span className="data-action-label" style={{ fontWeight: 600 }}>Import</span>
+              <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Restore from backup</span>
             </button>
 
-            {settings.devMode && (settings.enableSampleData ?? true) && (
+            {settings.devMode && (settings.enableSampleData ?? false) && (
               <button type="button" className="data-action-card" onClick={handleLoadSample}>
                 <FlaskConical size={24} />
                 <span className="data-action-label" style={{ fontWeight: 600 }}>Sample Data</span>
                 <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Load Demo</span>
               </button>
             )}
-            <input ref={fileRef} type="file" accept=".json,.sql,.db,text/plain" style={{ display: 'none' }} onChange={handleImport} />
+            <input ref={fileRef} type="file" accept="*/*" style={{ display: 'none' }} onChange={handleImport} />
           </div>
 
           <div className="data-reset-row" onClick={() => setShowReset(true)} role="button" tabIndex={0}>
@@ -1131,36 +1262,21 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
         </div>
 
         {/* App Version Card */}
-        <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
-          {/* Subtle Top Accent Gradient Line */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'var(--accent-gradient)' }} />
-
+        <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: 8,
-                background: 'var(--accent-gradient)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', flexShrink: 0,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
-              }}>
-                <FileCode size={15} />
-              </div>
-              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>App Version</h2>
-            </div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>App Version</h2>
             <span style={{
               fontSize: 11.5,
-              fontWeight: 700,
-              padding: '3px 10px',
+              fontWeight: 600,
+              padding: '2px 8px',
               borderRadius: '99px',
-              background: availableUpdate ? 'rgba(59, 130, 246, 0.15)' : 'var(--accent-soft)',
-              color: availableUpdate ? '#2563eb' : 'var(--accent)',
-              border: '1px solid var(--accent)',
+              background: 'var(--surface2)',
+              color: 'var(--text-2)',
+              border: '1px solid var(--border)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4
             }}>
-              <Sparkles size={11} style={{ color: 'var(--accent)' }} />
               v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}
             </span>
           </div>
@@ -1168,70 +1284,53 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
           {/* Software Update Status Panel */}
           {availableUpdate ? (
             <div style={{
-              padding: '12px 14px',
+              padding: '10px 12px',
               borderRadius: '12px',
-              background: 'var(--accent-soft)',
-              border: '1px solid var(--accent)',
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
               marginBottom: 12,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8
             }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 8, background: 'var(--accent-gradient)', color: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                }}>
-                  <ArrowUpCircle size={16} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
-                    New Version Available: v{availableUpdate.version}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 1 }}>
-                    Build #{availableUpdate.buildNumber} · Released {availableUpdate.releaseDate}
-                  </div>
-                  {availableUpdate.releaseNotes && availableUpdate.releaseNotes !== 'No release notes provided.' && (
-                    <p style={{ fontSize: 11.5, color: 'var(--text)', marginTop: 5, marginBottom: 8, lineHeight: 1.4 }}>
-                      {availableUpdate.releaseNotes}
-                    </p>
-                  )}
-
-                  {isUpdating ? (
-                    <div style={{ marginTop: 6 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
-                        <span>{updateStatusMessage}</span>
-                        <span>{updateProgress}%</span>
-                      </div>
-                      <div style={{ height: 5, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden', border: '1px solid var(--border)' }}>
-                        <div style={{
-                          height: '100%',
-                          width: `${updateProgress}%`,
-                          background: 'var(--accent-gradient)',
-                          borderRadius: 99,
-                          transition: 'width 0.3s ease-in-out'
-                        }} />
-                      </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <ArrowUpCircle size={18} style={{ color: '#2563eb', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                      v{availableUpdate.version} Available
                     </div>
-                  ) : (
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={() => installUpdate()}
-                        style={{
-                          gap: 6, padding: '6px 14px', borderRadius: 8, fontSize: 11.5, fontWeight: 600,
-                          background: 'var(--accent-gradient)', color: '#fff', border: 'none'
-                        }}
-                      >
-                        <Download size={13} /> Install Update v{availableUpdate.version}
-                      </button>
+                    <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
+                      Build #{availableUpdate.buildNumber} · {availableUpdate.releaseDate}
                     </div>
-                  )}
+                  </div>
                 </div>
+                {!isUpdating && (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => installUpdate()}
+                    style={{ gap: 5, padding: '5px 12px', borderRadius: 8, fontSize: 11.5, fontWeight: 600 }}
+                  >
+                    <Download size={12} /> Download
+                  </button>
+                )}
               </div>
+              {isUpdating && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, fontWeight: 600, marginBottom: 3 }}>
+                    <span>{updateStatusMessage}</span>
+                    <span>{updateProgress}%</span>
+                  </div>
+                  <div style={{ height: 4, background: 'var(--surface3)', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${updateProgress}%`, background: 'var(--text)', borderRadius: 99 }} />
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div style={{
-              padding: '10px 12px',
+              padding: '10px 14px',
               borderRadius: '12px',
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
@@ -1239,30 +1338,22 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 10,
+              gap: 12,
               flexWrap: 'wrap'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: '50%', background: 'rgba(34, 197, 94, 0.14)', color: '#22c55e',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                }}>
-                  <CheckCircle2 size={16} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Okane is up to date</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
-                    Installed: <span style={{ color: 'var(--text-2)', fontWeight: 600 }}>v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}</span>
-                  </div>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: '1 1 auto' }}>
+                <CheckCircle2 size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>Up to date</span>
+                <span style={{ fontSize: 11, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  • Checked {settings.lastUpdateCheck || String(jsonSettings.lastUpdated || 'Today')}
+                </span>
               </div>
-
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={() => checkForUpdates(true)}
                 disabled={isCheckingUpdate}
-                style={{ gap: 6, fontSize: 11.5, padding: '5px 12px', borderRadius: 8, fontWeight: 600, marginLeft: 'auto' }}
+                style={{ gap: 6, fontSize: 11.5, padding: '5px 12px', borderRadius: 8, fontWeight: 600, flexShrink: 0 }}
               >
                 <RefreshCw size={12} className={isCheckingUpdate ? 'spin' : ''} />
                 {isCheckingUpdate ? 'Checking...' : 'Check Updates'}
@@ -1270,49 +1361,18 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
             </div>
           )}
 
-          {/* System Metadata Strip */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: 8,
-            marginBottom: 12
-          }}>
-            <div style={{
-              background: 'var(--surface2)',
-              padding: '7px 10px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
-              <span style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.4px', fontWeight: 600 }}>Channel</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', textTransform: 'capitalize', marginTop: 1 }}>{String(jsonSettings.updateChannel || 'Release')}</span>
-            </div>
-            <div style={{
-              background: 'var(--surface2)',
-              padding: '7px 10px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
-              <span style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.4px', fontWeight: 600 }}>Checked</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginTop: 1 }}>{settings.lastUpdateCheck || String(jsonSettings.lastUpdated || 'Today')}</span>
-            </div>
-          </div>
-
           {/* Action Toolbar */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 6,
-            marginBottom: 8,
+            marginBottom: 4,
             flexWrap: 'wrap'
           }}>
             <button
               type="button"
-              onClick={() => setShowHistory(!showHistory)}
+              onClick={() => setHistoryModalOpen(true)}
               style={{
                 flex: '1 1 auto',
                 minWidth: '120px',
@@ -1325,45 +1385,47 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                 fontSize: '11.5px',
                 fontWeight: 600,
                 border: '1px solid var(--border)',
-                background: showHistory ? 'var(--accent-soft)' : 'var(--surface2)',
-                color: showHistory ? 'var(--accent)' : 'var(--text)',
+                background: 'var(--surface2)',
+                color: 'var(--text)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease'
               }}
             >
-              <History size={13} style={{ color: 'var(--accent)' }} />
-              <span>{showHistory ? 'Hide History' : 'Version History'}</span>
+              <History size={13} style={{ color: 'var(--text-2)' }} />
+              <span>Version History</span>
               {releaseHistory.length > 0 && (
-                <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 99, background: 'var(--accent)', color: '#fff', fontWeight: 700 }}>
+                <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 99, background: 'var(--surface3)', color: 'var(--text-2)', fontWeight: 600 }}>
                   {releaseHistory.length}
                 </span>
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={() => setShowJsonView(!showJsonView)}
-              style={{
-                flex: '1 1 auto',
-                minWidth: '110px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 5,
-                padding: '6px 10px',
-                borderRadius: '8px',
-                fontSize: '11.5px',
-                fontWeight: 600,
-                border: '1px solid var(--border)',
-                background: showJsonView ? 'var(--accent-soft)' : 'var(--surface2)',
-                color: showJsonView ? 'var(--accent)' : 'var(--text)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <FileCode size={13} />
-              <span>{showJsonView ? 'Hide JSON' : 'settings.json'}</span>
-            </button>
+            {isDevMode && (
+              <button
+                type="button"
+                onClick={() => setShowJsonView(!showJsonView)}
+                style={{
+                  flex: '1 1 auto',
+                  minWidth: '110px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 5,
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  border: '1px solid var(--border)',
+                  background: showJsonView ? 'var(--surface3)' : 'var(--surface2)',
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <FileCode size={13} />
+                <span>{showJsonView ? 'Hide JSON' : 'settings.json'}</span>
+              </button>
+            )}
 
             <a
               href="https://github.com/prathambahekar/okane/releases"
@@ -1378,7 +1440,7 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                 borderRadius: '8px',
                 fontSize: '11.5px',
                 fontWeight: 600,
-                color: 'var(--accent)',
+                color: 'var(--text-2)',
                 textDecoration: 'none',
                 background: 'transparent'
               }}
@@ -1388,175 +1450,7 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
             </a>
           </div>
 
-          {/* GitHub Release History Compact List */}
-          {showHistory && (
-            <div style={{ marginTop: 10, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <GitCommit size={14} style={{ color: 'var(--accent)' }} />
-                  <span>GitHub Release History</span>
-                </div>
-                <span style={{ fontSize: 10, color: 'var(--text-3)' }}>prathambahekar/okane</span>
-              </div>
-
-              {releaseHistory.length === 0 ? (
-                <div style={{ fontSize: 11.5, color: 'var(--text-3)', padding: '8px 0', fontStyle: 'italic' }}>
-                  No release history loaded. Click "Check Updates" above to fetch latest releases.
-                </div>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {(showAllReleases ? releaseHistory : releaseHistory.slice(0, 2)).map((item, idx) => {
-                      const currentVer = settings.installedVersion || jsonSettings.appVersion || '0.8.2';
-                      const normalizedItemVer = item.version.replace(/^v/, '').trim();
-                      const normalizedCurrentVer = String(currentVer).replace(/^v/, '').trim();
-                      const isCurrent = normalizedItemVer === normalizedCurrentVer;
-                      const hasNotes = item.releaseNotes && item.releaseNotes.trim() !== 'No release notes provided.';
-
-                      return (
-                        <div
-                          key={item.version + '_' + idx}
-                          style={{
-                            padding: '10px 12px',
-                            borderRadius: '10px',
-                            background: isCurrent ? 'var(--accent-soft)' : 'var(--surface2)',
-                            border: isCurrent ? '1px solid var(--accent)' : '1px solid var(--border)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 6
-                          }}
-                        >
-                          {/* Row 1: Title + Date */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-                                {item.name || `v${item.version}`}
-                              </span>
-                              {isCurrent && (
-                                <span style={{
-                                  fontSize: 9.5, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
-                                  background: 'var(--accent-gradient)', color: '#fff'
-                                }}>
-                                  Installed
-                                </span>
-                              )}
-                              {item.isPrerelease && (
-                                <span style={{
-                                  fontSize: 9.5,
-                                  fontWeight: 700,
-                                  padding: '2px 8px',
-                                  borderRadius: 99,
-                                  background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(217, 119, 6, 0.12)',
-                                  color: isDark ? '#fbbf24' : '#b45309',
-                                  border: isDark ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(217, 119, 6, 0.25)',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 3
-                                }}>
-                                  <FlaskConical size={10} />
-                                  Pre-release
-                                </span>
-                              )}
-                            </div>
-                            <span style={{ fontSize: 10.5, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>
-                              {item.releaseDate}
-                            </span>
-                          </div>
-
-                          {/* Release notes if present */}
-                          {hasNotes && (
-                            <p style={{
-                              fontSize: 11.5,
-                              color: 'var(--text-2)',
-                              margin: '2px 0 4px 0',
-                              lineHeight: 1.4,
-                              whiteSpace: 'pre-line'
-                            }}>
-                              {item.releaseNotes}
-                            </p>
-                          )}
-
-                          {/* Row 2: Action Links */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4, borderTop: '1px solid var(--border)' }}>
-                            <a
-                              href={item.htmlUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                fontSize: 11,
-                                color: 'var(--accent)',
-                                fontWeight: 600,
-                                textDecoration: 'none',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 3
-                              }}
-                            >
-                              <span>View on GitHub</span>
-                              <ExternalLink size={11} />
-                            </a>
-                            {item.downloadUrl && (
-                              <a
-                                href={item.downloadUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                  fontSize: 11,
-                                  color: 'var(--text-2)',
-                                  fontWeight: 600,
-                                  textDecoration: 'none',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 3,
-                                  marginLeft: 'auto'
-                                }}
-                              >
-                                <Download size={11} />
-                                <span>Download Asset</span>
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {releaseHistory.length > 2 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAllReleases(!showAllReleases)}
-                      style={{
-                        marginTop: 8,
-                        width: '100%',
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        fontSize: '11.5px',
-                        fontWeight: 600,
-                        color: 'var(--accent)',
-                        background: 'var(--surface2)',
-                        border: '1px dashed var(--border)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 5,
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <span>
-                        {showAllReleases
-                          ? 'Show Top 2 Releases'
-                          : `Show ${releaseHistory.length - 2} Earlier ${releaseHistory.length - 2 === 1 ? 'Release' : 'Releases'}`}
-                      </span>
-                      {showAllReleases ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
-          {showJsonView && (
+          {isDevMode && showJsonView && (
             <div style={{ marginTop: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-3)' }}>public/settings.json</span>
@@ -1590,6 +1484,393 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
           onConfirm={handleReset}
           onClose={() => setShowReset(false)}
         />
+      )}
+
+      {/* Export Options Modal */}
+      {exportModalOpen && createPortal(
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 99999 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setExportModalOpen(false);
+          }}
+        >
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '380px',
+              padding: '20px 22px 22px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <div className="modal-handle-bar">
+              <div className="modal-handle" />
+            </div>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '12px',
+                  background: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  display: 'grid',
+                  placeItems: 'center'
+                }}>
+                  <Download size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 700, color: 'var(--text)' }}>
+                    Export Backup
+                  </h3>
+                  <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                    Save or share your backup file
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(false)}
+                style={{
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: 'var(--text-2)',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Export Method Options */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Option 1: Save to Storage */}
+              <button
+                type="button"
+                onClick={handleSaveToStorage}
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: '14px',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'var(--accent-soft)',
+                    color: 'var(--accent)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Download size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+                      Export to Storage
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-3)', marginTop: '2px' }}>
+                      Save file directly to Downloads folder
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+              </button>
+
+              {/* Option 2: Share to Apps */}
+              <button
+                type="button"
+                onClick={handleShareToApps}
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: '14px',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'rgba(34, 197, 94, 0.12)',
+                    color: '#22c55e',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Send size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+                      Share to Apps
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-3)', marginTop: '2px' }}>
+                      Send via WhatsApp, Telegram, Drive, Email
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+              </button>
+            </div>
+
+            {/* Cancel */}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setExportModalOpen(false)}
+              style={{ width: '100%', marginTop: '4px' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Release History Modal */}
+      {historyModalOpen && createPortal(
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 99999 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setHistoryModalOpen(false);
+          }}
+        >
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '460px',
+              maxHeight: '85vh',
+              padding: '20px 22px 22px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <div className="modal-handle-bar">
+              <div className="modal-handle" />
+            </div>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'var(--surface2)',
+                  color: 'var(--text-2)',
+                  display: 'grid',
+                  placeItems: 'center'
+                }}>
+                  <GitCommit size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
+                    Release History
+                  </h3>
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-3)' }}>
+                    prathambahekar/okane
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHistoryModalOpen(false)}
+                style={{
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '50%',
+                  width: '30px',
+                  height: '30px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: 'var(--text-2)',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* List */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              overflowY: 'auto',
+              maxHeight: '55vh',
+              paddingRight: '2px'
+            }}>
+              {releaseHistory.length === 0 ? (
+                <div style={{
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  color: 'var(--text-3)',
+                  fontSize: '13px',
+                  fontStyle: 'italic'
+                }}>
+                  No release history loaded yet. Click "Check Updates" in settings to fetch releases.
+                </div>
+              ) : (
+                releaseHistory.map((item, idx) => {
+                  const currentVer = settings.installedVersion || jsonSettings.appVersion || '0.8.2';
+                  const normalizedItemVer = item.version.replace(/^v/, '').trim();
+                  const normalizedCurrentVer = String(currentVer).replace(/^v/, '').trim();
+                  const isCurrent = normalizedItemVer === normalizedCurrentVer;
+                  const hasNotes = item.releaseNotes && item.releaseNotes.trim() !== 'No release notes provided.';
+
+                  return (
+                    <div
+                      key={item.version + '_' + idx}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                            {item.name || `v${item.version}`}
+                          </span>
+                          {isCurrent && (
+                            <span style={{
+                              fontSize: 9.5,
+                              fontWeight: 600,
+                              padding: '1px 6px',
+                              borderRadius: 99,
+                              background: 'rgba(34, 197, 94, 0.12)',
+                              color: '#22c55e',
+                              border: '1px solid rgba(34, 197, 94, 0.25)'
+                            }}>
+                              Installed
+                            </span>
+                          )}
+                          {item.isPrerelease && (
+                            <span style={{
+                              fontSize: 9.5,
+                              fontWeight: 600,
+                              padding: '1px 6px',
+                              borderRadius: 99,
+                              background: 'rgba(245, 158, 11, 0.12)',
+                              color: '#f59e0b',
+                              border: '1px solid rgba(245, 158, 11, 0.2)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3
+                            }}>
+                              <FlaskConical size={10} />
+                              Pre-release
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: 10.5, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>
+                          {item.releaseDate}
+                        </span>
+                      </div>
+
+                      {hasNotes && (
+                        <p style={{
+                          fontSize: 11.5,
+                          color: 'var(--text-2)',
+                          margin: '2px 0 4px 0',
+                          lineHeight: 1.35,
+                          whiteSpace: 'pre-line'
+                        }}>
+                          {item.releaseNotes}
+                        </p>
+                      )}
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 2 }}>
+                        <a
+                          href={item.htmlUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--text-2)',
+                            fontWeight: 500,
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3
+                          }}
+                        >
+                          <span>View on GitHub</span>
+                          <ExternalLink size={10} style={{ color: 'var(--text-3)' }} />
+                        </a>
+                        {item.downloadUrl && (
+                          <a
+                            href={item.downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              fontSize: 11,
+                              color: 'var(--text-3)',
+                              fontWeight: 500,
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              marginLeft: 'auto'
+                            }}
+                          >
+                            <Download size={10} />
+                            <span>Download</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setHistoryModalOpen(false)}
+              style={{ width: '100%', borderRadius: '12px', padding: '10px' }}
+            >
+              Close
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

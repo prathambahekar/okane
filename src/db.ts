@@ -450,7 +450,7 @@ export function defaultDB(): AppDB {
       devMode: true,
       enableDevSQLConsole: true,
       enableSplitTrips: true,
-      enableSampleData: true,
+      enableSampleData: false,
       colorMode: (localStorage.getItem('color-mode') as 'light' | 'dark') || 'light',
       accent: localStorage.getItem('accent-color') || 'blue',
       customAccentColor: localStorage.getItem('custom-accent-color') || '#6366f1',
