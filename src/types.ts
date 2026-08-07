@@ -139,7 +139,42 @@ export type ViewName =
   | 'analytics'
   | 'settings'
   | 'recurring'
+  | 'split-trips'
   | 'dev-sql';
+
+export interface TripMember {
+  id: string;
+  name: string;
+}
+
+export interface TripExpense {
+  id: string;
+  description: string;
+  amount: number;
+  paidByMemberId: string;
+  splitMode: 'equal' | 'custom';
+  splitMemberIds: string[];
+  customSplits?: Record<string, number>;
+  createdAt: number;
+  date: string;
+}
+
+export interface TripGroup {
+  id: string;
+  name: string;
+  memberNames: string[];
+}
+
+export interface Trip {
+  id: string;
+  name: string;
+  groupName: string;
+  members: TripMember[];
+  expenses: TripExpense[];
+  status: 'active' | 'archived';
+  createdAt: number;
+  archivedAt?: number;
+}
 
 export interface ExpenseFilters {
   search: string;

@@ -46,7 +46,7 @@ interface StoreContextType {
   updateStatusMessage: string;
   checkForUpdates: (manual?: boolean) => Promise<void>;
   simulateUpdate: (version?: string) => void;
-  installUpdate: () => Promise<void>;
+  installUpdate: (options?: { silent?: boolean; update?: UpdateInfo }) => Promise<void>;
   dismissUpdateNotification: () => void;
 
   addExpense: (data: Partial<Expense>) => void;
@@ -112,6 +112,63 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [updateProgress, setUpdateProgress] = useState(0);
   const [updateStatusMessage, setUpdateStatusMessage] = useState('');
 
+  const installUpdate = useCallback(async (options?: { silent?: boolean; update?: UpdateInfo }) => {
+    const target = options?.update || availableUpdate;
+    if (!target) return;
+    const isSilent = options?.silent ?? false;
+    const newVer = target.version;
+
+    if (isSilent) {
+      showToast(`Downloading & installing Okane v${newVer} silently in background...`);
+    } else {
+      setIsUpdating(true);
+      setUpdateProgress(10);
+      setUpdateStatusMessage('Connecting to update server...');
+    }
+
+    await new Promise(r => setTimeout(r, 500));
+    if (!isSilent) {
+      setUpdateProgress(40);
+      setUpdateStatusMessage(`Downloading Okane v${newVer} bundle...`);
+    }
+
+    await new Promise(r => setTimeout(r, 600));
+    if (!isSilent) {
+      setUpdateProgress(75);
+      setUpdateStatusMessage('Validating integrity & applying schema migrations...');
+    }
+
+    await new Promise(r => setTimeout(r, 500));
+    if (!isSilent) {
+      setUpdateProgress(100);
+      setUpdateStatusMessage('Update installation complete!');
+    }
+
+    setStoredInstalledVersion(newVer);
+    setDB(current => {
+      const next = {
+        ...current,
+        settings: {
+          ...current.settings,
+          installedVersion: newVer,
+          lastUpdateCheck: todayISO(),
+        },
+      };
+      saveDB(next);
+      return next;
+    });
+
+    await new Promise(r => setTimeout(r, 300));
+    setAvailableUpdate(null);
+    setIsUpdating(false);
+
+    showToast(`Successfully installed Okane v${newVer}! Restarting app... 🚀`);
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 1200);
+  }, [availableUpdate, showToast]);
+
   const checkForUpdates = useCallback(async (manual = false) => {
     setIsCheckingUpdate(true);
     try {
@@ -119,19 +176,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setReleaseHistory(history);
 
       let currentVer = db.settings.installedVersion || getStoredInstalledVersion();
-      if (latest && compareVersions(currentVer, latest.version) > 0) {
-        currentVer = latest.version;
-        setStoredInstalledVersion(latest.version);
-        setDB(current => {
-          const next = { ...current, settings: { ...current.settings, installedVersion: latest.version } };
-          saveDB(next);
-          return next;
-        });
+
+      // If a release was deleted on GitHub, sync installed version with top available release if currentVer is no longer valid
+      if (history.length > 0) {
+        const existsInHistory = history.some(h => h.version === currentVer);
+        if (!existsInHistory && history[0] && compareVersions(currentVer, history[0].version) > 0) {
+          currentVer = history[0].version;
+          setStoredInstalledVersion(currentVer);
+          setDB(current => {
+            const next = { ...current, settings: { ...current.settings, installedVersion: currentVer } };
+            saveDB(next);
+            return next;
+          });
+        }
       }
 
       if (latest && compareVersions(latest.version, currentVer) > 0) {
         setAvailableUpdate(latest);
-        if (manual) showToast(`New version available from GitHub: v${latest.version}`);
+        // Automatically install in background silently and restart app when complete!
+        installUpdate({ silent: true, update: latest });
       } else {
         setAvailableUpdate(null);
         if (manual) showToast(`Okane is up to date (v${currentVer})`);
@@ -141,7 +204,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsCheckingUpdate(false);
     }
-  }, [db.settings.installedVersion, showToast]);
+  }, [db.settings.installedVersion, showToast, installUpdate]);
 
   const simulateUpdate = useCallback((targetVer?: string) => {
     const ver = targetVer || '0.9.0';
@@ -160,70 +223,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setAvailableUpdate(null);
   }, []);
 
-  const installUpdate = useCallback(async () => {
-    if (!availableUpdate) return;
-    setIsUpdating(true);
-    setUpdateProgress(10);
-    setUpdateStatusMessage('Connecting to update server...');
-
-    await new Promise(r => setTimeout(r, 600));
-    setUpdateProgress(40);
-    setUpdateStatusMessage(`Downloading Okane v${availableUpdate.version} bundle...`);
-
-    await new Promise(r => setTimeout(r, 800));
-    setUpdateProgress(75);
-    setUpdateStatusMessage('Validating integrity & applying schema migrations...');
-
-    await new Promise(r => setTimeout(r, 700));
-    setUpdateProgress(100);
-    setUpdateStatusMessage('Update installation complete!');
-
-    const newVer = availableUpdate.version;
-    setStoredInstalledVersion(newVer);
-    setDB(current => {
-      const next = {
-        ...current,
-        settings: {
-          ...current.settings,
-          installedVersion: newVer,
-          lastUpdateCheck: todayISO(),
-        },
-      };
-      saveDB(next);
-      return next;
-    });
-
-    await new Promise(r => setTimeout(r, 400));
-    setAvailableUpdate(null);
-    setIsUpdating(false);
-    showToast(`Successfully updated to Okane v${newVer}! 🎉`);
-  }, [availableUpdate, showToast]);
-
   useEffect(() => {
     let isMounted = true;
     if (db.settings.devMode !== false && db.settings.enableAutoUpdate !== false) {
       fetchGitHubReleases().then(({ latest, history }) => {
         if (!isMounted) return;
         setReleaseHistory(history);
+
         let currentVer = db.settings.installedVersion || getStoredInstalledVersion();
-        if (latest && compareVersions(currentVer, latest.version) > 0) {
-          currentVer = latest.version;
-          setStoredInstalledVersion(latest.version);
-          setDB(current => {
-            const next = { ...current, settings: { ...current.settings, installedVersion: latest.version } };
-            saveDB(next);
-            return next;
-          });
+        if (history.length > 0) {
+          const existsInHistory = history.some(h => h.version === currentVer);
+          if (!existsInHistory && history[0] && compareVersions(currentVer, history[0].version) > 0) {
+            currentVer = history[0].version;
+            setStoredInstalledVersion(currentVer);
+            setDB(current => {
+              const next = { ...current, settings: { ...current.settings, installedVersion: currentVer } };
+              saveDB(next);
+              return next;
+            });
+          }
         }
+
         if (latest && compareVersions(latest.version, currentVer) > 0) {
           setAvailableUpdate(latest);
+          // Automatically update in background and restart
+          installUpdate({ silent: true, update: latest });
+        } else {
+          setAvailableUpdate(null);
         }
       }).catch(() => {});
     }
     return () => {
       isMounted = false;
     };
-  }, [db.settings.devMode, db.settings.enableAutoUpdate, db.settings.installedVersion]);
+  }, [db.settings.devMode, db.settings.enableAutoUpdate, db.settings.installedVersion, installUpdate]);
 
   const pushUndo = useCallback((label: string, snapshot: AppDB, onUndo: () => void) => {
     const entry: UndoEntry = { label, snapshot };

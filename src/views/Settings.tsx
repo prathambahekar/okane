@@ -90,14 +90,14 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
 
   const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
     appName: "Okane",
-    appVersion: "0.8.1",
-    buildNumber: "104",
-    updateChannel: "beta",
+    appVersion: "0.8.2",
+    buildNumber: "108",
+    updateChannel: "release",
     autoCheckUpdates: true,
     enableAIAssistant: true,
     defaultAiEngine: "offline",
     defaultCurrency: "INR",
-    lastUpdated: "2026-08-04"
+    lastUpdated: "2026-08-05"
   });
   const [showJsonView, setShowJsonView] = useState(false);
 
@@ -1087,12 +1087,23 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
           </div>
         </div>
 
-        {/* App Version & Software Auto-Update Card */}
-        <div className="card">
+        {/* App Version Card */}
+        <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
+          {/* Subtle Top Accent Gradient Line */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'var(--accent-gradient)' }} />
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <FileCode size={18} style={{ color: 'var(--accent)' }} />
-              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>App Version & Auto-Updater</h2>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: 'var(--accent-gradient)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', flexShrink: 0,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+              }}>
+                <FileCode size={15} />
+              </div>
+              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>App Version</h2>
             </div>
             <span style={{
               fontSize: 11.5,
@@ -1101,8 +1112,12 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
               borderRadius: '99px',
               background: availableUpdate ? 'rgba(59, 130, 246, 0.15)' : 'var(--accent-soft)',
               color: availableUpdate ? '#2563eb' : 'var(--accent)',
-              border: '1px solid var(--border)'
+              border: '1px solid var(--accent)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4
             }}>
+              <Sparkles size={11} style={{ color: 'var(--accent)' }} />
               v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}
             </span>
           </div>
@@ -1110,40 +1125,40 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
           {/* Software Update Status Panel */}
           {availableUpdate ? (
             <div style={{
-              padding: '14px',
-              borderRadius: 'var(--radius)',
+              padding: '12px 14px',
+              borderRadius: '12px',
               background: 'var(--accent-soft)',
-              border: '1.5px solid var(--accent)',
-              marginBottom: 14,
-              boxShadow: 'var(--shadow)',
+              border: '1px solid var(--accent)',
+              marginBottom: 12,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
                 <div style={{
-                  width: 34, height: 34, borderRadius: 10, background: 'var(--accent)', color: '#fff',
+                  width: 32, height: 32, borderRadius: 8, background: 'var(--accent-gradient)', color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                 }}>
-                  <ArrowUpCircle size={18} />
+                  <ArrowUpCircle size={16} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
                     New Version Available: v{availableUpdate.version}
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-2)', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 1 }}>
                     Build #{availableUpdate.buildNumber} · Released {availableUpdate.releaseDate}
                   </div>
                   {availableUpdate.releaseNotes && availableUpdate.releaseNotes !== 'No release notes provided.' && (
-                    <p style={{ fontSize: 12, color: 'var(--text)', marginTop: 6, marginBottom: 10, lineHeight: 1.4 }}>
+                    <p style={{ fontSize: 11.5, color: 'var(--text)', marginTop: 5, marginBottom: 8, lineHeight: 1.4 }}>
                       {availableUpdate.releaseNotes}
                     </p>
                   )}
 
                   {isUpdating ? (
-                    <div style={{ marginTop: 8 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 600, marginBottom: 4 }}>
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
                         <span>{updateStatusMessage}</span>
                         <span>{updateProgress}%</span>
                       </div>
-                      <div style={{ height: 6, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                      <div style={{ height: 5, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden', border: '1px solid var(--border)' }}>
                         <div style={{
                           height: '100%',
                           width: `${updateProgress}%`,
@@ -1154,14 +1169,17 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                       </div>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
                       <button
                         type="button"
                         className="btn btn-primary btn-sm"
-                        onClick={installUpdate}
-                        style={{ gap: 6, padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600 }}
+                        onClick={() => installUpdate()}
+                        style={{
+                          gap: 6, padding: '6px 14px', borderRadius: 8, fontSize: 11.5, fontWeight: 600,
+                          background: 'var(--accent-gradient)', color: '#fff', border: 'none'
+                        }}
                       >
-                        <Download size={14} /> Download & Install Update v{availableUpdate.version}
+                        <Download size={13} /> Install Update v{availableUpdate.version}
                       </button>
                     </div>
                   )}
@@ -1170,27 +1188,29 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
             </div>
           ) : (
             <div style={{
-              padding: '10px 14px',
-              borderRadius: 'var(--radius)',
+              padding: '10px 12px',
+              borderRadius: '12px',
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
               marginBottom: 12,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 12,
+              gap: 10,
               flexWrap: 'wrap'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{
-                  width: 28, height: 28, borderRadius: '50%', background: 'rgba(34, 197, 94, 0.12)', color: '#22c55e',
+                  width: 28, height: 28, borderRadius: '50%', background: 'rgba(34, 197, 94, 0.14)', color: '#22c55e',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                 }}>
                   <CheckCircle2 size={16} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>Okane is up to date</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Current version: v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Okane is up to date</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                    Installed: <span style={{ color: 'var(--text-2)', fontWeight: 600 }}>v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}</span>
+                  </div>
                 </div>
               </div>
 
@@ -1199,48 +1219,79 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                 className="btn btn-secondary btn-sm"
                 onClick={() => checkForUpdates(true)}
                 disabled={isCheckingUpdate}
-                style={{ gap: 6, fontSize: 12, padding: '4px 10px' }}
+                style={{ gap: 6, fontSize: 11.5, padding: '5px 12px', borderRadius: 8, fontWeight: 600, marginLeft: 'auto' }}
               >
                 <RefreshCw size={12} className={isCheckingUpdate ? 'spin' : ''} />
-                {isCheckingUpdate ? 'Checking...' : 'Check for Updates'}
+                {isCheckingUpdate ? 'Checking...' : 'Check Updates'}
               </button>
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 12 }}>
-            <div style={{ background: 'var(--surface2)', padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Update Channel</div>
-              <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 1, textTransform: 'capitalize' }}>{String(jsonSettings.updateChannel || 'Release')}</div>
+          {/* System Metadata Strip */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 8,
+            marginBottom: 12
+          }}>
+            <div style={{
+              background: 'var(--surface2)',
+              padding: '7px 10px',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <span style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.4px', fontWeight: 600 }}>Channel</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', textTransform: 'capitalize', marginTop: 1 }}>{String(jsonSettings.updateChannel || 'Release')}</span>
             </div>
-            <div style={{ background: 'var(--surface2)', padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Last Checked</div>
-              <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 1 }}>{settings.lastUpdateCheck || String(jsonSettings.lastUpdated || 'Today')}</div>
+            <div style={{
+              background: 'var(--surface2)',
+              padding: '7px 10px',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <span style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.4px', fontWeight: 600 }}>Checked</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginTop: 1 }}>{settings.lastUpdateCheck || String(jsonSettings.lastUpdated || 'Today')}</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Action Toolbar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 6,
+            marginBottom: 8,
+            flexWrap: 'wrap'
+          }}>
             <button
               type="button"
               onClick={() => setShowHistory(!showHistory)}
               style={{
+                flex: '1 1 auto',
+                minWidth: '120px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '5px 12px',
+                justifyContent: 'center',
+                gap: 5,
+                padding: '6px 10px',
                 borderRadius: '8px',
-                fontSize: '12px',
+                fontSize: '11.5px',
                 fontWeight: 600,
-                cursor: 'pointer',
                 border: '1px solid var(--border)',
-                background: 'var(--surface2)',
-                color: 'var(--text)',
+                background: showHistory ? 'var(--accent-soft)' : 'var(--surface2)',
+                color: showHistory ? 'var(--accent)' : 'var(--text)',
+                cursor: 'pointer',
                 transition: 'all 0.15s ease'
               }}
             >
-              <History size={13} />
-              <span>{showHistory ? 'Hide Version History' : 'View Version History'}</span>
+              <History size={13} style={{ color: 'var(--accent)' }} />
+              <span>{showHistory ? 'Hide History' : 'Version History'}</span>
               {releaseHistory.length > 0 && (
-                <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, background: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 700 }}>
+                <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 99, background: 'var(--accent)', color: '#fff', fontWeight: 700 }}>
                   {releaseHistory.length}
                 </span>
               )}
@@ -1250,22 +1301,25 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
               type="button"
               onClick={() => setShowJsonView(!showJsonView)}
               style={{
+                flex: '1 1 auto',
+                minWidth: '110px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '5px 12px',
+                justifyContent: 'center',
+                gap: 5,
+                padding: '6px 10px',
                 borderRadius: '8px',
-                fontSize: '12px',
+                fontSize: '11.5px',
                 fontWeight: 600,
-                cursor: 'pointer',
                 border: '1px solid var(--border)',
-                background: 'var(--surface2)',
-                color: 'var(--text)',
+                background: showJsonView ? 'var(--accent-soft)' : 'var(--surface2)',
+                color: showJsonView ? 'var(--accent)' : 'var(--text)',
+                cursor: 'pointer',
                 transition: 'all 0.15s ease'
               }}
             >
               <FileCode size={13} />
-              <span>{showJsonView ? 'Hide settings.json' : 'View settings.json'}</span>
+              <span>{showJsonView ? 'Hide JSON' : 'settings.json'}</span>
             </button>
 
             <a
@@ -1273,43 +1327,46 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                marginLeft: 'auto',
                 display: 'inline-flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: 4,
-                fontSize: 12,
-                color: 'var(--accent)',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                fontSize: '11.5px',
                 fontWeight: 600,
-                textDecoration: 'none'
+                color: 'var(--accent)',
+                textDecoration: 'none',
+                background: 'transparent'
               }}
             >
-              <span>GitHub Releases</span>
-              <ExternalLink size={12} />
+              <span>GitHub</span>
+              <ExternalLink size={11} />
             </a>
           </div>
 
           {/* GitHub Release History Compact List */}
           {showHistory && (
-            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <GitCommit size={13} style={{ color: 'var(--accent)' }} />
-                  <span>GitHub Version History</span>
+            <div style={{ marginTop: 10, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <GitCommit size={14} style={{ color: 'var(--accent)' }} />
+                  <span>GitHub Release History</span>
                 </div>
-                <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>repo: prathambahekar/okane</span>
+                <span style={{ fontSize: 10, color: 'var(--text-3)' }}>prathambahekar/okane</span>
               </div>
 
               {releaseHistory.length === 0 ? (
-                <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '8px 0', fontStyle: 'italic' }}>
-                  No release history loaded. Click "Check for Updates" to fetch.
+                <div style={{ fontSize: 11.5, color: 'var(--text-3)', padding: '8px 0', fontStyle: 'italic' }}>
+                  No release history loaded. Click "Check Updates" above to fetch latest releases.
                 </div>
               ) : (
                 <>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {(showAllReleases ? releaseHistory : releaseHistory.slice(0, 2)).map((item, idx) => {
                       const currentVer = settings.installedVersion || jsonSettings.appVersion || '0.8.2';
-                      const normalizedItemVer = item.version.replace(/^v/, '');
-                      const normalizedCurrentVer = String(currentVer).replace(/^v/, '');
+                      const normalizedItemVer = item.version.replace(/^v/, '').trim();
+                      const normalizedCurrentVer = String(currentVer).replace(/^v/, '').trim();
                       const isCurrent = normalizedItemVer === normalizedCurrentVer;
                       const hasNotes = item.releaseNotes && item.releaseNotes.trim() !== 'No release notes provided.';
 
@@ -1317,92 +1374,105 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                         <div
                           key={item.version + '_' + idx}
                           style={{
-                            padding: '8px 12px',
-                            borderRadius: '8px',
+                            padding: '10px 12px',
+                            borderRadius: '10px',
                             background: isCurrent ? 'var(--accent-soft)' : 'var(--surface2)',
                             border: isCurrent ? '1px solid var(--accent)' : '1px solid var(--border)',
-                            transition: 'all 0.15s ease'
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 6
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {/* Row 1: Title + Date */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
                                 {item.name || `v${item.version}`}
                               </span>
                               {isCurrent && (
                                 <span style={{
-                                  fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
-                                  background: 'var(--accent)', color: 'var(--accent-contrast, #fff)'
+                                  fontSize: 9.5, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
+                                  background: 'var(--accent-gradient)', color: '#fff'
                                 }}>
                                   Installed
                                 </span>
                               )}
                               {item.isPrerelease && (
                                 <span style={{
-                                  fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
-                                  background: 'rgba(234, 179, 8, 0.15)', color: '#ca8a04', border: '1px solid rgba(234, 179, 8, 0.3)'
+                                  fontSize: 9.5,
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: 99,
+                                  background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(217, 119, 6, 0.12)',
+                                  color: isDark ? '#fbbf24' : '#b45309',
+                                  border: isDark ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(217, 119, 6, 0.25)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3
                                 }}>
+                                  <FlaskConical size={10} />
                                   Pre-release
                                 </span>
                               )}
                             </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
-                                {item.releaseDate}
-                              </span>
-                              <a
-                                href={item.htmlUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="View release on GitHub"
-                                style={{
-                                  fontSize: 11,
-                                  color: 'var(--accent)',
-                                  fontWeight: 600,
-                                  textDecoration: 'none',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 3
-                                }}
-                              >
-                                <span>View</span>
-                                <ExternalLink size={10} />
-                              </a>
-                              {item.downloadUrl && (
-                                <a
-                                  href={item.downloadUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Download release asset"
-                                  style={{
-                                    fontSize: 11,
-                                    color: 'var(--text-2)',
-                                    fontWeight: 500,
-                                    textDecoration: 'none',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3
-                                  }}
-                                >
-                                  <Download size={10} />
-                                  <span>Download</span>
-                                </a>
-                              )}
-                            </div>
+                            <span style={{ fontSize: 10.5, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>
+                              {item.releaseDate}
+                            </span>
                           </div>
 
+                          {/* Release notes if present */}
                           {hasNotes && (
                             <p style={{
                               fontSize: 11.5,
                               color: 'var(--text-2)',
-                              margin: '4px 0 2px 0',
+                              margin: '2px 0 4px 0',
                               lineHeight: 1.4,
                               whiteSpace: 'pre-line'
                             }}>
                               {item.releaseNotes}
                             </p>
                           )}
+
+                          {/* Row 2: Action Links */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4, borderTop: '1px solid var(--border)' }}>
+                            <a
+                              href={item.htmlUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                fontSize: 11,
+                                color: 'var(--accent)',
+                                fontWeight: 600,
+                                textDecoration: 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}
+                            >
+                              <span>View on GitHub</span>
+                              <ExternalLink size={11} />
+                            </a>
+                            {item.downloadUrl && (
+                              <a
+                                href={item.downloadUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  fontSize: 11,
+                                  color: 'var(--text-2)',
+                                  fontWeight: 600,
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                  marginLeft: 'auto'
+                                }}
+                              >
+                                <Download size={11} />
+                                <span>Download Asset</span>
+                              </a>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -1415,9 +1485,9 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                       style={{
                         marginTop: 8,
                         width: '100%',
-                        padding: '7px 12px',
+                        padding: '6px 10px',
                         borderRadius: '8px',
-                        fontSize: '12px',
+                        fontSize: '11.5px',
                         fontWeight: 600,
                         color: 'var(--accent)',
                         background: 'var(--surface2)',
@@ -1426,16 +1496,16 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 6,
+                        gap: 5,
                         transition: 'all 0.15s ease'
                       }}
                     >
                       <span>
                         {showAllReleases
-                          ? 'Show Top 2 Releases Only'
+                          ? 'Show Top 2 Releases'
                           : `Show ${releaseHistory.length - 2} Earlier ${releaseHistory.length - 2 === 1 ? 'Release' : 'Releases'}`}
                       </span>
-                      {showAllReleases ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      {showAllReleases ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                     </button>
                   )}
                 </>
@@ -1444,19 +1514,19 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
           )}
 
           {showJsonView && (
-            <div style={{ marginTop: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)' }}>public/settings.json</span>
-                <a href="/settings.json" target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}>
+            <div style={{ marginTop: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-3)' }}>public/settings.json</span>
+                <a href="/settings.json" target="_blank" rel="noreferrer" style={{ fontSize: 10.5, color: 'var(--accent)', textDecoration: 'none' }}>
                   Open Raw File ↗
                 </a>
               </div>
               <pre style={{
-                fontSize: 11.5,
+                fontSize: 11,
                 fontFamily: 'monospace',
                 background: 'var(--surface2)',
-                padding: 12,
-                borderRadius: 8,
+                padding: 10,
+                borderRadius: 6,
                 overflowX: 'auto',
                 color: 'var(--text)',
                 border: '1px solid var(--border)',

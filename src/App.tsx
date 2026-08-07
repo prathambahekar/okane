@@ -33,6 +33,8 @@ import {
   PanelLeft,
   Sparkles,
   Database,
+  ChevronDown,
+  Plane,
 } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import { useColorMode, type AccentPreset } from './theme';
@@ -49,6 +51,7 @@ import Analytics from './views/Analytics';
 import Settings from './views/Settings';
 import Recurring from './views/Recurring';
 import DevSQLConsole from './views/DevSQLConsole';
+import SplitTrips from './views/SplitTrips';
 import ExpenseModal from './components/ExpenseModal';
 import type { ExpenseInitialData } from './components/ExpenseModal';
 import AIAssistantModal from './components/AIAssistantModal';
@@ -56,7 +59,7 @@ import Toast from './components/Toast';
 import NotificationBell from './components/NotificationBell';
 import './styles.css';
 
-const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'recurring', 'analytics', 'settings', 'dev-sql'];
+const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'split-trips', 'recurring', 'analytics', 'settings', 'dev-sql'];
 
 function AppInner() {
   const { db, updateSettings } = useStore();
@@ -127,26 +130,92 @@ function AppInner() {
     setView(v);
     if (v === 'friend-detail' && arg) setFriendDetailId(arg);
     setMoreOpen(false);
+
+    const targetView = v === 'friend-detail' ? 'friends' : v;
+    const sectionTitle = sidebarNavSections.find(sec => sec.items.some(item => item.id === targetView))?.title;
+    if (sectionTitle && collapsedSections[sectionTitle]) {
+      setCollapsedSections(prev => {
+        const next = { ...prev, [sectionTitle]: false };
+        try {
+          localStorage.setItem('collapsed_sections', JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+    }
   };
+
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('collapsed_sections');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleSection = (title: string) => {
+    setCollapsedSections(prev => {
+      const next = { ...prev, [title]: !prev[title] };
+      try {
+        localStorage.setItem('collapsed_sections', JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  const pendingSettlements = db.friends.filter(f =>
+    db.expenses.some(e => e.friendId === f.id && !e.settled && e.type !== 'personal')
+  ).length;
 
   const dueAutopaysCount = useMemo(() => {
     const today = todayISO();
     return (db.recurringRules || []).filter(r => r.kind === 'autopay' && r.status === 'active' && r.nextDueDate && r.nextDueDate <= today).length;
   }, [db.recurringRules]);
 
-  const sidebarNavItems: { id: ViewName; label: string; icon: React.ReactNode; section?: string }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, section: 'Main' },
-    { id: 'expenses', label: 'Expenses', icon: <ReceiptText size={18} /> },
-    { id: 'recurring', label: 'Autopay', icon: <RefreshCw size={18} /> },
-    { id: 'wallets', label: 'Wallets', icon: <Wallet size={18} /> },
-    { id: 'friends', label: 'Contacts', icon: <Users size={18} />, section: 'Social' },
-    { id: 'settlements', label: 'Settlements', icon: <Handshake size={18} /> },
-    { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} />, section: 'Insights' },
-    { id: 'settings', label: 'Settings', icon: <SettingsIconLucide size={18} />, section: 'System' },
-    ...(enableDevSQLConsole ? [{ id: 'dev-sql' as ViewName, label: 'Dev SQL Console', icon: <Database size={18} />, section: 'Developer' }] : []),
+  const sidebarNavSections = [
+    {
+      title: 'Main',
+      items: [
+        { id: 'dashboard' as ViewName, label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+        { id: 'expenses' as ViewName, label: 'Expenses', icon: <ReceiptText size={18} /> },
+        { id: 'recurring' as ViewName, label: 'Autopay', icon: <RefreshCw size={18} />, badge: dueAutopaysCount, badgeColor: '#d32f2f', badgeBg: 'rgba(239, 83, 80, 0.15)' },
+        { id: 'wallets' as ViewName, label: 'Wallets', icon: <Wallet size={18} /> },
+      ]
+    },
+    {
+      title: 'Social',
+      items: [
+        { id: 'friends' as ViewName, label: 'Contacts', icon: <Users size={18} /> },
+        { id: 'settlements' as ViewName, label: 'Settlements', icon: <Handshake size={18} />, badge: pendingSettlements, badgeColor: 'var(--accent)', badgeBg: 'var(--accent-soft)' },
+        { id: 'split-trips' as ViewName, label: 'Split & Trips', icon: <Plane size={18} /> },
+      ]
+    },
+    {
+      title: 'Insights',
+      items: [
+        { id: 'analytics' as ViewName, label: 'Analytics', icon: <BarChart3 size={18} /> },
+      ]
+    },
+    {
+      title: 'System',
+      items: [
+        { id: 'settings' as ViewName, label: 'Settings', icon: <SettingsIconLucide size={18} /> },
+      ]
+    },
+    ...(enableDevSQLConsole ? [{
+      title: 'Developer',
+      items: [
+        { id: 'dev-sql' as ViewName, label: 'Dev SQL Console', icon: <Database size={18} /> },
+      ]
+    }] : []),
   ];
 
   const moreItems: { id: ViewName; label: string; icon: React.ReactNode }[] = [
+    { id: 'split-trips', label: 'Split & Trips', icon: <Plane size={20} /> },
     { id: 'recurring', label: 'Autopay', icon: <RefreshCw size={20} /> },
     { id: 'wallets', label: 'Wallets', icon: <Wallet size={20} /> },
     { id: 'settlements', label: 'Settlements', icon: <Handshake size={20} /> },
@@ -158,10 +227,6 @@ function AppInner() {
   const activeView = view === 'friend-detail' ? 'friends' : view;
   const bottomNavValue = MORE_IDS.includes(activeView) ? 'more' : activeView;
 
-  const pendingSettlements = db.friends.filter(f =>
-    db.expenses.some(e => e.friendId === f.id && !e.settled && e.type !== 'personal')
-  ).length;
-
   const renderView = () => {
     switch (view) {
       case 'dashboard': return <Dashboard onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
@@ -171,6 +236,7 @@ function AppInner() {
       case 'friends': return <Friends onNavigate={navigate} />;
       case 'friend-detail': return <FriendDetail friendId={friendDetailId} onNavigate={navigate} />;
       case 'settlements': return <Settlements />;
+      case 'split-trips': return <SplitTrips />;
       case 'analytics': return <Analytics />;
       case 'settings': return <Settings onNavigate={navigate} />;
       case 'dev-sql': return <DevSQLConsole onNavigate={navigate} />;
@@ -216,37 +282,67 @@ function AppInner() {
           </div>
 
           <div className="sidebar-nav">
-            {sidebarNavItems.map((item, i) => {
-              const showSection = item.section && (i === 0 || sidebarNavItems[i - 1]?.section !== item.section);
+            {sidebarNavSections.map((section) => {
+              const isSectionCollapsed = Boolean(collapsedSections[section.title]);
+              const hasActiveItem = section.items.some(item => item.id === activeView);
+              const sectionTotalBadges = section.items.reduce((sum, item) => sum + (item.badge || 0), 0);
+
               return (
-                <div key={item.id}>
-                  {showSection && (
-                    !sidebarCollapsed ? (
-                      <div className="nav-section-label">{item.section}</div>
-                    ) : (
-                      <div className="nav-section-divider" />
-                    )
+                <div key={section.title} className="nav-section-group">
+                  {!sidebarCollapsed ? (
+                    <button
+                      type="button"
+                      className={`nav-section-header ${isSectionCollapsed ? 'collapsed' : ''} ${hasActiveItem ? 'has-active' : ''}`}
+                      onClick={() => toggleSection(section.title)}
+                      title={`${isSectionCollapsed ? 'Expand' : 'Collapse'} ${section.title} section`}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>{section.title}</span>
+                        {isSectionCollapsed && sectionTotalBadges > 0 && (
+                          <span className="nav-badge" style={{
+                            fontSize: 9.5, fontWeight: 700, padding: '1px 5px',
+                            background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 99,
+                          }}>
+                            {sectionTotalBadges}
+                          </span>
+                        )}
+                      </div>
+                      <span className="nav-section-chevron">
+                        <ChevronDown size={12} />
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="nav-section-divider" title={section.title} />
                   )}
-                  <button
-                    className={`nav-item ${activeView === item.id ? 'active' : ''}`}
-                    onClick={() => navigate(item.id)}
-                    title={sidebarCollapsed ? item.label : undefined}
-                  >
-                    <span className="nav-item-icon">{item.icon}</span>
-                    <span className="nav-item-label">{item.label}</span>
-                    {item.id === 'settlements' && pendingSettlements > 0 && (
-                      <span className="nav-badge" style={{
-                        marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: sidebarCollapsed ? '2px 5px' : '1px 6px',
-                        background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 99,
-                      }}>{pendingSettlements}</span>
-                    )}
-                    {item.id === 'recurring' && dueAutopaysCount > 0 && (
-                      <span className="nav-badge" style={{
-                        marginLeft: 'auto', fontSize: 10, fontWeight: 700, padding: sidebarCollapsed ? '2px 5px' : '1px 6px',
-                        background: 'rgba(239, 83, 80, 0.15)', color: '#d32f2f', borderRadius: 99,
-                      }}>{dueAutopaysCount}</span>
-                    )}
-                  </button>
+
+                  {(!isSectionCollapsed || sidebarCollapsed) && (
+                    <div className="nav-section-items">
+                      {section.items.map((item) => (
+                        <button
+                          key={item.id}
+                          className={`nav-item ${activeView === item.id ? 'active' : ''}`}
+                          onClick={() => navigate(item.id)}
+                          title={sidebarCollapsed ? item.label : undefined}
+                        >
+                          <span className="nav-item-icon">{item.icon}</span>
+                          <span className="nav-item-label">{item.label}</span>
+                          {item.badge && item.badge > 0 ? (
+                            <span className="nav-badge" style={{
+                              marginLeft: 'auto',
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: sidebarCollapsed ? '2px 5px' : '1px 6px',
+                              background: item.badgeBg || 'var(--accent-soft)',
+                              color: item.badgeColor || 'var(--accent)',
+                              borderRadius: 99,
+                            }}>
+                              {item.badge}
+                            </span>
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
