@@ -96,7 +96,7 @@ function AppInner() {
     }
   }, [db.settings?.colorMode, db.settings?.accent, db.settings?.customAccentColor, mode, accent, customColor, setMode, setAccent, setCustomColor]);
 
-  const isDevMode = db.settings?.devMode ?? true;
+  const isDevMode = db.settings?.devMode ?? false;
   const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
   const enableAIAssistant = isDevMode && (db.settings?.enableAIAssistant ?? true);
   const enableSplitTrips = db.settings?.enableSplitTrips ?? true;

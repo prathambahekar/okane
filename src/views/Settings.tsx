@@ -152,7 +152,7 @@ export default function Settings({
   };
   const [categoriesListExpanded, setCategoriesListExpanded] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
-  const isDevMode = settings.devMode ?? true;
+  const isDevMode = settings.devMode ?? false;
   const [devExpanded, setDevExpanded] = useState(isDevMode);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);

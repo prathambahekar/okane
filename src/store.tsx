@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { AppDB, Expense, Friend, Wallet, RecurringRule } from './types';
 import {
-  loadDB, saveDB, defaultDB, DEFAULT_CATEGORIES, DEFAULT_WALLETS,
+  loadDB, saveDB, defaultDB, resetSQLTables, DEFAULT_CATEGORIES, DEFAULT_WALLETS,
   addExpense as dbAddExpense, updateExpense as dbUpdateExpense, deleteExpense as dbDeleteExpense, deleteExpenseGroup as dbDeleteExpenseGroup,
   transferFunds as dbTransferFunds,
   addFriend as dbAddFriend, updateFriend as dbUpdateFriend, deleteFriend as dbDeleteFriend,
@@ -464,6 +464,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateSettings = useCallback((data: Partial<AppDB['settings']>) => {
+    if (data.devMode !== undefined) {
+      try {
+        localStorage.setItem('dev_mode_user_set', 'true');
+      } catch {
+        // ignore storage errors
+      }
+    }
     setDB(current => {
       const next = { ...current, settings: { ...current.settings, ...data } };
       saveDB(next);
@@ -472,6 +479,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const resetDB = useCallback(() => {
+    try {
+      localStorage.removeItem('okane_sql_database_dump_v1');
+      localStorage.removeItem('ledger_app_db_v2');
+      localStorage.removeItem('okane_active_trip_v1');
+      localStorage.removeItem('okane_trip_history_v1');
+      localStorage.removeItem('okane_preset_groups_v1');
+      localStorage.removeItem('dev_mode_user_set');
+    } catch {
+      // ignore storage errors
+    }
+    resetSQLTables();
     const next = defaultDB();
     persist(next);
   }, [persist]);

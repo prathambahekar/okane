@@ -447,7 +447,7 @@ export function defaultDB(): AppDB {
       defaultWalletId: defaultWal,
       enableAIAssistant: true,
       defaultAiEngine: 'offline',
-      devMode: true,
+      devMode: false,
       enableDevSQLConsole: true,
       enableSplitTrips: true,
       enableSampleData: false,
@@ -865,10 +865,10 @@ export function loadDBFromSQLTables(): AppDB {
       defaultWalletId: wallets[0]?.id || 'wal_cash',
       enableAIAssistant: true,
       defaultAiEngine: 'offline',
-      devMode: true,
+      devMode: false,
       enableDevSQLConsole: true,
       enableSplitTrips: true,
-      enableSampleData: true,
+      enableSampleData: false,
       enableUserGuide: false,
       colorMode: (localStorage.getItem('color-mode') as 'light' | 'dark') || 'light',
       accent: localStorage.getItem('accent-color') || 'blue',
@@ -886,6 +886,10 @@ export function loadDBFromSQLTables(): AppDB {
         settingsObj[keyStr] = valStr === 'true' ? true : valStr === 'false' ? false : valStr;
       }
     });
+
+    if (localStorage.getItem('dev_mode_user_set') !== 'true') {
+      settingsObj.devMode = false;
+    }
 
     settingsObj.categories = categories;
 
