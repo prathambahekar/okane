@@ -289,13 +289,24 @@ export default function Expenses() {
                     const isFirstOfDate = dateGroupInfo.isFirstMap[ge.id];
                     const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}${isExpanded ? ' is-expanded-row' : ''}`;
 
+                    // Calculate friend settlement status for this group
+                    const friendItems = ge.items.filter(i => i.type === 'for_friend' || i.type === 'by_friend');
+                    const hasFriendItem = friendItems.length > 0 || ge.friendIds.length > 0 || ge.isSplit;
+                    const targetItemsForStatus = friendItems.length > 0 ? friendItems : ge.items;
+                    const totalTargetCount = targetItemsForStatus.length;
+                    const settledTargetCount = targetItemsForStatus.filter(i => i.settled || i.settlementId).length;
+                    const isGroupAllSettled = totalTargetCount > 0 && settledTargetCount === totalTargetCount;
+                    const isGroupSomeSettled = settledTargetCount > 0;
+                    const hasChildOrPartial = ge.items.some(i => i.parentExpenseId || (i.originalAmount && i.settledAmount));
+                    const isGroupPartiallySettled = (isGroupSomeSettled && !isGroupAllSettled) || (hasChildOrPartial && !isGroupAllSettled);
+
                     return (
                       <React.Fragment key={ge.id}>
                         <tr className={rowClass}>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <span style={{ fontWeight: 600, fontSize: 13.5 }}>{ge.description}</span>
-                              {ge.isSplit && (
+                              {(ge.isSplit || ge.items.length > 1 || ge.isSettlementGroup) && (
                                 <button
                                   type="button"
                                   onClick={() => toggleExpand(ge.id)}
@@ -316,7 +327,7 @@ export default function Expenses() {
                                   }}
                                   title={isExpanded ? "Collapse breakdown" : "Expand breakdown"}
                                 >
-                                  <Users size={12} /> {ge.isSettlementGroup ? 'Settlement' : 'Split'} {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                  <Users size={12} /> {ge.isSettlementGroup ? 'Settlement' : (ge.isSplit ? 'Split' : 'Breakdown')} {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                                 </button>
                               )}
                             </div>
@@ -338,7 +349,6 @@ export default function Expenses() {
                           </td>
                           <td style={{ fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap' }}>
                             {(() => {
-                              const isAllSettled = ge.items.every(i => i.settled);
                               if (ge.isSettlementGroup) {
                                 return (
                                   <span style={{ color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
@@ -348,7 +358,7 @@ export default function Expenses() {
                               }
                               if (isIn) return <span style={{ color: 'var(--credit)' }}>+{fmtMoney(ge.totalAmount, currency)}</span>;
                               if (ge.isSplit) {
-                                if (isAllSettled) {
+                                if (isGroupAllSettled) {
                                   if (ge.personalShare > 0) return <span style={{ color: 'var(--debit)' }}>-{fmtMoney(ge.personalShare, currency)}</span>;
                                   return (
                                     <span style={{ color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
@@ -371,11 +381,31 @@ export default function Expenses() {
                           <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{effectiveWalletName}</td>
                           <td>
                             {(() => {
-                              const isAllSettled = ge.items.every(i => i.settled);
-                              if (ge.isSplit) {
+                              if (ge.isSettlementGroup) {
                                 return (
-                                  <span className={`badge badge-${isAllSettled ? 'settled' : 'unsettled'}`} style={{ whiteSpace: 'nowrap' }}>
-                                    {isAllSettled ? 'Settled' : 'Unsettled'}
+                                  <span className="badge badge-settled" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                    Settled ✓
+                                  </span>
+                                );
+                              }
+                              if (hasFriendItem) {
+                                if (isGroupAllSettled) {
+                                  return (
+                                    <span className="badge badge-settled" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                      Completely Settled
+                                    </span>
+                                  );
+                                }
+                                if (isGroupPartiallySettled) {
+                                  return (
+                                    <span className="badge badge-partial" style={{ background: 'rgba(245, 158, 11, 0.18)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.35)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                      Partially Settled
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <span className="badge badge-unsettled" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.25)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                    Unsettled
                                   </span>
                                 );
                               }
@@ -392,10 +422,13 @@ export default function Expenses() {
                           </td>
                           <td style={{ textAlign: 'right' }}>
                             <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
-                              {ge.items.some(i => i.settled) && (
+                              {ge.items.some(i => i.settled || i.settlementId) && (
                                 <button
                                   className="btn-icon"
-                                  onClick={() => setUndoExpId(primaryItem.id)}
+                                  onClick={() => {
+                                    const targetItem = ge.items.find(i => i.settlementId) || ge.items.find(i => i.settled) || primaryItem;
+                                    setUndoExpId(targetItem.settlementId || targetItem.id || ge.id);
+                                  }}
                                   title="Undo Settlement (Restore money to wallet)"
                                   style={{ color: '#d97706', background: 'rgba(217, 119, 6, 0.12)', borderRadius: 4, padding: 3 }}
                                 >
@@ -407,11 +440,11 @@ export default function Expenses() {
                             </div>
                           </td>
                         </tr>
-                        {isExpanded && ge.isSplit && (
+                        {isExpanded && (ge.isSplit || ge.items.length > 1 || ge.isSettlementGroup) && (
                           <tr style={{ background: 'var(--surface2)' }}>
                             <td colSpan={8} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
                               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Users size={14} style={{ color: 'var(--accent)' }} /> {ge.isSettlementGroup ? 'Settlement Breakdown' : 'Split Breakdown'} (Total {fmtMoney(ge.totalAmount, currency)})
+                                <Users size={14} style={{ color: 'var(--accent)' }} /> {ge.isSettlementGroup ? 'Settlement Breakdown' : (ge.isSplit ? 'Split Breakdown' : 'Breakdown')} (Total {fmtMoney(ge.totalAmount, currency)})
                               </div>
                               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                                 {ge.items.map((item, idx) => {
