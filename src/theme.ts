@@ -1,7 +1,7 @@
 import React from 'react';
 import { createTheme } from '@mui/material/styles';
 
-export type AccentPreset = 'blue' | 'red' | 'monochrome' | 'emerald' | 'violet' | 'rose' | 'amber' | 'custom';
+export type AccentPreset = 'blue' | 'red' | 'monochrome' | 'emerald' | 'indigo' | 'rose' | 'teal' | 'sunset' | 'custom';
 
 export interface AccentDefinition {
   id: AccentPreset;
@@ -46,12 +46,20 @@ export const ACCENT_PRESETS: AccentDefinition[] = [
     dark: { main: '#34d399', soft: 'rgba(52, 211, 153, 0.18)', dark: '#059669', contrast: '#ffffff' },
   },
   {
-    id: 'violet',
-    name: 'Royal Violet',
-    swatchLight: '#6366f1',
+    id: 'indigo',
+    name: 'Midnight Indigo',
+    swatchLight: '#4f46e5',
     swatchDark: '#818cf8',
-    light: { main: '#6366f1', soft: 'rgba(99, 102, 241, 0.12)', dark: '#4f46e5', contrast: '#ffffff' },
-    dark: { main: '#818cf8', soft: 'rgba(129, 140, 248, 0.18)', dark: '#6366f1', contrast: '#ffffff' },
+    light: { main: '#4f46e5', soft: 'rgba(79, 70, 229, 0.12)', dark: '#4338ca', contrast: '#ffffff' },
+    dark: { main: '#818cf8', soft: 'rgba(129, 140, 248, 0.18)', dark: '#4f46e5', contrast: '#ffffff' },
+  },
+  {
+    id: 'teal',
+    name: 'Ocean Teal',
+    swatchLight: '#0d9488',
+    swatchDark: '#2dd4bf',
+    light: { main: '#0d9488', soft: 'rgba(13, 148, 136, 0.12)', dark: '#0f766e', contrast: '#ffffff' },
+    dark: { main: '#2dd4bf', soft: 'rgba(45, 212, 191, 0.18)', dark: '#0d9488', contrast: '#ffffff' },
   },
   {
     id: 'rose',
@@ -62,12 +70,12 @@ export const ACCENT_PRESETS: AccentDefinition[] = [
     dark: { main: '#fb7185', soft: 'rgba(251, 113, 133, 0.18)', dark: '#e11d48', contrast: '#ffffff' },
   },
   {
-    id: 'amber',
-    name: 'Warm Amber',
-    swatchLight: '#d97706',
-    swatchDark: '#fbbf24',
-    light: { main: '#d97706', soft: 'rgba(217, 119, 6, 0.12)', dark: '#b45309', contrast: '#ffffff' },
-    dark: { main: '#fbbf24', soft: 'rgba(251, 191, 36, 0.18)', dark: '#d97706', contrast: '#ffffff' },
+    id: 'sunset',
+    name: 'Sunset Orange',
+    swatchLight: '#ea580c',
+    swatchDark: '#fb923c',
+    light: { main: '#ea580c', soft: 'rgba(234, 88, 12, 0.12)', dark: '#c2410c', contrast: '#ffffff' },
+    dark: { main: '#fb923c', soft: 'rgba(251, 146, 60, 0.18)', dark: '#ea580c', contrast: '#ffffff' },
   },
 ];
 

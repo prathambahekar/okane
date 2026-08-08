@@ -82,6 +82,66 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
   const { mode, toggleMode, accent, setAccent, customColor, setCustomColor } = useColorMode();
   const isDark = mode === 'dark';
   const [accentExpanded, setAccentExpanded] = useState(false);
+
+  // Saved Custom Accent Colors
+  const [savedCustomColors, setSavedCustomColors] = useState<{ id: string; name: string; hex: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem('saved_custom_accent_colors');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return [];
+  });
+  const [newColorName, setNewColorName] = useState('');
+
+  const handleSaveCustomColor = () => {
+    const hex = customColor.trim();
+    if (!/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(hex)) {
+      showToast('Invalid color hex code');
+      return;
+    }
+
+    const name = newColorName.trim() || hex.toUpperCase();
+    const id = 'custom_' + Date.now();
+    const newEntry = { id, name, hex };
+
+    const existingIdx = savedCustomColors.findIndex(c => c.hex.toLowerCase() === hex.toLowerCase());
+    let updated: { id: string; name: string; hex: string }[];
+    if (existingIdx >= 0) {
+      updated = [...savedCustomColors];
+      updated[existingIdx] = newEntry;
+    } else {
+      updated = [...savedCustomColors, newEntry];
+    }
+
+    setSavedCustomColors(updated);
+    try {
+      localStorage.setItem('saved_custom_accent_colors', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+    setNewColorName('');
+    setAccent('custom');
+    setCustomColor(hex);
+    updateSettings({ accent: 'custom', customAccentColor: hex });
+    showToast('Saved custom color preset!');
+  };
+
+  const handleRemoveCustomColor = (id: string, hex: string) => {
+    const updated = savedCustomColors.filter(c => c.id !== id);
+    setSavedCustomColors(updated);
+    try {
+      localStorage.setItem('saved_custom_accent_colors', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+    if (accent === 'custom' && customColor.toLowerCase() === hex.toLowerCase()) {
+      setAccent('blue');
+      updateSettings({ accent: 'blue' });
+    }
+    showToast('Removed custom accent preset');
+  };
   const [categoriesListExpanded, setCategoriesListExpanded] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const isDevMode = settings.devMode ?? true;
@@ -546,6 +606,10 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
 
             {accentExpanded && (
               <div style={{ marginTop: 14 }}>
+                {/* Built-in Presets (OG Colors - Unremovable) */}
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                  Preset Colors
+                </div>
                 <div className="accent-picker-grid">
                   {ACCENT_PRESETS.map(preset => {
                     const isSelected = accent === preset.id;
@@ -586,65 +650,238 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                       </button>
                     );
                   })}
-
-                  {/* Custom option */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAccent('custom');
-                      updateSettings({ accent: 'custom', customAccentColor: customColor });
-                    }}
-                    className="accent-picker-btn"
-                    style={{
-                      border: accent === 'custom' ? '2px solid var(--accent)' : '1px solid var(--border)',
-                      background: accent === 'custom' ? 'var(--accent-soft)' : 'var(--surface2)',
-                    }}
-                  >
-                    <div style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: '50%',
-                      background: customColor,
-                      border: '1px solid rgba(0,0,0,0.12)',
-                      boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
-                      flexShrink: 0,
-                      display: 'grid',
-                      placeItems: 'center'
-                    }}>
-                      {accent === 'custom' && <Check size={12} style={{ color: '#fff' }} />}
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: accent === 'custom' ? 600 : 500, color: 'var(--text)' }}>
-                      Custom Hex
-                    </span>
-                  </button>
                 </div>
 
-                {accent === 'custom' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
-                    <input
-                      type="color"
-                      value={customColor}
-                      onChange={e => {
-                        const hex = e.target.value;
-                        setCustomColor(hex);
-                        updateSettings({ accent: 'custom', customAccentColor: hex });
-                      }}
-                      style={{ width: 36, height: 36, padding: 0, border: 'none', borderRadius: 8, cursor: 'pointer', background: 'none' }}
-                    />
-                    <input
-                      type="text"
-                      className="input"
-                      value={customColor}
-                      onChange={e => {
-                        const hex = e.target.value;
-                        setCustomColor(hex);
-                        updateSettings({ accent: 'custom', customAccentColor: hex });
-                      }}
-                      placeholder="#6366f1"
-                      style={{ width: 120, fontSize: 13, fontFamily: 'monospace' }}
-                    />
+                {/* Saved Custom Colors Section (Removable) */}
+                {savedCustomColors.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>Saved Custom Colors</span>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-3)', textTransform: 'none' }}>
+                        ({savedCustomColors.length})
+                      </span>
+                    </div>
+                    <div className="accent-picker-grid">
+                      {savedCustomColors.map(saved => {
+                        const isSelected = accent === 'custom' && customColor.toLowerCase() === saved.hex.toLowerCase();
+
+                        return (
+                          <div
+                            key={saved.id}
+                            onClick={() => {
+                              setAccent('custom');
+                              setCustomColor(saved.hex);
+                              updateSettings({ accent: 'custom', customAccentColor: saved.hex });
+                            }}
+                            className="accent-picker-btn"
+                            style={{
+                              border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                              background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              padding: '8px 10px',
+                            }}
+                          >
+                            <div style={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: '50%',
+                              background: saved.hex,
+                              border: '1px solid rgba(0,0,0,0.12)',
+                              boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+                              flexShrink: 0,
+                              display: 'grid',
+                              placeItems: 'center'
+                            }}>
+                              {isSelected && <Check size={12} style={{ color: '#fff' }} />}
+                            </div>
+                            <span style={{
+                              fontSize: 12,
+                              fontWeight: isSelected ? 600 : 500,
+                              color: 'var(--text)',
+                              lineHeight: 1.2,
+                              flex: 1,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {saved.name}
+                            </span>
+                            {/* Remove button - ONLY on saved custom colors (OG colors are unremovable) */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveCustomColor(saved.id, saved.hex);
+                              }}
+                              title="Remove custom accent"
+                              style={{
+                                border: 'none',
+                                background: 'none',
+                                padding: 3,
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                color: 'var(--text-3)',
+                                display: 'grid',
+                                placeItems: 'center',
+                                transition: 'color 0.15s, background 0.15s',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.color = '#ef4444';
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.color = 'var(--text-3)';
+                                e.currentTarget.style.background = 'none';
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
+
+                {/* Color Picker & Save Form Panel */}
+                <div style={{
+                  marginTop: 16,
+                  padding: '16px',
+                  borderRadius: 'var(--radius-lg)',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Palette size={16} style={{ color: 'var(--accent)' }} />
+                      <span>Custom Color</span>
+                    </div>
+                    {accent === 'custom' && (
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 12, background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                        Active
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Inputs row */}
+                  <div style={{ display: 'grid', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      {/* Open Color Picker button */}
+                      <label style={{
+                        position: 'relative',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        padding: '0 16px',
+                        height: 42,
+                        borderRadius: 'var(--radius)',
+                        background: customColor,
+                        color: '#ffffff',
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                        userSelect: 'none',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                      }}>
+                        <Palette size={16} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }} />
+                        <span>Pick Color</span>
+                        <input
+                          type="color"
+                          value={customColor}
+                          onChange={e => {
+                            const hex = e.target.value;
+                            setCustomColor(hex);
+                            setAccent('custom');
+                            updateSettings({ accent: 'custom', customAccentColor: hex });
+                          }}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            cursor: 'pointer',
+                          }}
+                        />
+                      </label>
+
+                      {/* Hex input using form-input theme styling */}
+                      <div style={{ flex: 1, minWidth: 110 }}>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={customColor}
+                          onChange={e => {
+                            const hex = e.target.value;
+                            setCustomColor(hex);
+                            setAccent('custom');
+                            updateSettings({ accent: 'custom', customAccentColor: hex });
+                          }}
+                          placeholder="#6366F1"
+                          maxLength={7}
+                          style={{
+                            fontFamily: 'monospace',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            minHeight: 42,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Preset Name + Save Preset button */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={newColorName}
+                        onChange={e => setNewColorName(e.target.value)}
+                        placeholder="Preset name (e.g. Neon Rose)"
+                        style={{
+                          flex: 1,
+                          minWidth: 160,
+                          fontSize: 13,
+                          minHeight: 42,
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSaveCustomColor();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveCustomColor}
+                        className="btn btn-primary"
+                        style={{
+                          height: 42,
+                          padding: '0 16px',
+                          whiteSpace: 'nowrap',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Plus size={16} />
+                        <span>Save Preset</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

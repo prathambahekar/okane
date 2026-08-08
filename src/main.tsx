@@ -19,7 +19,7 @@ function getInitialMode(): 'light' | 'dark' {
 
 function getInitialAccent(): AccentPreset {
   const saved = localStorage.getItem('accent-color') as AccentPreset | null;
-  if (saved && ['blue', 'red', 'monochrome', 'emerald', 'violet', 'rose', 'amber', 'custom'].includes(saved)) {
+  if (saved && ['blue', 'red', 'monochrome', 'emerald', 'indigo', 'rose', 'teal', 'sunset', 'custom'].includes(saved)) {
     return saved;
   }
   return 'blue';
