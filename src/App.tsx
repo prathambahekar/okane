@@ -55,6 +55,7 @@ import SplitTrips from './views/SplitTrips';
 import ExpenseModal from './components/ExpenseModal';
 import type { ExpenseInitialData } from './components/ExpenseModal';
 import AIAssistantModal from './components/AIAssistantModal';
+import UserGuideModal from './components/UserGuideModal';
 import Toast from './components/Toast';
 import NotificationBell from './components/NotificationBell';
 import './styles.css';
@@ -68,7 +69,15 @@ function AppInner() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [addExpenseInitialData, setAddExpenseInitialData] = useState<ExpenseInitialData | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+  const [isExpenseTutorial, setIsExpenseTutorial] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  const handleStartExpenseTutorial = () => {
+    setShowGuideModal(false);
+    setIsExpenseTutorial(true);
+    setShowAddExpense(true);
+  };
   const { mode, setMode, toggleMode: toggleDark, accent, setAccent, customColor, setCustomColor } = useColorMode();
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
@@ -246,7 +255,7 @@ function AppInner() {
       case 'settlements': return <Settlements />;
       case 'split-trips': return <SplitTrips />;
       case 'analytics': return <Analytics />;
-      case 'settings': return <Settings onNavigate={navigate} />;
+      case 'settings': return <Settings onNavigate={navigate} onOpenGuide={() => setShowGuideModal(true)} onStartExpenseTutorial={handleStartExpenseTutorial} />;
       case 'dev-sql': return <DevSQLConsole onNavigate={navigate} />;
       default: return <Dashboard onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
     }
@@ -724,9 +733,11 @@ function AppInner() {
       {showAddExpense && (
         <ExpenseModal
           initialData={addExpenseInitialData || undefined}
+          isTutorialMode={isExpenseTutorial}
           onClose={() => {
             setShowAddExpense(false);
             setAddExpenseInitialData(null);
+            setIsExpenseTutorial(false);
           }}
         />
       )}
@@ -734,6 +745,15 @@ function AppInner() {
         <AIAssistantModal
           open={showAIAssistant}
           onClose={() => setShowAIAssistant(false)}
+        />
+      )}
+      {showGuideModal && (
+        <UserGuideModal
+          open={showGuideModal}
+          onClose={() => setShowGuideModal(false)}
+          onNavigate={navigate}
+          onAddExpense={() => setShowAddExpense(true)}
+          onStartExpenseTutorial={handleStartExpenseTutorial}
         />
       )}
       <Toast />

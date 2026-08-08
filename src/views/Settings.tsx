@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -61,7 +61,15 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
   );
 }
 
-export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) => void }) {
+export default function Settings({
+  onNavigate,
+  onOpenGuide,
+  onStartExpenseTutorial,
+}: {
+  onNavigate?: (v: ViewName) => void;
+  onOpenGuide?: () => void;
+  onStartExpenseTutorial?: () => void;
+}) {
   const {
     db, updateSettings, updateCategory, resetDB, restoreDB, loadSampleData, showToast,
     availableUpdate, releaseHistory, isCheckingUpdate, isUpdating, updateProgress, updateStatusMessage,
@@ -521,6 +529,61 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Help & User Guide Card (Dev Mode Feature) */}
+        {isDevMode && (settings.enableUserGuide ?? false) && (
+          <div className="card" style={{ background: 'linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '12px',
+                  background: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>Okane User Guide & Help Center</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>
+                    Confused about "Paid for Friend" vs "Paid by Friend"? Learn how Okane works in 2 minutes.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {onStartExpenseTutorial && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={onStartExpenseTutorial}
+                    style={{ fontSize: 12.5, padding: '8px 16px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+                  >
+                    <Sparkles size={15} />
+                    <span>Interactive Expense Tutorial</span>
+                  </button>
+                )}
+
+                {onOpenGuide && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={onOpenGuide}
+                    style={{ fontSize: 12.5, padding: '8px 16px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <span>Open App Guide</span>
+                    <ChevronRight size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Appearance */}
         <div className="card">
           <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Appearance</h2>
@@ -1426,6 +1489,61 @@ export default function Settings({ onNavigate }: { onNavigate?: (v: ViewName) =>
                     >
                       <FlaskConical size={14} /> Load Sample Data
                     </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 5. User Guide & Help Center (In Dev / Off by default) */}
+              <div style={{
+                padding: '14px 16px', borderRadius: 'var(--radius)', background: 'var(--surface2)', border: '1px solid var(--border)',
+                transition: 'border-color 0.15s ease'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 8, background: (settings.enableUserGuide ?? false) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease'
+                    }}>
+                      <HelpCircle size={17} style={{ color: (settings.enableUserGuide ?? false) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>User Guide & Help Center</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>Interactive app tour modal & step-by-step expense tutorial (In Dev - Off by default)</div>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings.enableUserGuide ?? false}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      updateSettings({ enableUserGuide: enabled });
+                      showToast(enabled ? 'User Guide enabled' : 'User Guide disabled');
+                    }}
+                    color="primary"
+                    size="small"
+                  />
+                </div>
+                {(settings.enableUserGuide ?? false) && (
+                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    {onStartExpenseTutorial && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={onStartExpenseTutorial}
+                        style={{ gap: 6, fontSize: 12, fontWeight: 600 }}
+                      >
+                        <Sparkles size={14} /> Interactive Tutorial
+                      </button>
+                    )}
+                    {onOpenGuide && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={onOpenGuide}
+                        style={{ gap: 6, fontSize: 12 }}
+                      >
+                        Open Guide Modal
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

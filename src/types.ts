@@ -51,6 +51,15 @@ export interface Expense {
   settlementId: string | null;
   notes: string;
   createdAt: number;
+  originalAmount?: number;
+  settledAmount?: number;
+  parentExpenseId?: string | null;
+}
+
+export interface SettlementPartialBreakdownItem {
+  originalAmount: number;
+  settledAmount: number;
+  remainingAmount: number;
 }
 
 export interface Settlement {
@@ -63,6 +72,9 @@ export interface Settlement {
   createdAt: number;
   walletId?: string;
   paymentMethod?: string;
+  originalTotal?: number;
+  remainingAmount?: number;
+  partialBreakdown?: Record<string, SettlementPartialBreakdownItem>;
 }
 
 export interface Settings {
@@ -75,6 +87,7 @@ export interface Settings {
   enableDevSQLConsole?: boolean;
   enableSplitTrips?: boolean;
   enableSampleData?: boolean;
+  enableUserGuide?: boolean;
   enableAutoUpdate?: boolean;
   installedVersion?: string;
   lastUpdateCheck?: string;

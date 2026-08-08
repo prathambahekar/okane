@@ -1,4 +1,3 @@
-import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Handshake, ArrowDownLeft, ArrowUpRight, RotateCcw, Calendar, Wallet as WalletIcon, FileText, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../store';
@@ -103,33 +102,83 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
                   color: isReceived ? 'var(--credit)' : 'var(--debit)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4,
+                  gap: 6,
                   marginBottom: 4,
                 }}
               >
                 {isReceived ? <ArrowDownLeft size={15} /> : <ArrowUpRight size={15} />}
                 {isReceived ? 'Money Received' : 'Money Paid'}
+                {settlement?.remainingAmount && settlement.remainingAmount > 0 ? (
+                  <span style={{ fontSize: 10, background: 'var(--accent-soft)', color: 'var(--accent)', padding: '2px 6px', borderRadius: 4, textTransform: 'none' }}>
+                    Partial Settlement
+                  </span>
+                ) : null}
               </div>
               <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>
                 {isReceived
                   ? `${friend?.name || 'Friend'} paid you ${fmtMoney(absAmount, currency)}`
                   : `You paid ${friend?.name || 'Friend'} ${fmtMoney(absAmount, currency)}`}
+                {settlement?.originalTotal && settlement.originalTotal > absAmount ? (
+                  <span style={{ color: 'var(--text-3)', fontSize: 12 }}> (out of {fmtMoney(settlement.originalTotal, currency)})</span>
+                ) : null}
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--text-2)', marginTop: 2 }}>
                 {isReceived ? 'Credited to' : 'Deducted from'} <strong>{walletName}</strong> wallet
               </div>
             </div>
-            <div
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                color: isReceived ? 'var(--credit)' : 'var(--debit)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {isReceived ? '+' : '-'}{fmtMoney(absAmount, currency)}
+            <div style={{ textAlign: 'right' }}>
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 800,
+                  color: isReceived ? 'var(--credit)' : 'var(--debit)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {isReceived ? '+' : '-'}{fmtMoney(absAmount, currency)}
+              </div>
+              {settlement?.remainingAmount && settlement.remainingAmount > 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, marginTop: 2 }}>
+                  {fmtMoney(settlement.remainingAmount, currency)} left
+                </div>
+              ) : null}
             </div>
           </div>
+
+          {/* Partial Settlement Breakdown Banner if Custom Settlement */}
+          {settlement?.originalTotal && settlement.originalTotal > absAmount ? (
+            <div
+              style={{
+                padding: '12px 14px',
+                background: 'var(--surface2)',
+                borderRadius: 10,
+                border: '1px dashed var(--accent)',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 8,
+                textAlign: 'center',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Original Total</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                  {fmtMoney(settlement.originalTotal, currency)}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Amount Paid</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: isReceived ? 'var(--credit)' : 'var(--debit)' }}>
+                  {fmtMoney(absAmount, currency)}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Remaining Left</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
+                  {fmtMoney(settlement.remainingAmount || 0, currency)}
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {/* Quick Info Grid */}
           <div
@@ -258,8 +307,8 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 6,
-                  maxHeight: 240,
+                  gap: 10,
+                  maxHeight: 250,
                   overflowY: 'auto',
                   paddingRight: 4,
                 }}
@@ -310,14 +359,18 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
                           >
                             {exp.description || 'Expense'}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-3)', marginTop: 2, flexWrap: 'wrap' }}>
                             <span>{fmtDate(exp.date)}</span>
                             <span>•</span>
                             <span>{exp.category || 'General'}</span>
-                            <span>•</span>
-                            <span style={{ color: isForFriend ? 'var(--credit)' : 'var(--debit)', fontWeight: 500 }}>
-                              {isForFriend ? 'You paid' : 'Friend paid'}
-                            </span>
+                            {exp.originalAmount ? (
+                              <>
+                                <span>•</span>
+                                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                                  og {fmtMoney(exp.originalAmount, currency)}
+                                </span>
+                              </>
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -336,15 +389,15 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
                           style={{
                             fontSize: 10,
                             fontWeight: 600,
-                            color: '#10b981',
-                            background: 'rgba(16, 185, 129, 0.12)',
+                            color: exp.originalAmount ? 'var(--accent)' : '#10b981',
+                            background: exp.originalAmount ? 'var(--accent-soft)' : 'rgba(16, 185, 129, 0.12)',
                             padding: '1px 6px',
                             borderRadius: 6,
                             display: 'inline-block',
                             marginTop: 2,
                           }}
                         >
-                          Settled
+                          {exp.originalAmount ? 'Partially Settled' : 'Settled'}
                         </span>
                       </div>
                     </div>

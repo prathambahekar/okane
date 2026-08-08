@@ -573,6 +573,11 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                         <td style={{ fontWeight: 500, fontSize: 13 }}>{e.description}</td>
                         <td style={{ fontWeight: 500, color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
                           {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
+                          {e.originalAmount ? (
+                            <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 1 }}>
+                              og {fmtMoney(e.originalAmount, currency)}
+                            </div>
+                          ) : null}
                         </td>
                         <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
                         <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type, contactType)}</td>
@@ -581,7 +586,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                         </td>
                         <td>
                           <span className={`badge badge-${e.settled ? 'settled' : e.status}`}>
-                            {e.settled ? 'Settled' : e.status.charAt(0).toUpperCase() + e.status.slice(1)}
+                            {e.originalAmount && e.settled ? 'Partially Settled' : (e.settled ? 'Settled' : e.status.charAt(0).toUpperCase() + e.status.slice(1))}
                           </span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
@@ -617,8 +622,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={13} showLabel={false} />
                           <span className="mobile-expense-title">{e.description}</span>
                         </div>
-                        <div className="mobile-expense-amount" style={{ color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
+                        <div className="mobile-expense-amount" style={{ color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)', textAlign: 'right' }}>
                           {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
+                          {e.originalAmount ? (
+                            <div style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 400 }}>
+                              og {fmtMoney(e.originalAmount, currency)}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
 

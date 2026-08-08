@@ -87,15 +87,30 @@ export default function SettleModal({ friend, onClose }: Props) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto', marginBottom: 14 }}>
                 {unsettled.map(e => {
                   const cat = db.settings.categories.find(c => c.name === e.category);
+                  const isForFriend = e.type === 'for_friend';
+                  const origAmt = e.originalAmount;
                   return (
-                    <label key={e.id} className="settle-check-row">
+                    <label key={e.id} className="settle-check-row" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--surface2)', borderRadius: 8 }}>
                       <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggle(e.id)} />
                       <CategoryIcon category={e.category} size={15} style={{ color: cat?.color ?? 'var(--accent)', flexShrink: 0 }} />
-                      <span style={{ flex: 1 }}>{e.description}</span>
-                      <span style={{ fontSize: 12, color: 'var(--text-3)', marginRight: 10 }}>{fmtDate(e.date)}</span>
-                      <span style={{ fontWeight: 500, color: e.type === 'for_friend' ? 'var(--credit)' : 'var(--debit)' }}>
-                        {e.type === 'for_friend' ? '+' : '-'}{fmtMoney(e.amount, currency)}
-                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {e.description}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
+                          {fmtDate(e.date)} {origAmt ? `• Original ${fmtMoney(origAmt, currency)}` : ''}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: isForFriend ? 'var(--credit)' : 'var(--debit)' }}>
+                          {isForFriend ? '+' : '-'}{fmtMoney(e.amount, currency)}
+                        </div>
+                        {origAmt && (
+                          <div style={{ fontSize: 10, color: 'var(--text-3)' }}>
+                            og {fmtMoney(origAmt, currency)}
+                          </div>
+                        )}
+                      </div>
                     </label>
                   );
                 })}
@@ -132,22 +147,39 @@ export default function SettleModal({ friend, onClose }: Props) {
                 </div>
               </div>
 
-              {/* Custom Amount Input Field */}
+              {/* Custom Amount Input Field with Quick Preset Chips */}
               {isCustomMode && (
                 <div className="form-group" style={{ marginBottom: 12 }}>
                   <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Amount Paid / Received ({currency})</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Full owed: {fmtMoney(absNet, currency)}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Total debt: {fmtMoney(absNet, currency)}</span>
                   </label>
                   <input
                     type="number"
                     step="any"
                     className="form-input"
-                    placeholder={`e.g. 100 (Full is ${absNet})`}
+                    placeholder={`e.g. 30 (Full is ${absNet})`}
                     value={customAmountStr}
                     onChange={e => setCustomAmountStr(e.target.value)}
-                    style={{ fontWeight: 600, fontSize: 15 }}
+                    style={{ fontWeight: 700, fontSize: 16 }}
                   />
+                  {/* Preset Chips */}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                    {[0.25, 0.5, 0.75].map(ratio => {
+                      const val = Math.round(absNet * ratio);
+                      return (
+                        <button
+                          key={ratio}
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6 }}
+                          onClick={() => setCustomAmountStr(String(val))}
+                        >
+                          {ratio * 100}% ({fmtMoney(val, currency)})
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

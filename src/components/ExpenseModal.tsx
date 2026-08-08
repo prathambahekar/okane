@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, TrendingDown, TrendingUp, User, Users, Briefcase, CheckSquare, Square, Search, HeartHandshake } from 'lucide-react';
+import { X, TrendingDown, TrendingUp, User, Users, Briefcase, CheckSquare, Square, Search, HeartHandshake, Sparkles, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types';
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
@@ -23,12 +23,30 @@ export interface ExpenseInitialData {
 interface Props {
   expense?: Expense | null;
   initialData?: ExpenseInitialData;
+  isTutorialMode?: boolean;
   onClose: () => void;
 }
 
-export default function ExpenseModal({ expense, initialData, onClose }: Props) {
+export default function ExpenseModal({ expense, initialData, isTutorialMode, onClose }: Props) {
   const { db, addExpense, updateExpense, deleteExpense, showToast } = useStore();
   const s = db.settings;
+
+  // Tutorial state
+  const [tutorialStep, setTutorialStep] = useState<number>(1);
+
+  const fillTutorialSampleData = () => {
+    setDesc('Dinner with Friends');
+    setAmount('1200');
+    setCategory('Food & Dining');
+    setWhoPaid('me');
+    setSplitMode('for_friend');
+    if (db.friends.length > 0) {
+      setFriendId(db.friends[0].id);
+      setSelectedFriendIds([db.friends[0].id]);
+      setFriendShare('600');
+    }
+    showToast('✨ Sample expense data filled!');
+  };
 
   const grpItems = expense?.groupId
     ? db.expenses.filter(e => e.groupId === expense.groupId)
@@ -586,6 +604,181 @@ export default function ExpenseModal({ expense, initialData, onClose }: Props) {
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
+            {isTutorialMode && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(147, 51, 234, 0.12) 100%)',
+                border: '1px solid var(--accent)',
+                borderRadius: '14px',
+                padding: '14px 16px',
+                marginBottom: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                boxShadow: '0 4px 16px rgba(59, 130, 246, 0.15)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Sparkles size={18} style={{ color: 'var(--accent)' }} />
+                    <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-1)' }}>
+                      Interactive Guided Tutorial ({tutorialStep}/4)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {[1, 2, 3, 4].map(st => (
+                      <div
+                        key={st}
+                        onClick={() => setTutorialStep(st)}
+                        style={{
+                          width: st === tutorialStep ? 18 : 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: st === tutorialStep ? 'var(--accent)' : 'var(--border2)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {tutorialStep === 1 && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-1)', marginBottom: 2 }}>
+                      Step 1: Enter Total Amount & Select Wallet
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-2)', lineHeight: 1.4 }}>
+                      Enter how much was spent and pick which account (Cash, Bank, Credit Card) paid for it.
+                    </div>
+                  </div>
+                )}
+
+                {tutorialStep === 2 && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-1)', marginBottom: 2 }}>
+                      Step 2: Add Title & Category
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-2)', lineHeight: 1.4 }}>
+                      Describe what you bought (e.g., "Dinner with Rahul") and select a category icon.
+                    </div>
+                  </div>
+                )}
+
+                {tutorialStep === 3 && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-1)', marginBottom: 2 }}>
+                      Step 3: Choose Who Paid & Debt Mode 👥
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-2)', lineHeight: 1.4 }}>
+                      Choose who paid! <strong>"I Paid for Friend"</strong> creates money owed to you. <strong>"Paid by Friend"</strong> creates debt you owe them.
+                    </div>
+                  </div>
+                )}
+
+                {tutorialStep === 4 && (
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-1)', marginBottom: 2 }}>
+                      Step 4: Record Transaction 🚀
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-2)', lineHeight: 1.4 }}>
+                      Click "Record Expense" below to save and see your balances & debt ledgers update live!
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 4 }}>
+                  <button
+                    type="button"
+                    onClick={fillTutorialSampleData}
+                    style={{
+                      background: 'var(--surface)',
+                      border: '1px solid var(--accent)',
+                      color: 'var(--accent)',
+                      borderRadius: '8px',
+                      padding: '5px 10px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <Sparkles size={14} /> Auto-Fill Demo Values
+                  </button>
+
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {tutorialStep > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setTutorialStep(s => s - 1)}
+                        style={{
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--text-1)',
+                          borderRadius: '8px',
+                          padding: '5px 10px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        <ArrowLeft size={14} /> Back
+                      </button>
+                    )}
+                    {tutorialStep < 4 ? (
+                      <button
+                        type="button"
+                        onClick={() => setTutorialStep(s => s + 1)}
+                        style={{
+                          background: 'var(--accent)',
+                          border: 'none',
+                          color: '#fff',
+                          borderRadius: '8px',
+                          padding: '5px 12px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        Next Step <ArrowRight size={14} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!amount || !desc) {
+                            fillTutorialSampleData();
+                          }
+                          showToast('✨ Ready to record! Click button below.');
+                        }}
+                        style={{
+                          background: 'var(--credit)',
+                          border: 'none',
+                          color: '#fff',
+                          borderRadius: '8px',
+                          padding: '5px 12px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        Ready! <CheckCircle2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="form-grid">
 
               {/* Hero Amount Field */}

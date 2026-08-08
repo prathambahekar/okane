@@ -13,16 +13,23 @@ import {
   TrendingUp,
   TrendingDown,
   CheckCircle2,
-  X
+  X,
+  Calendar,
+  Users,
+  Filter,
+  LayoutList,
+  List
 } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend, Settlement, Expense } from '../types';
-import { friendBalance } from '../db';
+import { friendBalance, todayISO } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle } from '../utils';
 import SettleModal from '../components/SettleModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import SettlementDetailModal from '../components/SettlementDetailModal';
 import CategoryIcon from '../components/CategoryIcon';
+
+export type SettlementTimeframe = 'this_month' | 'last_month' | 'last_3_months' | 'this_year' | 'all';
 
 export default function Settlements() {
   const { db, deleteSettlement, showToast } = useStore();
@@ -38,10 +45,13 @@ export default function Settlements() {
   const [delId, setDelId] = useState<string | null>(null);
   const [detailSettlement, setDetailSettlement] = useState<Settlement | null>(null);
 
-  // Search & Filter State
+  // Timeframe, Search & Filter State
+  const [timeframe, setTimeframe] = useState<SettlementTimeframe>('this_month');
   const [searchQuery, setSearchQuery] = useState('');
   const [friendFilter, setFriendFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'received' | 'paid'>('all');
+  const [viewMode, setViewMode] = useState<'detailed' | 'compact'>('compact');
+  const [isPendingExpanded, setIsPendingExpanded] = useState<boolean>(true);
 
   // Expanded settlement rows state
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -69,6 +79,40 @@ export default function Settlements() {
     [settlements]
   );
 
+  // Filter settlements by selected Timeframe (Default: Current Month)
+  const timeframeFiltered = useMemo(() => {
+    if (timeframe === 'all') return sorted;
+
+    const today = todayISO();
+    const curMonth = today.slice(0, 7);
+    const curYear = today.slice(0, 4);
+
+    if (timeframe === 'this_month') {
+      return sorted.filter(s => s && s.date && s.date.slice(0, 7) === curMonth);
+    }
+
+    if (timeframe === 'last_month') {
+      const d = new Date();
+      d.setDate(1);
+      d.setMonth(d.getMonth() - 1);
+      const lastMonth = d.toISOString().slice(0, 7);
+      return sorted.filter(s => s && s.date && s.date.slice(0, 7) === lastMonth);
+    }
+
+    if (timeframe === 'last_3_months') {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 3);
+      const threeMonthsAgo = d.toISOString().slice(0, 10);
+      return sorted.filter(s => s && s.date && s.date >= threeMonthsAgo);
+    }
+
+    if (timeframe === 'this_year') {
+      return sorted.filter(s => s && s.date && s.date.slice(0, 4) === curYear);
+    }
+
+    return sorted;
+  }, [sorted, timeframe]);
+
   // Pre-calculate mapped settled expenses per settlement for fast lookup
   const settlementExpensesMap = useMemo(() => {
     const map: Record<string, Expense[]> = {};
@@ -91,22 +135,22 @@ export default function Settlements() {
     return map;
   }, [sorted, expenses]);
 
-  // Overall KPI Summary
+  // Overall KPI Summary for selected Timeframe
   const kpiSummary = useMemo(() => {
     let received = 0;
     let paid = 0;
-    sorted.forEach(s => {
+    timeframeFiltered.forEach(s => {
       if (!s) return;
       const amt = Number(s.amount) || 0;
       if (amt >= 0) received += amt;
       else paid += Math.abs(amt);
     });
-    return { received, paid, totalCount: sorted.length };
-  }, [sorted]);
+    return { received, paid, totalCount: timeframeFiltered.length };
+  }, [timeframeFiltered]);
 
   // Filtered settlements list
   const filteredSettlements = useMemo(() => {
-    return sorted.filter(s => {
+    return timeframeFiltered.filter(s => {
       if (!s) return false;
       const friend = friends.find(f => f && f.id === s.friendId);
       const friendName = (friend?.name || '').toLowerCase();
@@ -137,7 +181,7 @@ export default function Settlements() {
 
       return true;
     });
-  }, [sorted, friendFilter, typeFilter, searchQuery, friends, settlementExpensesMap]);
+  }, [timeframeFiltered, friendFilter, typeFilter, searchQuery, friends, settlementExpensesMap]);
 
   const dateGroupInfo = useMemo(() => {
     const groupMap: Record<string, number> = {};
@@ -186,7 +230,17 @@ export default function Settlements() {
             border: '1px solid var(--border)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div
+            onClick={() => setIsPendingExpanded(prev => !prev)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: isPendingExpanded ? 12 : 0,
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div
                 style={{
@@ -217,9 +271,23 @@ export default function Settlements() {
                 {friendsWithUnsettled.length}
               </span>
             </div>
+
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ padding: 4, width: 28, height: 28, borderRadius: 6, color: 'var(--text-3)' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsPendingExpanded(prev => !prev);
+              }}
+              title={isPendingExpanded ? "Collapse pending settlements" : "Expand pending settlements"}
+            >
+              {isPendingExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 10 }}>
+          {isPendingExpanded && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12 }}>
             {friendsWithUnsettled.map(f => {
               if (!f) return null;
               const unsettledCount = expenses.filter(
@@ -346,57 +414,63 @@ export default function Settlements() {
               );
             })}
           </div>
+          )}
         </div>
       )}
 
       {/* History Card Container */}
       <div className="card" style={{ padding: 0, borderRadius: 14, overflow: 'hidden' }}>
         {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid var(--border)',
-            fontWeight: 700,
-            fontSize: 15,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="settlement-history-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Clock size={18} style={{ color: 'var(--accent)' }} />
             <span>Settlement History</span>
-            <span
-              style={{
-                fontSize: 11.5,
-                fontWeight: 600,
-                color: 'var(--text-3)',
-                background: 'var(--surface2)',
-                padding: '2px 8px',
-                borderRadius: 12,
-              }}
-            >
-              {sorted.length} transactions
+            <span className="settlement-count-badge">
+              {filteredSettlements.length} transactions
             </span>
+          </div>
+
+          {/* Timeframe Date Filter Button on Right Side */}
+          <div className="settlement-timeframe-btn-wrap" title="Filter timeframe">
+            <Calendar size={13} className="timeframe-icon" />
+            <span className="timeframe-label">
+              {timeframe === 'this_month'
+                ? 'This Month'
+                : timeframe === 'last_month'
+                ? 'Last Month'
+                : timeframe === 'last_3_months'
+                ? 'Last 3 Months'
+                : timeframe === 'this_year'
+                ? 'This Year'
+                : 'All Time'}
+            </span>
+            <ChevronDown size={12} className="timeframe-chevron" />
+            <select
+              value={timeframe}
+              onChange={e => setTimeframe(e.target.value as SettlementTimeframe)}
+              className="settlement-timeframe-select"
+            >
+              <option value="this_month">This Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="last_3_months">Last 3 Months</option>
+              <option value="this_year">This Year</option>
+              <option value="all">All Time</option>
+            </select>
           </div>
         </div>
 
         {/* Summary KPI Cards inside History section */}
         {sorted.length > 0 && (
-          <div style={{ padding: '16px 20px 0 20px' }}>
-            {/* Desktop Full Stats Grid */}
-            <div className="settlement-stats-grid desktop-only">
+          <div className="settlement-section-padding">
+            {/* 3 KPI Cards / Mobile Strip in 1 Row */}
+            <div className="settlement-stats-grid">
               <div className="settlement-stat-card">
                 <div className="settlement-stat-icon received">
-                  <TrendingUp size={20} />
+                  <TrendingUp size={16} />
                 </div>
-                <div>
-                  <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Total Received
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--credit)', marginTop: 1 }}>
+                <div className="settlement-stat-content">
+                  <div className="settlement-stat-label">Received</div>
+                  <div className="settlement-stat-value credit">
                     +{fmtMoney(kpiSummary.received, currency)}
                   </div>
                 </div>
@@ -404,13 +478,11 @@ export default function Settlements() {
 
               <div className="settlement-stat-card">
                 <div className="settlement-stat-icon paid">
-                  <TrendingDown size={20} />
+                  <TrendingDown size={16} />
                 </div>
-                <div>
-                  <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Total Paid
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--debit)', marginTop: 1 }}>
+                <div className="settlement-stat-content">
+                  <div className="settlement-stat-label">Paid</div>
+                  <div className="settlement-stat-value debit">
                     -{fmtMoney(kpiSummary.paid, currency)}
                   </div>
                 </div>
@@ -418,79 +490,32 @@ export default function Settlements() {
 
               <div className="settlement-stat-card">
                 <div className="settlement-stat-icon total">
-                  <Handshake size={20} />
+                  <Handshake size={16} />
                 </div>
-                <div>
-                  <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Total Settlements
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', marginTop: 1 }}>
-                    {kpiSummary.totalCount} completed
+                <div className="settlement-stat-content">
+                  <div className="settlement-stat-label">Total</div>
+                  <div className="settlement-stat-value">
+                    {kpiSummary.totalCount} items
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Mobile Ultra Compact Stats Strip */}
-            <div className="settlement-mobile-stats mobile-only">
-              <div className="settlement-mobile-stat-item">
-                <span className="settlement-mobile-stat-label">Received</span>
-                <span className="settlement-mobile-stat-val" style={{ color: 'var(--credit)' }}>
-                  +{fmtMoney(kpiSummary.received, currency)}
-                </span>
-              </div>
-              <div className="settlement-mobile-stat-item">
-                <span className="settlement-mobile-stat-label">Paid</span>
-                <span className="settlement-mobile-stat-val" style={{ color: 'var(--debit)' }}>
-                  -{fmtMoney(kpiSummary.paid, currency)}
-                </span>
-              </div>
-              <div className="settlement-mobile-stat-item">
-                <span className="settlement-mobile-stat-label">Total</span>
-                <span className="settlement-mobile-stat-val" style={{ color: 'var(--text)' }}>
-                  {kpiSummary.totalCount} items
-                </span>
-              </div>
-            </div>
-
-            {/* Filter & Search Toolbar */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                marginBottom: 16,
-                flexWrap: 'wrap',
-              }}
-            >
+            {/* Filter & Search Toolbar - ALL IN 1 ROW */}
+            <div className="settlement-toolbar-row">
               {/* Search Bar */}
-              <div style={{ position: 'relative', flex: 1, minWidth: 150 }}>
-                <Search
-                  size={14}
-                  style={{
-                    position: 'absolute',
-                    left: 10,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-3)',
-                  }}
-                />
+              <div className="settlement-search-wrap">
+                <Search size={14} className="settlement-search-icon" />
                 <input
                   type="text"
-                  className="form-input"
+                  className="settlement-search-input"
                   placeholder="Search settlements..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  style={{
-                    paddingLeft: 30,
-                    paddingRight: searchQuery ? 28 : 8,
-                    height: 34,
-                    fontSize: 12.5,
-                    borderRadius: 8,
-                  }}
                 />
                 {searchQuery && (
                   <button
+                    type="button"
                     className="btn-icon"
                     onClick={() => setSearchQuery('')}
                     style={{
@@ -508,32 +533,72 @@ export default function Settlements() {
                 )}
               </div>
 
+              {/* View Mode Toggle: Compact vs Detailed */}
+              <div className="settlement-view-toggle" title="Switch View Mode">
+                <button
+                  type="button"
+                  className={`view-toggle-btn ${viewMode === 'detailed' ? 'active' : ''}`}
+                  onClick={() => setViewMode('detailed')}
+                  title="Detailed View"
+                >
+                  <LayoutList size={14} />
+                  <span className="view-toggle-label">Detailed</span>
+                </button>
+                <button
+                  type="button"
+                  className={`view-toggle-btn ${viewMode === 'compact' ? 'active' : ''}`}
+                  onClick={() => setViewMode('compact')}
+                  title="Compact View"
+                >
+                  <List size={14} />
+                  <span className="view-toggle-label">Compact</span>
+                </button>
+              </div>
+
               {/* Friend Filter */}
-              <select
-                className="form-input"
-                value={friendFilter}
-                onChange={e => setFriendFilter(e.target.value)}
-                style={{ width: 'auto', minWidth: 110, height: 34, fontSize: 12, borderRadius: 8, padding: '0 8px' }}
-              >
-                <option value="all">All Friends</option>
-                {friends.map(f => f && (
-                  <option key={f.id} value={f.id}>
-                    {f.name || 'Friend'}
-                  </option>
-                ))}
-              </select>
+              <div className={`settlement-filter-btn-wrap ${friendFilter !== 'all' ? 'active' : ''}`} title="Filter by Friend">
+                <Users size={15} className="filter-btn-icon" />
+                <span className="filter-btn-label">
+                  {friendFilter === 'all' ? 'All Friends' : (friends.find(f => f?.id === friendFilter)?.name || 'Friend')}
+                </span>
+                <ChevronDown size={12} className="filter-btn-chevron" />
+                <select
+                  className="settlement-select-overlay"
+                  value={friendFilter}
+                  onChange={e => setFriendFilter(e.target.value)}
+                >
+                  <option value="all">All Friends</option>
+                  {friends.map(f => f && (
+                    <option key={f.id} value={f.id}>
+                      {f.name || 'Friend'}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               {/* Type Filter */}
-              <select
-                className="form-input"
-                value={typeFilter}
-                onChange={e => setTypeFilter(e.target.value as 'all' | 'received' | 'paid')}
-                style={{ width: 'auto', minWidth: 100, height: 34, fontSize: 12, borderRadius: 8, padding: '0 8px' }}
-              >
-                <option value="all">All Types</option>
-                <option value="received">Received (+)</option>
-                <option value="paid">Paid (-)</option>
-              </select>
+              <div className={`settlement-filter-btn-wrap ${typeFilter !== 'all' ? 'active' : ''}`} title="Filter by Type">
+                {typeFilter === 'received' ? (
+                  <TrendingUp size={15} className="filter-btn-icon credit" />
+                ) : typeFilter === 'paid' ? (
+                  <TrendingDown size={15} className="filter-btn-icon debit" />
+                ) : (
+                  <Filter size={15} className="filter-btn-icon" />
+                )}
+                <span className="filter-btn-label">
+                  {typeFilter === 'all' ? 'All Types' : typeFilter === 'received' ? 'Received (+)' : 'Paid (-)'}
+                </span>
+                <ChevronDown size={12} className="filter-btn-chevron" />
+                <select
+                  className="settlement-select-overlay"
+                  value={typeFilter}
+                  onChange={e => setTypeFilter(e.target.value as 'all' | 'received' | 'paid')}
+                >
+                  <option value="all">All Types</option>
+                  <option value="received">Received (+)</option>
+                  <option value="paid">Paid (-)</option>
+                </select>
+              </div>
             </div>
           </div>
         )}
@@ -566,7 +631,7 @@ export default function Settlements() {
           <>
             {/* Desktop Table View */}
             <div className="table-wrapper desktop-only">
-              <table className="data-table">
+              <table className={`data-table ${viewMode === 'compact' ? 'compact-table' : ''}`}>
                 <thead>
                   <tr>
                     <th>Friend & Direction</th>
@@ -639,6 +704,11 @@ export default function Settlements() {
                             >
                               {isReceived ? '+' : '-'}{fmtMoney(Math.abs(amtVal), currency)}
                             </div>
+                            {s.originalTotal && s.originalTotal > Math.abs(amtVal) ? (
+                              <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 1 }}>
+                                og {fmtMoney(s.originalTotal, currency)} • {fmtMoney(s.remainingAmount || 0, currency)} left
+                              </div>
+                            ) : null}
                           </td>
 
                           {/* Date */}
@@ -706,15 +776,13 @@ export default function Settlements() {
                                 <Eye size={13} /> Details
                               </button>
                               <button
-                                className="btn btn-secondary btn-sm"
+                                className="btn btn-undo btn-sm"
                                 onClick={e => {
                                   e.stopPropagation();
                                   setDelId(s.id);
                                 }}
                                 title="Undo settlement"
                                 style={{
-                                  color: '#d97706',
-                                  borderColor: 'rgba(217, 119, 6, 0.3)',
                                   padding: '4px 8px',
                                   fontSize: 11.5,
                                   gap: 4,
@@ -816,133 +884,193 @@ export default function Settlements() {
               </table>
             </div>
 
-            {/* Compact Individual Mobile Settlement Cards */}
-            <div className="settlement-card-list mobile-only">
-              {filteredSettlements.map(s => {
-                if (!s) return null;
-                const friend = friends.find(f => f && f.id === s.friendId);
-                const wallet = wallets.find(w => w && w.id === s.walletId);
-                const walletName = wallet?.name || s.paymentMethod;
-                const isExpanded = expandedIds.has(s.id);
-                const amtVal = Number(s.amount) || 0;
-                const isReceived = amtVal >= 0;
-                const matchedExpenses = settlementExpensesMap[s.id] || [];
+            {/* Mobile View: Compact vs Detailed Cards */}
+            {viewMode === 'compact' ? (
+              <div className="settlement-compact-list mobile-only">
+                {filteredSettlements.map(s => {
+                  if (!s) return null;
+                  const friend = friends.find(f => f && f.id === s.friendId);
+                  const wallet = wallets.find(w => w && w.id === s.walletId);
+                  const walletName = wallet?.name || s.paymentMethod;
+                  const amtVal = Number(s.amount) || 0;
+                  const isReceived = amtVal >= 0;
 
-                return (
-                  <div key={s.id} className="settlement-card">
-                    {/* Header Row: Friend Avatar & Name + Amount */}
-                    <div className="settlement-card-header">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  return (
+                    <div
+                      key={s.id}
+                      className="settlement-compact-card"
+                      onClick={() => setDetailSettlement(s)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                         {friend && (
                           <div
-                            className="avatar avatar-sm"
+                            className="avatar avatar-xs"
                             style={{ ...getAvatarStyle(friend.color), width: 28, height: 28, fontSize: 11, flexShrink: 0 }}
                           >
                             {friendInitial(friend.name, friend.avatarNumber)}
                           </div>
                         )}
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {friend ? friend.name : 'Deleted friend'}
                           </div>
-                          <div style={{ marginTop: 1 }}>
-                            {isReceived ? (
-                              <span className="settlement-badge-received" style={{ fontSize: 9.5, padding: '1px 6px' }}>
-                                <ArrowDownLeft size={9} /> Received
-                              </span>
-                            ) : (
-                              <span className="settlement-badge-paid" style={{ fontSize: 9.5, padding: '1px 6px' }}>
-                                <ArrowUpRight size={9} /> Paid
-                              </span>
-                            )}
+                          <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 1 }}>
+                            {fmtDate(s.date)}{walletName ? ` · ${walletName}` : ''}
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ fontWeight: 800, fontSize: 14, color: isReceived ? 'var(--credit)' : 'var(--debit)', whiteSpace: 'nowrap' }}>
-                        {isReceived ? '+' : '-'}{fmtMoney(Math.abs(amtVal), currency)}
-                      </div>
-                    </div>
-
-                    {/* Card Meta Row: Date, Wallet & Action Buttons */}
-                    <div className="settlement-card-meta">
-                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
-                        {fmtDate(s.date)}{walletName ? ` · ${walletName}` : ''}
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: isReceived ? 'var(--credit)' : 'var(--debit)' }}>
+                            {isReceived ? '+' : '-'}{fmtMoney(Math.abs(amtVal), currency)}
+                          </div>
+                        </div>
                         <button
                           type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setDetailSettlement(s)}
-                          style={{ fontSize: 11, padding: '2px 6px', gap: 3, height: 24 }}
-                        >
-                          <Eye size={11} /> Details
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => setDelId(s.id)}
+                          className="btn btn-undo btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDelId(s.id);
+                          }}
                           title="Undo settlement"
-                          style={{ color: '#d97706', borderColor: 'rgba(217, 119, 6, 0.3)', padding: '2px 6px', fontSize: 11, gap: 3, height: 24 }}
+                          style={{ padding: '2px 6px', fontSize: 10.5, height: 24 }}
                         >
-                          <RotateCcw size={11} /> Undo
+                          <RotateCcw size={10} />
                         </button>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="settlement-card-list mobile-only">
+                {filteredSettlements.map(s => {
+                  if (!s) return null;
+                  const friend = friends.find(f => f && f.id === s.friendId);
+                  const wallet = wallets.find(w => w && w.id === s.walletId);
+                  const walletName = wallet?.name || s.paymentMethod;
+                  const isExpanded = expandedIds.has(s.id);
+                  const amtVal = Number(s.amount) || 0;
+                  const isReceived = amtVal >= 0;
+                  const matchedExpenses = settlementExpensesMap[s.id] || [];
 
-                    {/* Expandable Expenses Button */}
-                    <button
-                      type="button"
-                      className="settlement-exp-toggle-btn"
-                      onClick={() => toggleExpand(s.id)}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <Receipt size={12} />
-                        {matchedExpenses.length} expense{matchedExpenses.length !== 1 ? 's' : ''} settled
-                      </span>
-                      {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    </button>
-
-                    {/* Expanded Expenses List */}
-                    {isExpanded && (
-                      <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {matchedExpenses.map(exp => {
-                          if (!exp) return null;
-                          const isForFriend = exp.type === 'for_friend';
-                          return (
+                  return (
+                    <div key={s.id} className="settlement-card">
+                      {/* Header Row: Friend Avatar & Name + Amount */}
+                      <div className="settlement-card-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                          {friend && (
                             <div
-                              key={exp.id}
-                              style={{
-                                padding: '6px 8px',
-                                background: 'var(--surface2)',
-                                borderRadius: 6,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                fontSize: 11,
-                              }}
+                              className="avatar avatar-sm"
+                              style={{ ...getAvatarStyle(friend.color), width: 28, height: 28, fontSize: 11, flexShrink: 0 }}
                             >
-                              <div style={{ minWidth: 0, flex: 1, marginRight: 6 }}>
-                                <div style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {exp.description || 'Expense'}
-                                </div>
-                                <div style={{ fontSize: 10, color: 'var(--text-3)' }}>
-                                  {exp.category} • {fmtDate(exp.date)}
-                                </div>
-                              </div>
-                              <div style={{ fontWeight: 700, color: isForFriend ? 'var(--credit)' : 'var(--debit)', whiteSpace: 'nowrap' }}>
-                                {isForFriend ? '+' : '-'}{fmtMoney(Number(exp.amount) || 0, currency)}
-                              </div>
+                              {friendInitial(friend.name, friend.avatarNumber)}
                             </div>
-                          );
-                        })}
+                          )}
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {friend ? friend.name : 'Deleted friend'}
+                            </div>
+                            <div style={{ marginTop: 1 }}>
+                              {isReceived ? (
+                                <span className="settlement-badge-received" style={{ fontSize: 9.5, padding: '1px 6px' }}>
+                                  <ArrowDownLeft size={9} /> Received
+                                </span>
+                              ) : (
+                                <span className="settlement-badge-paid" style={{ fontSize: 9.5, padding: '1px 6px' }}>
+                                  <ArrowUpRight size={9} /> Paid
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ fontWeight: 800, fontSize: 14, color: isReceived ? 'var(--credit)' : 'var(--debit)', whiteSpace: 'nowrap' }}>
+                          {isReceived ? '+' : '-'}{fmtMoney(Math.abs(amtVal), currency)}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+
+                      {/* Card Meta Row: Date, Wallet & Action Buttons */}
+                      <div className="settlement-card-meta">
+                        <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                          {fmtDate(s.date)}{walletName ? ` · ${walletName}` : ''}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setDetailSettlement(s)}
+                            style={{ fontSize: 11, padding: '2px 6px', gap: 3, height: 24 }}
+                          >
+                            <Eye size={11} /> Details
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-undo btn-sm"
+                            onClick={() => setDelId(s.id)}
+                            title="Undo settlement"
+                            style={{ padding: '2px 8px', fontSize: 11, gap: 3, height: 24 }}
+                          >
+                            <RotateCcw size={11} /> Undo
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Expandable Expenses Button */}
+                      <button
+                        type="button"
+                        className="settlement-exp-toggle-btn"
+                        onClick={() => toggleExpand(s.id)}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <Receipt size={12} />
+                          {matchedExpenses.length} expense{matchedExpenses.length !== 1 ? 's' : ''} settled
+                        </span>
+                        {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                      </button>
+
+                      {/* Expanded Expenses List */}
+                      {isExpanded && (
+                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {matchedExpenses.map(exp => {
+                            if (!exp) return null;
+                            const isForFriend = exp.type === 'for_friend';
+                            return (
+                              <div
+                                key={exp.id}
+                                style={{
+                                  padding: '6px 8px',
+                                  background: 'var(--surface2)',
+                                  borderRadius: 6,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  fontSize: 11,
+                                }}
+                              >
+                                <div style={{ minWidth: 0, flex: 1, marginRight: 6 }}>
+                                  <div style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {exp.description || 'Expense'}
+                                  </div>
+                                  <div style={{ fontSize: 10, color: 'var(--text-3)' }}>
+                                    {exp.category} • {fmtDate(exp.date)}
+                                  </div>
+                                </div>
+                                <div style={{ fontWeight: 700, color: isForFriend ? 'var(--credit)' : 'var(--debit)', whiteSpace: 'nowrap' }}>
+                                  {isForFriend ? '+' : '-'}{fmtMoney(Number(exp.amount) || 0, currency)}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
       </div>

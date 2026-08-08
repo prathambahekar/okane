@@ -377,11 +377,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const recordSettlement = useCallback((friendId: string, expenseIds: string[], note: string, walletId?: string, customAmount?: number, date?: string) => {
     setDB(current => {
+      const snapshot = current;
       const next = dbRecordSettlement(current, friendId, expenseIds, note, walletId, customAmount, date);
       saveDB(next);
+      pushUndo('Settlement recorded', snapshot, () => persist(snapshot));
       return next;
     });
-  }, []);
+  }, [pushUndo, persist]);
 
   const deleteSettlement = useCallback((id: string) => {
     setDB(current => {
