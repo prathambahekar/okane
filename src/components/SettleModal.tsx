@@ -5,7 +5,7 @@ import CategoryIcon from './CategoryIcon';
 import { useStore } from '../store';
 import type { Friend } from '../types';
 import { expenseFlow, unsettledExpensesForFriend, todayISO } from '../db';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, cleanExpenseDescription } from '../utils';
 
 interface Props {
   friend: Friend;
@@ -28,6 +28,7 @@ export default function SettleModal({ friend, onClose }: Props) {
   const [customAmountStr, setCustomAmountStr] = useState('');
 
   const selectedArr = unsettled.filter(e => selected.has(e.id));
+
   const owedToMe = selectedArr.filter(e => e.type === 'for_friend' && expenseFlow(e) === 'out').reduce((s, e) => s + Number(e.amount), 0);
   const owedByMe = selectedArr.filter(e => e.type === 'by_friend' && expenseFlow(e) === 'out').reduce((s, e) => s + Number(e.amount), 0);
   const net = owedToMe - owedByMe;
@@ -95,21 +96,21 @@ export default function SettleModal({ friend, onClose }: Props) {
                       <CategoryIcon category={e.category} size={15} style={{ color: cat?.color ?? 'var(--accent)', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {e.description}
+                          {cleanExpenseDescription(e.description)}
                         </div>
                         <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
-                          {fmtDate(e.date)} {origAmt ? `• Original ${fmtMoney(origAmt, currency)}` : ''}
+                          {fmtDate(e.originalDate || e.date)} {origAmt && Math.abs(origAmt - e.amount) > 0.01 ? `• Original ${fmtMoney(origAmt, currency)}` : ''}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 13, color: isForFriend ? 'var(--credit)' : 'var(--debit)' }}>
                           {isForFriend ? '+' : '-'}{fmtMoney(e.amount, currency)}
                         </div>
-                        {origAmt && (
+                        {origAmt && Math.abs(origAmt - e.amount) > 0.01 ? (
                           <div style={{ fontSize: 10, color: 'var(--text-3)' }}>
                             og {fmtMoney(origAmt, currency)}
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </label>
                   );
@@ -211,8 +212,8 @@ export default function SettleModal({ friend, onClose }: Props) {
                 )}
               </div>
 
-              <div className="form-group" style={{ marginBottom: 12 }}>
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div className="form-group" style={{ marginBottom: 14 }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <Calendar size={14} style={{ color: 'var(--accent)' }} />
                   <span>Settlement Date</span>
                 </label>

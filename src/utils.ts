@@ -1,5 +1,5 @@
 import { CURRENCIES } from './db';
-import type { Expense, ExpenseFlow, ExpenseType, Wallet } from './types';
+import type { Expense, ExpenseFlow, ExpenseType, Wallet, Friend } from './types';
 import { expenseFlow, personalNetAmount } from './db';
 
 export function currencySymbol(currency: string): string {
@@ -69,6 +69,18 @@ export function flowLabel(flow: ExpenseFlow): string {
   return flow === 'in' ? 'Received' : 'Spent';
 }
 
+export function cleanExpenseDescription(desc: string): string {
+  if (!desc) return '';
+  return desc
+    .replace(/\s*\([^)]*Bill[^)]*\)/gi, '')
+    .replace(/\s*\([^)]*Tiffin Aunty[^)]*\)/gi, '')
+    .replace(/\s*\(Unpaid.*?\)/gi, '')
+    .replace(/\s*\(Remaining\)/gi, '')
+    .replace(/\s*\(Friend share\)/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function fmtExpenseAmount(e: Expense, currency: string): string {
   if (expenseFlow(e) === 'in') return '+' + fmtMoney(e.amount, currency);
   return fmtMoney(e.amount, currency);
@@ -84,6 +96,7 @@ export function expenseAmountClass(e: Expense): string {
 export interface GroupedExpense {
   id: string;
   groupId?: string | null;
+  settlementId?: string | null;
   description: string;
   totalAmount: number;
   date: string;
@@ -93,6 +106,9 @@ export interface GroupedExpense {
   createdAt: number;
   items: Expense[];
   isSplit: boolean;
+  isSettlementGroup?: boolean;
+  settlementItemCount?: number;
+  settlementDateRange?: string;
   personalShare: number;
   friendShare: number;
   friendIds: string[];
@@ -100,12 +116,25 @@ export interface GroupedExpense {
   toWalletName?: string;
 }
 
-export function groupExpenses(expenses: Expense[], wallets?: Wallet[]): GroupedExpense[] {
+export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?: Friend[]): GroupedExpense[] {
+  const settlementCounts = new Map<string, number>();
+  for (const e of expenses) {
+    if (e.settlementId) {
+      settlementCounts.set(e.settlementId, (settlementCounts.get(e.settlementId) || 0) + 1);
+    }
+  }
+
   const groupedMap = new Map<string, Expense[]>();
   const singles: Expense[] = [];
 
   for (const e of expenses) {
-    if (e.groupId) {
+    if (e.settlementId && (settlementCounts.get(e.settlementId) || 0) > 1) {
+      const stlKey = `stl_${e.settlementId}`;
+      if (!groupedMap.has(stlKey)) {
+        groupedMap.set(stlKey, []);
+      }
+      groupedMap.get(stlKey)!.push(e);
+    } else if (e.groupId) {
       if (!groupedMap.has(e.groupId)) {
         groupedMap.set(e.groupId, []);
       }
@@ -118,137 +147,205 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[]): GroupedE
   const result: GroupedExpense[] = [];
 
   groupedMap.forEach((items, gId) => {
-    const isTransferGroup = items.some(i => i.category === 'Transfer') || gId.startsWith('trf_grp');
-
-    if (isTransferGroup) {
-      const outItem = items.find(i => i.flow === 'out') || items[0];
-      const inItem = items.find(i => i.flow === 'in') || items[1];
-
-      let fromWName = outItem ? wallets?.find(w => w.id === outItem.walletId)?.name : undefined;
-      let toWName = inItem ? wallets?.find(w => w.id === inItem.walletId)?.name : undefined;
-
-      if (!fromWName && inItem?.description) {
-        const m = inItem.description.match(/Transfer from\s+(.+?)(?:\s*\(|$)/i);
-        if (m) fromWName = m[1].trim();
-      }
-      if (!toWName && outItem?.description) {
-        const m = outItem.description.match(/Transfer to\s+(.+?)(?:\s*\(|$)/i);
-        if (m) toWName = m[1].trim();
-      }
-
-      fromWName = fromWName || 'Wallet';
-      toWName = toWName || 'Wallet';
-
-      let noteStr = '';
-      if (outItem?.notes && !outItem.notes.toLowerCase().startsWith('transfer to')) {
-        noteStr = outItem.notes.trim();
-      } else if (inItem?.notes && !inItem.notes.toLowerCase().startsWith('transfer from')) {
-        noteStr = inItem.notes.trim();
-      }
-
-      const cleanDesc = `Transfer: ${fromWName} → ${toWName}${noteStr ? ` (${noteStr})` : ''}`;
-      const transferAmount = outItem ? outItem.amount : (inItem ? inItem.amount : items[0].amount);
+    if (gId.startsWith('stl_')) {
       const maxCreatedAt = Math.max(...items.map(i => i.createdAt || 0));
+      const first = items[0];
+      const friendIds = Array.from(new Set(items.map(i => i.friendId).filter(Boolean) as string[]));
+
+      let net = 0;
+      items.forEach(i => {
+        const amt = Number(i.settledAmount) || Number(i.amount) || 0;
+        if (i.type === 'for_friend') {
+          net += amt;
+        } else if (i.type === 'by_friend') {
+          net -= amt;
+        } else {
+          net += (i.flow === 'in' ? amt : -amt);
+        }
+      });
+
+      const totalAmount = Math.abs(net);
+      const flow: ExpenseFlow = net >= 0 ? 'in' : 'out';
+
+      const cleanDescs = items.map(i => cleanExpenseDescription(i.description)).filter(Boolean);
+      const firstDesc = cleanDescs[0];
+      const allSameDesc = cleanDescs.length > 0 && cleanDescs.every(d => d === firstDesc);
+
+      const rawDates = items.map(i => i.originalDate || i.date).filter(Boolean);
+      const uniqueDates = Array.from(new Set(rawDates)).sort();
+
+      let dateRangeStr = '';
+      if (uniqueDates.length === 1) {
+        dateRangeStr = fmtDate(uniqueDates[0]);
+      } else if (uniqueDates.length > 1) {
+        dateRangeStr = `${fmtDate(uniqueDates[0])} – ${fmtDate(uniqueDates[uniqueDates.length - 1])}`;
+      }
+
+      let cleanTitle = 'Settlement';
+      if (allSameDesc && firstDesc) {
+        cleanTitle = firstDesc;
+      } else if (friends && friendIds.length === 1) {
+        const f = friends.find(fr => fr.id === friendIds[0]);
+        if (f) cleanTitle = `Settlement with ${f.name}`;
+      }
+
+      const firstCat = first.category;
+      const allSameCat = items.every(i => i.category === firstCat);
+      const category = allSameCat ? firstCat : 'Food';
 
       result.push({
         id: gId,
         groupId: gId,
-        description: cleanDesc,
-        totalAmount: transferAmount,
-        date: outItem?.date || items[0].date,
-        category: 'Transfer',
-        walletId: outItem?.walletId || items[0].walletId,
-        flow: 'out',
+        settlementId: first.settlementId,
+        description: cleanTitle,
+        totalAmount,
+        date: first.date,
+        category,
+        walletId: first.walletId,
+        flow,
         createdAt: maxCreatedAt,
         items,
-        isSplit: false,
+        isSplit: true,
+        isSettlementGroup: true,
+        settlementItemCount: items.length,
+        settlementDateRange: dateRangeStr,
         personalShare: 0,
-        friendShare: 0,
-        friendIds: [],
-        fromWalletName: fromWName,
-        toWalletName: toWName,
-      });
-    } else if (items.length <= 1) {
-      const e = items[0];
-      const friendIds = e.friendId ? [e.friendId] : [];
-      result.push({
-        id: e.id,
-        groupId: e.groupId,
-        description: e.description.replace(/\s*\(Friend share\)$/i, '').trim(),
-        totalAmount: e.amount,
-        date: e.date,
-        category: e.category,
-        walletId: e.walletId,
-        flow: e.flow,
-        createdAt: e.createdAt,
-        items: [e],
-        isSplit: e.type !== 'personal',
-        personalShare: e.type === 'personal' ? e.amount : 0,
-        friendShare: e.type !== 'personal' ? e.amount : 0,
+        friendShare: totalAmount,
         friendIds,
       });
     } else {
-      items.sort((a) => (a.type === 'personal' ? -1 : 1));
-      const first = items[0];
+      const isTransferGroup = items.some(i => i.category === 'Transfer') || gId.startsWith('trf_grp');
 
-      const byFriendItems = items.filter(i => i.type === 'by_friend');
-      const forFriendItems = items.filter(i => i.type === 'for_friend');
-      const personalItems = items.filter(i => i.type === 'personal');
+      if (isTransferGroup) {
+        const outItem = items.find(i => i.flow === 'out') || items[0];
+        const inItem = items.find(i => i.flow === 'in') || items[1];
 
-      const byFriendSum = byFriendItems.reduce((sum, item) => sum + Number(item.amount), 0);
-      const forFriendSum = forFriendItems.reduce((sum, item) => sum + Number(item.amount), 0);
-      const personalSum = personalItems.reduce((sum, item) => sum + Number(item.amount), 0);
+        let fromWName = outItem ? wallets?.find(w => w.id === outItem.walletId)?.name : undefined;
+        let toWName = inItem ? wallets?.find(w => w.id === inItem.walletId)?.name : undefined;
 
-      const totalAmount = byFriendItems.length > 0
-        ? Math.max(byFriendSum, personalSum + forFriendSum)
-        : (personalSum + forFriendSum || items.reduce((sum, i) => sum + Number(i.amount), 0));
+        if (!fromWName && inItem?.description) {
+          const m = inItem.description.match(/Transfer from\s+(.+?)(?:\s*\(|$)/i);
+          if (m) fromWName = m[1].trim();
+        }
+        if (!toWName && outItem?.description) {
+          const m = outItem.description.match(/Transfer to\s+(.+?)(?:\s*\(|$)/i);
+          if (m) toWName = m[1].trim();
+        }
 
-      const personalShare = personalItems.length > 0
-        ? personalSum
-        : (byFriendItems.length > 0 ? Math.max(0, totalAmount - forFriendSum) : 0);
+        fromWName = fromWName || 'Wallet';
+        toWName = toWName || 'Wallet';
 
-      const friendShare = forFriendSum;
-      const friendIds = Array.from(new Set(items.map(i => i.friendId).filter(Boolean) as string[]));
-      const maxCreatedAt = Math.max(...items.map(i => i.createdAt || 0));
-      const cleanDesc = first.description.replace(/\s*\([^)]*\)$/i, '').trim();
+        let noteStr = '';
+        if (outItem?.notes && !outItem.notes.toLowerCase().startsWith('transfer to')) {
+          noteStr = outItem.notes.trim();
+        } else if (inItem?.notes && !inItem.notes.toLowerCase().startsWith('transfer from')) {
+          noteStr = inItem.notes.trim();
+        }
 
-      const finalItems = [...items];
-      if (personalItems.length === 0 && personalShare > 0) {
-        finalItems.unshift({
-          id: `synth_mine_${gId}`,
-          description: cleanDesc,
-          amount: personalShare,
-          category: first.category,
-          date: first.date,
-          type: 'personal',
-          flow: first.flow,
-          friendId: null,
-          walletId: first.walletId,
-          status: 'paid',
-          settled: false,
-          settlementId: null,
-          notes: '',
-          createdAt: maxCreatedAt,
+        const cleanDesc = `Transfer: ${fromWName} → ${toWName}${noteStr ? ` (${noteStr})` : ''}`;
+        const transferAmount = outItem ? outItem.amount : (inItem ? inItem.amount : items[0].amount);
+        const maxCreatedAt = Math.max(...items.map(i => i.createdAt || 0));
+
+        result.push({
+          id: gId,
           groupId: gId,
+          description: cleanDesc,
+          totalAmount: transferAmount,
+          date: outItem?.date || items[0].date,
+          category: 'Transfer',
+          walletId: outItem?.walletId || items[0].walletId,
+          flow: 'out',
+          createdAt: maxCreatedAt,
+          items,
+          isSplit: false,
+          personalShare: 0,
+          friendShare: 0,
+          friendIds: [],
+          fromWalletName: fromWName,
+          toWalletName: toWName,
+        });
+      } else if (items.length <= 1) {
+        const e = items[0];
+        const friendIds = e.friendId ? [e.friendId] : [];
+        result.push({
+          id: e.id,
+          groupId: e.groupId,
+          description: e.description.replace(/\s*\(Friend share\)$/i, '').trim(),
+          totalAmount: e.amount,
+          date: e.date,
+          category: e.category,
+          walletId: e.walletId,
+          flow: e.flow,
+          createdAt: e.createdAt,
+          items: [e],
+          isSplit: false,
+          personalShare: e.type === 'personal' ? e.amount : 0,
+          friendShare: e.type !== 'personal' ? e.amount : 0,
+          friendIds,
+        });
+      } else {
+        items.sort((a) => (a.type === 'personal' ? -1 : 1));
+        const first = items[0];
+
+        const byFriendItems = items.filter(i => i.type === 'by_friend');
+        const forFriendItems = items.filter(i => i.type === 'for_friend');
+        const personalItems = items.filter(i => i.type === 'personal');
+
+        const byFriendSum = byFriendItems.reduce((sum, item) => sum + Number(item.amount), 0);
+        const forFriendSum = forFriendItems.reduce((sum, item) => sum + Number(item.amount), 0);
+        const personalSum = personalItems.reduce((sum, item) => sum + Number(item.amount), 0);
+
+        const totalAmount = byFriendItems.length > 0
+          ? Math.max(byFriendSum, personalSum + forFriendSum)
+          : (personalSum + forFriendSum || items.reduce((sum, i) => sum + Number(i.amount), 0));
+
+        const personalShare = personalItems.length > 0
+          ? personalSum
+          : (byFriendItems.length > 0 ? Math.max(0, totalAmount - forFriendSum) : 0);
+
+        const friendShare = forFriendSum;
+        const friendIds = Array.from(new Set(items.map(i => i.friendId).filter(Boolean) as string[]));
+        const maxCreatedAt = Math.max(...items.map(i => i.createdAt || 0));
+        const cleanDesc = first.description.replace(/\s*\([^)]*\)$/i, '').trim();
+
+        const finalItems = [...items];
+        if (personalItems.length === 0 && personalShare > 0) {
+          finalItems.unshift({
+            id: `synth_mine_${gId}`,
+            description: cleanDesc,
+            amount: personalShare,
+            category: first.category,
+            date: first.date,
+            type: 'personal',
+            flow: first.flow,
+            friendId: null,
+            walletId: first.walletId,
+            status: 'paid',
+            settled: false,
+            settlementId: null,
+            notes: '',
+            createdAt: maxCreatedAt,
+            groupId: gId,
+          });
+        }
+
+        result.push({
+          id: gId,
+          groupId: gId,
+          description: cleanDesc,
+          totalAmount,
+          date: first.date,
+          category: first.category,
+          walletId: first.walletId,
+          flow: first.flow,
+          createdAt: maxCreatedAt,
+          items: finalItems,
+          isSplit: personalItems.length > 0 && (forFriendItems.length > 0 || byFriendItems.length > 0),
+          personalShare,
+          friendShare,
+          friendIds,
         });
       }
-
-      result.push({
-        id: gId,
-        groupId: gId,
-        description: cleanDesc,
-        totalAmount,
-        date: first.date,
-        category: first.category,
-        walletId: first.walletId,
-        flow: first.flow,
-        createdAt: maxCreatedAt,
-        items: finalItems,
-        isSplit: true,
-        personalShare,
-        friendShare,
-        friendIds,
-      });
     }
   });
 

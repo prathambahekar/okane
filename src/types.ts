@@ -52,6 +52,7 @@ export interface Expense {
   notes: string;
   createdAt: number;
   originalAmount?: number;
+  originalDate?: string;
   settledAmount?: number;
   parentExpenseId?: string | null;
 }

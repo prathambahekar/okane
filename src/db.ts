@@ -953,7 +953,14 @@ export function loadDB(): AppDB {
             const id = String(row.id ?? '');
             if (!id || seenExpenses.has(id)) return;
             seenExpenses.add(id);
-            insertSafe('INSERT INTO expenses VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [row.id, row.groupId, row.description, row.amount, row.category, row.date, row.type, row.flow, row.friendId, row.walletId, row.status, row.settled, row.settlementId, row.notes, row.createdAt]);
+            insertSafe('INSERT INTO expenses VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+              row.id, row.groupId || null, row.description, Number(row.amount) || 0, row.category, row.date,
+              row.type, row.flow, row.friendId || null, row.walletId || null, row.status, row.settled ? 1 : 0,
+              row.settlementId || null, row.notes || '', row.createdAt || Date.now(),
+              row.originalAmount != null ? Number(row.originalAmount) : null,
+              row.settledAmount != null ? Number(row.settledAmount) : null,
+              row.parentExpenseId || null
+            ]);
           });
         }
 
@@ -963,7 +970,14 @@ export function loadDB(): AppDB {
             const id = String(row.id ?? '');
             if (!id || seenSettlements.has(id)) return;
             seenSettlements.add(id);
-            insertSafe('INSERT INTO settlements VALUES (?,?,?,?,?,?,?,?)', [row.id, row.friendId, row.amount, row.date, row.note, row.walletId, row.createdAt, row.expenseIds]);
+            insertSafe('INSERT INTO settlements VALUES (?,?,?,?,?,?,?,?,?,?,?)', [
+              row.id, row.friendId, Number(row.amount) || 0, row.date, row.note || '', row.walletId || null,
+              row.createdAt || Date.now(),
+              typeof row.expenseIds === 'string' ? row.expenseIds : JSON.stringify(row.expenseIds ?? []),
+              row.originalTotal != null ? Number(row.originalTotal) : null,
+              row.remainingAmount != null ? Number(row.remainingAmount) : null,
+              row.partialBreakdown ? (typeof row.partialBreakdown === 'string' ? row.partialBreakdown : JSON.stringify(row.partialBreakdown)) : null
+            ]);
           });
         }
 
@@ -1000,14 +1014,25 @@ export function loadDB(): AppDB {
 
         const loaded = loadDBFromSQLTables();
         const legacyRaw = localStorage.getItem(LEGACY_JSON_KEY);
-        if (legacyRaw && (!loaded.friends || loaded.friends.length === 0)) {
+        if (legacyRaw && (!loaded.expenses || loaded.expenses.length === 0 || !loaded.friends || loaded.friends.length === 0)) {
           try {
             const parsed = JSON.parse(legacyRaw) as Partial<AppDB>;
-            if (Array.isArray(parsed.friends) && parsed.friends.length > 0) {
-              loaded.friends = parsed.friends as Friend[];
+            if (parsed && typeof parsed === 'object') {
+              if ((!loaded.expenses || loaded.expenses.length === 0) && Array.isArray(parsed.expenses) && parsed.expenses.length > 0) {
+                loaded.expenses = parsed.expenses as Expense[];
+              }
+              if ((!loaded.friends || loaded.friends.length === 0) && Array.isArray(parsed.friends) && parsed.friends.length > 0) {
+                loaded.friends = parsed.friends as Friend[];
+              }
+              if ((!loaded.settlements || loaded.settlements.length === 0) && Array.isArray(parsed.settlements) && parsed.settlements.length > 0) {
+                loaded.settlements = parsed.settlements as Settlement[];
+              }
+              if ((!loaded.wallets || loaded.wallets.length === 0) && Array.isArray(parsed.wallets) && parsed.wallets.length > 0) {
+                loaded.wallets = parsed.wallets as Wallet[];
+              }
             }
           } catch (e) {
-            console.warn('Failed to recover friends from legacy storage:', e);
+            console.warn('Failed to recover data from legacy storage:', e);
           }
         }
         syncDBToSQLTables(loaded);
@@ -1401,11 +1426,12 @@ export function recordSettlement(
   
   const fullNet = owedToMe - owedByMe;
   const originalTotal = Math.abs(fullNet);
-  const actualSettleAmount = (customAmount !== undefined && !isNaN(customAmount) && customAmount > 0)
-    ? customAmount
+  const isFullSettlement = customAmount === undefined || customAmount === null || customAmount >= originalTotal;
+  const actualSettleAmount = (!isFullSettlement && !isNaN(customAmount!) && customAmount! > 0)
+    ? customAmount!
     : originalTotal;
 
-  const remainingAmount = Math.max(0, Number((originalTotal - actualSettleAmount).toFixed(2)));
+  const remainingAmount = isFullSettlement ? 0 : Math.max(0, Number((originalTotal - actualSettleAmount).toFixed(2)));
 
   const wallet = walletId ? db.wallets.find(w => w.id === walletId) : undefined;
 
@@ -1425,8 +1451,10 @@ export function recordSettlement(
     const origAmt = e.originalAmount ?? (Number(e.amount) || 0);
     const currentAmt = Number(e.amount) || 0;
 
-    if (remainingCover >= currentAmt) {
-      remainingCover -= currentAmt;
+    if (isFullSettlement || remainingCover >= currentAmt) {
+      if (!isFullSettlement) {
+        remainingCover -= currentAmt;
+      }
       coveredExpenseIds.push(e.id);
       breakdown[e.id] = {
         originalAmount: origAmt,
@@ -1436,6 +1464,7 @@ export function recordSettlement(
       updatedExpenses.push({
         ...e,
         originalAmount: origAmt,
+        originalDate: e.originalDate || e.date,
         settledAmount: currentAmt,
         settled: true,
         settlementId: '', // Will assign below
@@ -1456,6 +1485,7 @@ export function recordSettlement(
       updatedExpenses.push({
         ...e,
         originalAmount: origAmt,
+        originalDate: e.originalDate || e.date,
         settledAmount: coveredPortion,
         amount: coveredPortion,
         settled: true,
@@ -1469,6 +1499,7 @@ export function recordSettlement(
         id: newChildId,
         parentExpenseId: e.id,
         originalAmount: origAmt,
+        originalDate: e.originalDate || e.date,
         amount: remainingPortion,
         description: e.description.includes('Remaining') ? e.description : `${e.description} (Remaining)`,
         settled: false,
@@ -1509,31 +1540,41 @@ export function recordSettlement(
 
 export function deleteSettlement(db: AppDB, id: string): AppDB {
   const target = (db.settlements || []).find(s => s.id === id);
-  if (!target) return db;
+  const targetExpenseIds = new Set(target?.expenseIds || []);
 
-  const targetExpenseIds = new Set(target.expenseIds || []);
-
-  // Identify split child expenses that were created during partial settlement
   const childExpenseIdsToDelete = new Set<string>();
+  const parentExpenseIdsToRestore = new Set<string>(targetExpenseIds);
+
   db.expenses.forEach(e => {
-    if (e.parentExpenseId && (targetExpenseIds.has(e.parentExpenseId) || e.settlementId === id)) {
+    if (e.settlementId === id) {
+      if (e.parentExpenseId) {
+        childExpenseIdsToDelete.add(e.id);
+        parentExpenseIdsToRestore.add(e.parentExpenseId);
+      } else {
+        parentExpenseIdsToRestore.add(e.id);
+      }
+    } else if (e.parentExpenseId && targetExpenseIds.has(e.parentExpenseId)) {
       childExpenseIdsToDelete.add(e.id);
+      parentExpenseIdsToRestore.add(e.parentExpenseId);
     }
   });
 
-  // Filter out the child expenses
+  // Filter out child expenses created during partial settlement
   let expenses = db.expenses.filter(e => !childExpenseIdsToDelete.has(e.id));
 
   // Restore parent / settled expenses back to pre-settlement state
   expenses = expenses.map(e => {
-    if (e.settlementId === id || targetExpenseIds.has(e.id)) {
+    if (e.settlementId === id || parentExpenseIdsToRestore.has(e.id) || (e.groupId && parentExpenseIdsToRestore.has(e.groupId))) {
       const restoredAmt = e.originalAmount ?? e.amount;
+      const restoredDate = e.originalDate || e.date;
       return {
         ...e,
         amount: restoredAmt,
+        date: restoredDate,
         settled: false,
         settlementId: null,
         originalAmount: undefined,
+        originalDate: undefined,
         settledAmount: undefined,
       };
     }
@@ -1548,12 +1589,106 @@ export function deleteSettlement(db: AppDB, id: string): AppDB {
 }
 
 export function unsettleExpense(db: AppDB, expenseId: string): AppDB {
+  if (expenseId.startsWith('stl_') || (db.settlements || []).some(s => s.id === expenseId)) {
+    return deleteSettlement(db, expenseId);
+  }
+
   const exp = db.expenses.find(e => e.id === expenseId);
-  if (!exp) return db;
+  if (!exp) {
+    const groupExps = db.expenses.filter(e => e.groupId === expenseId);
+    if (groupExps.length > 0) {
+      const stl = (db.settlements || []).find(s =>
+        groupExps.some(ge => (s.expenseIds || []).includes(ge.id) || (ge.settlementId === s.id))
+      );
+      if (stl) return deleteSettlement(db, stl.id);
+
+      const childIds = new Set(groupExps.filter(e => e.parentExpenseId).map(e => e.id));
+      const expenses = db.expenses.filter(e => !childIds.has(e.id)).map(e => {
+        if (e.groupId === expenseId) {
+          return {
+            ...e,
+            amount: e.originalAmount ?? e.amount,
+            date: e.originalDate || e.date,
+            settled: false,
+            settlementId: null,
+            originalAmount: undefined,
+            originalDate: undefined,
+            settledAmount: undefined,
+          };
+        }
+        return e;
+      });
+      return { ...db, expenses };
+    }
+    return db;
+  }
+
+  // 1. Direct settlementId
   if (exp.settlementId) {
     return deleteSettlement(db, exp.settlementId);
   }
-  const expenses = db.expenses.map(e => e.id === expenseId ? { ...e, settled: false, settlementId: null } : e);
+
+  // 2. Parent expense check
+  const parentId = exp.parentExpenseId;
+  if (parentId) {
+    const parentExp = db.expenses.find(e => e.id === parentId);
+    if (parentExp?.settlementId) {
+      return deleteSettlement(db, parentExp.settlementId);
+    }
+  }
+
+  // 3. Search settlements for expenseId or parentExpenseId
+  const stl = (db.settlements || []).find(s =>
+    (s.expenseIds || []).includes(exp.id) ||
+    (parentId && (s.expenseIds || []).includes(parentId))
+  );
+  if (stl) {
+    return deleteSettlement(db, stl.id);
+  }
+
+  // 4. Group ID check for split/grouped expenses
+  if (exp.groupId) {
+    const groupExpenses = db.expenses.filter(e => e.groupId === exp.groupId);
+    for (const ge of groupExpenses) {
+      if (ge.settlementId) {
+        return deleteSettlement(db, ge.settlementId);
+      }
+      const groupStl = (db.settlements || []).find(s =>
+        (s.expenseIds || []).includes(ge.id) ||
+        (ge.parentExpenseId && (s.expenseIds || []).includes(ge.parentExpenseId))
+      );
+      if (groupStl) {
+        return deleteSettlement(db, groupStl.id);
+      }
+    }
+  }
+
+  // 5. Fallback reset for this expense and its parent/child relationships
+  const parentIdToRestore = exp.parentExpenseId || exp.id;
+  const childIdsToDelete = new Set(
+    db.expenses.filter(e => e.parentExpenseId === parentIdToRestore).map(e => e.id)
+  );
+
+  const expenses = db.expenses
+    .filter(e => !childIdsToDelete.has(e.id))
+    .map(e => {
+      if (e.id === parentIdToRestore || e.id === expenseId || (exp.groupId && e.groupId === exp.groupId)) {
+        const restoredAmt = e.originalAmount ?? e.amount;
+        const restoredDate = e.originalDate || e.date;
+        return {
+          ...e,
+          amount: restoredAmt,
+          date: restoredDate,
+          settled: false,
+          settlementId: null,
+          originalAmount: undefined,
+          originalDate: undefined,
+          settledAmount: undefined,
+        };
+      }
+      return e;
+    });
+
   return { ...db, expenses };
 }
 

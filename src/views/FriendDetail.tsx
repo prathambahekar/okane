@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { ArrowLeft, Handshake, Plus, ChevronDown, ChevronUp, Edit2, Trash2, Store, Tv, ExternalLink, RefreshCw, Zap, Play } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, expenseFlow, contactTotalSpent } from '../db';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, statusLabel } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, statusLabel, cleanExpenseDescription } from '../utils';
 import type { ViewName, Expense } from '../types';
 import FriendModal from '../components/FriendModal';
 import { renderBrandLogo } from '../components/BrandIcons';
@@ -570,16 +570,16 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
                     return (
                       <tr key={e.id} className={rowClass}>
-                        <td style={{ fontWeight: 500, fontSize: 13 }}>{e.description}</td>
+                        <td style={{ fontWeight: 500, fontSize: 13 }}>{cleanExpenseDescription(e.description)}</td>
                         <td style={{ fontWeight: 500, color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
                           {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
-                          {e.originalAmount ? (
+                          {e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 ? (
                             <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 1 }}>
                               og {fmtMoney(e.originalAmount, currency)}
                             </div>
                           ) : null}
                         </td>
-                        <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.date)}</td>
+                        <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.originalDate || e.date)}</td>
                         <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type, contactType)}</td>
                         <td>
                           <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} />

@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { X, Handshake, ArrowDownLeft, ArrowUpRight, RotateCcw, Calendar, Wallet as WalletIcon, FileText, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../store';
 import type { Settlement, Expense } from '../types';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, cleanExpenseDescription } from '../utils';
 import CategoryIcon from './CategoryIcon';
 
 interface SettlementDetailModalProps {
@@ -357,13 +357,13 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
                               textOverflow: 'ellipsis',
                             }}
                           >
-                            {exp.description || 'Expense'}
+                            {cleanExpenseDescription(exp.description) || 'Expense'}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-3)', marginTop: 2, flexWrap: 'wrap' }}>
-                            <span>{fmtDate(exp.date)}</span>
+                            <span>{fmtDate(exp.originalDate || exp.date)}</span>
                             <span>•</span>
                             <span>{exp.category || 'General'}</span>
-                            {exp.originalAmount ? (
+                            {exp.originalAmount && Math.abs(exp.originalAmount - Number(exp.amount || 0)) > 0.01 ? (
                               <>
                                 <span>•</span>
                                 <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
@@ -385,20 +385,27 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
                         >
                           {isForFriend ? '+' : '-'}{fmtMoney(Number(exp.amount) || 0, currency)}
                         </div>
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 600,
-                            color: exp.originalAmount ? 'var(--accent)' : '#10b981',
-                            background: exp.originalAmount ? 'var(--accent-soft)' : 'rgba(16, 185, 129, 0.12)',
-                            padding: '1px 6px',
-                            borderRadius: 6,
-                            display: 'inline-block',
-                            marginTop: 2,
-                          }}
-                        >
-                          {exp.originalAmount ? 'Partially Settled' : 'Settled'}
-                        </span>
+                        {(() => {
+                          const isPartial = Boolean(
+                            exp.originalAmount && Math.abs(exp.originalAmount - Number(exp.amount || 0)) > 0.01
+                          );
+                          return (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 600,
+                                color: isPartial ? 'var(--accent)' : '#10b981',
+                                background: isPartial ? 'var(--accent-soft)' : 'rgba(16, 185, 129, 0.12)',
+                                padding: '1px 6px',
+                                borderRadius: 6,
+                                display: 'inline-block',
+                                marginTop: 2,
+                              }}
+                            >
+                              {isPartial ? 'Partially Settled' : 'Settled ✓'}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   );

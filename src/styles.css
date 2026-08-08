@@ -618,6 +618,7 @@ html, body, #root {
 .badge-credit { background: rgba(75,173,115,.12); color: var(--credit); }
 .badge-debit { background: rgba(224,92,92,.12); color: var(--debit); }
 .badge-settled { background: rgba(107,114,128,.15); color: var(--text-3); }
+.badge-partial { background: rgba(245,158,11,.15); color: #f59e0b; border: 1px solid rgba(245,158,11,.3); }
 
 /* Dark Mode Badges - Brighter shades and crisp borders for high contrast against surface2/surface3 */
 [data-color-scheme="dark"] .badge-paid,

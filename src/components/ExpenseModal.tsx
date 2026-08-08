@@ -492,7 +492,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
         const vName = vObj?.name || 'Vendor';
         addExpense({
           groupId: targetGroupId,
-          description: `${finalDesc} (${vName} Bill)`,
+          description: finalDesc,
           amount: totalAmt,
           category,
           date,
