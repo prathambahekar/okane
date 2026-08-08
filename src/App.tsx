@@ -99,7 +99,7 @@ function AppInner() {
   const isDevMode = db.settings?.devMode ?? false;
   const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
   const enableAIAssistant = isDevMode && (db.settings?.enableAIAssistant ?? true);
-  const enableSplitTrips = db.settings?.enableSplitTrips ?? true;
+  const enableSplitTrips = isDevMode && (db.settings?.enableSplitTrips ?? true);
 
   useEffect(() => {
     if (view === 'split-trips' && !enableSplitTrips) {

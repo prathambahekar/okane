@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -89,7 +89,6 @@ export default function Settings({
 
   const { mode, toggleMode, accent, setAccent, customColor, setCustomColor } = useColorMode();
   const isDark = mode === 'dark';
-  const [accentExpanded, setAccentExpanded] = useState(false);
 
   // Saved Custom Accent Colors
   const [savedCustomColors, setSavedCustomColors] = useState<{ id: string; name: string; hex: string }[]>(() => {
@@ -150,10 +149,15 @@ export default function Settings({
     }
     showToast('Removed custom accent preset');
   };
-  const [categoriesListExpanded, setCategoriesListExpanded] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const isDevMode = settings.devMode ?? false;
-  const [devExpanded, setDevExpanded] = useState(isDevMode);
+  const [showDevSheet, setShowDevSheet] = useState(false);
+  const [showAppearanceSheet, setShowAppearanceSheet] = useState(false);
+  const [showCategoriesSheet, setShowCategoriesSheet] = useState(false);
+  const [showPreferencesSheet, setShowPreferencesSheet] = useState(false);
+  const [showDataSheet, setShowDataSheet] = useState(false);
+  const [showVersionSheet, setShowVersionSheet] = useState(false);
+  const [showFeedbackSheet, setShowFeedbackSheet] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
@@ -169,6 +173,89 @@ export default function Settings({
     lastUpdated: "2026-08-05"
   });
   const [showJsonView, setShowJsonView] = useState(false);
+
+  // Feedback & Bug Report state
+  const [feedbackType, setFeedbackType] = useState<'bug' | 'feature'>('bug');
+  const [feedbackTitle, setFeedbackTitle] = useState('');
+  const [feedbackDescription, setFeedbackDescription] = useState('');
+  const [includeVersionInfo, setIncludeVersionInfo] = useState(true);
+  const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [githubTokenInput, setGithubTokenInput] = useState(() => localStorage.getItem('okane_github_token') || '');
+  const [createdIssueInfo, setCreatedIssueInfo] = useState<{ url: string; number: number } | null>(null);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleSendFeedback = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmedTitle = feedbackTitle.trim();
+    const trimmedDesc = feedbackDescription.trim();
+
+    if (!trimmedTitle) {
+      showToast('Please enter a title for your issue or feature idea.');
+      return;
+    }
+    if (!trimmedDesc) {
+      showToast('Please enter a description for your issue or feature idea.');
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+    setFeedbackStatus('idle');
+    setErrorMessage('');
+    setCreatedIssueInfo(null);
+
+    const appVersion = String(settings.installedVersion || jsonSettings.appVersion || '0.8.2');
+
+    try {
+      const res = await fetch('/api/github-issue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: trimmedTitle,
+          description: trimmedDesc,
+          type: feedbackType,
+          version: includeVersionInfo ? appVersion : undefined,
+          platform: includeVersionInfo ? (Capacitor.isNativePlatform() ? Capacitor.getPlatform() : 'Web Browser') : undefined,
+          userAgent: includeVersionInfo ? navigator.userAgent : undefined,
+          token: githubTokenInput.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.code === 'MISSING_TOKEN') {
+          setErrorMessage('GitHub Access Token required: Please enter a Personal Access Token below or configure GITHUB_TOKEN in .env.example.');
+        } else {
+          setErrorMessage(data.error || 'Failed to create GitHub issue.');
+        }
+        setFeedbackStatus('error');
+        showToast(data.error || 'Failed to create GitHub issue.');
+        return;
+      }
+
+      if (data.success) {
+        if (githubTokenInput.trim()) {
+          localStorage.setItem('okane_github_token', githubTokenInput.trim());
+        }
+        setCreatedIssueInfo({ url: data.issueUrl, number: data.issueNumber });
+        setFeedbackStatus('success');
+        showToast(`Issue #${data.issueNumber} created automatically!`);
+        setFeedbackTitle('');
+        setFeedbackDescription('');
+      }
+    } catch (err: unknown) {
+      console.error('Error creating GitHub issue:', err);
+      const message = err instanceof Error ? err.message : 'Network error while creating GitHub issue.';
+      setErrorMessage(message);
+      setFeedbackStatus('error');
+      showToast('Failed to connect to backend server.');
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -584,599 +671,765 @@ export default function Settings({
           </div>
         )}
 
-        {/* Appearance */}
-        <div className="card">
-          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Appearance</h2>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ fontSize: 13.5, fontWeight: 500 }}>Dark Mode</div>
-              <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>Use dark theme for the interface</div>
-            </div>
-            <Switch
-              checked={isDark}
-              onChange={() => {
-                const nextMode = isDark ? 'light' : 'dark';
-                toggleMode();
-                updateSettings({ colorMode: nextMode });
-              }}
-              color="primary"
-              inputProps={{ 'aria-label': 'dark mode toggle' }}
-            />
-          </div>
-
-          <div style={{ margin: '16px 0', borderTop: '1px solid var(--border)' }} />
-
-          <div>
-            <div
-              onClick={() => setAccentExpanded(!accentExpanded)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                userSelect: 'none',
-                padding: '2px 0',
-              }}
-            >
+        {/* Appearance Summary Card */}
+        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowAppearanceSheet(true)}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: 'var(--accent-soft)', color: 'var(--accent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}>
+                <Palette size={19} />
+              </div>
               <div>
-                <div style={{ fontSize: 13.5, fontWeight: 500 }}>Accent Color</div>
-                <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>
-                  {accentExpanded
-                    ? 'Choose primary theme accent color across buttons, navigation, and badges'
-                    : 'Customize interface primary theme accent'}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {/* Active selection badge preview when collapsed/expanded */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  padding: '4px 10px',
-                  borderRadius: 20,
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: 'var(--text-2)',
-                }}>
-                  <div style={{
-                    width: 13,
-                    height: 13,
-                    borderRadius: '50%',
-                    background: accent === 'custom'
-                      ? customColor
-                      : (accent === 'monochrome' ? (isDark ? '#ffffff' : '#111111') : (isDark ? ACCENT_PRESETS.find(p => p.id === accent)?.swatchDark : ACCENT_PRESETS.find(p => p.id === accent)?.swatchLight)),
-                    border: '1px solid rgba(0,0,0,0.15)',
-                    flexShrink: 0
-                  }} />
-                  <span>
-                    {accent === 'custom' ? 'Custom' : (ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic Blue')}
-                  </span>
-                </div>
-
-                <div style={{
-                  padding: 4,
-                  color: 'var(--text-3)',
-                  display: 'grid',
-                  placeItems: 'center',
-                }}>
-                  {accentExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                </div>
+                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>Appearance & Theme</h2>
+                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                  {isDark ? 'Dark Mode' : 'Light Mode'} • {accent === 'custom' ? 'Custom Accent' : (ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic Blue')}
+                </p>
               </div>
             </div>
 
-            {accentExpanded && (
-              <div style={{ marginTop: 14 }}>
-                {/* Built-in Presets (OG Colors - Unremovable) */}
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
-                  Preset Colors
-                </div>
-                <div className="accent-picker-grid">
-                  {ACCENT_PRESETS.map(preset => {
-                    const isSelected = accent === preset.id;
-                    const colorHex = isDark ? preset.swatchDark : preset.swatchLight;
-
-                    return (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => {
-                          setAccent(preset.id);
-                          updateSettings({ accent: preset.id });
-                        }}
-                        className="accent-picker-btn"
-                        style={{
-                          border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
-                          background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
-                        }}
-                      >
-                        <div style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: '50%',
-                          background: preset.id === 'monochrome'
-                            ? (isDark ? '#ffffff' : '#111111')
-                            : colorHex,
-                          border: preset.id === 'monochrome' && isDark ? '1px solid #555' : '1px solid rgba(0,0,0,0.12)',
-                          boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
-                          flexShrink: 0,
-                          display: 'grid',
-                          placeItems: 'center'
-                        }}>
-                          {isSelected && <Check size={12} style={{ color: preset.id === 'monochrome' && isDark ? '#000' : '#fff' }} />}
-                        </div>
-                        <span style={{ fontSize: 12, fontWeight: isSelected ? 600 : 500, color: 'var(--text)', lineHeight: 1.2 }}>
-                          {preset.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Saved Custom Colors Section (Removable) */}
-                {savedCustomColors.length > 0 && (
-                  <div style={{ marginTop: 16 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span>Saved Custom Colors</span>
-                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-3)', textTransform: 'none' }}>
-                        ({savedCustomColors.length})
-                      </span>
-                    </div>
-                    <div className="accent-picker-grid">
-                      {savedCustomColors.map(saved => {
-                        const isSelected = accent === 'custom' && customColor.toLowerCase() === saved.hex.toLowerCase();
-
-                        return (
-                          <div
-                            key={saved.id}
-                            onClick={() => {
-                              setAccent('custom');
-                              setCustomColor(saved.hex);
-                              updateSettings({ accent: 'custom', customAccentColor: saved.hex });
-                            }}
-                            className="accent-picker-btn"
-                            style={{
-                              border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
-                              background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                              padding: '8px 10px',
-                            }}
-                          >
-                            <div style={{
-                              width: 20,
-                              height: 20,
-                              borderRadius: '50%',
-                              background: saved.hex,
-                              border: '1px solid rgba(0,0,0,0.12)',
-                              boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
-                              flexShrink: 0,
-                              display: 'grid',
-                              placeItems: 'center'
-                            }}>
-                              {isSelected && <Check size={12} style={{ color: '#fff' }} />}
-                            </div>
-                            <span style={{
-                              fontSize: 12,
-                              fontWeight: isSelected ? 600 : 500,
-                              color: 'var(--text)',
-                              lineHeight: 1.2,
-                              flex: 1,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}>
-                              {saved.name}
-                            </span>
-                            {/* Remove button - ONLY on saved custom colors (OG colors are unremovable) */}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveCustomColor(saved.id, saved.hex);
-                              }}
-                              title="Remove custom accent"
-                              style={{
-                                border: 'none',
-                                background: 'none',
-                                padding: 3,
-                                borderRadius: 4,
-                                cursor: 'pointer',
-                                color: 'var(--text-3)',
-                                display: 'grid',
-                                placeItems: 'center',
-                                transition: 'color 0.15s, background 0.15s',
-                              }}
-                              onMouseEnter={e => {
-                                e.currentTarget.style.color = '#ef4444';
-                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
-                              }}
-                              onMouseLeave={e => {
-                                e.currentTarget.style.color = 'var(--text-3)';
-                                e.currentTarget.style.background = 'none';
-                              }}
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Color Picker & Save Form Panel */}
-                <div style={{
-                  marginTop: 16,
-                  padding: '16px',
-                  borderRadius: 'var(--radius-lg)',
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 14,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Palette size={16} style={{ color: 'var(--accent)' }} />
-                      <span>Custom Color</span>
-                    </div>
-                    {accent === 'custom' && (
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 12, background: 'var(--accent-soft)', color: 'var(--accent)' }}>
-                        Active
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Inputs row */}
-                  <div style={{ display: 'grid', gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      {/* Open Color Picker button */}
-                      <label style={{
-                        position: 'relative',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        padding: '0 16px',
-                        height: 42,
-                        borderRadius: 'var(--radius)',
-                        background: customColor,
-                        color: '#ffffff',
-                        fontWeight: 600,
-                        fontSize: 13,
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                        userSelect: 'none',
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                      }}>
-                        <Palette size={16} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }} />
-                        <span>Pick Color</span>
-                        <input
-                          type="color"
-                          value={customColor}
-                          onChange={e => {
-                            const hex = e.target.value;
-                            setCustomColor(hex);
-                            setAccent('custom');
-                            updateSettings({ accent: 'custom', customAccentColor: hex });
-                          }}
-                          style={{
-                            position: 'absolute',
-                            inset: 0,
-                            width: '100%',
-                            height: '100%',
-                            opacity: 0,
-                            cursor: 'pointer',
-                          }}
-                        />
-                      </label>
-
-                      {/* Hex input using form-input theme styling */}
-                      <div style={{ flex: 1, minWidth: 110 }}>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={customColor}
-                          onChange={e => {
-                            const hex = e.target.value;
-                            setCustomColor(hex);
-                            setAccent('custom');
-                            updateSettings({ accent: 'custom', customAccentColor: hex });
-                          }}
-                          placeholder="#6366F1"
-                          maxLength={7}
-                          style={{
-                            fontFamily: 'monospace',
-                            fontWeight: 600,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px',
-                            minHeight: 42,
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Preset Name + Save Preset button */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={newColorName}
-                        onChange={e => setNewColorName(e.target.value)}
-                        placeholder="Preset name (e.g. Neon Rose)"
-                        style={{
-                          flex: 1,
-                          minWidth: 160,
-                          fontSize: 13,
-                          minHeight: 42,
-                        }}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleSaveCustomColor();
-                          }
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleSaveCustomColor}
-                        className="btn btn-primary"
-                        style={{
-                          height: 42,
-                          padding: '0 16px',
-                          whiteSpace: 'nowrap',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Plus size={16} />
-                        <span>Save Preset</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-
-        {/* Preferences */}
-        <div className="card">
-          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Preferences</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <div className="form-group">
-              <label className="form-label">Currency</label>
-              <select className="form-select" value={settings.currency} onChange={e => updateSettings({ currency: e.target.value })}>
-                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Default Category</label>
-              <select className="form-select" value={settings.defaultCategory} onChange={e => updateSettings({ defaultCategory: e.target.value })}>
-                {settings.categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Default Expense Status</label>
-              <select className="form-select" value={settings.defaultStatus} onChange={e => updateSettings({ defaultStatus: e.target.value as 'paid' | 'unpaid' })}>
-                <option value="paid">Paid</option>
-                <option value="unpaid">Unpaid</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Default Wallet</label>
-              <select className="form-select" value={settings.defaultWalletId} onChange={e => updateSettings({ defaultWalletId: e.target.value })}>
-                {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Categories */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Tag size={18} style={{ color: 'var(--accent)' }} />
-              <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Categories</h2>
-              <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, border: '1px solid var(--border)' }}>
-                {settings.categories.length}
-              </span>
-            </div>
-            <button
-              className="btn btn-ghost btn-sm"
-              style={{ fontSize: 12, gap: 4, padding: '4px 8px' }}
-              onClick={() => {
-                updateSettings({ categories: [...DEFAULT_CATEGORIES] });
-                showToast('Reset categories to default');
-              }}
-            >
-              <RotateCcw size={15} /> Reset Defaults
-            </button>
-          </div>
-
-          <p style={{ fontSize: 12.5, color: 'var(--text-3)', marginBottom: 16 }}>
-            Manage category tags used for organizing your spending.
-          </p>
-
-          {/* Chips Grid */}
-          <div className="category-chip-list">
-            {(categoriesListExpanded ? settings.categories : settings.categories.slice(0, 5)).map((c: Category) => {
-              const bgTint = c.color.startsWith('#') && c.color.length === 7 ? `${c.color}20` : 'var(--accent-soft)';
-              return (
-                <div key={c.name} className="category-chip">
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 22,
-                      height: 22,
-                      borderRadius: 6,
-                      background: bgTint,
-                      color: c.color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <CategoryIcon category={c.name} icon={c.icon} size={13} style={{ color: c.color }} />
-                  </span>
-                  <span>{c.name}</span>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, marginLeft: 2 }}>
-                    <button
-                      type="button"
-                      className="category-chip-edit"
-                      title={`Edit ${c.name}`}
-                      onClick={() => startEditCategory(c)}
-                    >
-                      <Edit2 size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      className="category-chip-delete"
-                      title={`Remove ${c.name}`}
-                      onClick={() => handleDeleteCategory(c.name)}
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-
-            {!categoriesListExpanded && settings.categories.length > 5 && (
-              <button
-                type="button"
-                className="category-chip"
-                onClick={() => setCategoriesListExpanded(true)}
-                style={{
-                  background: 'var(--accent-soft)',
-                  color: 'var(--accent)',
-                  borderColor: 'var(--accent)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  padding: '6px 12px',
-                }}
-              >
-                +{settings.categories.length - 5} more...
-              </button>
-            )}
-          </div>
-
-          {settings.categories.length > 5 && (
-            <div style={{ textAlign: 'center', marginTop: -6, marginBottom: 14 }}>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setCategoriesListExpanded(!categoriesListExpanded)}
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: 'var(--accent)',
-                  gap: 6,
-                  padding: '4px 12px',
-                  margin: '0 auto',
-                  borderRadius: 20,
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)'
-                }}
-              >
-                {categoriesListExpanded ? (
-                  <>Show Less <ChevronUp size={14} /></>
-                ) : (
-                  <>Show All ({settings.categories.length} categories) <ChevronDown size={14} /></>
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* Add Category Section */}
-          <div className="category-add-box" style={{ marginTop: 12 }}>
-            <div
-              onClick={() => setShowAddCategory(!showAddCategory)}
-              style={{
+              <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                userSelect: 'none',
+                gap: 6,
+                padding: '4px 10px',
+                borderRadius: 20,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--text-2)',
+              }}>
+                <div style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  background: accent === 'custom'
+                    ? customColor
+                    : (accent === 'monochrome' ? (isDark ? '#ffffff' : '#111111') : (isDark ? ACCENT_PRESETS.find(p => p.id === accent)?.swatchDark : ACCENT_PRESETS.find(p => p.id === accent)?.swatchLight)),
+                  border: '1px solid rgba(0,0,0,0.15)',
+                  flexShrink: 0
+                }} />
+                <span>{accent === 'custom' ? 'Custom' : (ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic')}</span>
+              </div>
+              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Sheet Drawer Modal for Appearance & Theme */}
+        {showAppearanceSheet && createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              padding: '0 8px 8px 8px'
+            }}
+            onClick={() => setShowAppearanceSheet(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'var(--surface)',
+                borderRadius: '20px 20px 16px 16px',
+                width: '100%',
+                maxWidth: 540,
+                maxHeight: '85vh',
+                overflowY: 'auto',
+                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
+                padding: '16px 18px 24px 18px',
+                border: '1px solid var(--border)'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13 }}>
-                <Plus size={16} style={{ color: 'var(--accent)' }} />
-                <span>Add New Category</span>
-              </div>
-              <div style={{ color: 'var(--text-3)', display: 'grid', placeItems: 'center' }}>
-                {showAddCategory ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </div>
-            </div>
+              {/* Drag Handle */}
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
 
-            {showAddCategory && (
-              <div className="category-add-form" style={{ gridTemplateColumns: '1fr', gap: 16, marginTop: 14 }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: 11.5 }}>Category Name</label>
-                  <input
-                    className="form-input"
-                    value={newCatName}
-                    onChange={e => setNewCatName(e.target.value)}
-                    placeholder="e.g. Subscriptions, Fuel, Food..."
-                    onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: 11.5 }}>Color Tag</label>
-                  <ColorPickerSection color={newCatColor} onChangeColor={setNewCatColor} />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontSize: 11.5 }}>Category Icon</label>
-                  <div className="category-icon-picker">
-                    {AVAILABLE_ICONS.map(({ id, label, Icon }) => {
-                      const isSelected = newCatIcon === id;
-                      const bgStyle = isSelected
-                        ? (newCatColor.startsWith('#') && newCatColor.length === 7 ? `${newCatColor}20` : 'var(--accent-soft)')
-                        : undefined;
-                      return (
-                        <button
-                          key={id}
-                          type="button"
-                          className={`icon-picker-btn ${isSelected ? 'selected' : ''}`}
-                          onClick={() => setNewCatIcon(id)}
-                          title={label}
-                          style={{
-                            color: isSelected ? newCatColor : 'var(--text-2)',
-                            borderColor: isSelected ? newCatColor : undefined,
-                            background: bgStyle,
-                          }}
-                        >
-                          <Icon size={16} />
-                        </button>
-                      );
-                    })}
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                  }}>
+                    <Palette size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Appearance & Theme
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      Choose dark mode & primary accent color
+                    </p>
                   </div>
                 </div>
 
                 <button
-                  className="btn btn-primary"
-                  onClick={handleAddCategory}
-                  style={{ padding: '9px 16px', gap: 6, justifyContent: 'center', justifySelf: 'start', marginTop: 4 }}
+                  type="button"
+                  onClick={() => setShowAppearanceSheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer'
+                  }}
                 >
-                  <Plus size={18} /> Add Category
+                  <X size={16} />
                 </button>
               </div>
-            )}
+
+              {/* Theme Mode Toggle Row */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 16
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {isDark ? <Moon size={18} style={{ color: 'var(--accent)' }} /> : <Sun size={18} style={{ color: 'var(--accent)' }} />}
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Dark Theme Mode</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Switch between dark and light background</div>
+                  </div>
+                </div>
+                <Switch
+                  checked={isDark}
+                  onChange={() => {
+                    const nextMode = isDark ? 'light' : 'dark';
+                    toggleMode();
+                    updateSettings({ colorMode: nextMode });
+                  }}
+                  color="primary"
+                />
+              </div>
+
+              {/* Accent Color Presets */}
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>
+                Preset Accent Colors
+              </div>
+              <div className="accent-picker-grid">
+                {ACCENT_PRESETS.map(preset => {
+                  const isSelected = accent === preset.id;
+                  const colorHex = isDark ? preset.swatchDark : preset.swatchLight;
+
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        setAccent(preset.id);
+                        updateSettings({ accent: preset.id });
+                      }}
+                      className="accent-picker-btn"
+                      style={{
+                        border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                      }}
+                    >
+                      <div style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        background: preset.id === 'monochrome'
+                          ? (isDark ? '#ffffff' : '#111111')
+                          : colorHex,
+                        border: preset.id === 'monochrome' && isDark ? '1px solid #555' : '1px solid rgba(0,0,0,0.12)',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+                        flexShrink: 0,
+                        display: 'grid',
+                        placeItems: 'center'
+                      }}>
+                        {isSelected && <Check size={12} style={{ color: preset.id === 'monochrome' && isDark ? '#000' : '#fff' }} />}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: isSelected ? 600 : 500, color: 'var(--text)', lineHeight: 1.2 }}>
+                        {preset.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Saved Custom Colors */}
+              {savedCustomColors.length > 0 && (
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Saved Custom Colors</span>
+                    <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-3)', textTransform: 'none' }}>
+                      ({savedCustomColors.length})
+                    </span>
+                  </div>
+                  <div className="accent-picker-grid">
+                    {savedCustomColors.map(saved => {
+                      const isSelected = accent === 'custom' && customColor.toLowerCase() === saved.hex.toLowerCase();
+
+                      return (
+                        <div
+                          key={saved.id}
+                          onClick={() => {
+                            setAccent('custom');
+                            setCustomColor(saved.hex);
+                            updateSettings({ accent: 'custom', customAccentColor: saved.hex });
+                          }}
+                          className="accent-picker-btn"
+                          style={{
+                            border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                            background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '8px 10px',
+                          }}
+                        >
+                          <div style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: '50%',
+                            background: saved.hex,
+                            border: '1px solid rgba(0,0,0,0.12)',
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+                            flexShrink: 0,
+                            display: 'grid',
+                            placeItems: 'center'
+                          }}>
+                            {isSelected && <Check size={12} style={{ color: '#fff' }} />}
+                          </div>
+                          <span style={{
+                            fontSize: 12,
+                            fontWeight: isSelected ? 600 : 500,
+                            color: 'var(--text)',
+                            lineHeight: 1.2,
+                            flex: 1,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {saved.name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveCustomColor(saved.id, saved.hex);
+                            }}
+                            title="Remove custom accent"
+                            style={{
+                              border: 'none',
+                              background: 'none',
+                              padding: 3,
+                              borderRadius: 4,
+                              cursor: 'pointer',
+                              color: 'var(--text-3)',
+                              display: 'grid',
+                              placeItems: 'center',
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Color Picker & Save Form */}
+              <div style={{
+                marginTop: 18,
+                padding: '16px',
+                borderRadius: 'var(--radius-lg)',
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Palette size={16} style={{ color: 'var(--accent)' }} />
+                    <span>Create Custom Accent</span>
+                  </div>
+                  {accent === 'custom' && (
+                    <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 12, background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                      Active
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <label style={{
+                      position: 'relative',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      padding: '0 16px',
+                      height: 40,
+                      borderRadius: 'var(--radius)',
+                      background: customColor,
+                      color: '#ffffff',
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                      userSelect: 'none',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                    }}>
+                      <Palette size={16} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }} />
+                      <span>Pick Color</span>
+                      <input
+                        type="color"
+                        value={customColor}
+                        onChange={e => {
+                          const hex = e.target.value;
+                          setCustomColor(hex);
+                          setAccent('custom');
+                          updateSettings({ accent: 'custom', customAccentColor: hex });
+                        }}
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                      />
+                    </label>
+
+                    <div style={{ flex: 1, minWidth: 110 }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={customColor}
+                        onChange={e => {
+                          const hex = e.target.value;
+                          setCustomColor(hex);
+                          setAccent('custom');
+                          updateSettings({ accent: 'custom', customAccentColor: hex });
+                        }}
+                        placeholder="#6366F1"
+                        maxLength={7}
+                        style={{ fontFamily: 'monospace', fontWeight: 600, textTransform: 'uppercase', minHeight: 40 }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={newColorName}
+                      onChange={e => setNewColorName(e.target.value)}
+                      placeholder="Preset name (e.g. Neon Violet)"
+                      style={{ flex: 1, minWidth: 160, fontSize: 13, minHeight: 40 }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleSaveCustomColor();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveCustomColor}
+                      className="btn btn-primary"
+                      style={{ height: 40, padding: '0 16px', whiteSpace: 'nowrap', fontSize: 13, fontWeight: 600, gap: 6 }}
+                    >
+                      <Plus size={16} /> Save Preset
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Preferences Summary Card */}
+        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowPreferencesSheet(true)}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: 'var(--accent-soft)', color: 'var(--accent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}>
+                <Sliders size={19} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>Preferences</h2>
+                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                  Currency ({settings.currency}), default category & wallet
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)' }}>
+                {settings.currency}
+              </span>
+              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+            </div>
           </div>
         </div>
+
+        {/* Bottom Sheet Drawer Modal for Preferences */}
+        {showPreferencesSheet && createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              padding: '0 8px 8px 8px'
+            }}
+            onClick={() => setShowPreferencesSheet(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'var(--surface)',
+                borderRadius: '20px 20px 16px 16px',
+                width: '100%',
+                maxWidth: 520,
+                maxHeight: '82vh',
+                overflowY: 'auto',
+                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
+                padding: '16px 18px 24px 18px',
+                border: '1px solid var(--border)'
+              }}
+            >
+              {/* Drag Handle */}
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                  }}>
+                    <Sliders size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      App Preferences
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      Configure currency, default category & wallet
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPreferencesSheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Preferences Form Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontWeight: 600 }}>Currency</label>
+                  <select className="form-select" value={settings.currency} onChange={e => updateSettings({ currency: e.target.value })}>
+                    {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontWeight: 600 }}>Default Category</label>
+                  <select className="form-select" value={settings.defaultCategory} onChange={e => updateSettings({ defaultCategory: e.target.value })}>
+                    {settings.categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontWeight: 600 }}>Default Expense Status</label>
+                  <select className="form-select" value={settings.defaultStatus} onChange={e => updateSettings({ defaultStatus: e.target.value as 'paid' | 'unpaid' })}>
+                    <option value="paid">Paid</option>
+                    <option value="unpaid">Unpaid</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontWeight: 600 }}>Default Wallet</label>
+                  <select className="form-select" value={settings.defaultWalletId} onChange={e => updateSettings({ defaultWalletId: e.target.value })}>
+                    {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Categories Summary Card */}
+        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowCategoriesSheet(true)}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: 'var(--accent-soft)', color: 'var(--accent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}>
+                <Tag size={19} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>Categories</h2>
+                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                  Manage category tags & color labels ({settings.categories.length} configured)
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)' }}>
+                {settings.categories.length} Tags
+              </span>
+              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Sheet Drawer Modal for Categories */}
+        {showCategoriesSheet && createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              padding: '0 8px 8px 8px'
+            }}
+            onClick={() => setShowCategoriesSheet(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'var(--surface)',
+                borderRadius: '20px 20px 16px 16px',
+                width: '100%',
+                maxWidth: 540,
+                maxHeight: '85vh',
+                overflowY: 'auto',
+                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
+                padding: '16px 18px 24px 18px',
+                border: '1px solid var(--border)'
+              }}
+            >
+              {/* Drag Handle */}
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                  }}>
+                    <Tag size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Manage Category Tags
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      {settings.categories.length} category tags configured
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ fontSize: 11.5, gap: 4, padding: '4px 8px' }}
+                    onClick={() => {
+                      updateSettings({ categories: [...DEFAULT_CATEGORIES] });
+                      showToast('Reset categories to default');
+                    }}
+                  >
+                    <RotateCcw size={14} /> Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoriesSheet(false)}
+                    style={{
+                      background: 'var(--surface2)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '50%',
+                      width: 32,
+                      height: 32,
+                      display: 'grid',
+                      placeItems: 'center',
+                      color: 'var(--text-2)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* All Category Chips Grid */}
+              <div className="category-chip-list" style={{ marginBottom: 18 }}>
+                {settings.categories.map((c: Category) => {
+                  const bgTint = c.color.startsWith('#') && c.color.length === 7 ? `${c.color}20` : 'var(--accent-soft)';
+                  return (
+                    <div key={c.name} className="category-chip">
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 22,
+                          height: 22,
+                          borderRadius: 6,
+                          background: bgTint,
+                          color: c.color,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <CategoryIcon category={c.name} icon={c.icon} size={13} style={{ color: c.color }} />
+                      </span>
+                      <span>{c.name}</span>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, marginLeft: 2 }}>
+                        <button
+                          type="button"
+                          className="category-chip-edit"
+                          title={`Edit ${c.name}`}
+                          onClick={() => startEditCategory(c)}
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="category-chip-delete"
+                          title={`Remove ${c.name}`}
+                          onClick={() => handleDeleteCategory(c.name)}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Add Category Section */}
+              <div className="category-add-box" style={{ marginTop: 12 }}>
+                <div
+                  onClick={() => setShowAddCategory(!showAddCategory)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13 }}>
+                    <Plus size={16} style={{ color: 'var(--accent)' }} />
+                    <span>Add New Category</span>
+                  </div>
+                  <div style={{ color: 'var(--text-3)', display: 'grid', placeItems: 'center' }}>
+                    {showAddCategory ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </div>
+                </div>
+
+                {showAddCategory && (
+                  <div className="category-add-form" style={{ gridTemplateColumns: '1fr', gap: 14, marginTop: 14 }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: 11.5 }}>Category Name</label>
+                      <input
+                        className="form-input"
+                        value={newCatName}
+                        onChange={e => setNewCatName(e.target.value)}
+                        placeholder="e.g. Subscriptions, Fuel, Food..."
+                        onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: 11.5 }}>Color Tag</label>
+                      <ColorPickerSection color={newCatColor} onChangeColor={setNewCatColor} />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: 11.5 }}>Category Icon</label>
+                      <div className="category-icon-picker">
+                        {AVAILABLE_ICONS.map(({ id, label, Icon }) => {
+                          const isSelected = newCatIcon === id;
+                          const bgStyle = isSelected
+                            ? (newCatColor.startsWith('#') && newCatColor.length === 7 ? `${newCatColor}20` : 'var(--accent-soft)')
+                            : undefined;
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              className={`icon-picker-btn ${isSelected ? 'selected' : ''}`}
+                              onClick={() => setNewCatIcon(id)}
+                              title={label}
+                              style={{
+                                color: isSelected ? newCatColor : 'var(--text-2)',
+                                borderColor: isSelected ? newCatColor : undefined,
+                                background: bgStyle,
+                              }}
+                            >
+                              <Icon size={16} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleAddCategory}
+                      style={{ padding: '9px 16px', gap: 6, justifyContent: 'center', justifySelf: 'start', marginTop: 4 }}
+                    >
+                      <Plus size={18} /> Add Category
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
         {/* Edit Category Modal */}
         {editingCat && (
@@ -1244,591 +1497,1177 @@ export default function Settings({
         )}
 
         {/* Developer Mode Card */}
-        <div className="card">
+        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowDevSheet(true)}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: isDevMode ? 'pointer' : 'default', flex: 1 }}
-              onClick={() => isDevMode && setDevExpanded(!devExpanded)}
-            >
-              <Database size={18} style={{ color: 'var(--accent)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: 'var(--accent-soft)', color: 'var(--accent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}>
+                <FlaskConical size={19} />
+              </div>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Developer Mode</h2>
-                  {isDevMode && (
-                    <span style={{ fontSize: 12, color: 'var(--text-3)', display: 'inline-flex', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
-                      {devExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </span>
-                  )}
-                </div>
+                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>Developer Mode</h2>
                 <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
-                  Enable SQL Console, AI Assistant, and demo sample data tools
+                  {isDevMode ? 'Experimental tools & developer features active' : 'Enable experimental tools & developer features'}
                 </p>
               </div>
             </div>
 
-            <Switch
-              checked={isDevMode}
-              onChange={e => {
-                const checked = e.target.checked;
-                updateSettings({ devMode: checked });
-                if (checked) setDevExpanded(true);
-                showToast(checked ? 'Developer Mode enabled!' : 'Developer Mode disabled.');
-              }}
-              color="primary"
-              inputProps={{ 'aria-label': 'toggle developer mode' }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="badge" style={{
+                background: isDevMode ? 'var(--accent-soft)' : 'var(--surface2)',
+                color: isDevMode ? 'var(--accent)' : 'var(--text-3)',
+                padding: '3px 10px',
+                borderRadius: 12,
+                fontSize: 12,
+                fontWeight: 600,
+                border: '1px solid var(--border)'
+              }}>
+                {isDevMode ? 'Enabled' : 'Disabled'}
+              </span>
+              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+            </div>
           </div>
+        </div>
 
-          {isDevMode && devExpanded && (
-            <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              
-              {/* 1. SQL Console Tool */}
-              <div style={{
-                padding: '14px 16px', borderRadius: 'var(--radius)', background: 'var(--surface2)', border: '1px solid var(--border)',
-                transition: 'border-color 0.15s ease'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: 8, background: (settings.enableDevSQLConsole ?? true) ? 'var(--accent-soft)' : 'var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease'
-                    }}>
-                      <Terminal size={17} style={{ color: (settings.enableDevSQLConsole ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>SQL Dev Console</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>Execute raw AlaSQL queries, inspect schemas & table data</div>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.enableDevSQLConsole ?? true}
-                    onChange={(e) => {
-                      const enabled = e.target.checked;
-                      updateSettings({ enableDevSQLConsole: enabled });
-                      showToast(enabled ? 'SQL Dev Console enabled' : 'SQL Dev Console disabled');
-                    }}
-                    color="primary"
-                    size="small"
-                  />
-                </div>
-                {(settings.enableDevSQLConsole ?? true) && onNavigate && (
-                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      onClick={() => onNavigate('dev-sql')}
-                      style={{ gap: 6, fontSize: 12 }}
-                    >
-                      <Database size={14} /> Open SQL Console
-                    </button>
-                  </div>
-                )}
-              </div>
+        {/* Bottom Sheet Drawer Modal for Experimental Features */}
+        {showDevSheet && createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              padding: '0 8px 8px 8px'
+            }}
+            onClick={() => setShowDevSheet(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'var(--surface)',
+                borderRadius: '20px 20px 16px 16px',
+                width: '100%',
+                maxWidth: 520,
+                maxHeight: '82vh',
+                overflowY: 'auto',
+                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
+                padding: '16px 16px 20px 16px',
+                border: '1px solid var(--border)'
+              }}
+            >
+              {/* Drag Handle */}
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
 
-              {/* 2. AI Assistant Tool */}
-              <div style={{
-                padding: '14px 16px', borderRadius: 'var(--radius)', background: 'var(--surface2)', border: '1px solid var(--border)',
-                transition: 'border-color 0.15s ease'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: 8, background: (settings.enableAIAssistant ?? true) ? 'var(--accent-soft)' : 'var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease'
-                    }}>
-                      <Sparkles size={17} style={{ color: (settings.enableAIAssistant ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>AI Assistant (Max)</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>Floating voice & natural language AI assistant trigger on screen</div>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.enableAIAssistant ?? true}
-                    onChange={(e) => {
-                      const enabled = e.target.checked;
-                      updateSettings({ enableAIAssistant: enabled });
-                      showToast(enabled ? 'AI Assistant enabled' : 'AI Assistant disabled');
-                    }}
-                    color="primary"
-                    size="small"
-                  />
-                </div>
-
-                {(settings.enableAIAssistant ?? true) && (
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
-                    marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)'
+                    width: 36, height: 36, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
                   }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-2)' }}>
-                      Processing Engine: <strong style={{ color: 'var(--text)' }}>
-                        {(settings.defaultAiEngine ?? 'offline') === 'offline' ? 'Offline (100% Local)' : 'Gemini Cloud'}
-                      </strong>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 4, background: 'var(--surface)', padding: 3, borderRadius: 8, border: '1px solid var(--border)' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          updateSettings({ defaultAiEngine: 'offline' });
-                          localStorage.setItem('ai_engine_mode', 'offline');
-                          showToast('Set AI engine to Offline (Local)');
-                        }}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6,
-                          fontSize: 11.5, fontWeight: 600, border: 'none', cursor: 'pointer',
-                          background: (settings.defaultAiEngine ?? 'offline') === 'offline' ? 'var(--accent-soft)' : 'transparent',
-                          color: (settings.defaultAiEngine ?? 'offline') === 'offline' ? 'var(--accent)' : 'var(--text-3)',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <Zap size={12} /> Offline
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          updateSettings({ defaultAiEngine: 'online' });
-                          localStorage.setItem('ai_engine_mode', 'online');
-                          showToast('Set AI engine to Gemini Cloud');
-                        }}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6,
-                          fontSize: 11.5, fontWeight: 600, border: 'none', cursor: 'pointer',
-                          background: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--accent-soft)' : 'transparent',
-                          color: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--accent)' : 'var(--text-3)',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <Sparkles size={12} /> Gemini
-                      </button>
-                    </div>
+                    <FlaskConical size={18} />
                   </div>
-                )}
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Experimental Features
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      Toggle & test developer features
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowDevSheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
               </div>
 
-              {/* 3. Split & Trips Module */}
+              {/* Master Developer Mode Toggle Row */}
               <div style={{
-                padding: '14px 16px', borderRadius: 'var(--radius)', background: 'var(--surface2)', border: '1px solid var(--border)',
-                transition: 'border-color 0.15s ease'
+                padding: '12px 14px',
+                borderRadius: 12,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                marginBottom: 12
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: 8, background: (settings.enableSplitTrips ?? true) ? 'var(--accent-soft)' : 'var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease'
-                    }}>
-                      <Plane size={17} style={{ color: (settings.enableSplitTrips ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>Split & Trips Module</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>Group expense ledgers, trip budgets, and bill splitting calculations</div>
-                    </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <FlaskConical size={18} style={{ color: isDevMode ? 'var(--accent)' : 'var(--text-3)' }} />
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Enable Developer Mode</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Master switch for experimental tools</div>
                   </div>
-                  <Switch
-                    checked={settings.enableSplitTrips ?? true}
-                    onChange={(e) => {
-                      const enabled = e.target.checked;
-                      updateSettings({ enableSplitTrips: enabled });
-                      showToast(enabled ? 'Split & Trips enabled' : 'Split & Trips disabled');
-                    }}
-                    color="primary"
-                    size="small"
-                  />
                 </div>
-                {(settings.enableSplitTrips ?? true) && onNavigate && (
-                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => onNavigate('split-trips')}
-                      style={{ gap: 6, fontSize: 12 }}
-                    >
-                      <Plane size={14} /> Open Split & Trips
-                    </button>
-                  </div>
-                )}
+                <Switch
+                  checked={isDevMode}
+                  onChange={e => {
+                    const checked = e.target.checked;
+                    updateSettings({ devMode: checked });
+                    showToast(checked ? 'Developer Mode enabled!' : 'Developer Mode disabled.');
+                  }}
+                  color="primary"
+                />
               </div>
 
-              {/* 4. Demo Sample Data Loader */}
-              <div style={{
-                padding: '14px 16px', borderRadius: 'var(--radius)', background: 'var(--surface2)', border: '1px solid var(--border)',
-                transition: 'border-color 0.15s ease'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {/* Single Column Clean List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, opacity: isDevMode ? 1 : 0.5, pointerEvents: isDevMode ? 'auto' : 'none', transition: 'all 0.2s ease' }}>
+                {/* 1. SQL Console */}
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                     <div style={{
-                      width: 34, height: 34, borderRadius: 8, background: (settings.enableSampleData ?? false) ? 'var(--accent-soft)' : 'var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease'
+                      width: 36, height: 36, borderRadius: 8,
+                      background: (isDevMode && (settings.enableDevSQLConsole ?? true)) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                     }}>
-                      <FlaskConical size={17} style={{ color: (settings.enableSampleData ?? false) ? 'var(--accent)' : 'var(--text-3)' }} />
+                      <Terminal size={17} style={{ color: (isDevMode && (settings.enableDevSQLConsole ?? true)) ? 'var(--accent)' : 'var(--text-3)' }} />
                     </div>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>Sample Data Loader</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>Populate demo transactions, contacts, wallets & recurring rules</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>SQL Dev Console</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        Execute raw AlaSQL queries
+                      </div>
                     </div>
                   </div>
-                  <Switch
-                    checked={settings.enableSampleData ?? false}
-                    onChange={(e) => {
-                      const enabled = e.target.checked;
-                      updateSettings({ enableSampleData: enabled });
-                      showToast(enabled ? 'Sample Data Loader enabled' : 'Sample Data Loader disabled');
-                    }}
-                    color="primary"
-                    size="small"
-                  />
-                </div>
-                {(settings.enableSampleData ?? false) && (
-                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={handleLoadSample}
-                      style={{ gap: 6, fontSize: 12 }}
-                    >
-                      <FlaskConical size={14} /> Load Sample Data
-                    </button>
-                  </div>
-                )}
-              </div>
 
-              {/* 5. User Guide & Help Center (In Dev / Off by default) */}
-              <div style={{
-                padding: '14px 16px', borderRadius: 'var(--radius)', background: 'var(--surface2)', border: '1px solid var(--border)',
-                transition: 'border-color 0.15s ease'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: 8, background: (settings.enableUserGuide ?? false) ? 'var(--accent-soft)' : 'var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease'
-                    }}>
-                      <HelpCircle size={17} style={{ color: (settings.enableUserGuide ?? false) ? 'var(--accent)' : 'var(--text-3)' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>User Guide & Help Center</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>Interactive app tour modal & step-by-step expense tutorial (In Dev - Off by default)</div>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.enableUserGuide ?? false}
-                    onChange={(e) => {
-                      const enabled = e.target.checked;
-                      updateSettings({ enableUserGuide: enabled });
-                      showToast(enabled ? 'User Guide enabled' : 'User Guide disabled');
-                    }}
-                    color="primary"
-                    size="small"
-                  />
-                </div>
-                {(settings.enableUserGuide ?? false) && (
-                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                    {onStartExpenseTutorial && (
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={onStartExpenseTutorial}
-                        style={{ gap: 6, fontSize: 12, fontWeight: 600 }}
-                      >
-                        <Sparkles size={14} /> Interactive Tutorial
-                      </button>
-                    )}
-                    {onOpenGuide && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {isDevMode && (settings.enableDevSQLConsole ?? true) && onNavigate && (
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
-                        onClick={onOpenGuide}
-                        style={{ gap: 6, fontSize: 12 }}
+                        onClick={() => { setShowDevSheet(false); onNavigate('dev-sql'); }}
+                        style={{ padding: '3px 10px', fontSize: 11.5, height: 28, gap: 4 }}
                       >
-                        Open Guide Modal
+                        <Database size={13} /> Open
+                      </button>
+                    )}
+                    <Switch
+                      disabled={!isDevMode}
+                      checked={isDevMode && (settings.enableDevSQLConsole ?? true)}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({ enableDevSQLConsole: enabled });
+                        showToast(enabled ? 'SQL Dev Console enabled' : 'SQL Dev Console disabled');
+                      }}
+                      color="primary"
+                      size="small"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. AI Assistant */}
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 8,
+                        background: (isDevMode && (settings.enableAIAssistant ?? true)) ? 'var(--accent-soft)' : 'var(--border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                      }}>
+                        <Sparkles size={17} style={{ color: (isDevMode && (settings.enableAIAssistant ?? true)) ? 'var(--accent)' : 'var(--text-3)' }} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>AI Assistant (Max)</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          Voice & floating AI trigger
+                        </div>
+                      </div>
+                    </div>
+
+                    <Switch
+                      disabled={!isDevMode}
+                      checked={isDevMode && (settings.enableAIAssistant ?? true)}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({ enableAIAssistant: enabled });
+                        showToast(enabled ? 'AI Assistant enabled' : 'AI Assistant disabled');
+                      }}
+                      color="primary"
+                      size="small"
+                    />
+                  </div>
+
+                  {isDevMode && (settings.enableAIAssistant ?? true) && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                      paddingTop: 8, borderTop: '1px solid var(--border)'
+                    }}>
+                      <span style={{ fontSize: 11.5, color: 'var(--text-2)', fontWeight: 500 }}>Engine Mode</span>
+                      <div style={{ display: 'flex', gap: 3, background: 'var(--surface)', padding: 2, borderRadius: 6, border: '1px solid var(--border)' }}>
+                        <button
+                          type="button"
+                          disabled={!isDevMode}
+                          onClick={() => {
+                            updateSettings({ defaultAiEngine: 'offline' });
+                            localStorage.setItem('ai_engine_mode', 'offline');
+                            showToast('Set AI engine to Offline (Local)');
+                          }}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 4,
+                            fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
+                            background: (settings.defaultAiEngine ?? 'offline') === 'offline' ? 'var(--accent-soft)' : 'transparent',
+                            color: (settings.defaultAiEngine ?? 'offline') === 'offline' ? 'var(--accent)' : 'var(--text-3)'
+                          }}
+                        >
+                          <Zap size={11} /> Offline
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!isDevMode}
+                          onClick={() => {
+                            updateSettings({ defaultAiEngine: 'online' });
+                            localStorage.setItem('ai_engine_mode', 'online');
+                            showToast('Set AI engine to Gemini Cloud');
+                          }}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 4,
+                            fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
+                            background: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--accent-soft)' : 'transparent',
+                            color: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--accent)' : 'var(--text-3)'
+                          }}
+                        >
+                          <Sparkles size={11} /> Gemini
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Split & Trips */}
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: (isDevMode && (settings.enableSplitTrips ?? true)) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <Plane size={17} style={{ color: (isDevMode && (settings.enableSplitTrips ?? true)) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>Split & Trips</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        Group ledgers & trip expense splitting
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {isDevMode && (settings.enableSplitTrips ?? true) && onNavigate && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => { setShowDevSheet(false); onNavigate('split-trips'); }}
+                        style={{ padding: '3px 10px', fontSize: 11.5, height: 28, gap: 4 }}
+                      >
+                        <Plane size={13} /> Open
+                      </button>
+                    )}
+                    <Switch
+                      disabled={!isDevMode}
+                      checked={isDevMode && (settings.enableSplitTrips ?? true)}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({ enableSplitTrips: enabled });
+                        showToast(enabled ? 'Split & Trips enabled' : 'Split & Trips disabled');
+                      }}
+                      color="primary"
+                      size="small"
+                    />
+                  </div>
+                </div>
+
+                {/* 4. Sample Data Loader */}
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: (isDevMode && (settings.enableSampleData ?? false)) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <FlaskConical size={17} style={{ color: (isDevMode && (settings.enableSampleData ?? false)) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>Sample Data Loader</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        Populate demo transactions & wallets
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {isDevMode && (settings.enableSampleData ?? false) && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={handleLoadSample}
+                        style={{ padding: '3px 10px', fontSize: 11.5, height: 28, gap: 4 }}
+                      >
+                        Load
+                      </button>
+                    )}
+                    <Switch
+                      disabled={!isDevMode}
+                      checked={isDevMode && (settings.enableSampleData ?? false)}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({ enableSampleData: enabled });
+                        showToast(enabled ? 'Sample Data Loader enabled' : 'Sample Data Loader disabled');
+                      }}
+                      color="primary"
+                      size="small"
+                    />
+                  </div>
+                </div>
+
+                {/* 5. User Guide */}
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: (isDevMode && (settings.enableUserGuide ?? false)) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <HelpCircle size={17} style={{ color: (isDevMode && (settings.enableUserGuide ?? false)) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>User Guide & Tour</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        Interactive guide & walkthrough
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {isDevMode && (settings.enableUserGuide ?? false) && onStartExpenseTutorial && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => { setShowDevSheet(false); onStartExpenseTutorial(); }}
+                        style={{ padding: '3px 10px', fontSize: 11.5, height: 28, gap: 4 }}
+                      >
+                        Tour
+                      </button>
+                    )}
+                    <Switch
+                      disabled={!isDevMode}
+                      checked={isDevMode && (settings.enableUserGuide ?? false)}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({ enableUserGuide: enabled });
+                        showToast(enabled ? 'User Guide enabled' : 'User Guide disabled');
+                      }}
+                      color="primary"
+                      size="small"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Data Summary Card */}
+        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowDataSheet(true)}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: 'var(--accent-soft)', color: 'var(--accent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}>
+                <Database size={19} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>Data</h2>
+                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                  Export backup, import data, or reset storage
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Sheet Drawer Modal for Data */}
+        {showDataSheet && createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              padding: '0 8px 8px 8px'
+            }}
+            onClick={() => setShowDataSheet(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'var(--surface)',
+                borderRadius: '20px 20px 16px 16px',
+                width: '100%',
+                maxWidth: 520,
+                maxHeight: '82vh',
+                overflowY: 'auto',
+                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
+                padding: '16px 18px 24px 18px',
+                border: '1px solid var(--border)'
+              }}
+            >
+              {/* Drag Handle */}
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                  }}>
+                    <Database size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Data
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      Export, import, or manage local storage
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowDataSheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Action Buttons Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 16 }}>
+                <button type="button" className="data-action-card" onClick={() => { setShowDataSheet(false); handleExportClick(); }}>
+                  <Download size={24} />
+                  <span className="data-action-label" style={{ fontWeight: 600 }}>Export</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Save or share backup</span>
+                </button>
+
+                <button type="button" className="data-action-card" onClick={() => fileRef.current?.click()}>
+                  <Upload size={24} />
+                  <span className="data-action-label" style={{ fontWeight: 600 }}>Import</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Restore from backup</span>
+                </button>
+
+                {settings.devMode && (settings.enableSampleData ?? false) && (
+                  <button type="button" className="data-action-card" onClick={handleLoadSample}>
+                    <FlaskConical size={24} />
+                    <span className="data-action-label" style={{ fontWeight: 600 }}>Sample Data</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Load Demo</span>
+                  </button>
+                )}
+                <input ref={fileRef} type="file" accept="*/*" style={{ display: 'none' }} onChange={handleImport} />
+              </div>
+
+              <div className="data-reset-row" onClick={() => { setShowDataSheet(false); setShowReset(true); }} role="button" tabIndex={0}>
+                <div className="data-reset-left">
+                  <Trash2 size={20} />
+                  <span>Reset all data</span>
+                </div>
+                <ChevronRight size={20} style={{ color: 'var(--text-3)' }} />
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Report a Bug / Suggest a Feature Card (Only visible when Dev Mode is active) */}
+        {isDevMode && (
+          <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowFeedbackSheet(true)}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                <div style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <MessageSquarePlus size={19} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>
+                    Report Bug / Feature Request
+                  </h2>
+                  <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                    Submit feedback, bug report, or feature request
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Sheet Drawer Modal for Report Bug / Suggest Feature */}
+        {showFeedbackSheet && createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              padding: '0 8px 8px 8px'
+            }}
+            onClick={() => setShowFeedbackSheet(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'var(--surface)',
+                borderRadius: '20px 20px 16px 16px',
+                width: '100%',
+                maxWidth: 520,
+                maxHeight: '85vh',
+                overflowY: 'auto',
+                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
+                padding: '16px 18px 24px 18px',
+                border: '1px solid var(--border)'
+              }}
+            >
+              {/* Drag Handle */}
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                  }}>
+                    <MessageSquarePlus size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Report Bug / Feature Request
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      Create an issue on prathambahekar/okane
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowFeedbackSheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Type Selection */}
+                <div>
+                  <label className="form-label" style={{ marginBottom: 8, display: 'block', fontSize: 12.5, fontWeight: 600 }}>
+                    Feedback Type
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => setFeedbackType('bug')}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius)',
+                        border: feedbackType === 'bug' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        background: feedbackType === 'bug' ? 'var(--accent-soft)' : 'var(--surface2)',
+                        color: 'var(--text)',
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <Bug size={16} style={{ color: feedbackType === 'bug' ? 'var(--accent)' : 'var(--text-2)' }} />
+                      <span>Bug / Issue</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFeedbackType('feature')}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius)',
+                        border: feedbackType === 'feature' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        background: feedbackType === 'feature' ? 'var(--accent-soft)' : 'var(--surface2)',
+                        color: 'var(--text)',
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <Lightbulb size={16} style={{ color: feedbackType === 'feature' ? 'var(--accent)' : 'var(--text-2)' }} />
+                      <span>Suggest Feature</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: 12.5, fontWeight: 600 }}>
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={feedbackTitle}
+                    onChange={(e) => setFeedbackTitle(e.target.value)}
+                    placeholder={feedbackType === 'bug' ? "e.g., Error when settling friend balance" : "e.g., Add custom tags for expense search"}
+                    required
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: 12.5, fontWeight: 600 }}>
+                    Description
+                  </label>
+                  <textarea
+                    className="form-input"
+                    rows={4}
+                    value={feedbackDescription}
+                    onChange={(e) => setFeedbackDescription(e.target.value)}
+                    placeholder={feedbackType === 'bug' ? "Describe what happened, expected behavior, or steps to reproduce..." : "Describe the feature idea and how it would improve the app..."}
+                    required
+                    style={{ resize: 'vertical', minHeight: 90 }}
+                  />
+                </div>
+
+                {/* App Version Checkbox */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface2)', padding: '10px 12px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                  <input
+                    type="checkbox"
+                    id="includeVersionInfo"
+                    checked={includeVersionInfo}
+                    onChange={(e) => setIncludeVersionInfo(e.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="includeVersionInfo" style={{ fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', flex: 1, userSelect: 'none' }}>
+                    Include current app version (<strong style={{ color: 'var(--text)' }}>v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}</strong>) & device details
+                  </label>
+                </div>
+
+                {/* Action Toolbar */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', paddingTop: 4 }}>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <GitPullRequest size={13} />
+                    <span>Target Repo: prathambahekar/okane</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-sm"
+                      disabled={isSubmittingFeedback || !feedbackTitle.trim() || !feedbackDescription.trim()}
+                      style={{ fontSize: 12.5, fontWeight: 700, padding: '8px 18px', borderRadius: 8, gap: 6 }}
+                    >
+                      {isSubmittingFeedback ? (
+                        <>
+                          <RefreshCw size={14} className="spin" />
+                          <span>Creating Issue...</span>
+                        </>
+                      ) : (
+                        <>
+                          <GitPullRequest size={15} />
+                          <span>Submit Issue</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* GitHub PAT field */}
+                <div style={{ marginTop: 2, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
+                  <details open={Boolean(errorMessage && errorMessage.includes('Token'))} style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--text)', userSelect: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <GitPullRequest size={14} style={{ color: 'var(--accent)' }} />
+                      <span>GitHub Personal Access Token Settings</span>
+                    </summary>
+                    
+                    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--surface2)', padding: 12, borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>
+                        <strong style={{ color: 'var(--text)' }}>What is this token?</strong>
+                        <br />
+                        GitHub requires authentication to create issues on repository <code style={{ background: 'var(--surface)', padding: '1px 5px', borderRadius: 4, color: 'var(--accent)' }}>prathambahekar/okane</code> without opening the web form manually.
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2 }}>
+                        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text)' }}>
+                          Paste GitHub Token here:
+                        </label>
+                        <input
+                          type="password"
+                          className="form-input"
+                          value={githubTokenInput}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setGithubTokenInput(val);
+                            localStorage.setItem('okane_github_token', val.trim());
+                          }}
+                          placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          style={{ fontSize: 12, padding: '8px 12px', fontFamily: 'monospace' }}
+                        />
+                      </div>
+                    </div>
+                  </details>
+                </div>
+
+                {/* Success Notification */}
+                {feedbackStatus === 'success' && createdIssueInfo && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '12px 14px', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: 10, color: '#22c55e', fontSize: 12.5, fontWeight: 600 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <CheckCircle2 size={18} />
+                      <span>Issue #{createdIssueInfo.number} created!</span>
+                    </div>
+                    <a
+                      href={createdIssueInfo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#22c55e', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}
+                    >
+                      <span>View Issue</span>
+                      <ExternalLink size={13} />
+                    </a>
+                  </div>
+                )}
+
+                {/* Error Notification */}
+                {feedbackStatus === 'error' && errorMessage && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 10, color: '#ef4444', fontSize: 12.5 }}>
+                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <X size={16} />
+                      <span>Unable to create GitHub issue</span>
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.9 }}>
+                      {errorMessage}
+                    </div>
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* App Version Summary Card */}
+        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowVersionSheet(true)}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: 'var(--accent-soft)', color: 'var(--accent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}>
+                <HelpCircle size={19} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>App Info & Version</h2>
+                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                  Check for updates, release notes & app info
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)' }}>
+                v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}
+              </span>
+              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Sheet Drawer Modal for App Version */}
+        {showVersionSheet && createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              padding: '0 8px 8px 8px'
+            }}
+            onClick={() => setShowVersionSheet(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'var(--surface)',
+                borderRadius: '20px 20px 16px 16px',
+                width: '100%',
+                maxWidth: 520,
+                maxHeight: '85vh',
+                overflowY: 'auto',
+                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
+                padding: '16px 18px 24px 18px',
+                border: '1px solid var(--border)'
+              }}
+            >
+              {/* Drag Handle */}
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                  }}>
+                    <HelpCircle size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      App Version & Info
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowVersionSheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Software Update Status Panel */}
+              {availableUpdate ? (
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  marginBottom: 14,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <ArrowUpCircle size={18} style={{ color: '#2563eb', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                          v{availableUpdate.version} Available
+                        </div>
+                        <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
+                          Build #{availableUpdate.buildNumber} · {availableUpdate.releaseDate}
+                        </div>
+                      </div>
+                    </div>
+                    {!isUpdating && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => installUpdate()}
+                        style={{ gap: 5, padding: '5px 12px', borderRadius: 8, fontSize: 11.5, fontWeight: 600 }}
+                      >
+                        <Download size={12} /> Download
                       </button>
                     )}
                   </div>
-                )}
-              </div>
-
-            </div>
-          )}
-
-          {isDevMode && !devExpanded && (
-            <div
-              onClick={() => setDevExpanded(true)}
-              style={{
-                marginTop: 12, padding: '10px 14px', borderRadius: 'var(--radius)',
-                background: 'var(--surface2)', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--border)'
-              }}
-            >
-              <span>Developer mode active. Click to expand tool toggles (SQL Console, AI Assistant, Sample Data).</span>
-              <ChevronDown size={14} style={{ color: 'var(--accent)' }} />
-            </div>
-          )}
-
-          {!isDevMode && (
-            <div style={{
-              marginTop: 12, padding: '10px 14px', borderRadius: 'var(--radius)',
-              background: 'var(--surface2)', fontSize: 12, color: 'var(--text-3)', border: '1px dashed var(--border)'
-            }}>
-              Enable Developer Mode above to activate Dev SQL Console, AI Assistant, and Demo Sample Data generator.
-            </div>
-          )}
-        </div>
-
-        {/* Data Management */}
-        <div className="card" style={{ padding: '20px 22px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Data Backup & Restore</h2>
-          </div>
-          <p style={{ fontSize: 13.5, color: 'var(--text-3)', marginBottom: 14 }}>
-            Export a backup file to keep your data safe, or restore from a previously exported backup.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 16 }}>
-            <button type="button" className="data-action-card" onClick={handleExportClick}>
-              <Download size={24} />
-              <span className="data-action-label" style={{ fontWeight: 600 }}>Export</span>
-              <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Save or share backup</span>
-            </button>
-
-            <button type="button" className="data-action-card" onClick={() => fileRef.current?.click()}>
-              <Upload size={24} />
-              <span className="data-action-label" style={{ fontWeight: 600 }}>Import</span>
-              <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Restore from backup</span>
-            </button>
-
-            {settings.devMode && (settings.enableSampleData ?? false) && (
-              <button type="button" className="data-action-card" onClick={handleLoadSample}>
-                <FlaskConical size={24} />
-                <span className="data-action-label" style={{ fontWeight: 600 }}>Sample Data</span>
-                <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Load Demo</span>
-              </button>
-            )}
-            <input ref={fileRef} type="file" accept="*/*" style={{ display: 'none' }} onChange={handleImport} />
-          </div>
-
-          <div className="data-reset-row" onClick={() => setShowReset(true)} role="button" tabIndex={0}>
-            <div className="data-reset-left">
-              <Trash2 size={20} />
-              <span>Reset all data</span>
-            </div>
-            <ChevronRight size={20} style={{ color: 'var(--text-3)' }} />
-          </div>
-        </div>
-
-        {/* App Version Card */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>App Version</h2>
-            <span style={{
-              fontSize: 11.5,
-              fontWeight: 600,
-              padding: '2px 8px',
-              borderRadius: '99px',
-              background: 'var(--surface2)',
-              color: 'var(--text-2)',
-              border: '1px solid var(--border)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4
-            }}>
-              v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}
-            </span>
-          </div>
-
-          {/* Software Update Status Panel */}
-          {availableUpdate ? (
-            <div style={{
-              padding: '10px 12px',
-              borderRadius: '12px',
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              marginBottom: 12,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ArrowUpCircle size={18} style={{ color: '#2563eb', flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-                      v{availableUpdate.version} Available
+                  {isUpdating && (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, fontWeight: 600, marginBottom: 3 }}>
+                        <span>{updateStatusMessage}</span>
+                        <span>{updateProgress}%</span>
+                      </div>
+                      <div style={{ height: 4, background: 'var(--surface3)', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${updateProgress}%`, background: 'var(--text)', borderRadius: 99 }} />
+                      </div>
                     </div>
-                    <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
-                      Build #{availableUpdate.buildNumber} · {availableUpdate.releaseDate}
-                    </div>
-                  </div>
+                  )}
                 </div>
-                {!isUpdating && (
+              ) : (
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  marginBottom: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  flexWrap: 'wrap'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: '1 1 auto' }}>
+                    <CheckCircle2 size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>Up to date</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      • Checked {settings.lastUpdateCheck || String(jsonSettings.lastUpdated || 'Today')}
+                    </span>
+                  </div>
                   <button
                     type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={() => installUpdate()}
-                    style={{ gap: 5, padding: '5px 12px', borderRadius: 8, fontSize: 11.5, fontWeight: 600 }}
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => checkForUpdates(true)}
+                    disabled={isCheckingUpdate}
+                    style={{ gap: 6, fontSize: 11.5, padding: '5px 12px', borderRadius: 8, fontWeight: 600, flexShrink: 0 }}
                   >
-                    <Download size={12} /> Download
+                    <RefreshCw size={12} className={isCheckingUpdate ? 'spin' : ''} />
+                    {isCheckingUpdate ? 'Checking...' : 'Check Updates'}
+                  </button>
+                </div>
+              )}
+
+              {/* Action Toolbar */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                marginBottom: 12,
+                flexWrap: 'wrap'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowVersionSheet(false); setHistoryModalOpen(true); }}
+                  style={{
+                    flex: '1 1 auto',
+                    minWidth: '120px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface2)',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <History size={14} style={{ color: 'var(--text-2)' }} />
+                  <span>Version History</span>
+                  {releaseHistory.length > 0 && (
+                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, background: 'var(--surface3)', color: 'var(--text-2)', fontWeight: 600 }}>
+                      {releaseHistory.length}
+                    </span>
+                  )}
+                </button>
+
+                {isDevMode && (
+                  <button
+                    type="button"
+                    onClick={() => setShowJsonView(!showJsonView)}
+                    style={{
+                      flex: '1 1 auto',
+                      minWidth: '110px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      border: '1px solid var(--border)',
+                      background: showJsonView ? 'var(--surface3)' : 'var(--surface2)',
+                      color: 'var(--text)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <FileCode size={14} />
+                    <span>{showJsonView ? 'Hide JSON' : 'settings.json'}</span>
                   </button>
                 )}
+
+                <a
+                  href="https://github.com/prathambahekar/okane/releases"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--text-2)',
+                    textDecoration: 'none',
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)'
+                  }}
+                >
+                  <span>GitHub</span>
+                  <ExternalLink size={12} />
+                </a>
               </div>
-              {isUpdating && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, fontWeight: 600, marginBottom: 3 }}>
-                    <span>{updateStatusMessage}</span>
-                    <span>{updateProgress}%</span>
+
+              {isDevMode && showJsonView && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-3)' }}>public/settings.json</span>
+                    <a href="/settings.json" target="_blank" rel="noreferrer" style={{ fontSize: 10.5, color: 'var(--accent)', textDecoration: 'none' }}>
+                      Open Raw File ↗
+                    </a>
                   </div>
-                  <div style={{ height: 4, background: 'var(--surface3)', borderRadius: 99, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${updateProgress}%`, background: 'var(--text)', borderRadius: 99 }} />
-                  </div>
+                  <pre style={{
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    background: 'var(--surface2)',
+                    padding: 10,
+                    borderRadius: 6,
+                    overflowX: 'auto',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border)',
+                    margin: 0
+                  }}>
+                    {JSON.stringify(jsonSettings, null, 2)}
+                  </pre>
                 </div>
               )}
             </div>
-          ) : (
-            <div style={{
-              padding: '10px 14px',
-              borderRadius: '12px',
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              marginBottom: 12,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              flexWrap: 'wrap'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: '1 1 auto' }}>
-                <CheckCircle2 size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>Up to date</span>
-                <span style={{ fontSize: 11, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  • Checked {settings.lastUpdateCheck || String(jsonSettings.lastUpdated || 'Today')}
-                </span>
-              </div>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => checkForUpdates(true)}
-                disabled={isCheckingUpdate}
-                style={{ gap: 6, fontSize: 11.5, padding: '5px 12px', borderRadius: 8, fontWeight: 600, flexShrink: 0 }}
-              >
-                <RefreshCw size={12} className={isCheckingUpdate ? 'spin' : ''} />
-                {isCheckingUpdate ? 'Checking...' : 'Check Updates'}
-              </button>
-            </div>
-          )}
-
-          {/* Action Toolbar */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 6,
-            marginBottom: 4,
-            flexWrap: 'wrap'
-          }}>
-            <button
-              type="button"
-              onClick={() => setHistoryModalOpen(true)}
-              style={{
-                flex: '1 1 auto',
-                minWidth: '120px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 5,
-                padding: '6px 10px',
-                borderRadius: '8px',
-                fontSize: '11.5px',
-                fontWeight: 600,
-                border: '1px solid var(--border)',
-                background: 'var(--surface2)',
-                color: 'var(--text)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <History size={13} style={{ color: 'var(--text-2)' }} />
-              <span>Version History</span>
-              {releaseHistory.length > 0 && (
-                <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 99, background: 'var(--surface3)', color: 'var(--text-2)', fontWeight: 600 }}>
-                  {releaseHistory.length}
-                </span>
-              )}
-            </button>
-
-            {isDevMode && (
-              <button
-                type="button"
-                onClick={() => setShowJsonView(!showJsonView)}
-                style={{
-                  flex: '1 1 auto',
-                  minWidth: '110px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 5,
-                  padding: '6px 10px',
-                  borderRadius: '8px',
-                  fontSize: '11.5px',
-                  fontWeight: 600,
-                  border: '1px solid var(--border)',
-                  background: showJsonView ? 'var(--surface3)' : 'var(--surface2)',
-                  color: 'var(--text)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <FileCode size={13} />
-                <span>{showJsonView ? 'Hide JSON' : 'settings.json'}</span>
-              </button>
-            )}
-
-            <a
-              href="https://github.com/prathambahekar/okane/releases"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4,
-                padding: '6px 10px',
-                borderRadius: '8px',
-                fontSize: '11.5px',
-                fontWeight: 600,
-                color: 'var(--text-2)',
-                textDecoration: 'none',
-                background: 'transparent'
-              }}
-            >
-              <span>GitHub</span>
-              <ExternalLink size={11} />
-            </a>
-          </div>
-
-          {isDevMode && showJsonView && (
-            <div style={{ marginTop: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-3)' }}>public/settings.json</span>
-                <a href="/settings.json" target="_blank" rel="noreferrer" style={{ fontSize: 10.5, color: 'var(--accent)', textDecoration: 'none' }}>
-                  Open Raw File ↗
-                </a>
-              </div>
-              <pre style={{
-                fontSize: 11,
-                fontFamily: 'monospace',
-                background: 'var(--surface2)',
-                padding: 10,
-                borderRadius: 6,
-                overflowX: 'auto',
-                color: 'var(--text)',
-                border: '1px solid var(--border)',
-                margin: 0
-              }}>
-                {JSON.stringify(jsonSettings, null, 2)}
-              </pre>
-            </div>
-          )}
-        </div>
+          </div>,
+          document.body
+        )}
       </div>
 
       {showReset && (
