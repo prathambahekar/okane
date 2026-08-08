@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, Filter, Users, Layers, ArrowUpRight, ArrowDownLeft, RotateCcw, User, ReceiptText } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, ChevronRight, Filter, Users, Layers, ArrowUpRight, ArrowDownLeft, RotateCcw, User, ReceiptText, Wallet, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense } from '../types';
 import { fmtMoney, fmtDate, typeLabel, statusLabel, friendInitial, getAvatarStyle, groupExpenses, cleanExpenseDescription } from '../utils';
@@ -25,11 +25,16 @@ export default function Expenses() {
   const [delId, setDelId] = useState<string | null>(null);
   const [undoExpId, setUndoExpId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
 
   const activeFilterCount = (catFilter ? 1 : 0) + (typeFilter ? 1 : 0) + (walletFilter ? 1 : 0) + (sort !== 'date-desc' ? 1 : 0);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleDateCollapse = (dateStr: string) => {
+    setCollapsedDates(prev => ({ ...prev, [dateStr]: !prev[dateStr] }));
   };
 
   const handleUnsettleConfirm = () => {
@@ -240,214 +245,309 @@ export default function Expenses() {
           <>
             {/* Desktop Table View */}
             <div className="table-wrapper desktop-only">
-              <table className="data-table">
+              <table className="modern-tx-table">
                 <thead>
                   <tr>
-                    <th>Description</th>
-                    <th>Amount</th>
-                    <th>Date</th>
-                    <th>Category</th>
-                    <th>Type</th>
-                    <th>Wallet</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
+                    <th style={{ width: '22%', textAlign: 'left' }}>Transaction</th>
+                    <th style={{ width: '13%', textAlign: 'left' }}>Amount</th>
+                    <th style={{ width: '16%', textAlign: 'left' }}>Type</th>
+                    <th style={{ width: '18%', textAlign: 'left' }}>Wallet</th>
+                    <th style={{ width: '19%', textAlign: 'left' }}>Status</th>
+                    <th style={{ textAlign: 'right', width: '12%', minWidth: '100px' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(ge => {
-                    const primaryItem = ge.items[0];
-                    const cat = db.settings.categories.find(c => c.name === ge.category);
-                    const stl = ge.items.reduce<typeof db.settlements[0] | null | undefined>((found, item) => {
-                      if (found) return found;
-                      if (item.settlementId) return db.settlements.find(s => s.id === item.settlementId);
-                      return db.settlements.find(s => s.expenseIds.includes(item.id));
-                    }, null);
-                    const stlWallet = stl?.walletId ? db.wallets.find(w => w.id === stl.walletId) : undefined;
-                    const wallet = ge.items.reduce<typeof db.wallets[0] | null | undefined>((found, item) => {
-                      if (found) return found;
-                      return item.walletId ? db.wallets.find(w => w.id === item.walletId) : null;
-                    }, null) || db.wallets.find(w => w.id === ge.walletId);
-                    let effectiveWalletName = wallet?.name || stlWallet?.name || stl?.paymentMethod || '—';
-                    if (ge.category === 'Transfer') {
-                      if (ge.fromWalletName && ge.toWalletName) {
-                        effectiveWalletName = `${ge.fromWalletName} → ${ge.toWalletName}`;
-                      } else {
-                        const outItem = ge.items.find(i => i.flow === 'out');
-                        const inItem = ge.items.find(i => i.flow === 'in');
-                        const fromW = outItem ? db.wallets.find(w => w.id === outItem.walletId) : null;
-                        const toW = inItem ? db.wallets.find(w => w.id === inItem.walletId) : null;
-                        if (fromW || toW) {
-                          effectiveWalletName = `${fromW?.name || 'Wallet'} → ${toW?.name || 'Wallet'}`;
+                  {(() => {
+                    let prevDateStr = '';
+                    return filtered.map(ge => {
+                      const primaryItem = ge.items[0];
+                      const cat = db.settings.categories.find(c => c.name === ge.category);
+                      const stl = ge.items.reduce<typeof db.settlements[0] | null | undefined>((found, item) => {
+                        if (found) return found;
+                        if (item.settlementId) return db.settlements.find(s => s.id === item.settlementId);
+                        return db.settlements.find(s => s.expenseIds.includes(item.id));
+                      }, null);
+                      const stlWallet = stl?.walletId ? db.wallets.find(w => w.id === stl.walletId) : undefined;
+                      const wallet = ge.items.reduce<typeof db.wallets[0] | null | undefined>((found, item) => {
+                        if (found) return found;
+                        return item.walletId ? db.wallets.find(w => w.id === item.walletId) : null;
+                      }, null) || db.wallets.find(w => w.id === ge.walletId);
+                      let effectiveWalletName = wallet?.name || stlWallet?.name || stl?.paymentMethod || '—';
+                      if (ge.category === 'Transfer') {
+                        if (ge.fromWalletName && ge.toWalletName) {
+                          effectiveWalletName = `${ge.fromWalletName} → ${ge.toWalletName}`;
+                        } else {
+                          const outItem = ge.items.find(i => i.flow === 'out');
+                          const inItem = ge.items.find(i => i.flow === 'in');
+                          const fromW = outItem ? db.wallets.find(w => w.id === outItem.walletId) : null;
+                          const toW = inItem ? db.wallets.find(w => w.id === inItem.walletId) : null;
+                          if (fromW || toW) {
+                            effectiveWalletName = `${fromW?.name || 'Wallet'} → ${toW?.name || 'Wallet'}`;
+                          }
                         }
                       }
-                    }
-                    const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
-                    const isExpanded = !!expandedIds[ge.id];
-                    const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
+                      const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
+                      const isExpanded = !!expandedIds[ge.id];
+                      const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
 
-                    const isEvenGroup = dateGroupInfo.groupMap[ge.id] === 0;
-                    const isFirstOfDate = dateGroupInfo.isFirstMap[ge.id];
-                    const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}${isExpanded ? ' is-expanded-row' : ''}`;
+                      // Calculate friend settlement status for this group
+                      const friendItems = ge.items.filter(i => i.type === 'for_friend' || i.type === 'by_friend');
+                      const hasFriendItem = friendItems.length > 0 || ge.friendIds.length > 0 || ge.isSplit;
+                      const targetItemsForStatus = friendItems.length > 0 ? friendItems : ge.items;
+                      const totalTargetCount = targetItemsForStatus.length;
+                      const settledTargetCount = targetItemsForStatus.filter(i => i.settled || i.settlementId).length;
+                      const isGroupAllSettled = totalTargetCount > 0 && settledTargetCount === totalTargetCount;
+                      const isGroupSomeSettled = settledTargetCount > 0;
+                      const hasChildOrPartial = ge.items.some(i => i.parentExpenseId || (i.originalAmount && i.settledAmount));
+                      const isGroupPartiallySettled = (isGroupSomeSettled && !isGroupAllSettled) || (hasChildOrPartial && !isGroupAllSettled);
 
-                    // Calculate friend settlement status for this group
-                    const friendItems = ge.items.filter(i => i.type === 'for_friend' || i.type === 'by_friend');
-                    const hasFriendItem = friendItems.length > 0 || ge.friendIds.length > 0 || ge.isSplit;
-                    const targetItemsForStatus = friendItems.length > 0 ? friendItems : ge.items;
-                    const totalTargetCount = targetItemsForStatus.length;
-                    const settledTargetCount = targetItemsForStatus.filter(i => i.settled || i.settlementId).length;
-                    const isGroupAllSettled = totalTargetCount > 0 && settledTargetCount === totalTargetCount;
-                    const isGroupSomeSettled = settledTargetCount > 0;
-                    const hasChildOrPartial = ge.items.some(i => i.parentExpenseId || (i.originalAmount && i.settledAmount));
-                    const isGroupPartiallySettled = (isGroupSomeSettled && !isGroupAllSettled) || (hasChildOrPartial && !isGroupAllSettled);
+                      // Check if date header should be shown
+                      const isNewDateHeader = sort.startsWith('date') && ge.date !== prevDateStr;
+                      if (isNewDateHeader) {
+                        prevDateStr = ge.date;
+                      }
 
-                    return (
-                      <React.Fragment key={ge.id}>
-                        <tr className={rowClass}>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 600, fontSize: 13.5 }}>{ge.description}</span>
-                              {(ge.isSplit || ge.items.length > 1 || ge.isSettlementGroup) && (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleExpand(ge.id)}
+                      // Compute date group totals if showing date header
+                      const dateExpenses = isNewDateHeader ? filtered.filter(x => x.date === ge.date) : [];
+                      const dateOutSum = isNewDateHeader ? dateExpenses.reduce((sum, x) => (x.flow === 'out' && x.category !== 'Transfer') ? sum + x.totalAmount : sum, 0) : 0;
+                      const dateInSum = isNewDateHeader ? dateExpenses.reduce((sum, x) => (x.flow === 'in' && x.category !== 'Transfer') ? sum + x.totalAmount : sum, 0) : 0;
+
+                      const isDateCollapsed = sort.startsWith('date') && !!collapsedDates[ge.date];
+
+                      if (isDateCollapsed) {
+                        if (!isNewDateHeader) return null;
+                        return (
+                          <tr key={ge.id} className="tx-date-header-row">
+                            <td colSpan={6}>
+                              <div
+                                className="tx-date-header-content"
+                                onClick={() => toggleDateCollapse(ge.date)}
+                                title="Click to expand date group"
+                              >
+                                <div className="tx-date-header-left">
+                                  <ChevronRight size={14} style={{ color: 'var(--accent)' }} />
+                                  <span>{fmtDate(ge.date)}</span>
+                                  <span style={{ fontSize: 11, background: 'var(--accent-soft)', color: 'var(--accent)', padding: '1px 8px', borderRadius: 10, fontWeight: 600 }}>
+                                    Collapsed ({dateExpenses.length})
+                                  </span>
+                                </div>
+                                <div className="tx-date-header-right">
+                                  <span>{dateExpenses.length} transaction{dateExpenses.length > 1 ? 's' : ''}</span>
+                                  {dateOutSum > 0 && <span className="tx-date-stat debit">-{fmtMoney(dateOutSum, currency)}</span>}
+                                  {dateInSum > 0 && <span className="tx-date-stat credit">+{fmtMoney(dateInSum, currency)}</span>}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return (
+                        <React.Fragment key={ge.id}>
+                          {isNewDateHeader && (
+                            <tr className="tx-date-header-row">
+                              <td colSpan={6}>
+                                <div
+                                  className="tx-date-header-content"
+                                  onClick={() => toggleDateCollapse(ge.date)}
+                                  title="Click to collapse date group"
+                                >
+                                  <div className="tx-date-header-left">
+                                    <ChevronDown size={14} style={{ color: 'var(--accent)' }} />
+                                    <span>{fmtDate(ge.date)}</span>
+                                  </div>
+                                  <div className="tx-date-header-right">
+                                    <span>{dateExpenses.length} transaction{dateExpenses.length > 0 ? (dateExpenses.length > 1 ? 's' : '') : ''}</span>
+                                    {dateOutSum > 0 && <span className="tx-date-stat debit">-{fmtMoney(dateOutSum, currency)}</span>}
+                                    {dateInSum > 0 && <span className="tx-date-stat credit">+{fmtMoney(dateInSum, currency)}</span>}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          <tr className="modern-tx-row">
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div
+                                  className="tx-squircle-icon"
                                   style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                    padding: '2px 8px',
-                                    borderRadius: 12,
-                                    fontSize: 11,
-                                    fontWeight: 600,
-                                    background: 'var(--accent-soft)',
-                                    color: 'var(--accent)',
-                                    whiteSpace: 'nowrap',
-                                    flexShrink: 0,
-                                    border: 'none',
-                                    cursor: 'pointer'
+                                    background: cat?.color && cat.color.startsWith('#') ? `${cat.color}20` : 'var(--accent-soft)',
+                                    color: cat?.color || 'var(--accent)'
                                   }}
-                                  title={isExpanded ? "Collapse breakdown" : "Expand breakdown"}
                                 >
-                                  <Users size={12} /> {ge.isSettlementGroup ? 'Settlement' : (ge.isSplit ? 'Split' : 'Breakdown')} {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                                </button>
-                              )}
-                            </div>
-                            {ge.isSettlementGroup && (
-                              <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
-                                {ge.settlementItemCount} item{ge.settlementItemCount! > 1 ? 's' : ''} settled{ge.settlementDateRange ? ` • ${ge.settlementDateRange}` : ''}
+                                  <CategoryIcon category={ge.category} icon={cat?.icon} size={20} />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                    <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{ge.description}</span>
+                                    {(ge.isSplit || ge.items.length > 1 || ge.isSettlementGroup) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleExpand(ge.id)}
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 4,
+                                          padding: '2px 8px',
+                                          borderRadius: 12,
+                                          fontSize: 11,
+                                          fontWeight: 600,
+                                          background: 'var(--accent-soft)',
+                                          color: 'var(--accent)',
+                                          whiteSpace: 'nowrap',
+                                          flexShrink: 0,
+                                          border: 'none',
+                                          cursor: 'pointer'
+                                        }}
+                                        title={isExpanded ? "Collapse breakdown" : "Expand breakdown"}
+                                      >
+                                        <Users size={11} /> {ge.isSettlementGroup ? 'Settlement' : (ge.isSplit ? 'Split' : 'Breakdown')} {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                      </button>
+                                    )}
+                                  </div>
+                                  <div style={{ fontSize: 11.5, color: 'var(--text-3)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span>{ge.category}</span>
+                                    {ge.isSettlementGroup && <span>• {ge.settlementItemCount} item{ge.settlementItemCount! > 1 ? 's' : ''} settled</span>}
+                                  </div>
+                                  {friendsInGroup.length > 0 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text-3)' }}>
+                                      {friendsInGroup.map(f => f && (
+                                        <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                          <div className="avatar avatar-sm" style={{ ...getAvatarStyle(f.color), width: 16, height: 16, fontSize: 8 }}>{friendInitial(f.name, f.avatarNumber)}</div>
+                                          <span>{f.name}</span>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                            {friendsInGroup.length > 0 && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, fontSize: 11.5, color: 'var(--text-3)' }}>
-                                {friendsInGroup.map(f => f && (
-                                  <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <div className="avatar avatar-sm" style={{ ...getAvatarStyle(f.color), width: 16, height: 16, fontSize: 8 }}>{friendInitial(f.name, f.avatarNumber)}</div>
-                                    <span>{f.name}</span>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                {(() => {
+                                  if (ge.isSettlementGroup) {
+                                    return (
+                                      <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
+                                        {ge.flow === 'in' ? '+' : '-'}{fmtMoney(ge.totalAmount, currency)}
+                                      </span>
+                                    );
+                                  }
+                                  if (isIn) return <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: 'var(--credit)' }}>+{fmtMoney(ge.totalAmount, currency)}</span>;
+                                  if (ge.isSplit) {
+                                    if (isGroupAllSettled) {
+                                      if (ge.personalShare > 0) return <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: 'var(--debit)' }}>-{fmtMoney(ge.personalShare, currency)}</span>;
+                                      return (
+                                        <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
+                                          {ge.flow === 'in' ? '+' : '-'}{fmtMoney(ge.totalAmount, currency)}
+                                        </span>
+                                      );
+                                    }
+                                    return <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: 'var(--debit)' }}>-{fmtMoney(ge.personalShare, currency)}</span>;
+                                  }
+                                  return <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: ge.flow === 'out' ? 'var(--debit)' : 'var(--credit)' }}>{ge.flow === 'out' ? '-' : '+'}{fmtMoney(ge.totalAmount, currency)}</span>;
+                                })()}
+                                {ge.isSplit && ge.personalShare > 0 && !isGroupAllSettled && (
+                                  <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>
+                                    Your share: {fmtMoney(ge.personalShare, currency)}
                                   </span>
-                                ))}
+                                )}
                               </div>
-                            )}
-                          </td>
-                          <td style={{ fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap' }}>
-                            {(() => {
-                              if (ge.isSettlementGroup) {
-                                return (
-                                  <span style={{ color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
-                                    {ge.flow === 'in' ? '+' : '-'}{fmtMoney(ge.totalAmount, currency)}
-                                  </span>
-                                );
-                              }
-                              if (isIn) return <span style={{ color: 'var(--credit)' }}>+{fmtMoney(ge.totalAmount, currency)}</span>;
-                              if (ge.isSplit) {
-                                if (isGroupAllSettled) {
-                                  if (ge.personalShare > 0) return <span style={{ color: 'var(--debit)' }}>-{fmtMoney(ge.personalShare, currency)}</span>;
+                            </td>
+                            <td>
+                              <span className="tx-type-pill">
+                                {ge.isSettlementGroup ? (
+                                  <CheckCircle2 size={11} style={{ color: '#10b981' }} />
+                                ) : ge.isSplit ? (
+                                  <Users size={11} style={{ color: 'var(--accent)' }} />
+                                ) : (
+                                  <User size={11} style={{ color: 'var(--text-3)' }} />
+                                )}
+                                <span>{ge.isSettlementGroup ? 'Settlement' : (ge.isSplit ? 'Split Expense' : typeLabel(primaryItem.type, undefined, primaryItem.category))}</span>
+                              </span>
+                            </td>
+                            <td>
+                              <span className="tx-wallet-pill">
+                                <Wallet size={11} style={{ color: 'var(--text-3)' }} />
+                                <span>{effectiveWalletName}</span>
+                              </span>
+                            </td>
+                            <td>
+                              {(() => {
+                                if (ge.isSettlementGroup) {
                                   return (
-                                    <span style={{ color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
-                                      {ge.flow === 'in' ? '+' : '-'}{fmtMoney(ge.totalAmount, currency)}
+                                    <span className="tx-status-pill status-settled">
+                                      <span className="status-dot" />
+                                      <span>Settled ✓</span>
                                     </span>
                                   );
                                 }
-                                return <span style={{ color: 'var(--debit)' }}>-{fmtMoney(ge.totalAmount, currency)}</span>;
-                              }
-                              return <span style={{ color: ge.flow === 'out' ? 'var(--debit)' : 'var(--credit)' }}>{ge.flow === 'out' ? '-' : '+'}{fmtMoney(ge.totalAmount, currency)}</span>;
-                            })()}
-                          </td>
-                          <td style={{ color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{fmtDate(ge.date)}</td>
-                          <td>
-                            <CategoryBadge category={ge.category} color={cat?.color} icon={cat?.icon} />
-                          </td>
-                          <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
-                            {ge.isSettlementGroup ? 'Settlement Group' : (ge.isSplit ? 'Split Expense' : typeLabel(primaryItem.type, undefined, primaryItem.category))}
-                          </td>
-                          <td style={{ fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{effectiveWalletName}</td>
-                          <td>
-                            {(() => {
-                              if (ge.isSettlementGroup) {
-                                return (
-                                  <span className="badge badge-settled" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                    Settled ✓
-                                  </span>
-                                );
-                              }
-                              if (hasFriendItem) {
-                                if (isGroupAllSettled) {
+                                if (hasFriendItem) {
+                                  if (isGroupAllSettled) {
+                                    return (
+                                      <span className="tx-status-pill status-settled">
+                                        <span className="status-dot" />
+                                        <span>Completely Settled</span>
+                                      </span>
+                                    );
+                                  }
+                                  if (isGroupPartiallySettled) {
+                                    return (
+                                      <span className="tx-status-pill status-partial">
+                                        <span className="status-dot" />
+                                        <span>Partially Settled</span>
+                                      </span>
+                                    );
+                                  }
                                   return (
-                                    <span className="badge badge-settled" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                      Completely Settled
+                                    <span className="tx-status-pill status-unsettled">
+                                      <span className="status-dot" />
+                                      <span>Unsettled</span>
                                     </span>
                                   );
                                 }
-                                if (isGroupPartiallySettled) {
-                                  return (
-                                    <span className="badge badge-partial" style={{ background: 'rgba(245, 158, 11, 0.18)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.35)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                      Partially Settled
-                                    </span>
-                                  );
-                                }
-                                return (
-                                  <span className="badge badge-unsettled" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.25)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                    Unsettled
-                                  </span>
-                                );
-                              }
 
-                              const isTransfer = primaryItem.category === 'Transfer';
-                              const isSettled = primaryItem.settled || isTransfer;
+                                const isTransfer = primaryItem.category === 'Transfer';
+                                const isSettled = primaryItem.settled || isTransfer;
 
-                              return (
-                                <span className={`badge badge-${isSettled ? 'settled' : primaryItem.status}`} style={{ whiteSpace: 'nowrap' }}>
-                                  {isTransfer ? 'Completed' : (isSettled ? 'Settled' : statusLabel(primaryItem.status))}
-                                </span>
-                              );
-                            })()}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
-                              {ge.items.some(i => i.settled || i.settlementId) && (
-                                <button
-                                  className="btn-icon"
-                                  onClick={() => {
-                                    const targetItem = ge.items.find(i => i.settlementId) || ge.items.find(i => i.settled) || primaryItem;
-                                    setUndoExpId(targetItem.settlementId || targetItem.id || ge.id);
-                                  }}
-                                  title="Undo Settlement (Restore money to wallet)"
-                                  style={{ color: '#d97706', background: 'rgba(217, 119, 6, 0.12)', borderRadius: 4, padding: 3 }}
-                                >
-                                  <RotateCcw size={14} />
+                                return (
+                                  <span className={`tx-status-pill status-${isTransfer || isSettled ? 'settled' : primaryItem.status}`}>
+                                    <span className="status-dot" />
+                                    <span>{isTransfer ? 'Completed' : (isSettled ? 'Settled' : statusLabel(primaryItem.status))}</span>
+                                  </span>
+                                );
+                              })()}
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                {ge.items.some(i => i.settled || i.settlementId) && (
+                                  <button
+                                    className="tx-action-btn action-undo"
+                                    onClick={() => {
+                                      const targetItem = ge.items.find(i => i.settlementId) || ge.items.find(i => i.settled) || primaryItem;
+                                      setUndoExpId(targetItem.settlementId || targetItem.id || ge.id);
+                                    }}
+                                    title="Undo Settlement (Restore money to wallet)"
+                                  >
+                                    <RotateCcw size={14} />
+                                  </button>
+                                )}
+                                <button className="tx-action-btn" onClick={() => setEditExp(primaryItem)} title="Edit">
+                                  <Edit2 size={14} />
                                 </button>
-                              )}
-                              <button className="btn-icon" onClick={() => setEditExp(primaryItem)} title="Edit"><Edit2 size={15} /></button>
-                              <button className="btn-icon" onClick={() => setDelId(ge.id)} title="Delete" style={{ color: 'var(--debit)' }}><Trash2 size={15} /></button>
-                            </div>
-                          </td>
-                        </tr>
-                        {isExpanded && (ge.isSplit || ge.items.length > 1 || ge.isSettlementGroup) && (
-                          <tr style={{ background: 'var(--surface2)' }}>
-                            <td colSpan={8} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-                              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Users size={14} style={{ color: 'var(--accent)' }} /> {ge.isSettlementGroup ? 'Settlement Breakdown' : (ge.isSplit ? 'Split Breakdown' : 'Breakdown')} (Total {fmtMoney(ge.totalAmount, currency)})
+                                <button className="tx-action-btn action-delete" onClick={() => setDelId(ge.id)} title="Delete">
+                                  <Trash2 size={14} />
+                                </button>
                               </div>
-                              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                                {ge.items.map((item, idx) => {
+                            </td>
+                          </tr>
+                          {isExpanded && (ge.isSplit || ge.items.length > 1 || ge.isSettlementGroup) && (
+                            <tr style={{ background: 'var(--surface2)' }}>
+                              <td colSpan={6} style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <Users size={14} style={{ color: 'var(--accent)' }} /> {ge.isSettlementGroup ? 'Settlement Breakdown' : (ge.isSplit ? 'Split Breakdown' : 'Breakdown')} (Total {fmtMoney(ge.totalAmount, currency)})
+                                </div>
+                                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                                  {ge.items.map((item, idx) => {
                                   const itemFriend = item.friendId ? db.friends.find(f => f.id === item.friendId) : null;
                                   const isMine = item.type === 'personal';
                                   const isVendorOwed = item.type === 'by_friend';
@@ -518,7 +618,8 @@ export default function Expenses() {
                         )}
                       </React.Fragment>
                     );
-                  })}
+                  });
+                })()}
                 </tbody>
               </table>
             </div>

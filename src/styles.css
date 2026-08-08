@@ -13,6 +13,8 @@
   --accent-dark: #1565c0;
   --accent-gradient: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
   --accent-gradient-soft: linear-gradient(135deg, rgba(30,136,229,0.12) 0%, rgba(21,101,192,0.02) 100%);
+  --accent-surface-gradient: linear-gradient(135deg, rgba(25,118,210,0.08) 0%, rgba(255,255,255,0.92) 100%);
+  --accent-border-soft: rgba(25,118,210,0.22);
   --credit: #2e7d32;
   --credit-gradient: linear-gradient(135deg, #388e3c 0%, #1b5e20 100%);
   --credit-bg: rgba(46, 125, 50, 0.08);
@@ -47,6 +49,8 @@
   --accent-dark: #1976d2;
   --accent-gradient: linear-gradient(135deg, #64b5f6 0%, #1e88e5 100%);
   --accent-gradient-soft: linear-gradient(135deg, rgba(100,181,246,0.18) 0%, rgba(30,136,229,0.04) 100%);
+  --accent-surface-gradient: linear-gradient(135deg, rgba(66,165,245,0.14) 0%, rgba(24,24,27,0.85) 100%);
+  --accent-border-soft: rgba(66,165,245,0.32);
   --credit: #4ade80;
   --credit-gradient: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
   --credit-bg: rgba(74, 222, 128, 0.12);
@@ -431,6 +435,19 @@ html, body, #root {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 20px;
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.card.card-accent {
+  background: var(--accent-surface-gradient);
+  border: 1px solid var(--accent-border-soft);
+  box-shadow: 0 4px 20px var(--accent-soft);
+}
+
+.card.card-hover:hover {
+  border-color: var(--accent-border-soft);
+  box-shadow: 0 6px 20px var(--accent-soft);
+  transform: translateY(-2px);
 }
 
 .stat-grid {
@@ -445,6 +462,13 @@ html, body, #root {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 18px 20px;
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.stat-card:hover {
+  border-color: var(--accent-border-soft);
+  box-shadow: 0 4px 16px var(--accent-soft);
+  transform: translateY(-2px);
 }
 
 .stat-label {
@@ -737,6 +761,258 @@ html, body, #root {
 }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: var(--surface2); }
+
+/* ==========================================================================
+   Modern Desktop Transaction Table & Row Cards
+   ========================================================================== */
+
+.modern-tx-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.modern-tx-table th {
+  background: var(--surface2);
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  text-align: left;
+}
+
+.modern-tx-table th:first-child {
+  border-top-left-radius: 12px;
+  padding-left: 14px;
+}
+
+.modern-tx-table th:last-child {
+  border-top-right-radius: 12px;
+  padding-right: 14px;
+  text-align: right;
+}
+
+/* Date Group Header Row */
+.tx-date-header-row td {
+  padding: 12px 14px 6px 14px !important;
+  background: var(--surface) !important;
+  border-bottom: none !important;
+}
+
+.tx-date-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition);
+}
+
+.tx-date-header-content:hover {
+  background: var(--surface3);
+  border-color: var(--accent-border-soft);
+}
+
+.tx-date-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+  letter-spacing: 0.02em;
+}
+
+.tx-date-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.tx-date-stat {
+  font-weight: 700;
+  font-size: 12px;
+}
+.tx-date-stat.debit { color: var(--debit); }
+.tx-date-stat.credit { color: var(--credit); }
+
+/* Transaction Row */
+.modern-tx-row {
+  transition: background-color var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.modern-tx-row td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  background: var(--surface);
+  transition: background-color var(--transition);
+}
+
+.modern-tx-row:hover td {
+  background: var(--surface2);
+}
+
+.modern-tx-row td:first-child {
+  padding-left: 14px;
+}
+
+.modern-tx-row td:last-child {
+  padding-right: 14px;
+}
+
+/* Category Squircle Icon Container */
+.tx-squircle-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Status Pills with Glowing Dot */
+.tx-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tx-status-pill .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tx-status-pill.status-settled {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+.tx-status-pill.status-settled .status-dot {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.tx-status-pill.status-unsettled {
+  background: rgba(239, 68, 68, 0.10);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.24);
+}
+.tx-status-pill.status-unsettled .status-dot {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+}
+
+.tx-status-pill.status-partial {
+  background: rgba(245, 158, 11, 0.14);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+}
+.tx-status-pill.status-partial .status-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+
+.tx-status-pill.status-completed {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-border-soft);
+}
+.tx-status-pill.status-completed .status-dot {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent-soft);
+}
+
+/* Type Pill */
+.tx-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3.5px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  background: var(--surface2);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+/* Wallet Pill */
+.tx-wallet-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3.5px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  background: var(--surface2);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+/* Action Buttons */
+.tx-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.tx-action-btn:hover {
+  background: var(--surface2);
+  color: var(--text);
+  border-color: var(--border2);
+  transform: translateY(-1px);
+}
+
+.tx-action-btn.action-undo {
+  color: #d97706;
+  border-color: rgba(217, 119, 6, 0.25);
+  background: rgba(217, 119, 6, 0.08);
+}
+.tx-action-btn.action-undo:hover {
+  background: rgba(217, 119, 6, 0.18);
+}
+
+.tx-action-btn.action-delete {
+  color: var(--debit);
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.06);
+}
+.tx-action-btn.action-delete:hover {
+  background: rgba(239, 68, 68, 0.16);
+}
 
 /* Empty state */
 .empty-state {
@@ -1112,11 +1388,19 @@ input[type="number"] {
   white-space: nowrap;
 }
 .segment-btn.active {
-  background: var(--surface);
-  color: var(--text);
+  background: var(--accent-gradient);
+  color: var(--accent-contrast, #ffffff);
   font-weight: 600;
-  border-color: var(--border2);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  border-color: transparent;
+  box-shadow: 0 3px 10px var(--accent-soft);
+}
+
+.segment-btn.active-subtle {
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 600;
+  border-color: var(--accent-border-soft);
+  box-shadow: 0 2px 6px var(--accent-soft);
 }
 
 /* Stacked variant (icon above label) */

@@ -96,7 +96,40 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+function adjustHexBrightness(hex: string, percent: number): string {
+  let clean = hex.trim().replace('#', '');
+  if (clean.length === 3) {
+    clean = clean.split('').map(c => c + c).join('');
+  }
+  if (clean.length !== 6) return hex;
+  const num = parseInt(clean, 16);
+  let r = (num >> 16) + Math.round(255 * (percent / 100));
+  let g = ((num >> 8) & 0x00FF) + Math.round(255 * (percent / 100));
+  let b = (num & 0x0000FF) + Math.round(255 * (percent / 100));
+  r = Math.min(255, Math.max(0, r));
+  g = Math.min(255, Math.max(0, g));
+  b = Math.min(255, Math.max(0, b));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+function getContrastTextColor(hex: string): string {
+  let clean = hex.trim().replace('#', '');
+  if (clean.length === 3) clean = clean.split('').map(c => c + c).join('');
+  if (clean.length !== 6) return '#ffffff';
+  const r = parseInt(clean.substring(0, 2), 16);
+  const g = parseInt(clean.substring(2, 4), 16);
+  const b = parseInt(clean.substring(4, 6), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 180 ? '#111111' : '#ffffff';
+}
+
 export function getAccentColors(accent: AccentPreset, mode: 'light' | 'dark', customHex?: string) {
+  let main: string;
+  let dark: string;
+  let light: string;
+  let soft: string;
+  let contrast: string;
+
   if (accent === 'custom') {
     const fallback = mode === 'dark' ? '#818cf8' : '#6366f1';
     let hex = customHex ? customHex.trim() : '';
@@ -109,22 +142,40 @@ export function getAccentColors(accent: AccentPreset, mode: 'light' | 'dark', cu
     if (hex.length === 4) {
       hex = `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
     }
-    const soft = hexToRgba(hex, mode === 'dark' ? 0.18 : 0.12);
-    return {
-      main: hex,
-      soft,
-      dark: hex,
-      contrast: '#ffffff',
-      gradient: `linear-gradient(135deg, ${hex} 0%, ${hex} 100%)`,
-      gradientSoft: `linear-gradient(135deg, ${soft} 0%, rgba(0, 0, 0, 0.02) 100%)`,
-    };
+    main = hex;
+    dark = adjustHexBrightness(hex, mode === 'dark' ? -15 : -22);
+    light = adjustHexBrightness(hex, mode === 'dark' ? +22 : +15);
+    soft = hexToRgba(hex, mode === 'dark' ? 0.18 : 0.12);
+    contrast = getContrastTextColor(hex);
+  } else {
+    const preset = ACCENT_PRESETS.find(p => p.id === accent) || ACCENT_PRESETS[0];
+    const pColors = preset[mode];
+    main = pColors.main;
+    dark = pColors.dark;
+    light = adjustHexBrightness(pColors.main, mode === 'dark' ? +20 : +14);
+    soft = pColors.soft;
+    contrast = pColors.contrast || getContrastTextColor(pColors.main);
   }
-  const preset = ACCENT_PRESETS.find(p => p.id === accent) || ACCENT_PRESETS[0];
-  const pColors = preset[mode];
+
+  const gradient = `linear-gradient(135deg, ${light} 0%, ${main} 50%, ${dark} 100%)`;
+  const gradientSoft = mode === 'dark'
+    ? `linear-gradient(135deg, ${soft} 0%, rgba(24, 24, 27, 0) 100%)`
+    : `linear-gradient(135deg, ${soft} 0%, rgba(255, 255, 255, 0) 100%)`;
+  const surfaceGradient = mode === 'dark'
+    ? `linear-gradient(135deg, ${soft} 0%, rgba(24, 24, 27, 0.85) 100%)`
+    : `linear-gradient(135deg, ${soft} 0%, rgba(255, 255, 255, 0.92) 100%)`;
+  const borderSoft = hexToRgba(main, mode === 'dark' ? 0.32 : 0.22);
+
   return {
-    ...pColors,
-    gradient: `linear-gradient(135deg, ${pColors.main} 0%, ${pColors.dark} 100%)`,
-    gradientSoft: `linear-gradient(135deg, ${pColors.soft} 0%, rgba(0, 0, 0, 0.02) 100%)`,
+    main,
+    dark,
+    light,
+    soft,
+    contrast,
+    gradient,
+    gradientSoft,
+    surfaceGradient,
+    borderSoft,
   };
 }
 

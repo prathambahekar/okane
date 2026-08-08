@@ -33,12 +33,12 @@ export type SettlementTimeframe = 'this_month' | 'last_month' | 'last_3_months' 
 
 export default function Settlements() {
   const { db, deleteSettlement, showToast } = useStore();
-  const settlements = db?.settlements || [];
+  const settlements = useMemo(() => db?.settlements || [], [db?.settlements]);
   const settings = db?.settings || {};
   const currency = settings?.currency || 'INR';
   const categories = settings?.categories || [];
-  const friends = db?.friends || [];
-  const expenses = db?.expenses || [];
+  const friends = useMemo(() => db?.friends || [], [db?.friends]);
+  const expenses = useMemo(() => db?.expenses || [], [db?.expenses]);
   const wallets = db?.wallets || [];
 
   const [settleFriend, setSettleFriend] = useState<Friend | null>(null);

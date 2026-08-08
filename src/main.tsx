@@ -47,9 +47,12 @@ function Root() {
     document.documentElement.style.setProperty('--accent', colors.main);
     document.documentElement.style.setProperty('--accent-soft', colors.soft);
     document.documentElement.style.setProperty('--accent-dark', colors.dark);
+    document.documentElement.style.setProperty('--accent-light', colors.light);
     document.documentElement.style.setProperty('--accent-contrast', colors.contrast || '#ffffff');
     document.documentElement.style.setProperty('--accent-gradient', colors.gradient);
     document.documentElement.style.setProperty('--accent-gradient-soft', colors.gradientSoft);
+    document.documentElement.style.setProperty('--accent-surface-gradient', colors.surfaceGradient);
+    document.documentElement.style.setProperty('--accent-border-soft', colors.borderSoft);
   }, [accent, mode, customColor]);
 
   const toggleMode = useCallback(() => {

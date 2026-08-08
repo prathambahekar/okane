@@ -9,10 +9,6 @@ import Paper from '@mui/material/Paper';
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import Drawer from '@mui/material/Drawer';
-import List from '@mui/material/List';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
 import Box from '@mui/material/Box';
 import {
   LayoutDashboard,
@@ -35,6 +31,9 @@ import {
   Database,
   ChevronDown,
   Plane,
+  ArrowLeft,
+  X,
+  HelpCircle,
 } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import { useColorMode, type AccentPreset } from './theme';
@@ -100,6 +99,7 @@ function AppInner() {
   const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
   const enableAIAssistant = isDevMode && (db.settings?.enableAIAssistant ?? true);
   const enableSplitTrips = isDevMode && (db.settings?.enableSplitTrips ?? true);
+  const enableUserGuide = isDevMode && (db.settings?.enableUserGuide ?? true);
 
   useEffect(() => {
     if (view === 'split-trips' && !enableSplitTrips) {
@@ -418,45 +418,98 @@ function AppInner() {
           position="fixed"
           elevation={0}
           sx={{
-            bgcolor: mode === 'dark' ? 'rgba(15, 15, 15, 0.82)' : 'rgba(255, 255, 255, 0.85)',
-            backdropFilter: 'blur(16px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+            bgcolor: mode === 'dark' ? 'rgba(15, 15, 17, 0.88)' : 'rgba(255, 255, 255, 0.90)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             borderBottom: '1px solid',
             borderColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
             color: 'text.primary',
             boxShadow: mode === 'dark'
               ? '0 4px 20px rgba(0, 0, 0, 0.4)'
-              : '0 4px 20px rgba(0, 0, 0, 0.03)',
+              : '0 2px 14px rgba(0, 0, 0, 0.03)',
             transition: 'background-color 0.2s ease, border-color 0.2s ease',
+            pt: 'env(safe-area-inset-top, 0px)',
           }}
         >
           <Toolbar variant="dense" sx={{ minHeight: 56, px: 1.5, gap: 1, justifyContent: 'space-between' }}>
-            <Typography
-              variant="h6"
-              component="span"
-              sx={{
-                fontWeight: 700,
-                fontSize: { xs: '0.95rem', sm: '1.05rem' },
-                letterSpacing: '-0.3px',
-                flexShrink: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                minWidth: 0,
-              }}
-            >
-              {view === 'dashboard' ? 'Dashboard' :
-               view === 'expenses' ? 'Expenses' :
-               view === 'friends' ? 'Contacts' :
-               view === 'friend-detail' ? 'Contact Details' :
-               view === 'wallets' ? 'Wallets' :
-               view === 'recurring' ? 'Autopay' :
-               view === 'analytics' ? 'Analytics' :
-               view === 'settlements' ? 'Settlements' :
-               view === 'settings' ? 'Settings' : 'Dashboard'}
-            </Typography>
+            {/* Left side: Back button or Branded view title */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flexShrink: 1 }}>
+              {view === 'friend-detail' ? (
+                <IconButton
+                  size="small"
+                  onClick={() => setView('friends')}
+                  sx={{
+                    color: 'text.primary',
+                    bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                    p: 0.8,
+                    borderRadius: '10px',
+                    '&:active': { transform: 'scale(0.92)' }
+                  }}
+                  title="Back to Contacts"
+                >
+                  <ArrowLeft size={18} />
+                </IconButton>
+              ) : (
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '10px',
+                    bgcolor: 'var(--accent-soft)',
+                    color: 'primary.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  {view === 'dashboard' ? <LayoutDashboard size={18} /> :
+                   view === 'expenses' ? <ReceiptText size={18} /> :
+                   view === 'friends' ? <Users size={18} /> :
+                   view === 'wallets' ? <Wallet size={18} /> :
+                   view === 'recurring' ? <RefreshCw size={18} /> :
+                   view === 'settlements' ? <Handshake size={18} /> :
+                   view === 'split-trips' ? <Plane size={18} /> :
+                   view === 'analytics' ? <BarChart3 size={18} /> :
+                   view === 'settings' ? <SettingsIconLucide size={18} /> :
+                   view === 'dev-sql' ? <Database size={18} /> :
+                   <LayoutDashboard size={18} />}
+                </Box>
+              )}
 
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  variant="h6"
+                  component="span"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: { xs: '0.98rem', sm: '1.05rem' },
+                    letterSpacing: '-0.3px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    display: 'block',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {view === 'dashboard' ? 'Dashboard' :
+                   view === 'expenses' ? 'Expenses' :
+                   view === 'friends' ? 'Contacts' :
+                   view === 'friend-detail' ? 'Contact Details' :
+                   view === 'wallets' ? 'Wallets' :
+                   view === 'recurring' ? 'Autopay' :
+                   view === 'analytics' ? 'Analytics' :
+                   view === 'settlements' ? 'Settlements' :
+                   view === 'split-trips' ? 'Split & Trips' :
+                   view === 'settings' ? 'Settings' :
+                   view === 'dev-sql' ? 'Dev SQL' : 'Dashboard'}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Right side controls */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, flexShrink: 0 }}>
+              {/* Quick financial summaries */}
               {view === 'expenses' && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                   <Box sx={{
@@ -465,7 +518,7 @@ function AppInner() {
                     bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
                     color: 'error.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingDown size={12} /> -{fmtMoney(expOut, currency)}
+                    <TrendingDown size={11} /> -{fmtMoney(expOut, currency)}
                   </Box>
                   <Box sx={{
                     display: 'inline-flex', alignItems: 'center', gap: 0.2,
@@ -473,7 +526,7 @@ function AppInner() {
                     bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
                     color: 'success.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingUp size={12} /> +{fmtMoney(expIn, currency)}
+                    <TrendingUp size={11} /> +{fmtMoney(expIn, currency)}
                   </Box>
                 </Box>
               )}
@@ -486,7 +539,7 @@ function AppInner() {
                     bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
                     color: 'success.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingUp size={12} /> +{fmtMoney(friendCredit, currency)}
+                    <TrendingUp size={11} /> +{fmtMoney(friendCredit, currency)}
                   </Box>
                   <Box sx={{
                     display: 'inline-flex', alignItems: 'center', gap: 0.2,
@@ -494,7 +547,7 @@ function AppInner() {
                     bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
                     color: 'error.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
                   }}>
-                    <TrendingDown size={12} /> -{fmtMoney(friendDebt, currency)}
+                    <TrendingDown size={11} /> -{fmtMoney(friendDebt, currency)}
                   </Box>
                 </Box>
               )}
@@ -512,13 +565,25 @@ function AppInner() {
                 </Box>
               )}
 
-              <NotificationBell onNavigate={navigate} />
+              {enableAIAssistant && (
+                <IconButton
+                  size="small"
+                  onClick={() => setShowAIAssistant(true)}
+                  sx={{
+                    color: 'primary.main',
+                    bgcolor: 'var(--accent-soft)',
+                    p: 0.6,
+                    borderRadius: '10px',
+                    transition: 'transform 0.2s ease',
+                    '&:active': { transform: 'scale(0.9)' }
+                  }}
+                  title="AI Assistant"
+                >
+                  <Sparkles size={17} />
+                </IconButton>
+              )}
 
-              <IconButton size="small" onClick={handleToggleDark} sx={{ color: 'text.secondary', p: 0.5 }}>
-                {mode === 'dark'
-                  ? <Sun size={18} />
-                  : <Moon size={18} />}
-              </IconButton>
+              <NotificationBell onNavigate={navigate} />
             </Box>
           </Toolbar>
         </AppBar>
@@ -546,10 +611,14 @@ function AppInner() {
         >
           <BottomNavigation
             value={bottomNavValue}
-            onChange={(_, val) => {
-              if (val === 'add') setShowAddExpense(true);
-              else if (val === 'more') setMoreOpen(true);
-              else navigate(val as ViewName);
+            onChange={(_, newValue) => {
+              if (newValue === 'add') {
+                setShowAddExpense(true);
+              } else if (newValue === 'more') {
+                setMoreOpen(true);
+              } else {
+                navigate(newValue as ViewName);
+              }
             }}
             showLabels
             sx={{
@@ -619,11 +688,26 @@ function AppInner() {
               }
               sx={{
                 '& .MuiBottomNavigationAction-label': {
-                  display: 'none !important',
+                  display: 'none',
                 },
               }}
             />
-            <BottomNavigationAction label="Contacts" icon={<Users size={20} />} value="friends" />
+            <BottomNavigationAction
+              label="Contacts"
+              icon={
+                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                  <Users size={20} />
+                  {pendingSettlements > 0 && (
+                    <Box sx={{
+                      position: 'absolute', top: -2, right: -4,
+                      width: 8, height: 8, borderRadius: '50%',
+                      bgcolor: 'primary.main'
+                    }} />
+                  )}
+                </Box>
+              }
+              value="friends"
+            />
             <BottomNavigationAction
               label="More"
               icon={
@@ -644,58 +728,198 @@ function AppInner() {
         </Paper>
       )}
 
-      {/* More drawer */}
+      {/* More drawer sheet */}
       <Drawer
         anchor="bottom"
         open={moreOpen && isMobile}
         onClose={() => setMoreOpen(false)}
-        PaperProps={{ sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16 } }}
+        PaperProps={{
+          sx: {
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            bgcolor: 'background.paper',
+            backgroundImage: 'none',
+            p: 2.5,
+            pb: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+            maxHeight: '85vh',
+          }
+        }}
       >
-        <Box sx={{ pt: 1, pb: 3 }}>
-          <Box sx={{ width: 36, height: 4, bgcolor: 'divider', borderRadius: 99, mx: 'auto', mb: 1.5 }} />
-          <List disablePadding>
-            {moreItems.map(item => (
-              <ListItemButton
+        <Box sx={{ width: 40, height: 4, bgcolor: 'divider', borderRadius: 99, mx: 'auto', mb: 2 }} />
+
+        {/* Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{
+              width: 34, height: 34, borderRadius: '12px',
+              bgcolor: 'var(--accent-gradient)', color: '#ffffff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 700, fontSize: '0.9rem'
+            }}>
+              ¥
+            </Box>
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                Okane Menu
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Quick access to features
+              </Typography>
+            </Box>
+          </Box>
+
+          <IconButton size="small" onClick={() => setMoreOpen(false)} sx={{ bgcolor: 'action.hover' }}>
+            <X size={18} />
+          </IconButton>
+        </Box>
+
+        {/* Quick AI Assistant Card if enabled */}
+        {enableAIAssistant && (
+          <Paper
+            elevation={0}
+            onClick={() => { setMoreOpen(false); setShowAIAssistant(true); }}
+            sx={{
+              p: 1.8,
+              mb: 2,
+              borderRadius: 3,
+              bgcolor: 'var(--accent-soft)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              transition: 'transform 0.2s ease, filter 0.2s ease',
+              '&:active': { transform: 'scale(0.98)' }
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{
+                width: 38, height: 38, borderRadius: '50%',
+                bgcolor: 'primary.main', color: 'primary.contrastText',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 12px var(--accent-soft)'
+              }}>
+                <Sparkles size={20} />
+              </Box>
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                  Ask Max AI Assistant
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                  Smart expense logging & insights
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{
+              px: 1.2, py: 0.4, borderRadius: 99,
+              bgcolor: 'primary.main', color: 'primary.contrastText',
+              fontSize: '0.7rem', fontWeight: 700
+            }}>
+              Open
+            </Box>
+          </Paper>
+        )}
+
+        {/* Category Sections Grid */}
+        <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 700, color: 'text.secondary', mb: 1, display: 'block' }}>
+          Features & Modules
+        </Typography>
+
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.2, mb: 2 }}>
+          {moreItems.map(item => {
+            const isSelected = activeView === item.id;
+            return (
+              <Paper
                 key={item.id}
+                elevation={0}
                 onClick={() => navigate(item.id)}
-                selected={activeView === item.id}
-                sx={{ 
-                  py: 1.5, 
-                  px: 3,
-                  transition: 'background-color 0.2s ease',
-                  '& .MuiListItemIcon-root': {
-                    minWidth: 44,
-                    transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease',
-                  },
-                  '&:hover .MuiListItemIcon-root': {
-                    transform: 'scale(1.15) translateY(-1px)',
-                  },
-                  '&.Mui-selected .MuiListItemIcon-root': {
-                    transform: 'scale(1.12)',
-                  }
+                sx={{
+                  p: 1.5,
+                  borderRadius: 3,
+                  bgcolor: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                  border: '1px solid',
+                  borderColor: isSelected ? 'var(--accent)' : 'var(--border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1,
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  transition: 'all 0.2s ease',
+                  '&:active': { transform: 'scale(0.95)' }
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 44 }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 500 }} />
+                <Box sx={{ color: isSelected ? 'primary.main' : 'text.primary' }}>
+                  {item.icon}
+                </Box>
+                <Typography variant="caption" sx={{ fontWeight: isSelected ? 700 : 500, color: isSelected ? 'primary.main' : 'text.primary', fontSize: '0.75rem', lineHeight: 1.1 }}>
+                  {item.label}
+                </Typography>
+
                 {item.id === 'settlements' && pendingSettlements > 0 && (
                   <Box sx={{
-                    fontSize: 11, fontWeight: 700, px: 0.75, py: 0.25,
+                    position: 'absolute', top: 6, right: 6,
+                    fontSize: 10, fontWeight: 700, px: 0.6, py: 0.1,
                     bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: 99,
                   }}>
                     {pendingSettlements}
                   </Box>
                 )}
+
                 {item.id === 'recurring' && dueAutopaysCount > 0 && (
                   <Box sx={{
-                    fontSize: 11, fontWeight: 700, px: 0.75, py: 0.25,
+                    position: 'absolute', top: 6, right: 6,
+                    fontSize: 10, fontWeight: 700, px: 0.6, py: 0.1,
                     bgcolor: 'error.main', color: '#ffffff', borderRadius: 99,
                   }}>
-                    {dueAutopaysCount} due
+                    {dueAutopaysCount}
                   </Box>
                 )}
-              </ListItemButton>
-            ))}
-          </List>
+              </Paper>
+            );
+          })}
+
+          {/* User guide shortcut - only shown if enabled in dev mode */}
+          {enableUserGuide && (
+            <Paper
+              elevation={0}
+              onClick={() => { setMoreOpen(false); setShowGuideModal(true); }}
+              sx={{
+                p: 1.5,
+                borderRadius: 3,
+                bgcolor: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                '&:active': { transform: 'scale(0.95)' }
+              }}
+            >
+              <Box sx={{ color: 'text.primary' }}>
+                <HelpCircle size={20} />
+              </Box>
+              <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.75rem', lineHeight: 1.1 }}>
+                User Guide
+              </Typography>
+            </Paper>
+          )}
+        </Box>
+
+        {/* Bottom Row Controls */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 1, borderTop: '1px solid var(--border)' }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            Theme: <strong>{mode === 'dark' ? 'Dark Mode' : 'Light Mode'}</strong>
+          </Typography>
+          <IconButton size="small" onClick={handleToggleDark} sx={{ bgcolor: 'var(--surface2)' }}>
+            {mode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </IconButton>
         </Box>
       </Drawer>
 
@@ -705,10 +929,10 @@ function AppInner() {
           onClick={() => setShowAIAssistant(true)}
           sx={{
             position: 'fixed',
-            bottom: { xs: 72, sm: 24 },
+            bottom: { xs: 80, sm: 24 },
             right: { xs: 16, sm: 24 },
-            width: 52,
-            height: 52,
+            width: 50,
+            height: 50,
             borderRadius: '50%',
             bgcolor: 'primary.main',
             color: 'primary.contrastText',
@@ -726,7 +950,7 @@ function AppInner() {
           }}
           title="Ask Max Assistant"
         >
-          <Sparkles size={24} />
+          <Sparkles size={22} />
         </IconButton>
       )}
 
