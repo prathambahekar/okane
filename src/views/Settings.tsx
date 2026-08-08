@@ -15,8 +15,24 @@ import CategoryIcon, { AVAILABLE_ICONS } from '../components/CategoryIcon';
 
 function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeColor: (c: string) => void }) {
   const isCustom = !FRIEND_PALETTE.includes(color);
+  const colorInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCustomTrigger = () => {
+    if (colorInputRef.current) {
+      try {
+        if ('showPicker' in colorInputRef.current && typeof colorInputRef.current.showPicker === 'function') {
+          colorInputRef.current.showPicker();
+          return;
+        }
+      } catch {
+        // Fallback to click
+      }
+      colorInputRef.current.click();
+    }
+  };
+
   return (
-    <div className="category-color-picker">
+    <div className="category-color-picker" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       {FRIEND_PALETTE.map(c => (
         <button
           key={c}
@@ -27,36 +43,41 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
           aria-label={`Select color ${c}`}
         />
       ))}
-      <label
+      <button
+        type="button"
         className={`color-swatch-btn ${isCustom ? 'selected' : ''}`}
+        onClick={handleCustomTrigger}
         style={{
           background: color,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          position: 'relative',
-          overflow: 'hidden',
-          border: '1.5px dashed rgba(255,255,255,0.4)',
+          border: isCustom ? '2px solid #ffffff' : '1.5px dashed rgba(255,255,255,0.7)',
+          boxShadow: isCustom ? '0 0 0 2px var(--accent)' : 'none',
+          touchAction: 'manipulation',
+          WebkitTapHighlightColor: 'transparent',
         }}
         title="Choose Custom Color"
       >
-        <Palette size={13} style={{ color: '#fff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />
-        <input
-          type="color"
-          value={color}
-          onChange={e => onChangeColor(e.target.value)}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            opacity: 0,
-            cursor: 'pointer',
-          }}
-        />
-      </label>
+        <Palette size={14} style={{ color: '#fff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />
+      </button>
+
+      {/* Touch-safe native color picker input */}
+      <input
+        ref={colorInputRef}
+        type="color"
+        value={color.startsWith('#') && color.length === 7 ? color : '#3B82F6'}
+        onChange={e => onChangeColor(e.target.value)}
+        style={{
+          position: 'absolute',
+          opacity: 0,
+          width: 1,
+          height: 1,
+          pointerEvents: 'none',
+          visibility: 'hidden',
+        }}
+      />
     </div>
   );
 }
@@ -101,6 +122,7 @@ export default function Settings({
     return [];
   });
   const [newColorName, setNewColorName] = useState('');
+  const customAccentInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveCustomColor = () => {
     const hex = customColor.trim();
@@ -615,23 +637,13 @@ export default function Settings({
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="settings-cards-list">
         {/* Help & User Guide Card (Dev Mode Feature) */}
         {isDevMode && (settings.enableUserGuide ?? false) && (
           <div className="card" style={{ background: 'linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%)', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '12px',
-                  background: 'var(--accent-soft)',
-                  color: 'var(--accent)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
+                <div className="settings-card-icon">
                   <Sparkles size={20} />
                 </div>
                 <div>
@@ -672,37 +684,22 @@ export default function Settings({
         )}
 
         {/* Appearance Summary Card */}
-        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowAppearanceSheet(true)}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: 10,
-                background: 'var(--accent-soft)', color: 'var(--accent)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-              }}>
+        <div className="card settings-summary-card" onClick={() => setShowAppearanceSheet(true)}>
+          <div className="settings-card-inner">
+            <div className="settings-card-left">
+              <div className="settings-card-icon">
                 <Palette size={19} />
               </div>
-              <div>
-                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>Appearance & Theme</h2>
-                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+              <div className="settings-card-text">
+                <h2 className="settings-card-title">Appearance & Theme</h2>
+                <p className="settings-card-sub">
                   {isDark ? 'Dark Mode' : 'Light Mode'} • {accent === 'custom' ? 'Custom Accent' : (ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic Blue')}
                 </p>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '4px 10px',
-                borderRadius: 20,
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--text-2)',
-              }}>
+            <div className="settings-card-right">
+              <div className="settings-card-badge">
                 <div style={{
                   width: 12,
                   height: 12,
@@ -715,43 +712,17 @@ export default function Settings({
                 }} />
                 <span>{accent === 'custom' ? 'Custom' : (ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic')}</span>
               </div>
-              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+              <ChevronRight className="settings-card-arrow" size={18} />
             </div>
           </div>
         </div>
 
         {/* Bottom Sheet Drawer Modal for Appearance & Theme */}
         {showAppearanceSheet && createPortal(
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 9999,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(5px)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-              padding: '0 8px 8px 8px'
-            }}
-            onClick={() => setShowAppearanceSheet(false)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'var(--surface)',
-                borderRadius: '20px 20px 16px 16px',
-                width: '100%',
-                maxWidth: 540,
-                maxHeight: '85vh',
-                overflowY: 'auto',
-                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
-                padding: '16px 18px 24px 18px',
-                border: '1px solid var(--border)'
-              }}
-            >
+          <div className="sheet-backdrop" onClick={() => setShowAppearanceSheet(false)}>
+            <div className="sheet-modal sheet-modal-lg" onClick={(e) => e.stopPropagation()}>
               {/* Drag Handle */}
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+              <div className="sheet-drag-handle" />
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -973,41 +944,89 @@ export default function Settings({
                   )}
                 </div>
 
-                <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {/* Quick Color Swatches */}
+                  <div>
+                    <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8 }}>
+                      Quick Color Palette
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      {[
+                        '#EF4444', '#F43F5E', '#EC4899', '#A855F7', '#8B5CF6', '#6366F1',
+                        '#3B82F6', '#0EA5E9', '#06B6D4', '#14B8A6', '#10B981', '#22C55E',
+                        '#84CC16', '#EAB308', '#F97316', '#EA580C', '#8D6E63', '#475569'
+                      ].map(swatch => (
+                        <button
+                          key={swatch}
+                          type="button"
+                          className={`color-swatch-btn ${customColor.toUpperCase() === swatch ? 'selected' : ''}`}
+                          style={{ background: swatch }}
+                          onClick={() => {
+                            setCustomColor(swatch);
+                            setAccent('custom');
+                            updateSettings({ accent: 'custom', customAccentColor: swatch });
+                          }}
+                          aria-label={`Select accent color ${swatch}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pick Color Button + Native Picker + Hex Input */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <label style={{
-                      position: 'relative',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      padding: '0 16px',
-                      height: 40,
-                      borderRadius: 'var(--radius)',
-                      background: customColor,
-                      color: '#ffffff',
-                      fontWeight: 600,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                      userSelect: 'none',
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                    }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customAccentInputRef.current) {
+                          try {
+                            if ('showPicker' in customAccentInputRef.current && typeof customAccentInputRef.current.showPicker === 'function') {
+                              customAccentInputRef.current.showPicker();
+                              return;
+                            }
+                          } catch {
+                            // Fallback
+                          }
+                          customAccentInputRef.current.click();
+                        }
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        padding: '0 16px',
+                        height: 40,
+                        borderRadius: 'var(--radius)',
+                        background: customColor,
+                        color: '#ffffff',
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                        userSelect: 'none',
+                        flexShrink: 0,
+                        border: 'none',
+                        touchAction: 'manipulation',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
+                    >
                       <Palette size={16} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }} />
                       <span>Pick Color</span>
-                      <input
-                        type="color"
-                        value={customColor}
-                        onChange={e => {
-                          const hex = e.target.value;
-                          setCustomColor(hex);
-                          setAccent('custom');
-                          updateSettings({ accent: 'custom', customAccentColor: hex });
-                        }}
-                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
-                      />
-                    </label>
+                    </button>
+
+                    <input
+                      ref={customAccentInputRef}
+                      type="color"
+                      className="native-color-picker"
+                      value={customColor.startsWith('#') && customColor.length === 7 ? customColor : '#6366F1'}
+                      onChange={e => {
+                        const hex = e.target.value;
+                        setCustomColor(hex);
+                        setAccent('custom');
+                        updateSettings({ accent: 'custom', customAccentColor: hex });
+                      }}
+                      title="Native color picker"
+                    />
 
                     <div style={{ flex: 1, minWidth: 110 }}>
                       <input
@@ -1059,65 +1078,35 @@ export default function Settings({
         )}
 
         {/* Preferences Summary Card */}
-        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowPreferencesSheet(true)}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: 10,
-                background: 'var(--accent-soft)', color: 'var(--accent)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-              }}>
+        <div className="card settings-summary-card" onClick={() => setShowPreferencesSheet(true)}>
+          <div className="settings-card-inner">
+            <div className="settings-card-left">
+              <div className="settings-card-icon">
                 <Sliders size={19} />
               </div>
-              <div>
-                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>Preferences</h2>
-                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+              <div className="settings-card-text">
+                <h2 className="settings-card-title">Preferences</h2>
+                <p className="settings-card-sub">
                   Currency ({settings.currency}), default category & wallet
                 </p>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)' }}>
+            <div className="settings-card-right">
+              <span className="badge settings-card-badge">
                 {settings.currency}
               </span>
-              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+              <ChevronRight className="settings-card-arrow" size={18} />
             </div>
           </div>
         </div>
 
         {/* Bottom Sheet Drawer Modal for Preferences */}
         {showPreferencesSheet && createPortal(
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 9999,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(5px)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-              padding: '0 8px 8px 8px'
-            }}
-            onClick={() => setShowPreferencesSheet(false)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'var(--surface)',
-                borderRadius: '20px 20px 16px 16px',
-                width: '100%',
-                maxWidth: 520,
-                maxHeight: '82vh',
-                overflowY: 'auto',
-                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
-                padding: '16px 18px 24px 18px',
-                border: '1px solid var(--border)'
-              }}
-            >
+          <div className="sheet-backdrop" onClick={() => setShowPreferencesSheet(false)}>
+            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
               {/* Drag Handle */}
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+              <div className="sheet-drag-handle" />
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -1194,65 +1183,35 @@ export default function Settings({
         )}
 
         {/* Categories Summary Card */}
-        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowCategoriesSheet(true)}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: 10,
-                background: 'var(--accent-soft)', color: 'var(--accent)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-              }}>
+        <div className="card settings-summary-card" onClick={() => setShowCategoriesSheet(true)}>
+          <div className="settings-card-inner">
+            <div className="settings-card-left">
+              <div className="settings-card-icon">
                 <Tag size={19} />
               </div>
-              <div>
-                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>Categories</h2>
-                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+              <div className="settings-card-text">
+                <h2 className="settings-card-title">Categories</h2>
+                <p className="settings-card-sub">
                   Manage category tags & color labels ({settings.categories.length} configured)
                 </p>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)' }}>
+            <div className="settings-card-right">
+              <span className="badge settings-card-badge">
                 {settings.categories.length} Tags
               </span>
-              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+              <ChevronRight className="settings-card-arrow" size={18} />
             </div>
           </div>
         </div>
 
         {/* Bottom Sheet Drawer Modal for Categories */}
         {showCategoriesSheet && createPortal(
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 9999,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(5px)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-              padding: '0 8px 8px 8px'
-            }}
-            onClick={() => setShowCategoriesSheet(false)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'var(--surface)',
-                borderRadius: '20px 20px 16px 16px',
-                width: '100%',
-                maxWidth: 540,
-                maxHeight: '85vh',
-                overflowY: 'auto',
-                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
-                padding: '16px 18px 24px 18px',
-                border: '1px solid var(--border)'
-              }}
-            >
+          <div className="sheet-backdrop" onClick={() => setShowCategoriesSheet(false)}>
+            <div className="sheet-modal sheet-modal-lg" onClick={(e) => e.stopPropagation()}>
               {/* Drag Handle */}
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+              <div className="sheet-drag-handle" />
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -1497,73 +1456,38 @@ export default function Settings({
         )}
 
         {/* Developer Mode Card */}
-        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowDevSheet(true)}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: 10,
-                background: 'var(--accent-soft)', color: 'var(--accent)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-              }}>
+        <div className="card settings-summary-card" onClick={() => setShowDevSheet(true)}>
+          <div className="settings-card-inner">
+            <div className="settings-card-left">
+              <div className="settings-card-icon">
                 <FlaskConical size={19} />
               </div>
-              <div>
-                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>Developer Mode</h2>
-                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+              <div className="settings-card-text">
+                <h2 className="settings-card-title">Developer Mode</h2>
+                <p className="settings-card-sub">
                   {isDevMode ? 'Experimental tools & developer features active' : 'Enable experimental tools & developer features'}
                 </p>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="badge" style={{
+            <div className="settings-card-right">
+              <span className="badge settings-card-badge" style={{
                 background: isDevMode ? 'var(--accent-soft)' : 'var(--surface2)',
                 color: isDevMode ? 'var(--accent)' : 'var(--text-3)',
-                padding: '3px 10px',
-                borderRadius: 12,
-                fontSize: 12,
-                fontWeight: 600,
-                border: '1px solid var(--border)'
               }}>
                 {isDevMode ? 'Enabled' : 'Disabled'}
               </span>
-              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+              <ChevronRight className="settings-card-arrow" size={18} />
             </div>
           </div>
         </div>
 
         {/* Bottom Sheet Drawer Modal for Experimental Features */}
         {showDevSheet && createPortal(
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 9999,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(5px)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-              padding: '0 8px 8px 8px'
-            }}
-            onClick={() => setShowDevSheet(false)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'var(--surface)',
-                borderRadius: '20px 20px 16px 16px',
-                width: '100%',
-                maxWidth: 520,
-                maxHeight: '82vh',
-                overflowY: 'auto',
-                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
-                padding: '16px 16px 20px 16px',
-                border: '1px solid var(--border)'
-              }}
-            >
+          <div className="sheet-backdrop" onClick={() => setShowDevSheet(false)}>
+            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
               {/* Drag Handle */}
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+              <div className="sheet-drag-handle" />
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -1935,62 +1859,32 @@ export default function Settings({
         )}
 
         {/* Data Summary Card */}
-        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowDataSheet(true)}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: 10,
-                background: 'var(--accent-soft)', color: 'var(--accent)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-              }}>
+        <div className="card settings-summary-card" onClick={() => setShowDataSheet(true)}>
+          <div className="settings-card-inner">
+            <div className="settings-card-left">
+              <div className="settings-card-icon">
                 <Database size={19} />
               </div>
-              <div>
-                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>Data</h2>
-                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+              <div className="settings-card-text">
+                <h2 className="settings-card-title">Data</h2>
+                <p className="settings-card-sub">
                   Export backup, import data, or reset storage
                 </p>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+            <div className="settings-card-right">
+              <ChevronRight className="settings-card-arrow" size={18} />
             </div>
           </div>
         </div>
 
         {/* Bottom Sheet Drawer Modal for Data */}
         {showDataSheet && createPortal(
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 9999,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(5px)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-              padding: '0 8px 8px 8px'
-            }}
-            onClick={() => setShowDataSheet(false)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'var(--surface)',
-                borderRadius: '20px 20px 16px 16px',
-                width: '100%',
-                maxWidth: 520,
-                maxHeight: '82vh',
-                overflowY: 'auto',
-                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
-                padding: '16px 18px 24px 18px',
-                border: '1px solid var(--border)'
-              }}
-            >
+          <div className="sheet-backdrop" onClick={() => setShowDataSheet(false)}>
+            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
               {/* Drag Handle */}
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+              <div className="sheet-drag-handle" />
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -2068,34 +1962,24 @@ export default function Settings({
 
         {/* Report a Bug / Suggest a Feature Card (Only visible when Dev Mode is active) */}
         {isDevMode && (
-          <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowFeedbackSheet(true)}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-                <div style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: 'var(--accent-soft)',
-                  color: 'var(--accent)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
+          <div className="card settings-summary-card" onClick={() => setShowFeedbackSheet(true)}>
+            <div className="settings-card-inner">
+              <div className="settings-card-left">
+                <div className="settings-card-icon">
                   <MessageSquarePlus size={19} />
                 </div>
-                <div>
-                  <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>
+                <div className="settings-card-text">
+                  <h2 className="settings-card-title">
                     Report Bug / Feature Request
                   </h2>
-                  <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                  <p className="settings-card-sub">
                     Submit feedback, bug report, or feature request
                   </p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+              <div className="settings-card-right">
+                <ChevronRight className="settings-card-arrow" size={18} />
               </div>
             </div>
           </div>
@@ -2103,36 +1987,10 @@ export default function Settings({
 
         {/* Bottom Sheet Drawer Modal for Report Bug / Suggest Feature */}
         {showFeedbackSheet && createPortal(
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 9999,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(5px)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-              padding: '0 8px 8px 8px'
-            }}
-            onClick={() => setShowFeedbackSheet(false)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'var(--surface)',
-                borderRadius: '20px 20px 16px 16px',
-                width: '100%',
-                maxWidth: 520,
-                maxHeight: '85vh',
-                overflowY: 'auto',
-                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
-                padding: '16px 18px 24px 18px',
-                border: '1px solid var(--border)'
-              }}
-            >
+          <div className="sheet-backdrop" onClick={() => setShowFeedbackSheet(false)}>
+            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
               {/* Drag Handle */}
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+              <div className="sheet-drag-handle" />
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -2375,65 +2233,35 @@ export default function Settings({
         )}
 
         {/* App Version Summary Card */}
-        <div className="card" style={{ cursor: 'pointer' }} onClick={() => setShowVersionSheet(true)}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: 10,
-                background: 'var(--accent-soft)', color: 'var(--accent)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-              }}>
+        <div className="card settings-summary-card" onClick={() => setShowVersionSheet(true)}>
+          <div className="settings-card-inner">
+            <div className="settings-card-left">
+              <div className="settings-card-icon">
                 <HelpCircle size={19} />
               </div>
-              <div>
-                <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--text)' }}>App Info & Version</h2>
-                <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+              <div className="settings-card-text">
+                <h2 className="settings-card-title">App Info & Version</h2>
+                <p className="settings-card-sub">
                   Check for updates, release notes & app info
                 </p>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600, border: '1px solid var(--border)' }}>
+            <div className="settings-card-right">
+              <span className="badge settings-card-badge">
                 v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}
               </span>
-              <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+              <ChevronRight className="settings-card-arrow" size={18} />
             </div>
           </div>
         </div>
 
         {/* Bottom Sheet Drawer Modal for App Version */}
         {showVersionSheet && createPortal(
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 9999,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(5px)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-              padding: '0 8px 8px 8px'
-            }}
-            onClick={() => setShowVersionSheet(false)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'var(--surface)',
-                borderRadius: '20px 20px 16px 16px',
-                width: '100%',
-                maxWidth: 520,
-                maxHeight: '85vh',
-                overflowY: 'auto',
-                boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
-                padding: '16px 18px 24px 18px',
-                border: '1px solid var(--border)'
-              }}
-            >
+          <div className="sheet-backdrop" onClick={() => setShowVersionSheet(false)}>
+            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
               {/* Drag Handle */}
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 12px auto' }} />
+              <div className="sheet-drag-handle" />
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>

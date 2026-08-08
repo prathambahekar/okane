@@ -831,6 +831,66 @@ html, body, #root {
   to { transform: translateY(0); }
 }
 
+/* Drawer Modal / Sheet Styles for Settings & Dialogs */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 8px 8px 8px;
+  animation: fadein 0.15s ease;
+}
+
+@media (min-width: 641px) {
+  .sheet-backdrop {
+    align-items: center;
+    padding: 20px;
+  }
+}
+
+.sheet-modal {
+  background: var(--surface);
+  border-radius: 20px 20px 16px 16px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+  padding: 16px 18px 24px 18px;
+  border: 1px solid var(--border);
+  animation: slideUpMobile 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 641px) {
+  .sheet-modal {
+    border-radius: 20px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    animation: slidein 0.18s ease;
+  }
+}
+
+.sheet-modal-lg {
+  max-width: 540px;
+}
+
+.sheet-drag-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: 0 auto 12px auto;
+}
+
+@media (min-width: 641px) {
+  .sheet-drag-handle {
+    display: none;
+  }
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -1951,24 +2011,87 @@ table.desktop-only { display: table !important; }
   flex-wrap: wrap;
 }
 
+.color-swatch-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.color-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform var(--transition), box-shadow var(--transition);
+  position: relative;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+  outline: none;
+}
+.color-swatch:hover, .color-swatch:active {
+  transform: scale(1.12);
+}
+.color-swatch.selected {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2.5px var(--accent);
+  transform: scale(1.12);
+}
+
 .color-swatch-btn {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition);
   padding: 0;
   outline: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.color-swatch-btn:hover {
+.color-swatch-btn:hover, .color-swatch-btn:active {
   transform: scale(1.15);
 }
 
 .color-swatch-btn.selected {
   transform: scale(1.15);
+  border-color: #ffffff;
   box-shadow: 0 0 0 2px var(--surface2), 0 0 0 4px var(--accent);
+}
+
+/* Touch-friendly Native Color Picker Input */
+.native-color-picker {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+.native-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.native-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 8px;
+}
+
+.native-color-picker::-moz-color-swatch {
+  border: none;
+  border-radius: 8px;
 }
 
 .category-icon-picker {
@@ -2005,6 +2128,98 @@ table.desktop-only { display: table !important; }
   box-shadow: 0 0 0 2px var(--surface2);
 }
 
+/* Settings Cards & Mobile Compact Styling */
+.settings-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-summary-card {
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), transform 0.15s ease;
+}
+
+.settings-summary-card:hover {
+  background: var(--surface2);
+  border-color: var(--border2);
+}
+
+.settings-card-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.settings-card-text {
+  min-width: 0;
+}
+
+.settings-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.settings-card-sub {
+  font-size: 12px;
+  color: var(--text-3);
+  margin: 2px 0 0 0;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-card-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.settings-card-badge {
+  background: var(--surface2);
+  color: var(--text-2);
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.settings-card-arrow {
+  color: var(--text-3);
+}
+
 @media (max-width: 640px) {
   .category-add-form {
     grid-template-columns: 1fr;
@@ -2013,9 +2228,50 @@ table.desktop-only { display: table !important; }
   .category-add-form .btn {
     width: 100%;
   }
-  .color-swatch-btn {
+  .color-swatch-btn, .color-swatch {
+    width: 36px;
+    height: 36px;
+  }
+  .settings-cards-list {
+    gap: 8px;
+  }
+  .settings-summary-card {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  .settings-card-inner {
+    gap: 8px;
+  }
+  .settings-card-left {
+    gap: 10px;
+  }
+  .settings-card-icon {
     width: 32px;
     height: 32px;
+    border-radius: 8px;
+  }
+  .settings-card-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+  .settings-card-title {
+    font-size: 13.5px;
+  }
+  .settings-card-sub {
+    font-size: 11px;
+    margin-top: 1px;
+  }
+  .settings-card-right {
+    gap: 6px;
+  }
+  .settings-card-badge {
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 10px;
+  }
+  .settings-card-arrow {
+    width: 15px;
+    height: 15px;
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, User, Store, Tv, Pipette } from 'lucide-react';
 import { useStore } from '../store';
@@ -26,6 +26,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
   const [avatarNumber, setAvatarNumber] = useState(friend?.avatarNumber ?? '');
   const [showNumberPicker, setShowNumberPicker] = useState(() => Boolean(friend?.avatarNumber));
   const [error, setError] = useState('');
+  const friendColorInputRef = useRef<HTMLInputElement>(null);
 
   const handleNameChange = (val: string) => {
     setName(val);
@@ -419,68 +420,65 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
 
                     {/* Swatches Grid */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                      <div className="color-swatch-grid">
                         {FRIEND_PALETTE.map(c => {
                           const isSelected = color === c;
                           return (
                             <button
                               key={c}
                               type="button"
+                              className={`color-swatch ${isSelected ? 'selected' : ''}`}
                               onClick={() => setColor(c)}
-                              style={{
-                                width: 20,
-                                height: 20,
-                                borderRadius: '50%',
-                                background: c,
-                                border: isSelected ? '2px solid #FFFFFF' : 'none',
-                                boxShadow: isSelected ? `0 0 0 2px ${c}` : 'none',
-                                cursor: 'pointer',
-                                transform: isSelected ? 'scale(1.15)' : 'scale(1)',
-                                transition: 'transform 0.15s ease',
-                                outline: 'none',
-                              }}
+                              style={{ background: c }}
+                              aria-label={`Select color ${c}`}
                             />
                           );
                         })}
 
                         {/* Custom Color Picker Swatch */}
-                        <label
+                        <button
+                          type="button"
+                          className={`color-swatch ${!FRIEND_PALETTE.includes(color) ? 'selected' : ''}`}
+                          onClick={() => {
+                            if (friendColorInputRef.current) {
+                              try {
+                                if ('showPicker' in friendColorInputRef.current && typeof friendColorInputRef.current.showPicker === 'function') {
+                                  friendColorInputRef.current.showPicker();
+                                  return;
+                                }
+                              } catch {
+                                // Fallback
+                              }
+                              friendColorInputRef.current.click();
+                            }
+                          }}
                           style={{
-                            position: 'relative',
-                            width: 20,
-                            height: 20,
-                            borderRadius: '50%',
                             background: !FRIEND_PALETTE.includes(color)
                               ? color
                               : 'conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
-                            border: !FRIEND_PALETTE.includes(color) ? '2px solid #FFFFFF' : 'none',
-                            boxShadow: !FRIEND_PALETTE.includes(color) ? `0 0 0 2px ${color}` : 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
+                            display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            transform: !FRIEND_PALETTE.includes(color) ? 'scale(1.15)' : 'scale(1)',
-                            transition: 'transform 0.15s ease',
-                            outline: 'none',
                           }}
                           title="Pick custom color"
                         >
-                          <input
-                            type="color"
-                            value={color.startsWith('#') ? color : '#3B82F6'}
-                            onChange={e => setColor(e.target.value)}
-                            style={{
-                              position: 'absolute',
-                              opacity: 0,
-                              width: '100%',
-                              height: '100%',
-                              cursor: 'pointer',
-                              top: 0,
-                              left: 0,
-                            }}
-                          />
-                          <Pipette size={10} color="#FFFFFF" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))', pointerEvents: 'none' }} />
-                        </label>
+                          <Pipette size={12} color="#FFFFFF" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />
+                        </button>
+
+                        <input
+                          ref={friendColorInputRef}
+                          type="color"
+                          value={color.startsWith('#') && color.length === 7 ? color : '#3B82F6'}
+                          onChange={e => setColor(e.target.value)}
+                          style={{
+                            position: 'absolute',
+                            opacity: 0,
+                            width: 1,
+                            height: 1,
+                            pointerEvents: 'none',
+                            visibility: 'hidden',
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
