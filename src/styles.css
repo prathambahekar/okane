@@ -2860,19 +2860,60 @@ table.desktop-only { display: table !important; }
 
 /* Fast, Hardware-Accelerated Page & Tab Transitions */
 .view-page-animate {
-  animation: viewFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: opacity, transform;
+  animation: viewFadeIn 0.18s ease-out forwards;
 }
 
 @keyframes viewFadeIn {
   from {
-    opacity: 0.65;
-    transform: translateY(6px);
+    opacity: 0.75;
+    transform: translateY(3px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@media (max-width: 768px) {
+  .view-page-animate {
+    animation: viewFadeInMobile 0.1s ease-out forwards;
+    will-change: auto;
+  }
+
+  @keyframes viewFadeInMobile {
+    from { opacity: 0.88; }
+    to { opacity: 1; }
+  }
+}
+
+/* Performance & Animation Toggle Overrides */
+body.no-animations *,
+body.no-animations *::before,
+body.no-animations *::after,
+.no-animations *,
+.no-animations *::before,
+.no-animations *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+.no-animations .view-page-animate,
+.performance-mode .view-page-animate {
+  animation: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+  will-change: auto !important;
+}
+
+.performance-mode *,
+.performance-mode *::before,
+.performance-mode *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
 
 /* 2-Color Day Alternating Row & Card Styles */

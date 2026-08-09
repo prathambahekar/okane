@@ -184,9 +184,25 @@ function AppInner() {
     });
   };
 
-  const pendingSettlements = db.friends.filter(f =>
-    db.expenses.some(e => e.friendId === f.id && !e.settled && e.type !== 'personal')
-  ).length;
+  useEffect(() => {
+    if (db.settings?.enableAnimations === false) {
+      document.body.classList.add('no-animations');
+    } else {
+      document.body.classList.remove('no-animations');
+    }
+
+    if (db.settings?.performanceMode) {
+      document.body.classList.add('performance-mode');
+    } else {
+      document.body.classList.remove('performance-mode');
+    }
+  }, [db.settings?.enableAnimations, db.settings?.performanceMode]);
+
+  const pendingSettlements = useMemo(() => {
+    return db.friends.filter(f =>
+      db.expenses.some(e => e.friendId === f.id && !e.settled && e.type !== 'personal')
+    ).length;
+  }, [db.friends, db.expenses]);
 
   const dueAutopaysCount = useMemo(() => {
     const today = todayISO();
@@ -262,7 +278,7 @@ function AppInner() {
   };
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${db.settings?.enableAnimations === false ? 'no-animations' : ''} ${db.settings?.performanceMode ? 'performance-mode' : ''}`}>
       {/* Desktop sidebar */}
       {!isMobile && (
         <nav className={`sidebar floating ${sidebarCollapsed ? 'collapsed' : ''}`}>
@@ -748,26 +764,7 @@ function AppInner() {
         <Box sx={{ width: 40, height: 4, bgcolor: 'divider', borderRadius: 99, mx: 'auto', mb: 2 }} />
 
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-            <Box sx={{
-              width: 34, height: 34, borderRadius: '12px',
-              bgcolor: 'var(--accent-gradient)', color: '#ffffff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 700, fontSize: '0.9rem'
-            }}>
-              ¥
-            </Box>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                Okane Menu
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Quick access to features
-              </Typography>
-            </Box>
-          </Box>
-
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
           <IconButton size="small" onClick={() => setMoreOpen(false)} sx={{ bgcolor: 'action.hover' }}>
             <X size={18} />
           </IconButton>

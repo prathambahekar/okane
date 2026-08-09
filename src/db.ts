@@ -474,6 +474,8 @@ export function defaultDB(): AppDB {
       accent: localStorage.getItem('accent-color') || 'blue',
       customAccentColor: localStorage.getItem('custom-accent-color') || '#6366f1',
       sidebarCollapsed: localStorage.getItem('sidebar_collapsed') === 'true',
+      enableAnimations: true,
+      performanceMode: false,
     },
     recurringRules: [],
   };
@@ -912,6 +914,8 @@ export function loadDBFromSQLTables(): AppDB {
       accent: localStorage.getItem('accent-color') || 'blue',
       customAccentColor: localStorage.getItem('custom-accent-color') || '#6366f1',
       sidebarCollapsed: localStorage.getItem('sidebar_collapsed') === 'true',
+      enableAnimations: true,
+      performanceMode: false,
     };
 
     sqlSettings.forEach(st => {

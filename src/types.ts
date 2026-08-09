@@ -98,6 +98,8 @@ export interface Settings {
   accent?: string;
   customAccentColor?: string;
   sidebarCollapsed?: boolean;
+  enableAnimations?: boolean;
+  performanceMode?: boolean;
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';

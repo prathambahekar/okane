@@ -175,6 +175,7 @@ export default function Settings({
   const isDevMode = settings.devMode ?? false;
   const [showDevSheet, setShowDevSheet] = useState(false);
   const [showAppearanceSheet, setShowAppearanceSheet] = useState(false);
+  const [showPerformanceSheet, setShowPerformanceSheet] = useState(false);
   const [showCategoriesSheet, setShowCategoriesSheet] = useState(false);
   const [showPreferencesSheet, setShowPreferencesSheet] = useState(false);
   const [showDataSheet, setShowDataSheet] = useState(false);
@@ -1071,6 +1072,151 @@ export default function Settings({
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Performance & Animations Card */}
+        <div className="card settings-summary-card" onClick={() => setShowPerformanceSheet(true)}>
+          <div className="settings-card-inner">
+            <div className="settings-card-left">
+              <div className="settings-card-icon">
+                <Zap size={19} />
+              </div>
+              <div className="settings-card-text">
+                <h2 className="settings-card-title">Performance & Animations</h2>
+                <p className="settings-card-sub">
+                  {(settings.enableAnimations ?? true) ? 'Animations On' : 'Animations Off (Fast)'} • {(settings.performanceMode ?? false) ? 'Ultra Performance On' : 'Standard Visuals'}
+                </p>
+              </div>
+            </div>
+
+            <div className="settings-card-right">
+              <span className="badge settings-card-badge">
+                {(settings.performanceMode ?? false) ? 'Ultra' : ((settings.enableAnimations ?? true) ? 'Smooth' : 'Instant')}
+              </span>
+              <ChevronRight className="settings-card-arrow" size={18} />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Sheet Drawer Modal for Performance & Animations */}
+        {showPerformanceSheet && createPortal(
+          <div className="sheet-backdrop" onClick={() => setShowPerformanceSheet(false)}>
+            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="sheet-drag-handle" />
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                  }}>
+                    <Zap size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Performance & Animations
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      Optimize app speed & page transition effects
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPerformanceSheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Toggle 1: UI Animations */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 12
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                  <Sliders size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>UI Animations & Transitions</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      Turn off for instant page switches on mobile
+                    </div>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.enableAnimations ?? true}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    updateSettings({ enableAnimations: enabled });
+                    showToast(enabled ? 'Animations enabled' : 'Animations disabled (Instant navigation)');
+                  }}
+                  color="primary"
+                />
+              </div>
+
+              {/* Toggle 2: Ultra Performance Mode */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 16
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                  <Zap size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Ultra Performance Mode</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      Removes heavy blurs & shadows for maximum frame rate
+                    </div>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.performanceMode ?? false}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    updateSettings({ performanceMode: enabled });
+                    showToast(enabled ? 'Ultra Performance Mode enabled' : 'Standard Mode enabled');
+                  }}
+                  color="primary"
+                />
+              </div>
+
+              <div style={{
+                fontSize: 12,
+                color: 'var(--text-3)',
+                padding: '10px 12px',
+                borderRadius: 10,
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                lineHeight: 1.4
+              }}>
+                💡 <strong>Mobile performance tip:</strong> If page switching feels sluggish or stutters on your phone, turn off <strong>UI Animations</strong> or enable <strong>Ultra Performance Mode</strong> for instant, butter-smooth navigation.
               </div>
             </div>
           </div>,
