@@ -3915,3 +3915,13 @@ table.desktop-only { display: table !important; }
   font-size: 11px;
 }
 
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
