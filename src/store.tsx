@@ -489,6 +489,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore storage errors
     }
+    try {
+      window.dispatchEvent(new Event('okane_trips_updated'));
+    } catch {
+      // ignore
+    }
     resetSQLTables();
     const next = defaultDB();
     persist(next);
@@ -500,6 +505,36 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const friendsArr = (Array.isArray(data.friends) && data.friends.length > 0)
       ? data.friends
       : (Array.isArray(rawData.contacts) ? (rawData.contacts as Friend[]) : (Array.isArray(data.friends) ? data.friends : []));
+    
+    // Restore trip data to localStorage
+    const settingsRec = (data.settings || {}) as unknown as Record<string, unknown>;
+    const activeTrip = data.activeTrip ?? settingsRec._active_trip;
+    if (activeTrip !== undefined && activeTrip !== null) {
+      const str = typeof activeTrip === 'string' ? activeTrip : JSON.stringify(activeTrip);
+      if (str) localStorage.setItem('okane_active_trip_v1', str);
+      else localStorage.removeItem('okane_active_trip_v1');
+    } else if (rawData.activeTrip === null) {
+      localStorage.removeItem('okane_active_trip_v1');
+    }
+
+    const tripHistory = data.tripHistory ?? settingsRec._trip_history;
+    if (tripHistory !== undefined && tripHistory !== null) {
+      const str = typeof tripHistory === 'string' ? tripHistory : JSON.stringify(tripHistory);
+      localStorage.setItem('okane_trip_history_v1', str);
+    }
+
+    const presetGroups = data.presetGroups ?? settingsRec._preset_groups;
+    if (presetGroups !== undefined && presetGroups !== null) {
+      const str = typeof presetGroups === 'string' ? presetGroups : JSON.stringify(presetGroups);
+      localStorage.setItem('okane_preset_groups_v1', str);
+    }
+
+    try {
+      window.dispatchEvent(new Event('okane_trips_updated'));
+    } catch {
+      // ignore
+    }
+
     const normalized: AppDB = {
       version: data.version || 3,
       friends: friendsArr,

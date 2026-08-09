@@ -1717,7 +1717,7 @@ export default function Settings({
                       <Plane size={17} style={{ color: (isDevMode && (settings.enableSplitTrips ?? true)) ? 'var(--accent)' : 'var(--text-3)' }} />
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>Split & Trips</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>Trips & Splits</div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         Group ledgers & trip expense splitting
                       </div>

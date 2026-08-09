@@ -139,6 +139,24 @@ export function executeRawSQL(sqlQuery: string): unknown {
 
 export function generateSQLDumpString(): string {
   initSQLTables();
+
+  const activeTripRaw = localStorage.getItem('okane_active_trip_v1');
+  const tripHistoryRaw = localStorage.getItem('okane_trip_history_v1');
+  const presetGroupsRaw = localStorage.getItem('okane_preset_groups_v1');
+
+  if (activeTripRaw !== null) {
+    alasql('DELETE FROM settings WHERE st_key = "_active_trip"');
+    alasql('INSERT INTO settings VALUES ("_active_trip", ?)', [activeTripRaw]);
+  }
+  if (tripHistoryRaw !== null) {
+    alasql('DELETE FROM settings WHERE st_key = "_trip_history"');
+    alasql('INSERT INTO settings VALUES ("_trip_history", ?)', [tripHistoryRaw]);
+  }
+  if (presetGroupsRaw !== null) {
+    alasql('DELETE FROM settings WHERE st_key = "_preset_groups"');
+    alasql('INSERT INTO settings VALUES ("_preset_groups", ?)', [presetGroupsRaw]);
+  }
+
   const dump = {
     friends: (alasql('SELECT * FROM friends') as Record<string, unknown>[]) || [],
     wallets: (alasql('SELECT * FROM wallets') as Record<string, unknown>[]) || [],
@@ -733,6 +751,26 @@ export function syncDBToSQLTables(db: AppDB): void {
       if (db.settings.defaultAiEngine) localStorage.setItem('ai_engine_mode', db.settings.defaultAiEngine);
     }
 
+    // Sync Trip and Split data into settings table and localStorage
+    const activeTripStr = db.activeTrip !== undefined ? (db.activeTrip ? JSON.stringify(db.activeTrip) : '') : localStorage.getItem('okane_active_trip_v1');
+    const tripHistoryStr = db.tripHistory !== undefined ? JSON.stringify(db.tripHistory) : localStorage.getItem('okane_trip_history_v1');
+    const presetGroupsStr = db.presetGroups !== undefined ? JSON.stringify(db.presetGroups) : localStorage.getItem('okane_preset_groups_v1');
+
+    if (activeTripStr) {
+      safeInsert('INSERT INTO settings VALUES (?,?)', ['_active_trip', activeTripStr]);
+      localStorage.setItem('okane_active_trip_v1', activeTripStr);
+    } else {
+      localStorage.removeItem('okane_active_trip_v1');
+    }
+    if (tripHistoryStr) {
+      safeInsert('INSERT INTO settings VALUES (?,?)', ['_trip_history', tripHistoryStr]);
+      localStorage.setItem('okane_trip_history_v1', tripHistoryStr);
+    }
+    if (presetGroupsStr) {
+      safeInsert('INSERT INTO settings VALUES (?,?)', ['_preset_groups', presetGroupsStr]);
+      localStorage.setItem('okane_preset_groups_v1', presetGroupsStr);
+    }
+
     const sqlDump = {
       friends: alasql('SELECT * FROM friends'),
       wallets: alasql('SELECT * FROM wallets'),
@@ -891,7 +929,39 @@ export function loadDBFromSQLTables(): AppDB {
       settingsObj.devMode = false;
     }
 
+    if (settingsObj._active_trip !== undefined) {
+      const val = typeof settingsObj._active_trip === 'string' ? settingsObj._active_trip : JSON.stringify(settingsObj._active_trip);
+      if (val) localStorage.setItem('okane_active_trip_v1', val);
+      else localStorage.removeItem('okane_active_trip_v1');
+    }
+    if (settingsObj._trip_history !== undefined) {
+      const val = typeof settingsObj._trip_history === 'string' ? settingsObj._trip_history : JSON.stringify(settingsObj._trip_history);
+      if (val) localStorage.setItem('okane_trip_history_v1', val);
+    }
+    if (settingsObj._preset_groups !== undefined) {
+      const val = typeof settingsObj._preset_groups === 'string' ? settingsObj._preset_groups : JSON.stringify(settingsObj._preset_groups);
+      if (val) localStorage.setItem('okane_preset_groups_v1', val);
+    }
+
     settingsObj.categories = categories;
+
+    let parsedActiveTrip = null;
+    try {
+      const raw = localStorage.getItem('okane_active_trip_v1');
+      if (raw) parsedActiveTrip = JSON.parse(raw);
+    } catch { /* ignore */ }
+
+    let parsedTripHistory = [];
+    try {
+      const raw = localStorage.getItem('okane_trip_history_v1');
+      if (raw) parsedTripHistory = JSON.parse(raw);
+    } catch { /* ignore */ }
+
+    let parsedPresetGroups = [];
+    try {
+      const raw = localStorage.getItem('okane_preset_groups_v1');
+      if (raw) parsedPresetGroups = JSON.parse(raw);
+    } catch { /* ignore */ }
 
     const db: AppDB = {
       version: 3,
@@ -901,6 +971,9 @@ export function loadDBFromSQLTables(): AppDB {
       settlements,
       recurringRules,
       settings: (settingsObj as unknown) as AppDB['settings'],
+      activeTrip: parsedActiveTrip,
+      tripHistory: parsedTripHistory,
+      presetGroups: parsedPresetGroups,
     };
 
     return db;

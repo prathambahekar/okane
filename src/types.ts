@@ -135,6 +135,9 @@ export interface AppDB {
   wallets: Wallet[];
   settings: Settings;
   recurringRules?: RecurringRule[];
+  activeTrip?: Trip | null;
+  tripHistory?: Trip[];
+  presetGroups?: TripGroup[];
 }
 
 export interface FriendBalance {

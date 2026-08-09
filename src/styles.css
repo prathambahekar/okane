@@ -3925,3 +3925,32 @@ table.desktop-only { display: table !important; }
   to { opacity: 1; }
 }
 
+/* Print Styles for PDF Export */
+#printable-trip-report {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #printable-trip-report,
+  #printable-trip-report * {
+    visibility: visible !important;
+  }
+  #printable-trip-report {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+    padding: 24px !important;
+    font-family: system-ui, -apple-system, sans-serif !important;
+  }
+  @page {
+    margin: 1.5cm;
+  }
+}
+

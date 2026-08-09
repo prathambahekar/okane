@@ -1,5 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { useState, useEffect, useMemo } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { createPortal } from 'react-dom';
 import {
   Plus,
@@ -321,18 +323,7 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
 }
 
 // Default initial groups if none saved
-const DEFAULT_PRESET_GROUPS: TripGroup[] = [
-  {
-    id: 'grp_default_1',
-    name: 'Flatmates',
-    memberNames: ['You', 'Alex', 'Sam'],
-  },
-  {
-    id: 'grp_default_2',
-    name: 'Goa Squad',
-    memberNames: ['You', 'Rahul', 'Priya', 'Rohan'],
-  },
-];
+const DEFAULT_PRESET_GROUPS: TripGroup[] = [];
 
 export default function SplitTrips() {
   const { db, showToast } = useStore();
@@ -360,6 +351,8 @@ export default function SplitTrips() {
 
   // Settle Tab Filter: 'who-pays' | 'breakdown'
   const [settleTab, setSettleTab] = useState<'who-pays' | 'breakdown'>('who-pays');
+  // Archive Detail Tab: 'who-pays' | 'breakdown' | 'expenses'
+  const [archiveTab, setArchiveTab] = useState<'who-pays' | 'breakdown' | 'expenses'>('who-pays');
   const [expandedMembers, setExpandedMembers] = useState<Record<string, boolean>>({});
 
   // Expenses log collapsed state
@@ -381,7 +374,10 @@ export default function SplitTrips() {
       const saved = localStorage.getItem(STORAGE_KEY_PRESET_GROUPS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          // Filter out legacy mock default groups if present in localStorage
+          return parsed.filter(g => g.id !== 'grp_default_1' && g.id !== 'grp_default_2');
+        }
       }
     } catch {
       // fallback
@@ -452,6 +448,47 @@ export default function SplitTrips() {
       // ignore
     }
   }, [presetGroups]);
+
+  // Listen for external storage restore events
+  useEffect(() => {
+    const handleTripsUpdated = () => {
+      try {
+        const savedActive = localStorage.getItem(STORAGE_KEY_ACTIVE_TRIP);
+        setActiveTrip(savedActive ? JSON.parse(savedActive) : null);
+        if (savedActive) setSubView('expenses');
+        else setSubView('home');
+      } catch {
+        setActiveTrip(null);
+        setSubView('home');
+      }
+
+      try {
+        const savedHistory = localStorage.getItem(STORAGE_KEY_TRIP_HISTORY);
+        setTripHistory(savedHistory ? JSON.parse(savedHistory) : []);
+      } catch {
+        setTripHistory([]);
+      }
+
+      try {
+        const savedGroups = localStorage.getItem(STORAGE_KEY_PRESET_GROUPS);
+        if (savedGroups) {
+          const parsed = JSON.parse(savedGroups);
+          if (Array.isArray(parsed)) {
+            setPresetGroups(parsed.filter(g => g.id !== 'grp_default_1' && g.id !== 'grp_default_2'));
+          } else {
+            setPresetGroups(DEFAULT_PRESET_GROUPS);
+          }
+        } else {
+          setPresetGroups(DEFAULT_PRESET_GROUPS);
+        }
+      } catch {
+        setPresetGroups(DEFAULT_PRESET_GROUPS);
+      }
+    };
+
+    window.addEventListener('okane_trips_updated', handleTripsUpdated);
+    return () => window.removeEventListener('okane_trips_updated', handleTripsUpdated);
+  }, []);
 
   // Handle open drawer to add new group
   const handleOpenAddGroupDrawer = () => {
@@ -706,12 +743,176 @@ export default function SplitTrips() {
     setHistoryDrawerOpen(true);
   };
 
-  const handleExportPDF = () => {
-    if (!activeTrip) return;
-    showToast(`Preparing PDF summary for "${activeTrip.name}"...`);
-    setTimeout(() => {
-      window.print();
-    }, 200);
+  const handleExportPDF = (targetTrip?: Trip | null | React.MouseEvent) => {
+    const trip = (targetTrip && typeof targetTrip === 'object' && 'id' in targetTrip)
+      ? (targetTrip as Trip)
+      : (activeTrip || selectedArchivedTrip);
+    if (!trip) {
+      showToast('No trip available to export');
+      return;
+    }
+
+    try {
+      showToast(`Generating PDF for "${trip.name}"...`);
+      const doc = new jsPDF();
+      const summary = simplifyDebts(trip.members, trip.expenses);
+      const dateStr = trip.archivedAt
+        ? new Date(trip.archivedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+        : new Date(trip.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+
+      // Primary Brand Bar Accent
+      doc.setFillColor(30, 41, 59); // Slate-800
+      doc.rect(0, 0, 210, 8, 'F');
+
+      // Title & Header
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(15, 23, 42); // Slate-900
+      doc.text('Trip Settlement Report', 14, 22);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(51, 65, 85); // Slate-700
+      doc.text(`${trip.name}`, 14, 29);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(100, 116, 139); // Slate-500
+      doc.text(`Group: ${trip.groupName}  |  Date: ${dateStr}  |  Members: ${trip.members.map(m => m.name).join(', ')}`, 14, 35);
+
+      // Table 1: Summary KPI Cards Table
+      autoTable(doc, {
+        startY: 40,
+        head: [['Total Trip Spend', 'Per Person Share', 'Total Expenses', 'Group Members']],
+        body: [[
+          fmtMoney(summary.totalSpend, currency),
+          `~${fmtMoney(summary.perPersonAvg, currency)}`,
+          `${trip.expenses.length} logged`,
+          `${trip.members.length} members`
+        ]],
+        theme: 'plain',
+        headStyles: {
+          fillColor: [241, 245, 249],
+          textColor: [71, 85, 105],
+          fontStyle: 'bold',
+          fontSize: 9,
+          halign: 'center',
+        },
+        bodyStyles: {
+          fillColor: [248, 250, 252],
+          textColor: [15, 23, 42],
+          fontStyle: 'bold',
+          fontSize: 12,
+          halign: 'center',
+        },
+        styles: { cellPadding: 6, lineColor: [226, 232, 240], lineWidth: 0.5 },
+      });
+
+      // Table 2: Final Settlement Transfers (Who Pays Whom)
+      let lastY = ((doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 55) + 10;
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text('1. Settlement Transfers (Who Pays Whom)', 14, lastY);
+
+      if (summary.transactions.length === 0) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(9.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text('All members are fully settled. No debt transfers required.', 14, lastY + 6);
+        lastY += 12;
+      } else {
+        autoTable(doc, {
+          startY: lastY + 3,
+          head: [['Payer (Debtor)', 'Receiver (Creditor)', 'Amount to Pay']],
+          body: summary.transactions.map(tx => [
+            tx.fromName,
+            tx.toName,
+            fmtMoney(tx.amount, currency)
+          ]),
+          theme: 'striped',
+          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+          bodyStyles: { fontSize: 9.5, textColor: [15, 23, 42] },
+          columnStyles: { 2: { halign: 'right', fontStyle: 'bold' } },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          styles: { cellPadding: 4, lineColor: [226, 232, 240], lineWidth: 0.3 },
+        });
+        lastY = ((doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || lastY) + 10;
+      }
+
+      // Table 3: Member Contribution Breakdown
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text('2. Member Contribution Breakdown', 14, lastY);
+
+      autoTable(doc, {
+        startY: lastY + 3,
+        head: [['Member', 'Total Paid', 'Fair Share', 'Net Status']],
+        body: trip.members.map(m => {
+          const b = summary.balances[m.id] || { paid: 0, share: 0, net: 0 };
+          const statusStr = b.net > 0.01
+            ? `+${fmtMoney(b.net, currency)} (Gets back)`
+            : b.net < -0.01
+            ? `${fmtMoney(b.net, currency)} (Owes)`
+            : 'Settled';
+          return [m.name, fmtMoney(b.paid, currency), fmtMoney(b.share, currency), statusStr];
+        }),
+        theme: 'striped',
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9.5, textColor: [15, 23, 42] },
+        columnStyles: {
+          1: { halign: 'right' },
+          2: { halign: 'right' },
+          3: { halign: 'right', fontStyle: 'bold' },
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        styles: { cellPadding: 4, lineColor: [226, 232, 240], lineWidth: 0.3 },
+      });
+      lastY = ((doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || lastY) + 10;
+
+      // Table 4: Itemized Expenses Log
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text('3. Itemized Expenses Log', 14, lastY);
+
+      if (trip.expenses.length === 0) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(9.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text('No expenses logged for this trip.', 14, lastY + 6);
+      } else {
+        autoTable(doc, {
+          startY: lastY + 3,
+          head: [['Date', 'Description', 'Paid By', 'Split Mode', 'Total Amount']],
+          body: trip.expenses.map(exp => {
+            const payer = trip.members.find(m => m.id === exp.paidByMemberId)?.name || 'Member';
+            return [
+              exp.date || '—',
+              exp.description,
+              payer,
+              exp.splitMode === 'equal' ? 'Equal' : 'Custom',
+              fmtMoney(exp.amount, currency)
+            ];
+          }),
+          theme: 'striped',
+          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+          bodyStyles: { fontSize: 9.5, textColor: [15, 23, 42] },
+          columnStyles: { 4: { halign: 'right', fontStyle: 'bold' } },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          styles: { cellPadding: 4, lineColor: [226, 232, 240], lineWidth: 0.3 },
+        });
+      }
+
+      const cleanFileName = trip.name.replace(/[^a-z0-9_-]/gi, '_');
+      doc.save(`${cleanFileName}_Trip_Report.pdf`);
+      showToast(`PDF exported successfully!`);
+    } catch (err) {
+      console.error('PDF export error:', err);
+      showToast('Failed to generate PDF');
+    }
   };
 
   const handleDeleteArchivedTrip = (tripId: string) => {
@@ -946,7 +1147,7 @@ export default function SplitTrips() {
                   }}
                 >
                   <Plus size={14} style={{ color: 'var(--accent)' }} />
-                  <span>New Trip</span>
+                  <span>Start a Trip</span>
                 </button>
               </div>
             </div>
@@ -958,107 +1159,132 @@ export default function SplitTrips() {
               background: 'var(--surface)',
               border: '1px solid var(--border)',
               borderRadius: '20px',
-              padding: '24px',
+              padding: '20px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
               boxShadow: 'var(--shadow)',
             }}
           >
-            <div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap',
+              }}
+            >
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.3px' }}>
-                Start a New Split Trip
+                Trips & Split
               </h2>
-              <p style={{ fontSize: '12px', color: 'var(--text-2)', margin: '4px 0 0 0' }}>
-                Quickly split restaurant bills, vacation costs, flatmate utilities, or group events.
-              </p>
-            </div>
 
-            {/* Prominent CTA Button to pop the Add Trip Modal Drawer */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <button
                 type="button"
                 onClick={() => setAddTripDrawerOpen(true)}
                 style={{
-                  width: '100%',
-                  padding: '14px',
-                  borderRadius: '12px',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
                   background: 'var(--accent-gradient)',
                   color: 'var(--accent-contrast, #ffffff)',
                   border: 'none',
-                  fontSize: '15px',
-                  fontWeight: 800,
+                  fontSize: '13px',
+                  fontWeight: 700,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 4px 16px var(--accent-soft)',
+                  gap: '6px',
+                  boxShadow: '0 2px 10px var(--accent-soft)',
                   transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <Plus size={20} />
-                <span>Start New Split Trip</span>
+                <Plus size={16} />
+                <span>Start a Trip</span>
               </button>
+            </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-2)' }}>
-                  Saved Splitting Groups ({presetGroups.length})
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setGroupsDrawerOpen(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--accent)',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <Users size={14} />
-                  <span>Manage Groups</span>
-                </button>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-2)' }}>
+                Saved Groups ({presetGroups.length})
+              </span>
+              <button
+                type="button"
+                onClick={() => setGroupsDrawerOpen(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <Users size={14} />
+                <span>Manage Groups</span>
+              </button>
+            </div>
 
               {/* Saved Groups Preview Pills */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px' }}>
-                {presetGroups.map(grp => (
-                  <div
-                    key={grp.id}
-                    onClick={() => {
-                      setSelectedGroupId(grp.id);
-                      setAddTripDrawerOpen(true);
-                    }}
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface2)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <Users size={15} style={{ color: 'var(--accent)' }} />
-                    <div style={{ overflow: 'hidden' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {grp.name}
-                      </div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {grp.memberNames.length} Members
+              {presetGroups.length === 0 ? (
+                <div
+                  onClick={handleOpenAddGroupDrawer}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    border: '1px dashed var(--border2)',
+                    background: 'var(--surface2)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    color: 'var(--text-2)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Plus size={15} style={{ color: 'var(--accent)' }} />
+                  <span>No saved groups yet — Create a group</span>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px' }}>
+                  {presetGroups.map(grp => (
+                    <div
+                      key={grp.id}
+                      onClick={() => {
+                        setSelectedGroupId(grp.id);
+                        setAddTripDrawerOpen(true);
+                      }}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface2)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <Users size={15} style={{ color: 'var(--accent)' }} />
+                      <div style={{ overflow: 'hidden' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {grp.name}
+                        </div>
+                        <div style={{ fontSize: '10.5px', color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {grp.memberNames.length} Members
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  ))}
+                </div>
+              )}
           </div>
         </div>
       )}
@@ -1114,9 +1340,9 @@ export default function SplitTrips() {
                   style={{
                     padding: '6px 12px',
                     borderRadius: '8px',
-                    background: 'rgba(239, 68, 68, 0.08)',
-                    color: '#ef4444',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    background: 'var(--debit-bg)',
+                    color: 'var(--debit)',
+                    border: '1px solid var(--debit-border)',
                     fontSize: '11.5px',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -1243,8 +1469,8 @@ export default function SplitTrips() {
                                   width: '28px',
                                   height: '28px',
                                   borderRadius: '50%',
-                                  background: 'rgba(239, 68, 68, 0.1)',
-                                  color: '#ef4444',
+                                  background: 'var(--debit-bg)',
+                                  color: 'var(--debit)',
                                   border: 'none',
                                   display: 'grid',
                                   placeItems: 'center',
@@ -1495,7 +1721,6 @@ export default function SplitTrips() {
                       const b = activeTripSummary.balances[m.id] || { paid: 0, share: 0, net: 0 };
                       const isPositive = b.net > 0.01;
                       const isNegative = b.net < -0.01;
-                      const pct = activeTripSummary.totalSpend > 0 ? (b.paid / activeTripSummary.totalSpend) * 100 : 0;
                       const isExpanded = !!expandedMembers[m.id];
 
                       // Relevant expenses for this member
@@ -1516,62 +1741,93 @@ export default function SplitTrips() {
                         <div
                           key={m.id}
                           style={{
-                            background: 'var(--surface2)',
-                            borderRadius: '12px',
+                            background: 'var(--surface)',
+                            borderRadius: '14px',
                             border: '1px solid var(--border)',
                             overflow: 'hidden',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                             transition: 'all 0.2s ease',
                           }}
                         >
-                          {/* Header Row (Clickable) */}
+                          {/* Collapsed Header Button */}
                           <button
                             type="button"
                             onClick={() => setExpandedMembers(prev => ({ ...prev, [m.id]: !prev[m.id] }))}
                             style={{
                               width: '100%',
                               padding: '12px 14px',
-                              background: 'transparent',
+                              background: isExpanded ? 'var(--surface2)' : 'transparent',
                               border: 'none',
                               textAlign: 'left',
                               cursor: 'pointer',
                               display: 'flex',
-                              flexDirection: 'column',
-                              gap: '8px',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              transition: 'background 0.15s ease',
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
-                              <div>
-                                <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <span>{m.name}</span>
-                                  {pct > 0 && (
-                                    <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '1px 6px', borderRadius: '99px', background: 'var(--surface)', color: 'var(--text-3)', border: '1px solid var(--border)' }}>
-                                      {pct.toFixed(0)}% paid
-                                    </span>
-                                  )}
-                                </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>
-                                  Paid {fmtMoney(b.paid, currency)} • Share {fmtMoney(b.share, currency)}
-                                </div>
+                            {/* Left Side: Avatar + Member Name ONLY */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '50%',
+                                  background: isPositive
+                                    ? 'var(--credit-bg)'
+                                    : isNegative
+                                    ? 'var(--debit-bg)'
+                                    : 'var(--surface2)',
+                                  color: isPositive
+                                    ? 'var(--credit)'
+                                    : isNegative
+                                    ? 'var(--debit)'
+                                    : 'var(--text-3)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '13px',
+                                  fontWeight: 800,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {m.name.charAt(0).toUpperCase()}
                               </div>
-
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ textAlign: 'right' }}>
-                                  <div style={{ fontSize: '13.5px', fontWeight: 800, color: isPositive ? '#22c55e' : isNegative ? '#ef4444' : 'var(--text-2)' }}>
-                                    {isPositive ? `+${fmtMoney(b.net, currency)}` : fmtMoney(b.net, currency)}
-                                  </div>
-                                  <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: isPositive ? '#22c55e' : isNegative ? '#ef4444' : 'var(--text-3)', marginTop: '1px' }}>
-                                    {isPositive ? 'Gets Back' : isNegative ? 'Owes' : 'Settled'}
-                                  </div>
-                                </div>
-                                <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center' }}>
-                                  {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                </div>
-                              </div>
+                              <span style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text)' }}>
+                                {m.name}
+                              </span>
                             </div>
 
-                            {/* Spending Contribution Bar */}
-                            <div style={{ height: '4px', borderRadius: '99px', background: 'var(--surface)', overflow: 'hidden', width: '100%' }}>
-                              <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent-gradient)', borderRadius: '99px' }} />
+                            {/* Right Side: Net Balance & Status Badge */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ textAlign: 'right' }}>
+                                <div
+                                  style={{
+                                    fontSize: '14px',
+                                    fontWeight: 800,
+                                    color: isPositive ? 'var(--credit)' : isNegative ? 'var(--debit)' : 'var(--text-2)',
+                                    letterSpacing: '-0.2px',
+                                  }}
+                                >
+                                  {isPositive ? `+${fmtMoney(b.net, currency)}` : fmtMoney(b.net, currency)}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: '9.5px',
+                                    fontWeight: 800,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    color: isPositive ? 'var(--credit)' : isNegative ? 'var(--debit)' : 'var(--text-3)',
+                                    marginTop: '1px',
+                                  }}
+                                >
+                                  {isPositive ? 'Gets Back' : isNegative ? 'Owes' : 'Settled'}
+                                </div>
+                              </div>
+                              <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center' }}>
+                                {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                              </div>
                             </div>
                           </button>
 
@@ -1579,26 +1835,40 @@ export default function SplitTrips() {
                           {isExpanded && (
                             <div
                               style={{
-                                padding: '12px 14px',
+                                padding: '14px 16px',
                                 background: 'var(--surface)',
                                 borderTop: '1px solid var(--border)',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: '10px',
+                                gap: '12px',
                               }}
                             >
-                              {/* Simple Explanation Note */}
-                              <div style={{ fontSize: '12px', color: 'var(--text-2)', lineHeight: '1.4', background: 'var(--surface2)', padding: '9px 12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                💡 {isNegative
-                                  ? `${m.name} consumed ${fmtMoney(b.share, currency)} in expenses but paid ${fmtMoney(b.paid, currency)} out-of-pocket, owing ${fmtMoney(Math.abs(b.net), currency)}.`
-                                  : isPositive
-                                  ? `${m.name} paid ${fmtMoney(b.paid, currency)} out-of-pocket for a ${fmtMoney(b.share, currency)} share, getting back +${fmtMoney(b.net, currency)}.`
-                                  : `${m.name}'s payments match their fair share of ${fmtMoney(b.share, currency)}.`}
+                              {/* 1. Summary Financial Bar */}
+                              <div
+                                style={{
+                                  background: 'var(--surface2)',
+                                  padding: '10px 12px',
+                                  borderRadius: '10px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '8px',
+                                  fontSize: '12px',
+                                  border: '1px solid var(--border)',
+                                }}
+                              >
+                                <div style={{ color: 'var(--text-2)' }}>
+                                  Paid: <strong style={{ color: 'var(--text)', fontWeight: 800 }}>{fmtMoney(b.paid, currency)}</strong>
+                                </div>
+                                <div style={{ color: 'var(--border)' }}>•</div>
+                                <div style={{ color: 'var(--text-2)' }}>
+                                  Share: <strong style={{ color: 'var(--text)', fontWeight: 800 }}>{fmtMoney(b.share, currency)}</strong>
+                                </div>
                               </div>
 
-                              {/* Itemized Expenses Breakdown */}
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '2px' }}>
-                                <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                              {/* 2. Itemized Expenses List */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '2px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                   Itemized Expenses ({memberExpenses.length})
                                 </div>
 
@@ -1607,7 +1877,7 @@ export default function SplitTrips() {
                                     No expenses associated with {m.name}.
                                   </div>
                                 ) : (
-                                  memberExpenses.map((exp, expIdx) => {
+                                  memberExpenses.map((exp) => {
                                     const paidByMember = activeTrip.members.find(mem => mem.id === exp.paidByMemberId);
                                     const totalAmt = Number(exp.amount) || 0;
                                     const paidByThis = exp.paidByMemberId === m.id;
@@ -1627,42 +1897,42 @@ export default function SplitTrips() {
                                     }
 
                                     const itemNet = paidAmt - shareAmt;
-                                    const isLastExp = expIdx === memberExpenses.length - 1;
 
                                     return (
                                       <div
                                         key={exp.id}
                                         style={{
-                                          padding: '8px 0',
-                                          borderBottom: isLastExp ? 'none' : '1px solid var(--border)',
+                                          padding: '10px 12px',
+                                          borderRadius: '10px',
+                                          background: 'var(--surface2)',
+                                          border: '1px solid var(--border)',
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'space-between',
-                                          gap: '8px',
+                                          gap: '10px',
                                         }}
                                       >
                                         <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-                                          <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {exp.description} ({fmtMoney(totalAmt, currency)})
+                                          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {exp.description} <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-3)' }}>({fmtMoney(totalAmt, currency)})</span>
                                           </div>
                                           <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>
-                                            Paid by <strong style={{ color: 'var(--text)' }}>{paidByMember?.name || 'Member'}</strong>
-                                            {' • '}
-                                            {isIncluded ? `Share: ${fmtMoney(shareAmt, currency)}` : 'Not included'}
+                                            Paid by <strong style={{ color: 'var(--text)' }}>{paidByThis ? 'You' : (paidByMember?.name || 'Member')}</strong>
+                                            {isIncluded ? ` • Share: ${fmtMoney(shareAmt, currency)}` : ' • Not included'}
                                           </div>
                                         </div>
 
                                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                                           <div
                                             style={{
-                                              fontSize: '12.5px',
+                                              fontSize: '13px',
                                               fontWeight: 800,
-                                              color: itemNet > 0.01 ? '#22c55e' : itemNet < -0.01 ? '#ef4444' : 'var(--text-3)',
+                                              color: itemNet > 0.01 ? 'var(--credit)' : itemNet < -0.01 ? 'var(--debit)' : 'var(--text-3)',
                                             }}
                                           >
                                             {itemNet > 0.01 ? `+${fmtMoney(itemNet, currency)}` : itemNet < -0.01 ? fmtMoney(itemNet, currency) : fmtMoney(0, currency)}
                                           </div>
-                                          <div style={{ fontSize: '9.5px', fontWeight: 700, color: 'var(--text-3)', marginTop: '1px' }}>
+                                          <div style={{ fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)', marginTop: '1px' }}>
                                             {itemNet > 0.01 ? 'Overpaid' : itemNet < -0.01 ? 'Owes Share' : 'Balanced'}
                                           </div>
                                         </div>
@@ -1688,66 +1958,536 @@ export default function SplitTrips() {
       {/* SCREEN 4: ARCHIVE DETAIL VIEW */}
       {/* ========================================================================= */}
       {subView === 'archive-detail' && selectedArchivedTrip && archiveTripSummary && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Header Bar */}
           <div
             style={{
               background: 'var(--surface)',
-              borderRadius: '12px',
+              borderRadius: '20px',
               border: '1px solid var(--border)',
-              padding: '12px 16px',
+              padding: '20px',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '8px',
-              flexWrap: 'wrap',
+              flexDirection: 'column',
+              gap: '16px',
+              boxShadow: 'var(--shadow)',
             }}
           >
-            <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>
-              {selectedArchivedTrip.name} (Archived)
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleDeleteArchivedTrip(selectedArchivedTrip.id)}
+            <div
               style={{
-                padding: '5px 10px',
-                borderRadius: '6px',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                background: 'rgba(239, 68, 68, 0.12)',
-                color: '#ef4444',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: '12px',
+                paddingBottom: '14px',
+                borderBottom: '1px solid var(--border)',
+                flexWrap: 'wrap',
               }}
             >
-              <Trash2 size={13} />
-              <span>Delete</span>
-            </button>
-          </div>
-
-          <div style={{ background: 'var(--surface)', borderRadius: '14px', border: '1px solid var(--border)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-              Final Settlements (Who Pays Whom)
-            </h3>
-            {archiveTripSummary.transactions.length === 0 ? (
-              <div style={{ fontSize: '12px', color: 'var(--text-3)', fontStyle: 'italic' }}>
-                No debt transactions were required for this trip.
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span>{selectedArchivedTrip.name}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                    {selectedArchivedTrip.groupName}
+                  </span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: 'var(--surface2)', color: 'var(--text-2)', border: '1px solid var(--border)' }}>
+                    Archived {selectedArchivedTrip.archivedAt ? new Date(selectedArchivedTrip.archivedAt).toLocaleDateString() : ''}
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-2)', marginTop: '4px' }}>
+                  Members: {selectedArchivedTrip.members.map(m => m.name).join(', ')}
+                </div>
               </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px' }}>
-                {archiveTripSummary.transactions.map((tx, i) => (
-                  <div key={i} style={{ padding: '10px 12px', background: 'var(--surface2)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)' }}>
-                      {tx.fromName} → {tx.toName}
-                    </span>
-                    <span style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--accent)' }}>
-                      {fmtMoney(tx.amount, currency)}
-                    </span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+                <button
+                  type="button"
+                  onClick={() => handleExportPDF(selectedArchivedTrip)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    background: 'var(--accent-gradient)',
+                    color: 'var(--accent-contrast, #ffffff)',
+                    border: 'none',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 8px var(--accent-soft)',
+                  }}
+                >
+                  <FileText size={14} />
+                  <span>Export PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDeleteArchivedTrip(selectedArchivedTrip.id)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    background: 'var(--debit-bg)',
+                    color: 'var(--debit)',
+                    border: '1px solid var(--debit-border)',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  title="Delete Trip from History"
+                >
+                  <Trash2 size={14} />
+                  <span>Delete Trip</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Stats Overview Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+              <div style={{ background: 'var(--surface2)', borderRadius: '12px', border: '1px solid var(--border)', padding: '12px 14px' }}>
+                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)', fontWeight: 700 }}>Total Spend</span>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)', marginTop: '2px' }}>
+                  {fmtMoney(archiveTripSummary.totalSpend, currency)}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--surface2)', borderRadius: '12px', border: '1px solid var(--border)', padding: '12px 14px' }}>
+                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)', fontWeight: 700 }}>Per Person Share</span>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--accent)', marginTop: '2px' }}>
+                  ~{fmtMoney(archiveTripSummary.perPersonAvg, currency)}
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--surface2)', borderRadius: '12px', border: '1px solid var(--border)', padding: '12px 14px' }}>
+                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)', fontWeight: 700 }}>Logged Items</span>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)', marginTop: '2px' }}>
+                  {selectedArchivedTrip.expenses.length} Expenses
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--surface2)', borderRadius: '12px', border: '1px solid var(--border)', padding: '12px 14px' }}>
+                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)', fontWeight: 700 }}>Members</span>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)', marginTop: '2px' }}>
+                  {selectedArchivedTrip.members.length} People
+                </div>
+              </div>
+            </div>
+
+            {/* Segmented 3-Tab Workspace */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                background: 'var(--surface2)',
+                borderRadius: '12px',
+                padding: '4px',
+                border: '1px solid var(--border)',
+                gap: '4px',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setArchiveTab('who-pays')}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  border: 'none',
+                  background: archiveTab === 'who-pays' ? 'var(--accent-gradient)' : 'transparent',
+                  color: archiveTab === 'who-pays' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Handshake size={15} />
+                <span>Who Pays</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setArchiveTab('breakdown')}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  border: 'none',
+                  background: archiveTab === 'breakdown' ? 'var(--accent-gradient)' : 'transparent',
+                  color: archiveTab === 'breakdown' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <PieChart size={15} />
+                <span>Breakdown</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setArchiveTab('expenses')}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  border: 'none',
+                  background: archiveTab === 'expenses' ? 'var(--accent-gradient)' : 'transparent',
+                  color: archiveTab === 'expenses' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Receipt size={15} />
+                <span>Expenses ({selectedArchivedTrip.expenses.length})</span>
+              </button>
+            </div>
+
+            {/* TAB 1: WHO PAYS WHOM */}
+            {archiveTab === 'who-pays' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Handshake size={16} style={{ color: 'var(--accent)' }} />
+                    <span>Final Settlement Transfers</span>
+                  </h3>
+                  <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>Minimized debt paths</span>
+                </div>
+
+                {archiveTripSummary.transactions.length === 0 ? (
+                  <div style={{ padding: '24px 16px', borderRadius: '12px', border: '1px solid var(--border)', fontSize: '12.5px', color: 'var(--text-3)', fontStyle: 'italic', textAlign: 'center' }}>
+                    🎉 Everyone was completely settled up! No transfers required.
                   </div>
-                ))}
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {archiveTripSummary.transactions.map((tx, idx) => {
+                      const isLast = idx === archiveTripSummary.transactions.length - 1;
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '12px 0',
+                            borderBottom: isLast ? 'none' : '1px solid var(--border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '10px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)' }}>
+                              {tx.fromName}
+                            </span>
+                            <span style={{ fontSize: '11.5px', color: 'var(--text-3)' }}>pays</span>
+                            <span style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--accent)' }}>
+                              {tx.toName}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>
+                            {fmtMoney(tx.amount, currency)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 2: MEMBER BREAKDOWN */}
+            {archiveTab === 'breakdown' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {selectedArchivedTrip.members.map((m) => {
+                  const b = archiveTripSummary.balances[m.id] || { paid: 0, share: 0, net: 0 };
+                  const isPositive = b.net > 0.01;
+                  const isNegative = b.net < -0.01;
+                  const isExpanded = !!expandedMembers[m.id];
+
+                  const memberExpenses = selectedArchivedTrip.expenses.filter(exp => {
+                    if (exp.paidByMemberId === m.id) return true;
+                    if (exp.splitMode === 'equal') {
+                      const splitList = (exp.splitMemberIds && exp.splitMemberIds.length > 0)
+                        ? exp.splitMemberIds
+                        : selectedArchivedTrip.members.map(mem => mem.id);
+                      return splitList.includes(m.id);
+                    } else if (exp.splitMode === 'custom' && exp.customSplits) {
+                      return (Number(exp.customSplits[m.id]) || 0) > 0;
+                    }
+                    return false;
+                  });
+
+                  return (
+                    <div
+                      key={m.id}
+                      style={{
+                        background: 'var(--surface)',
+                        borderRadius: '14px',
+                        border: '1px solid var(--border)',
+                        overflow: 'hidden',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {/* Collapsed Header Button */}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedMembers(prev => ({ ...prev, [m.id]: !prev[m.id] }))}
+                        style={{
+                          width: '100%',
+                          padding: '12px 14px',
+                          background: isExpanded ? 'var(--surface2)' : 'transparent',
+                          border: 'none',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '10px',
+                          transition: 'background 0.15s ease',
+                        }}
+                      >
+                        {/* Left Side: Avatar + Member Name ONLY */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              background: isPositive
+                                ? 'var(--credit-bg)'
+                                : isNegative
+                                ? 'var(--debit-bg)'
+                                : 'var(--surface2)',
+                              color: isPositive ? 'var(--credit)' : isNegative ? 'var(--debit)' : 'var(--text-3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {m.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text)' }}>
+                            {m.name}
+                          </span>
+                        </div>
+
+                        {/* Right Side: Net Balance & Status Badge */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div
+                              style={{
+                                fontSize: '14px',
+                                fontWeight: 800,
+                                color: isPositive ? 'var(--credit)' : isNegative ? 'var(--debit)' : 'var(--text-2)',
+                                letterSpacing: '-0.2px',
+                              }}
+                            >
+                              {isPositive ? `+${fmtMoney(b.net, currency)}` : fmtMoney(b.net, currency)}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: '9.5px',
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px',
+                                color: isPositive ? 'var(--credit)' : isNegative ? 'var(--debit)' : 'var(--text-3)',
+                                marginTop: '1px',
+                              }}
+                            >
+                              {isPositive ? 'Gets Back' : isNegative ? 'Owes' : 'Settled'}
+                            </div>
+                          </div>
+                          <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center' }}>
+                            {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div
+                          style={{
+                            padding: '14px 16px',
+                            background: 'var(--surface)',
+                            borderTop: '1px solid var(--border)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                          }}
+                        >
+                          {/* 1. Summary Financial Bar */}
+                          <div
+                            style={{
+                              background: 'var(--surface2)',
+                              padding: '10px 12px',
+                              borderRadius: '10px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '8px',
+                              fontSize: '12px',
+                              border: '1px solid var(--border)',
+                            }}
+                          >
+                            <div style={{ color: 'var(--text-2)' }}>
+                              Paid: <strong style={{ color: 'var(--text)', fontWeight: 800 }}>{fmtMoney(b.paid, currency)}</strong>
+                            </div>
+                            <div style={{ color: 'var(--border)' }}>•</div>
+                            <div style={{ color: 'var(--text-2)' }}>
+                              Share: <strong style={{ color: 'var(--text)', fontWeight: 800 }}>{fmtMoney(b.share, currency)}</strong>
+                            </div>
+                          </div>
+
+                          {/* 2. Itemized Expenses List */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '2px' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              Itemized Expenses ({memberExpenses.length})
+                            </div>
+
+                            {memberExpenses.length === 0 ? (
+                              <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontStyle: 'italic', padding: '4px 0' }}>
+                                No expenses associated with {m.name}.
+                              </div>
+                            ) : (
+                              memberExpenses.map((exp) => {
+                                const paidByMember = selectedArchivedTrip.members.find(mem => mem.id === exp.paidByMemberId);
+                                const totalAmt = Number(exp.amount) || 0;
+                                const paidByThis = exp.paidByMemberId === m.id;
+                                const paidAmt = paidByThis ? totalAmt : 0;
+
+                                let shareAmt = 0;
+                                let isIncluded = false;
+                                if (exp.splitMode === 'equal') {
+                                  const splitList = (exp.splitMemberIds && exp.splitMemberIds.length > 0)
+                                    ? exp.splitMemberIds
+                                    : selectedArchivedTrip.members.map(mem => mem.id);
+                                  isIncluded = splitList.includes(m.id);
+                                  shareAmt = isIncluded ? (totalAmt / splitList.length) : 0;
+                                } else if (exp.splitMode === 'custom' && exp.customSplits) {
+                                  shareAmt = Number(exp.customSplits[m.id]) || 0;
+                                  isIncluded = shareAmt > 0;
+                                }
+
+                                const itemNet = paidAmt - shareAmt;
+
+                                return (
+                                  <div
+                                    key={exp.id}
+                                    style={{
+                                      padding: '10px 12px',
+                                      borderRadius: '10px',
+                                      background: 'var(--surface2)',
+                                      border: '1px solid var(--border)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      gap: '10px',
+                                    }}
+                                  >
+                                    <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {exp.description} <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-3)' }}>({fmtMoney(totalAmt, currency)})</span>
+                                      </div>
+                                      <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>
+                                        Paid by <strong style={{ color: 'var(--text)' }}>{paidByThis ? 'You' : (paidByMember?.name || 'Member')}</strong>
+                                        {isIncluded ? ` • Share: ${fmtMoney(shareAmt, currency)}` : ' • Not included'}
+                                      </div>
+                                    </div>
+
+                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                      <div
+                                        style={{
+                                          fontSize: '13px',
+                                          fontWeight: 800,
+                                          color: itemNet > 0.01 ? 'var(--credit)' : itemNet < -0.01 ? 'var(--debit)' : 'var(--text-3)',
+                                        }}
+                                      >
+                                        {itemNet > 0.01 ? `+${fmtMoney(itemNet, currency)}` : itemNet < -0.01 ? fmtMoney(itemNet, currency) : fmtMoney(0, currency)}
+                                      </div>
+                                      <div style={{ fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)', marginTop: '1px' }}>
+                                        {itemNet > 0.01 ? 'Overpaid' : itemNet < -0.01 ? 'Owes Share' : 'Balanced'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* TAB 3: EXPENSES LOG */}
+            {archiveTab === 'expenses' && (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {selectedArchivedTrip.expenses.length === 0 ? (
+                  <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-3)', fontSize: '13px' }}>
+                    No expenses were logged for this trip.
+                  </div>
+                ) : (
+                  selectedArchivedTrip.expenses.map((exp, idx) => {
+                    const paidByMember = selectedArchivedTrip.members.find(m => m.id === exp.paidByMemberId);
+                    const isLast = idx === selectedArchivedTrip.expenses.length - 1;
+                    return (
+                      <div
+                        key={exp.id}
+                        style={{
+                          padding: '12px 0',
+                          borderBottom: isLast ? 'none' : '1px solid var(--border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                        }}
+                      >
+                        <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {exp.description}
+                          </div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--text-3)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span>Paid by <strong style={{ color: 'var(--text)' }}>{paidByMember?.name || 'Member'}</strong></span>
+                            <span>•</span>
+                            <span style={{ padding: '1px 6px', borderRadius: '4px', background: 'var(--accent-soft)', fontSize: '10.5px', fontWeight: 700, color: 'var(--accent)' }}>
+                              {exp.splitMode === 'equal' ? 'Equal' : 'Custom'}
+                            </span>
+                            {exp.date && (
+                              <>
+                                <span>•</span>
+                                <span>{exp.date}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)', flexShrink: 0 }}>
+                          {fmtMoney(exp.amount, currency)}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
           </div>
@@ -1775,8 +2515,8 @@ export default function SplitTrips() {
                   borderRadius: '6px',
                   fontSize: '11px',
                   fontWeight: 700,
-                  color: '#ef4444',
-                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: 'var(--debit)',
+                  background: 'var(--debit-bg)',
                   border: 'none',
                   cursor: 'pointer',
                 }}
@@ -1788,7 +2528,7 @@ export default function SplitTrips() {
 
           {tripHistory.length === 0 ? (
             <div style={{ padding: '30px 16px', textAlign: 'center', color: 'var(--text-3)', fontSize: '12.5px', fontStyle: 'italic', background: 'var(--surface2)', borderRadius: '12px' }}>
-              No archived trips found. Archived trips will appear here.
+              No archived trips found. Archived trips will appear here when you save a trip.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1831,6 +2571,28 @@ export default function SplitTrips() {
                         View
                       </span>
                       <ChevronRight size={16} style={{ color: 'var(--accent)' }} />
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteArchivedTrip(trip.id);
+                        }}
+                        title="Delete Trip"
+                        style={{
+                          padding: '6px',
+                          borderRadius: '6px',
+                          background: 'var(--debit-bg)',
+                          border: 'none',
+                          color: 'var(--debit)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          marginLeft: '4px',
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   </div>
                 );
@@ -1953,9 +2715,9 @@ export default function SplitTrips() {
                         style={{
                           padding: '6px',
                           borderRadius: '6px',
-                          background: 'rgba(239, 68, 68, 0.1)',
+                          background: 'var(--debit-bg)',
                           border: 'none',
-                          color: '#ef4444',
+                          color: 'var(--debit)',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -2138,8 +2900,7 @@ export default function SplitTrips() {
       <BottomDrawer
         isOpen={addTripDrawerOpen}
         onClose={() => setAddTripDrawerOpen(false)}
-        title="Start a New Split Trip"
-        subtitle="Name your trip and select a group to begin tracking expenses"
+        title="Split Trip"
         icon={<Compass size={20} />}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -2169,7 +2930,7 @@ export default function SplitTrips() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-                Select Splitting Group
+                Select Group
               </label>
               <button
                 type="button"
@@ -2195,58 +2956,75 @@ export default function SplitTrips() {
             </div>
 
             {/* Group Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
-              {presetGroups.map(grp => {
-                const isSelected = selectedGroupId === grp.id;
-                return (
-                  <div
-                    key={grp.id}
-                    onClick={() => setSelectedGroupId(grp.id)}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: '12px',
-                      border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
-                      background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '10px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '10px',
-                          background: isSelected ? 'var(--accent-gradient)' : 'var(--surface)',
-                          color: isSelected ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-                          display: 'grid',
-                          placeItems: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Users size={16} />
-                      </div>
-                      <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {grp.name}
+            {presetGroups.length === 0 ? (
+              <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-3)', fontSize: '12.5px', background: 'var(--surface2)', borderRadius: '12px', border: '1px dashed var(--border)' }}>
+                No saved groups available.{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddTripDrawerOpen(false);
+                    handleOpenAddGroupDrawer();
+                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Create a group
+                </button>{' '}
+                first to start a trip.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
+                {presetGroups.map(grp => {
+                  const isSelected = selectedGroupId === grp.id;
+                  return (
+                    <div
+                      key={grp.id}
+                      onClick={() => setSelectedGroupId(grp.id)}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: '12px',
+                        border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '10px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '10px',
+                            background: isSelected ? 'var(--accent-gradient)' : 'var(--surface)',
+                            color: isSelected ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
+                            display: 'grid',
+                            placeItems: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Users size={16} />
                         </div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {grp.memberNames.join(', ')}
+                        <div style={{ overflow: 'hidden' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {grp.name}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {grp.memberNames.join(', ')}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {isSelected && (
-                      <CheckCircle2 size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      {isSelected && (
+                        <CheckCircle2 size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -2499,7 +3277,6 @@ export default function SplitTrips() {
           onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
         />
       )}
-
     </div>
   );
 }
