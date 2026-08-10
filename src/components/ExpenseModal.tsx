@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, TrendingDown, TrendingUp, User, Users, Briefcase, CheckSquare, Square, HeartHandshake, Sparkles, ArrowRight, ArrowLeft, CheckCircle2, FileText, Plus, Search } from 'lucide-react';
 import { useStore } from '../store';
@@ -28,7 +28,7 @@ interface Props {
 }
 
 export default function ExpenseModal({ expense, initialData, isTutorialMode, onClose }: Props) {
-  const { db, addExpense, updateExpense, deleteExpense, showToast } = useStore();
+  const { db, addExpense, updateExpense, deleteExpense, addFriend, showToast } = useStore();
   const s = db.settings;
 
   // Tutorial state
@@ -110,36 +110,15 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
   }, [db.expenses, expense, forFriendItem, initialData]);
 
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>(initialFriendIds);
-  const [showSplitCustom, setShowSplitCustom] = useState(false);
   const [splitCalcMode, setSplitCalcMode] = useState<'equal_all' | 'equal_friends' | 'custom'>('equal_all');
+  const [includeYouInCustom, setIncludeYouInCustom] = useState(true);
+
+  const isYouSelected = splitCalcMode === 'equal_all' || (splitCalcMode === 'custom' && includeYouInCustom);
 
   // Friend Picker Dialog state
   const [isFriendPickerOpen, setIsFriendPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
   const [pickerTypeFilter, setPickerTypeFilter] = useState<'all' | 'friend' | 'vendor'>('all');
-
-  // Top 4 friends computation
-  const topFriends = useMemo(() => {
-    const counts: Record<string, number> = {};
-    db.expenses.forEach(e => {
-      if (e.friendId) counts[e.friendId] = (counts[e.friendId] || 0) + 1;
-    });
-    return [...db.friends]
-      .sort((a, b) => {
-        const ca = counts[a.id] || 0;
-        const cb = counts[b.id] || 0;
-        if (cb !== ca) return cb - ca;
-        return a.name.localeCompare(b.name);
-      })
-      .slice(0, 4);
-  }, [db.friends, db.expenses]);
-
-  // Visible pills on form: Top 4 + any selected friends outside top 4
-  const visiblePillFriends = useMemo(() => {
-    const topIds = new Set(topFriends.map(f => f.id));
-    const extraSelected = db.friends.filter(f => selectedFriendIds.includes(f.id) && !topIds.has(f.id));
-    return [...topFriends, ...extraSelected];
-  }, [topFriends, selectedFriendIds, db.friends]);
 
   // Filtered friends inside the Friend Picker Dialog
   const filteredPickerFriends = useMemo(() => {
@@ -166,20 +145,66 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
     return init;
   });
 
-  const getFriendShare = (fId: string): number => {
+  const getFriendShare = useCallback((fId: string): number => {
     const tot = parseFloat(amount) || 0;
     const n = selectedFriendIds.length;
     if (n === 0 || tot <= 0) return 0;
 
+    const idx = selectedFriendIds.indexOf(fId);
+    if (idx === -1) return 0;
+
     if (splitCalcMode === 'equal_all') {
-      return Math.round((tot / (n + 1)) * 100) / 100;
+      // Split total amount among (n + 1) people (Me + n friends)
+      const baseCents = Math.floor((tot * 100) / (n + 1));
+      return baseCents / 100;
     }
+
     if (splitCalcMode === 'equal_friends') {
-      return Math.round((tot / n) * 100) / 100;
+      // Split 100% of total amount among n friends (My share = 0)
+      const baseCents = Math.floor((tot * 100) / n);
+      const remainderCents = Math.round(tot * 100) - (baseCents * n);
+      const friendCents = baseCents + (idx < remainderCents ? 1 : 0);
+      return friendCents / 100;
     }
-    const customVal = parseFloat(customFriendShares[fId] ?? '');
-    if (!isNaN(customVal) && customVal >= 0) return customVal;
-    return Math.round((tot / (n + 1)) * 100) / 100;
+
+    // Custom mode
+    if (customFriendShares[fId] !== undefined) {
+      const customVal = parseFloat(customFriendShares[fId]);
+      return isNaN(customVal) ? 0 : customVal;
+    }
+
+    const denom = (includeYouInCustom ? n + 1 : n) || 1;
+    const baseCents = Math.floor((tot * 100) / denom);
+    return baseCents / 100;
+  }, [amount, selectedFriendIds, splitCalcMode, customFriendShares, includeYouInCustom]);
+
+  const handleSelectSplitCalcMode = (mode: 'equal_all' | 'equal_friends' | 'custom', includeYouOverride?: boolean) => {
+    let targetMode = mode;
+    let nextIncludeYou = includeYouOverride !== undefined ? includeYouOverride : includeYouInCustom;
+
+    if (targetMode === 'equal_all') {
+      nextIncludeYou = true;
+    } else if (targetMode === 'equal_friends') {
+      nextIncludeYou = false;
+      if (selectedFriendIds.length > 1) {
+        targetMode = 'custom';
+      }
+    }
+
+    setIncludeYouInCustom(nextIncludeYou);
+    setSplitCalcMode(targetMode);
+
+    if (targetMode === 'custom') {
+      const n = selectedFriendIds.length;
+      const tot = parseFloat(amount) || 0;
+      const denom = (nextIncludeYou ? n + 1 : n) || 1;
+      const equalVal = tot > 0 && denom > 0 ? String(Math.floor((tot * 100) / denom) / 100) : '0';
+      const initialCustom: Record<string, string> = {};
+      selectedFriendIds.forEach(fId => {
+        initialCustom[fId] = equalVal;
+      });
+      setCustomFriendShares(initialCustom);
+    }
   };
 
   const totalFriendsShare = useMemo(() => {
@@ -188,18 +213,9 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
     if (n === 0 || tot <= 0) return 0;
 
     return selectedFriendIds.reduce((sum, fId) => {
-      let val = 0;
-      if (splitCalcMode === 'equal_all') {
-        val = Math.round((tot / (n + 1)) * 100) / 100;
-      } else if (splitCalcMode === 'equal_friends') {
-        val = Math.round((tot / n) * 100) / 100;
-      } else {
-        const customVal = parseFloat(customFriendShares[fId] ?? '');
-        val = !isNaN(customVal) && customVal >= 0 ? customVal : Math.round((tot / (n + 1)) * 100) / 100;
-      }
-      return sum + val;
+      return sum + getFriendShare(fId);
     }, 0);
-  }, [selectedFriendIds, amount, splitCalcMode, customFriendShares]);
+  }, [selectedFriendIds, amount, getFriendShare]);
 
   const selectedFriend = db.friends.find(f => f.id === friendId);
   const friendBal = friendId ? friendBalance(db, friendId) : { owedToMe: 0, owedByMe: 0, net: 0 };
@@ -853,177 +869,81 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
 
                   {/* Friend Selection & Split Summary: If With Friends */}
                   {whoPaid === 'me' && splitMode === 'for_friend' && (
-                    <>
-                      <div className="form-group" style={{ marginBottom: 6, animation: 'fadein 0.15s ease' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <label className="form-label" style={{ margin: 0, fontSize: 11.5 }}>
-                            Select Friends {selectedFriendIds.length > 0 && `(${selectedFriendIds.length})`}
-                          </label>
-                          {selectedFriendIds.length > 0 && (
-                            <button
-                              type="button"
-                              style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--debit)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                              onClick={() => setSelectedFriendIds([])}
-                            >
-                              Clear
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Top Friends Pills + More Button (Flex Wrapped, No Horizontal Overflow) */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '2px 0 4px' }}>
-                          {visiblePillFriends.map(f => {
-                            const isSel = selectedFriendIds.includes(f.id);
-                            return (
-                              <button
-                                key={f.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedFriendIds(prev =>
-                                    prev.includes(f.id) ? prev.filter(id => id !== f.id) : [...prev, f.id]
-                                  );
-                                }}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 5,
-                                  padding: '3px 10px 3px 4px',
-                                  borderRadius: 99,
-                                  background: isSel ? 'var(--accent)' : 'var(--surface2)',
-                                  color: isSel ? 'var(--accent-contrast)' : 'var(--text-1)',
-                                  border: isSel ? 'none' : '1px solid var(--border)',
-                                  fontSize: 12,
-                                  fontWeight: isSel ? 600 : 500,
-                                  cursor: 'pointer',
-                                  transition: 'all 0.12s ease',
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    width: 20,
-                                    height: 20,
-                                    borderRadius: '50%',
-                                    ...getAvatarStyle(f.color),
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                  }}
-                                >
-                                  {f.name[0]?.toUpperCase()}
-                                </div>
-                                <span>{f.name}</span>
-                                {isSel && <CheckCircle2 size={12} />}
-                              </button>
-                            );
-                          })}
-
-                          {/* Dialog Launcher Button for All / More Friends */}
-                          {db.friends.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => setIsFriendPickerOpen(true)}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                padding: '3px 10px',
-                                borderRadius: 99,
-                                background: 'var(--surface2)',
-                                color: 'var(--accent)',
-                                border: '1px dashed var(--accent)',
-                                fontSize: 11.5,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                transition: 'all 0.12s ease',
-                              }}
-                            >
-                              <Plus size={13} />
-                              {db.friends.length > visiblePillFriends.length
-                                ? `+${db.friends.length - visiblePillFriends.length} More`
-                                : 'All Friends'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Compact Split Summary Bar */}
-                      {selectedFriendIds.length > 0 && (
-                        <div style={{ marginBottom: 8, animation: 'fadein 0.15s ease' }}>
-                          <div className="flex-between" style={{ padding: '5px 10px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', fontSize: 11.5 }}>
-                            <span style={{ color: 'var(--text-1)', fontWeight: 500 }}>
-                              Split ({selectedFriendIds.length + (splitCalcMode === 'equal_all' ? 1 : 0)} people):{' '}
-                              <strong style={{ color: 'var(--accent)' }}>
-                                {fmtMoney(splitCalcMode === 'equal_all' ? (Number(amount) || 0) / (selectedFriendIds.length + 1) : totalFriendsShare, s.currency)}
-                              </strong>{' '}
-                              / person
-                            </span>
-                            <button
-                              type="button"
-                              style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                              onClick={() => setShowSplitCustom(!showSplitCustom)}
-                            >
-                              {showSplitCustom ? 'Hide Split' : 'Custom Split'}
-                            </button>
+                    <div style={{ marginBottom: 10, animation: 'fadein 0.15s ease' }}>
+                      <div
+                        onClick={() => setIsFriendPickerOpen(true)}
+                        style={{
+                          padding: '10px 12px',
+                          background: 'var(--accent-soft)',
+                          border: '1.5px solid var(--accent-border-soft)',
+                          borderRadius: 'var(--radius)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 10,
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: '50%',
+                              background: 'var(--accent)',
+                              color: 'var(--accent-contrast)',
+                              display: 'grid',
+                              placeItems: 'center',
+                              fontWeight: 700,
+                              fontSize: 13,
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Users size={16} />
                           </div>
-
-                          {showSplitCustom && (
-                            <div style={{ marginTop: 6, padding: 8, background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', animation: 'fadein 0.15s ease' }}>
-                              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                                <button
-                                  type="button"
-                                  className={`btn btn-sm ${splitCalcMode === 'equal_all' ? 'btn-primary' : 'btn-secondary'}`}
-                                  style={{ flex: 1, fontSize: 10.5, padding: '3px' }}
-                                  onClick={() => setSplitCalcMode('equal_all')}
-                                >
-                                  Equal Split
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`btn btn-sm ${splitCalcMode === 'equal_friends' ? 'btn-primary' : 'btn-secondary'}`}
-                                  style={{ flex: 1, fontSize: 10.5, padding: '3px' }}
-                                  onClick={() => setSplitCalcMode('equal_friends')}
-                                >
-                                  100% Friend
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`btn btn-sm ${splitCalcMode === 'custom' ? 'btn-primary' : 'btn-secondary'}`}
-                                  style={{ flex: 1, fontSize: 10.5, padding: '3px' }}
-                                  onClick={() => setSplitCalcMode('custom')}
-                                >
-                                  Custom
-                                </button>
-                              </div>
-
-                              {splitCalcMode === 'custom' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                  {selectedFriendIds.map(fId => {
-                                    const friendObj = db.friends.find(f => f.id === fId);
-                                    if (!friendObj) return null;
-                                    const currentVal = getFriendShare(fId);
-                                    return (
-                                      <div key={fId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5 }}>
-                                        <span>{friendObj.name}</span>
-                                        <input
-                                          type="number"
-                                          step="0.01"
-                                          className="form-input"
-                                          style={{ width: 75, height: 24, fontSize: 11.5, padding: '2px 6px', textAlign: 'right' }}
-                                          value={customFriendShares[fId] ?? (isNaN(currentVal) ? '' : String(currentVal))}
-                                          onChange={e => setCustomFriendShares(prev => ({ ...prev, [fId]: e.target.value }))}
-                                        />
-                                      </div>
-                                    );
-                                  })}
-                                </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {selectedFriendIds.length > 0
+                                ? `Splitting with ${selectedFriendIds.length} Friend${selectedFriendIds.length > 1 ? 's' : ''}`
+                                : 'Tap to Select Friends & Split'}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {selectedFriendIds.length > 0 ? (
+                                <>
+                                  Friends Owe: <strong style={{ color: 'var(--credit)' }}>{fmtMoney(totalFriendsShare, s.currency)}</strong>
+                                  {' • '}
+                                  My Share: <strong style={{ color: 'var(--accent)' }}>{fmtMoney((parseFloat(amount) || 0) - totalFriendsShare, s.currency)}</strong>
+                                </>
+                              ) : (
+                                'Set who shared this expense & split rules'
                               )}
                             </div>
-                          )}
+                          </div>
                         </div>
-                      )}
-                    </>
+
+                        <button
+                          type="button"
+                          style={{
+                            background: 'var(--accent)',
+                            color: 'var(--accent-contrast)',
+                            border: 'none',
+                            padding: '5px 12px',
+                            borderRadius: 99,
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {selectedFriendIds.length > 0 ? 'Edit' : '+ Add'}
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   {/* If Someone Else Paid: Friend Selector */}
@@ -1598,111 +1518,123 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
         </form>
       </div>
 
-      {/* Friend Picker Overlay Dialog */}
+      {/* With Friends & Split Centered Dialog / Bottom Sheet Overlay */}
       {isFriendPickerOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1100,
-            background: 'rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-            animation: 'fadein 0.15s ease',
-          }}
-          onClick={() => setIsFriendPickerOpen(false)}
-        >
-          <div
-            style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-xl, 16px)',
-              width: '100%',
-              maxWidth: '400px',
-              maxHeight: '82vh',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.35)',
-              overflow: 'hidden',
-            }}
-            onClick={e => e.stopPropagation()}
-          >
+        <div className="friend-picker-overlay" onClick={() => setIsFriendPickerOpen(false)}>
+          <div className="friend-picker-sheet" onClick={e => e.stopPropagation()}>
+            {/* Sheet Mobile Drag Handle */}
+            <div className="friend-picker-handle">
+              <div style={{ width: 36, height: 4.5, borderRadius: 99, background: 'var(--border2)' }} />
+            </div>
+
             {/* Dialog Header */}
             <div
               style={{
-                padding: '12px 16px',
+                padding: '14px 18px 12px',
                 borderBottom: '1px solid var(--border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: 'var(--surface2)',
+                background: 'var(--surface)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Users size={18} style={{ color: 'var(--accent)' }} />
-                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-1)' }}>
-                  Select Friends
-                </h3>
-                <span style={{ fontSize: 11, background: 'var(--surface)', padding: '2px 8px', borderRadius: 99, color: 'var(--accent)', fontWeight: 600, border: '1px solid var(--border)' }}>
-                  {selectedFriendIds.length} selected
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    background: 'var(--accent-soft)',
+                    color: 'var(--accent)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontWeight: 700,
+                  }}
+                >
+                  <Users size={17} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: 'var(--text)' }}>
+                    Split with Friends
+                  </h3>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                    Select friends and choose split rule
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsFriendPickerOpen(false)}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-3)',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-2)',
                   cursor: 'pointer',
-                  padding: 4,
-                  borderRadius: 6,
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
                   display: 'grid',
                   placeItems: 'center',
                 }}
               >
-                <X size={18} />
+                <X size={15} />
               </button>
             </div>
 
-            {/* Dialog Search & Filter Controls */}
-            <div style={{ padding: '12px 16px 8px', display: 'flex', flexDirection: 'column', gap: 8, borderBottom: '1px solid var(--border)' }}>
-              <div style={{ position: 'relative' }}>
-                <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
-                <input
-                  type="text"
-                  className="form-input"
-                  style={{ paddingLeft: 30, fontSize: 12.5, height: 34, borderRadius: 'var(--radius)' }}
-                  placeholder="Search friends or stores..."
-                  value={pickerSearch}
-                  onChange={e => setPickerSearch(e.target.value)}
-                  autoFocus
-                />
-                {pickerSearch && (
+            {/* Search & Inline Category Filter Row */}
+            <div style={{ padding: '10px 18px 8px', background: 'var(--surface2)', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
+                  <input
+                    type="text"
+                    className="form-input"
+                    style={{ paddingLeft: 28, paddingRight: 24, fontSize: 12, height: 32, borderRadius: 'var(--radius)' }}
+                    placeholder="Search or add friend..."
+                    value={pickerSearch}
+                    onChange={e => setPickerSearch(e.target.value)}
+                    autoFocus
+                  />
+                  {pickerSearch && (
+                    <button
+                      type="button"
+                      style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer' }}
+                      onClick={() => setPickerSearch('')}
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Inline Quick Add Friend */}
+                {pickerSearch.trim() && !filteredPickerFriends.some(f => f.name.toLowerCase() === pickerSearch.trim().toLowerCase()) && (
                   <button
                     type="button"
-                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer' }}
-                    onClick={() => setPickerSearch('')}
+                    className="btn btn-primary btn-sm"
+                    style={{ fontSize: 11, padding: '0 10px', height: 32, whiteSpace: 'nowrap' }}
+                    onClick={() => {
+                      const created = addFriend({ name: pickerSearch.trim(), type: 'friend' });
+                      setSelectedFriendIds(prev => [...prev, created.id]);
+                      showToast(`Added ${created.name}`);
+                      setPickerSearch('');
+                    }}
                   >
-                    <X size={13} />
+                    <Plus size={12} /> Add
                   </button>
                 )}
               </div>
 
-              {/* Quick Filter & Select All */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 5 }}>
+              {/* Filter Pills & Select All Bar */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
+                <div style={{ display: 'flex', gap: 4 }}>
                   <button
                     type="button"
                     style={{
                       fontSize: 10.5,
-                      padding: '3px 9px',
+                      padding: '2px 8px',
                       borderRadius: 99,
                       border: '1px solid var(--border)',
-                      background: pickerTypeFilter === 'all' ? 'var(--accent)' : 'var(--surface2)',
+                      background: pickerTypeFilter === 'all' ? 'var(--accent)' : 'var(--surface)',
                       color: pickerTypeFilter === 'all' ? 'var(--accent-contrast)' : 'var(--text-2)',
                       fontWeight: pickerTypeFilter === 'all' ? 600 : 500,
                       cursor: 'pointer',
@@ -1715,10 +1647,10 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                     type="button"
                     style={{
                       fontSize: 10.5,
-                      padding: '3px 9px',
+                      padding: '2px 8px',
                       borderRadius: 99,
                       border: '1px solid var(--border)',
-                      background: pickerTypeFilter === 'friend' ? 'var(--accent)' : 'var(--surface2)',
+                      background: pickerTypeFilter === 'friend' ? 'var(--accent)' : 'var(--surface)',
                       color: pickerTypeFilter === 'friend' ? 'var(--accent-contrast)' : 'var(--text-2)',
                       fontWeight: pickerTypeFilter === 'friend' ? 600 : 500,
                       cursor: 'pointer',
@@ -1731,10 +1663,10 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                     type="button"
                     style={{
                       fontSize: 10.5,
-                      padding: '3px 9px',
+                      padding: '2px 8px',
                       borderRadius: 99,
                       border: '1px solid var(--border)',
-                      background: pickerTypeFilter === 'vendor' ? 'var(--accent)' : 'var(--surface2)',
+                      background: pickerTypeFilter === 'vendor' ? 'var(--accent)' : 'var(--surface)',
                       color: pickerTypeFilter === 'vendor' ? 'var(--accent-contrast)' : 'var(--text-2)',
                       fontWeight: pickerTypeFilter === 'vendor' ? 600 : 500,
                       cursor: 'pointer',
@@ -1747,108 +1679,400 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
 
                 <button
                   type="button"
-                  style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--accent)', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--accent)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
                   onClick={() => {
                     if (selectedFriendIds.length === db.friends.length) {
                       setSelectedFriendIds([]);
                     } else {
-                      setSelectedFriendIds(db.friends.map(f => f.id));
+                      const allIds = db.friends.map(f => f.id);
+                      setSelectedFriendIds(allIds);
+                      if (allIds.length > 1) {
+                        handleSelectSplitCalcMode('custom', isYouSelected);
+                      } else if (allIds.length === 1) {
+                        if (isYouSelected) {
+                          handleSelectSplitCalcMode('equal_all');
+                        } else {
+                          handleSelectSplitCalcMode('equal_friends');
+                        }
+                      }
                     }
                   }}
                 >
-                  {selectedFriendIds.length === db.friends.length ? 'Deselect All' : 'Select All'}
+                  {selectedFriendIds.length === db.friends.length ? 'Clear All' : 'Select All'}
                 </button>
               </div>
             </div>
 
-            {/* Scrollable Friends List */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {filteredPickerFriends.length > 0 ? (
-                filteredPickerFriends.map(f => {
-                  const isSel = selectedFriendIds.includes(f.id);
+            {/* Equal / Dynamic Vertical Space: Friend Selection Section */}
+            <div style={{ flex: splitCalcMode === 'custom' && selectedFriendIds.length > 2 ? 0.5 : (selectedFriendIds.length > 1 ? 0.7 : 1), minHeight: 0, overflowY: 'auto', padding: '10px 18px', background: 'var(--surface)', transition: 'flex 0.2s ease' }}>
+              {(() => {
+                const showYouChip = (pickerTypeFilter === 'all' || pickerTypeFilter === 'friend') &&
+                  (!pickerSearch.trim() || 'you'.includes(pickerSearch.toLowerCase().trim()) || 'me'.includes(pickerSearch.toLowerCase().trim()));
+                const hasAnyItems = filteredPickerFriends.length > 0 || showYouChip;
+
+                if (!hasAnyItems) {
                   return (
-                    <div
-                      key={f.id}
-                      onClick={() => {
-                        setSelectedFriendIds(prev =>
-                          prev.includes(f.id) ? prev.filter(id => id !== f.id) : [...prev, f.id]
-                        );
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '8px 10px',
-                        borderRadius: 'var(--radius)',
-                        background: isSel ? 'var(--accent-soft)' : 'var(--surface2)',
-                        border: isSel ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                        transition: 'all 0.12s ease',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <div style={{ padding: '12px 8px', textAlign: 'center', fontSize: 11.5, color: 'var(--text-3)' }}>
+                      No matching friends found
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))', gap: 6 }}>
+                    {showYouChip && (
+                      <div
+                        onClick={() => {
+                          if (isYouSelected) {
+                            if (selectedFriendIds.length > 1) {
+                              handleSelectSplitCalcMode('custom', false);
+                            } else {
+                              handleSelectSplitCalcMode('equal_friends');
+                            }
+                          } else {
+                            if (selectedFriendIds.length > 1) {
+                              handleSelectSplitCalcMode('custom', true);
+                            } else {
+                              handleSelectSplitCalcMode('equal_all');
+                            }
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '5px 8px',
+                          borderRadius: 8,
+                          background: isYouSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                          border: isYouSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'all 0.1s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: '50%',
+                              background: 'var(--accent)',
+                              color: 'var(--accent-contrast)',
+                              fontSize: 10,
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            Y
+                          </div>
+                          <span style={{ fontSize: 11.5, fontWeight: isYouSelected ? 700 : 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            You (Me)
+                          </span>
+                        </div>
+
                         <div
                           style={{
-                            width: 28,
-                            height: 28,
+                            width: 15,
+                            height: 15,
                             borderRadius: '50%',
-                            ...getAvatarStyle(f.color),
-                            fontSize: 11,
-                            fontWeight: 700,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            background: isYouSelected ? 'var(--accent)' : 'transparent',
+                            border: isYouSelected ? 'none' : '1px solid var(--text-3)',
+                            display: 'grid',
+                            placeItems: 'center',
                             flexShrink: 0,
                           }}
                         >
-                          {f.name[0]?.toUpperCase()}
-                        </div>
-                        <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                          <div style={{ fontSize: 13, fontWeight: isSel ? 600 : 500, color: 'var(--text-1)' }}>
-                            {f.name}
-                          </div>
-                          {f.type && f.type !== 'friend' && (
-                            <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
-                              {f.type === 'vendor' ? 'Store / Vendor' : f.type}
-                            </div>
-                          )}
+                          {isYouSelected && <CheckCircle2 size={11} style={{ color: 'var(--accent-contrast)' }} />}
                         </div>
                       </div>
+                    )}
 
-                      <div
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: 4,
-                          background: isSel ? 'var(--accent)' : 'transparent',
-                          border: isSel ? 'none' : '1.5px solid var(--text-3)',
-                          display: 'grid',
-                          placeItems: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {isSel && <CheckCircle2 size={14} style={{ color: 'var(--accent-contrast)' }} />}
+                    {filteredPickerFriends.map(f => {
+                      const isSel = selectedFriendIds.includes(f.id);
+                      return (
+                        <div
+                          key={f.id}
+                          onClick={() => {
+                            setSelectedFriendIds(prev => {
+                              const isCurrentlySel = prev.includes(f.id);
+                              const next = isCurrentlySel ? prev.filter(id => id !== f.id) : [...prev, f.id];
+                              if (next.length > 1) {
+                                handleSelectSplitCalcMode('custom', isYouSelected);
+                              } else if (next.length === 1) {
+                                if (isYouSelected) {
+                                  handleSelectSplitCalcMode('equal_all');
+                                } else {
+                                  handleSelectSplitCalcMode('equal_friends');
+                                }
+                              }
+                              if (next.length > 0) {
+                                const tot = parseFloat(amount) || 0;
+                                const denom = isYouSelected ? next.length + 1 : next.length;
+                                const equalVal = tot > 0 && denom > 0 ? String(Math.floor((tot * 100) / denom) / 100) : '0';
+                                setCustomFriendShares(existing => {
+                                  const updated = { ...existing };
+                                  next.forEach(id => {
+                                    if (!updated[id] || updated[id] === '0') updated[id] = equalVal;
+                                  });
+                                  return updated;
+                                });
+                              }
+                              return next;
+                            });
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '5px 8px',
+                            borderRadius: 8,
+                            background: isSel ? 'var(--accent-soft)' : 'var(--surface2)',
+                            border: isSel ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            transition: 'all 0.1s ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                            <div
+                              style={{
+                                width: 22,
+                                height: 22,
+                                borderRadius: '50%',
+                                ...getAvatarStyle(f.color),
+                                fontSize: 10,
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {f.name[0]?.toUpperCase()}
+                            </div>
+                            <span style={{ fontSize: 11.5, fontWeight: isSel ? 700 : 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {f.name}
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              width: 15,
+                              height: 15,
+                              borderRadius: '50%',
+                              background: isSel ? 'var(--accent)' : 'transparent',
+                              border: isSel ? 'none' : '1px solid var(--text-3)',
+                              display: 'grid',
+                              placeItems: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {isSel && <CheckCircle2 size={11} style={{ color: 'var(--accent-contrast)' }} />}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Dynamic Vertical Space: Split Rule Section */}
+            <div style={{ flex: splitCalcMode === 'custom' && selectedFriendIds.length > 2 ? 1.8 : (selectedFriendIds.length > 1 ? 1.4 : 1), minHeight: 0, overflowY: 'auto', borderTop: '1px solid var(--border)', background: 'var(--surface2)', padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10, transition: 'flex 0.2s ease' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Split Rule
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)' }}>
+                  {selectedFriendIds.length} Friend{selectedFriendIds.length !== 1 ? 's' : ''} Selected
+                </span>
+              </div>
+
+              {/* Seamless Segmented Tab Controller */}
+              <div
+                style={{
+                  display: 'flex',
+                  background: 'var(--surface)',
+                  padding: 3,
+                  borderRadius: 10,
+                  border: '1px solid var(--border)',
+                  gap: 2,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleSelectSplitCalcMode('equal_all')}
+                  style={{
+                    flex: 1,
+                    padding: '6px 4px',
+                    border: 'none',
+                    borderRadius: 7,
+                    fontSize: 11,
+                    fontWeight: splitCalcMode === 'equal_all' ? 700 : 500,
+                    background: splitCalcMode === 'equal_all' ? 'var(--accent)' : 'transparent',
+                    color: splitCalcMode === 'equal_all' ? 'var(--accent-contrast)' : 'var(--text-2)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Equal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectSplitCalcMode('equal_friends')}
+                  style={{
+                    flex: 1,
+                    padding: '6px 4px',
+                    border: 'none',
+                    borderRadius: 7,
+                    fontSize: 11,
+                    fontWeight: splitCalcMode === 'equal_friends' ? 700 : 500,
+                    background: splitCalcMode === 'equal_friends' ? 'var(--accent)' : 'transparent',
+                    color: splitCalcMode === 'equal_friends' ? 'var(--accent-contrast)' : 'var(--text-2)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {selectedFriendIds.length === 1 ? '100% Friend' : 'Friends Only'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectSplitCalcMode('custom')}
+                  style={{
+                    flex: 1,
+                    padding: '6px 4px',
+                    border: 'none',
+                    borderRadius: 7,
+                    fontSize: 11,
+                    fontWeight: splitCalcMode === 'custom' ? 700 : 500,
+                    background: splitCalcMode === 'custom' ? 'var(--accent)' : 'transparent',
+                    color: splitCalcMode === 'custom' ? 'var(--accent-contrast)' : 'var(--text-2)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Custom
+                </button>
+              </div>
+
+              {/* Custom Amounts List (only if Custom mode) */}
+              {splitCalcMode === 'custom' && selectedFriendIds.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    maxHeight: selectedFriendIds.length > 4 ? 260 : (selectedFriendIds.length > 2 ? 200 : 130),
+                    overflowY: 'auto',
+                    padding: '8px 10px',
+                    background: 'var(--surface)',
+                    borderRadius: 10,
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  {selectedFriendIds.map(fId => {
+                    const friendObj = db.friends.find(f => f.id === fId);
+                    if (!friendObj) return null;
+                    const currentVal = getFriendShare(fId);
+                    const valStr = customFriendShares[fId] ?? (isNaN(currentVal) ? '' : String(currentVal));
+                    return (
+                      <div key={fId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12 }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-1)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {friendObj.name}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)' }}>{s.currency}</span>
+                          <input
+                            type="number"
+                            step="any"
+                            style={{
+                              width: 85,
+                              height: 30,
+                              fontSize: 12.5,
+                              fontWeight: 600,
+                              padding: '2px 8px',
+                              textAlign: 'right',
+                              borderRadius: 6,
+                              border: '1px solid var(--border)',
+                              background: 'var(--surface2)',
+                              color: 'var(--text-1)',
+                              outline: 'none',
+                            }}
+                            value={valStr}
+                            onChange={e => setCustomFriendShares(prev => ({ ...prev, [fId]: e.target.value }))}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: 12.5, color: 'var(--text-3)' }}>
-                  {pickerSearch ? `No contacts matching "${pickerSearch}"` : 'No friends added yet'}
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Breakdown Card (without progress bar) */}
+              {selectedFriendIds.length > 0 && (
+                <div
+                  style={{
+                    padding: '10px 12px',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                  }}
+                >
+                  {(() => {
+                    const tot = parseFloat(amount) || 0;
+                    const myShare = Math.max(0, tot - totalFriendsShare);
+                    const perFriend = selectedFriendIds.length > 0 ? totalFriendsShare / selectedFriendIds.length : 0;
+
+                    return (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }} />
+                          <span style={{ color: 'var(--text-2)' }}>My Share:</span>
+                          <strong style={{ color: 'var(--accent)', fontWeight: 700 }}>{fmtMoney(myShare, s.currency)}</strong>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--credit)' }} />
+                          <span style={{ color: 'var(--text-2)' }}>Friends Owe:</span>
+                          <strong style={{ color: 'var(--credit)', fontWeight: 700 }}>
+                            {fmtMoney(totalFriendsShare, s.currency)}
+                            {selectedFriendIds.length > 1 && (
+                              <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-3)', marginLeft: 3 }}>
+                                ({fmtMoney(perFriend, s.currency)}/ea)
+                              </span>
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
 
-            {/* Dialog Footer */}
-            <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex', justifyContent: 'flex-end' }}>
+            {/* Footer Actions */}
+            <div style={{ padding: '12px 18px', background: 'var(--surface)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
               <button
                 type="button"
-                className="btn btn-primary"
-                style={{ padding: '6px 20px', fontSize: 13, borderRadius: 'var(--radius)' }}
+                className="btn btn-secondary btn-sm"
+                style={{ flex: 1, padding: '8px', fontSize: 12.5 }}
                 onClick={() => setIsFriendPickerOpen(false)}
               >
-                Done ({selectedFriendIds.length} Selected)
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                style={{ flex: 2, padding: '8px', fontSize: 12.5, fontWeight: 700 }}
+                onClick={() => setIsFriendPickerOpen(false)}
+              >
+                Apply
               </button>
             </div>
           </div>
