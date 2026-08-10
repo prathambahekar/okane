@@ -1,12 +1,13 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { AppDB, Expense, Friend, Wallet, RecurringRule } from './types';
+import type { AppDB, Expense, Friend, Wallet, RecurringRule, Envelope } from './types';
 import {
   loadDB, saveDB, defaultDB, resetSQLTables, DEFAULT_CATEGORIES, DEFAULT_WALLETS,
   addExpense as dbAddExpense, updateExpense as dbUpdateExpense, deleteExpense as dbDeleteExpense, deleteExpenseGroup as dbDeleteExpenseGroup,
   transferFunds as dbTransferFunds,
   addFriend as dbAddFriend, updateFriend as dbUpdateFriend, deleteFriend as dbDeleteFriend,
   addWallet as dbAddWallet, updateWallet as dbUpdateWallet, deleteWallet as dbDeleteWallet,
+  addEnvelope as dbAddEnvelope, updateEnvelope as dbUpdateEnvelope, deleteEnvelope as dbDeleteEnvelope, adjustEnvelopeBalance as dbAdjustEnvelopeBalance,
   updateCategory as dbUpdateCategory,
   recordSettlement as dbRecordSettlement, deleteSettlement as dbDeleteSettlement, unsettleExpense as dbUnsettleExpense,
   addRecurringRule as dbAddRecurringRule, updateRecurringRule as dbUpdateRecurringRule, deleteRecurringRule as dbDeleteRecurringRule,
@@ -61,6 +62,11 @@ interface StoreContextType {
   updateWallet: (id: string, data: Partial<Wallet>) => void;
   deleteWallet: (id: string) => boolean;
   transferFunds: (fromWalletId: string, toWalletId: string, amount: number, date: string, note?: string) => void;
+
+  addEnvelope: (data: Partial<Envelope>) => Envelope;
+  updateEnvelope: (id: string, data: Partial<Envelope>) => void;
+  deleteEnvelope: (id: string) => void;
+  adjustEnvelopeBalance: (id: string, delta: number) => void;
 
   recordSettlement: (friendId: string, expenseIds: string[], note: string, walletId?: string, customAmount?: number, date?: string) => void;
   deleteSettlement: (id: string) => void;
@@ -375,6 +381,43 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   }, [pushUndo, persist]);
 
+  const addEnvelope = useCallback((data: Partial<Envelope>): Envelope => {
+    let created!: Envelope;
+    setDB(current => {
+      const { db: next, envelope } = dbAddEnvelope(current, data);
+      created = envelope;
+      saveDB(next);
+      return next;
+    });
+    return created;
+  }, []);
+
+  const updateEnvelope = useCallback((id: string, data: Partial<Envelope>) => {
+    setDB(current => {
+      const next = dbUpdateEnvelope(current, id, data);
+      saveDB(next);
+      return next;
+    });
+  }, []);
+
+  const deleteEnvelope = useCallback((id: string) => {
+    setDB(current => {
+      const snapshot = current;
+      const next = dbDeleteEnvelope(current, id);
+      saveDB(next);
+      pushUndo('Savings envelope deleted', snapshot, () => persist(snapshot));
+      return next;
+    });
+  }, [pushUndo, persist]);
+
+  const adjustEnvelopeBalance = useCallback((id: string, delta: number) => {
+    setDB(current => {
+      const next = dbAdjustEnvelopeBalance(current, id, delta);
+      saveDB(next);
+      return next;
+    });
+  }, []);
+
   const recordSettlement = useCallback((friendId: string, expenseIds: string[], note: string, walletId?: string, customAmount?: number, date?: string) => {
     setDB(current => {
       const snapshot = current;
@@ -552,6 +595,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         data.settings || {}
       ),
       recurringRules: Array.isArray(data.recurringRules) ? data.recurringRules : [],
+      envelopes: Array.isArray(data.envelopes) ? data.envelopes : [],
     };
     persist(normalized);
   }, [persist]);
@@ -593,6 +637,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     addExpense, updateExpense, deleteExpense,
     addFriend, updateFriend, deleteFriend,
     addWallet, updateWallet, deleteWallet: deleteWalletFn, transferFunds,
+    addEnvelope, updateEnvelope, deleteEnvelope, adjustEnvelopeBalance,
     recordSettlement, deleteSettlement, unsettleExpense,
     addRecurringRule, updateRecurringRule, deleteRecurringRule,
     triggerAutopayDeduct, quickLogRecurringRule,

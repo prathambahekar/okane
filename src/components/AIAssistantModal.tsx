@@ -178,7 +178,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     touchStartYRef.current = null;
   };
   const [aiEngineMode, setAiEngineMode] = useState<'offline' | 'online'>(() => {
-    return (localStorage.getItem('ai_engine_mode') as 'offline' | 'online') || db.settings?.defaultAiEngine || 'offline';
+    return (localStorage.getItem('ai_engine_mode') as 'offline' | 'online') || 'online';
   });
 
   const [messages, setMessages] = useState<Message[]>([
@@ -482,20 +482,62 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     }
 
     try {
+      const recentExpenses = db.expenses.slice(0, 25).map(e => {
+        const w = db.wallets.find(wallet => wallet.id === e.walletId);
+        const f = db.friends.find(friend => friend.id === e.friendId);
+        return {
+          description: e.description,
+          amount: e.amount,
+          category: e.category,
+          date: e.date,
+          type: e.type,
+          flow: e.flow,
+          walletName: w ? w.name : undefined,
+          friendName: f ? f.name : undefined,
+          splitMode: e.splitMode,
+        };
+      });
+
+      const totalSpent = db.expenses
+        .filter(e => e.flow !== 'in')
+        .reduce((sum, e) => sum + e.amount, 0);
+
+      const summaryStats = {
+        totalSpent,
+        totalExpensesCount: db.expenses.length,
+        walletsOverview: db.wallets.map(w => ({ name: w.name, balance: w.balance, type: w.type })),
+        friendsOverview: db.friends.map(f => ({ name: f.name, balance: f.balance })),
+      };
+
+      const chatHistory = messages.slice(-10).map(m => ({
+        sender: m.sender,
+        text: m.text,
+      }));
+
       const res = await fetch('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: query,
+          chatHistory,
           categories,
           wallets: wallets.map(w => ({ id: w.id, name: w.name })),
           friends: friends.map(f => ({ id: f.id, name: f.name, type: f.type })),
           currentDraft: activeDraft,
+          recentExpenses,
+          summaryStats,
           currency,
         }),
       });
 
-      const data = await res.json();
+      let data: { reply?: string; draft?: DraftExpense } | null = null;
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        data = await res.json().catch(() => null);
+      }
+      if (!data) {
+        throw new Error('Non-JSON or error response from AI backend');
+      }
 
       const botMsg: Message = {
         id: generateMsgId(),
@@ -1246,7 +1288,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               type="number"
               size="small"
               fullWidth
-              value={activeDraft.amount || ''}
+              value={activeDraft.amount != null && !isNaN(activeDraft.amount) ? activeDraft.amount : ''}
               InputProps={{ sx: { borderRadius: '10px' } }}
               onChange={(e) => {
                 const newAmt = Number(e.target.value) || 0;
@@ -1336,7 +1378,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   type="number"
                   size="small"
                   fullWidth
-                  value={activeDraft.myShare ?? ''}
+                  value={activeDraft.myShare != null && !isNaN(activeDraft.myShare) ? activeDraft.myShare : ''}
                   InputProps={{ sx: { borderRadius: '10px' } }}
                   onChange={(e) => {
                     const my = Number(e.target.value) || 0;
@@ -1349,7 +1391,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   type="number"
                   size="small"
                   fullWidth
-                  value={activeDraft.friendShare ?? ''}
+                  value={activeDraft.friendShare != null && !isNaN(activeDraft.friendShare) ? activeDraft.friendShare : ''}
                   InputProps={{ sx: { borderRadius: '10px' } }}
                   onChange={(e) => {
                     const fr = Number(e.target.value) || 0;

@@ -1,5 +1,5 @@
 import alasql from 'alasql';
-import type { AppDB, Wallet, Friend, Expense, Settlement, ExpenseFlow, ExpenseType, ExpenseStatus, RecurringRule, FrequencyType, ContactType, RecurringKind, SettlementPartialBreakdownItem } from './types';
+import type { AppDB, Wallet, Friend, Expense, Settlement, ExpenseFlow, ExpenseType, ExpenseStatus, RecurringRule, FrequencyType, ContactType, RecurringKind, SettlementPartialBreakdownItem, Envelope } from './types';
 
 const SQL_STORAGE_KEY = 'okane_sql_database_dump_v1';
 const LEGACY_JSON_KEY = 'ledger_app_db_v2';
@@ -13,6 +13,7 @@ export function resetSQLTables() {
     alasql('DROP TABLE IF EXISTS expenses');
     alasql('DROP TABLE IF EXISTS settlements');
     alasql('DROP TABLE IF EXISTS recurring_rules');
+    alasql('DROP TABLE IF EXISTS envelopes');
     alasql('DROP TABLE IF EXISTS categories');
     alasql('DROP TABLE IF EXISTS settings');
   } catch (err) {
@@ -30,6 +31,7 @@ export function initSQLTables() {
     alasql('CREATE TABLE IF NOT EXISTS expenses (id STRING PRIMARY KEY, groupId STRING, description STRING, amount NUMBER, category STRING, date STRING, type STRING, flow STRING, friendId STRING, walletId STRING, status STRING, settled INT, settlementId STRING, notes STRING, createdAt INT, originalAmount NUMBER, settledAmount NUMBER, parentExpenseId STRING)');
     alasql('CREATE TABLE IF NOT EXISTS settlements (id STRING PRIMARY KEY, friendId STRING, amount NUMBER, date STRING, note STRING, walletId STRING, createdAt INT, expenseIds STRING, originalTotal NUMBER, remainingAmount NUMBER, partialBreakdown STRING)');
     alasql('CREATE TABLE IF NOT EXISTS recurring_rules (id STRING PRIMARY KEY, title STRING, kind STRING, amount NUMBER, category STRING, walletId STRING, friendId STRING, type STRING, flow STRING, frequency STRING, intervalValue INT, startDate STRING, nextDueDate STRING, autoDeduct INT, status STRING, notes STRING, createdAt INT)');
+    alasql('CREATE TABLE IF NOT EXISTS envelopes (id STRING PRIMARY KEY, walletId STRING, name STRING, targetAmount NUMBER, currentAmount NUMBER, color STRING, icon STRING, targetDate STRING, notes STRING, createdAt INT)');
     alasql('CREATE TABLE IF NOT EXISTS categories (name STRING PRIMARY KEY, color STRING, icon STRING)');
     alasql('CREATE TABLE IF NOT EXISTS settings (st_key STRING PRIMARY KEY, st_val STRING)');
     isSQLInitialized = true;
@@ -448,6 +450,51 @@ export function todayISO(): string {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
+export function defaultSampleEnvelopes(walletId: string): Envelope[] {
+  const nextYear = new Date();
+  nextYear.setFullYear(nextYear.getFullYear() + 1);
+  const targetDateStr = nextYear.toISOString().split('T')[0];
+
+  return [
+    {
+      id: 'env_emergency',
+      walletId,
+      name: 'Emergency Fund',
+      targetAmount: 10000,
+      currentAmount: 3500,
+      color: '#10B981',
+      icon: 'shield',
+      targetDate: targetDateStr,
+      notes: '3-6 months reserve fund',
+      createdAt: Date.now() - 86400000 * 30,
+    },
+    {
+      id: 'env_vacation',
+      walletId,
+      name: 'Vacation Savings',
+      targetAmount: 3000,
+      currentAmount: 1200,
+      color: '#3B82F6',
+      icon: 'plane',
+      targetDate: targetDateStr,
+      notes: 'Year-end holiday travel',
+      createdAt: Date.now() - 86400000 * 15,
+    },
+    {
+      id: 'env_gadget',
+      walletId,
+      name: 'New Laptop',
+      targetAmount: 2000,
+      currentAmount: 800,
+      color: '#8B5CF6',
+      icon: 'laptop',
+      targetDate: targetDateStr,
+      notes: 'Hardware upgrade savings',
+      createdAt: Date.now() - 86400000 * 10,
+    },
+  ];
+}
+
 export function defaultDB(): AppDB {
   const wallets = JSON.parse(JSON.stringify(DEFAULT_WALLETS)) as Wallet[];
   const defaultWal = wallets[0].id;
@@ -457,6 +504,7 @@ export function defaultDB(): AppDB {
     expenses: [],
     settlements: [],
     wallets,
+    envelopes: defaultSampleEnvelopes(defaultWal),
     settings: {
       currency: 'INR',
       categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
@@ -464,6 +512,7 @@ export function defaultDB(): AppDB {
       defaultStatus: 'paid',
       defaultWalletId: defaultWal,
       enableAIAssistant: true,
+      enableEnvelopes: true,
       defaultAiEngine: 'offline',
       devMode: false,
       enableDevSQLConsole: true,
@@ -731,6 +780,16 @@ export function syncDBToSQLTables(db: AppDB): void {
       ]);
     });
 
+    const seenEnvelopes = new Set<string>();
+    (db.envelopes || []).forEach(env => {
+      if (!env.id || seenEnvelopes.has(env.id)) return;
+      seenEnvelopes.add(env.id);
+      safeInsert('INSERT INTO envelopes VALUES (?,?,?,?,?,?,?,?,?,?)', [
+        env.id, env.walletId, env.name, Number(env.targetAmount) || 0, Number(env.currentAmount) || 0,
+        env.color || '#3B82F6', env.icon || 'piggy-bank', env.targetDate || '', env.notes || '', env.createdAt || Date.now()
+      ]);
+    });
+
     const seenCats = new Set<string>();
     (db.settings?.categories || DEFAULT_CATEGORIES).forEach(c => {
       if (!c.name || seenCats.has(c.name)) return;
@@ -779,6 +838,7 @@ export function syncDBToSQLTables(db: AppDB): void {
       expenses: alasql('SELECT * FROM expenses'),
       settlements: alasql('SELECT * FROM settlements'),
       recurring_rules: alasql('SELECT * FROM recurring_rules'),
+      envelopes: alasql('SELECT * FROM envelopes'),
       categories: alasql('SELECT * FROM categories'),
       settings: alasql('SELECT * FROM settings'),
     };
@@ -797,6 +857,7 @@ export function loadDBFromSQLTables(): AppDB {
     const sqlExpenses = (alasql('SELECT * FROM expenses') as Record<string, unknown>[]) || [];
     const sqlSettlements = (alasql('SELECT * FROM settlements') as Record<string, unknown>[]) || [];
     const sqlRecurring = (alasql('SELECT * FROM recurring_rules') as Record<string, unknown>[]) || [];
+    const sqlEnvelopes = (alasql('SELECT * FROM envelopes') as Record<string, unknown>[]) || [];
     const sqlCategories = (alasql('SELECT * FROM categories') as Record<string, unknown>[]) || [];
     const sqlSettings = (alasql('SELECT * FROM settings') as Record<string, unknown>[]) || [];
 
@@ -893,6 +954,19 @@ export function loadDBFromSQLTables(): AppDB {
       createdAt: Number(r.createdAt) || Date.now(),
     }));
 
+    const envelopes: Envelope[] = sqlEnvelopes.map(e => ({
+      id: String(e.id),
+      walletId: String(e.walletId),
+      name: String(e.name),
+      targetAmount: Number(e.targetAmount) || 0,
+      currentAmount: Number(e.currentAmount) || 0,
+      color: e.color ? String(e.color) : '#3B82F6',
+      icon: e.icon ? String(e.icon) : 'piggy-bank',
+      targetDate: e.targetDate ? String(e.targetDate) : undefined,
+      notes: e.notes ? String(e.notes) : '',
+      createdAt: Number(e.createdAt) || Date.now(),
+    }));
+
     const categories = sqlCategories.length > 0
       ? sqlCategories.map(c => ({ name: String(c.name), color: String(c.color), icon: c.icon ? String(c.icon) : undefined }))
       : JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
@@ -974,6 +1048,7 @@ export function loadDBFromSQLTables(): AppDB {
       expenses,
       settlements,
       recurringRules,
+      envelopes,
       settings: (settingsObj as unknown) as AppDB['settings'],
       activeTrip: parsedActiveTrip,
       tripHistory: parsedTripHistory,
@@ -1065,6 +1140,19 @@ export function loadDB(): AppDB {
             if (!id || seenRules.has(id)) return;
             seenRules.add(id);
             insertSafe('INSERT INTO recurring_rules VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [row.id, row.title, row.kind, row.amount, row.category, row.walletId, row.friendId, row.type, row.flow, row.frequency, row.intervalValue, row.startDate, row.nextDueDate, row.autoDeduct, row.status, row.notes, row.createdAt]);
+          });
+        }
+
+        const seenEnvelopes = new Set<string>();
+        if (Array.isArray(dump.envelopes)) {
+          dump.envelopes.forEach((row: Record<string, unknown>) => {
+            const id = String(row.id ?? '');
+            if (!id || seenEnvelopes.has(id)) return;
+            seenEnvelopes.add(id);
+            insertSafe('INSERT INTO envelopes VALUES (?,?,?,?,?,?,?,?,?,?)', [
+              row.id, row.walletId, row.name, Number(row.targetAmount) || 0, Number(row.currentAmount) || 0,
+              row.color || '#3B82F6', row.icon || 'piggy-bank', row.targetDate || '', row.notes || '', row.createdAt || Date.now()
+            ]);
           });
         }
 
@@ -1944,4 +2032,66 @@ export function quickLogRecurringRule(db: AppDB, ruleId: string, customDate?: st
     db: { ...nextDb, recurringRules: updatedRules },
     expense: createdExp,
   };
+}
+
+export function walletEnvelopeAllocated(db: AppDB, walletId: string): number {
+  return (db.envelopes || [])
+    .filter(e => e.walletId === walletId)
+    .reduce((sum, e) => sum + (Number(e.currentAmount) || 0), 0);
+}
+
+export function walletUnallocatedBalance(db: AppDB, walletId: string): number {
+  const total = walletBalance(db, walletId);
+  const allocated = walletEnvelopeAllocated(db, walletId);
+  return total - allocated;
+}
+
+export function addEnvelope(db: AppDB, data: Partial<Envelope>): { db: AppDB; envelope: Envelope } {
+  const walId = data.walletId || db.settings.defaultWalletId || db.wallets[0]?.id || 'wal_cash';
+  const envelope: Envelope = {
+    id: uid('env'),
+    walletId: walId,
+    name: data.name?.trim() || 'New Goal Envelope',
+    targetAmount: Math.max(0, Number(data.targetAmount) || 0),
+    currentAmount: Math.max(0, Number(data.currentAmount) || 0),
+    color: data.color || '#3B82F6',
+    icon: data.icon || 'piggy-bank',
+    targetDate: data.targetDate || '',
+    notes: data.notes?.trim() || '',
+    createdAt: Date.now(),
+  };
+  return {
+    db: {
+      ...db,
+      envelopes: [envelope, ...(db.envelopes || [])],
+    },
+    envelope,
+  };
+}
+
+export function updateEnvelope(db: AppDB, id: string, data: Partial<Envelope>): AppDB {
+  const envelopes = (db.envelopes || []).map(e => {
+    if (e.id !== id) return e;
+    const updated = { ...e, ...data };
+    if (data.targetAmount !== undefined) updated.targetAmount = Math.max(0, Number(data.targetAmount) || 0);
+    if (data.currentAmount !== undefined) updated.currentAmount = Math.max(0, Number(data.currentAmount) || 0);
+    return updated;
+  });
+  return { ...db, envelopes };
+}
+
+export function deleteEnvelope(db: AppDB, id: string): AppDB {
+  return {
+    ...db,
+    envelopes: (db.envelopes || []).filter(e => e.id !== id),
+  };
+}
+
+export function adjustEnvelopeBalance(db: AppDB, id: string, delta: number): AppDB {
+  const envelopes = (db.envelopes || []).map(e => {
+    if (e.id !== id) return e;
+    const nextAmt = Math.max(0, Number((e.currentAmount + delta).toFixed(2)));
+    return { ...e, currentAmount: nextAmt };
+  });
+  return { ...db, envelopes };
 }

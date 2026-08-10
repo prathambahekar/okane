@@ -37,7 +37,12 @@ export function parseLocallyClient(
   const lower = clean.toLowerCase();
   const sym = currencySymbol(currency);
 
-  // 1. Amount Extraction
+  // STEP 1: Flow Determination (Getting Money vs. Spending Money)
+  const inKeywords = ['received', 'got', 'salary', 'cashback', 'income', 'earned', 'refund', 'deposit', 'credited', 'paid me', 'sent me', 'gave me'];
+  const isIncome = inKeywords.some(k => lower.includes(k));
+  const flow: ExpenseFlow = isIncome ? 'in' : 'out';
+
+  // STEP 2: Amount Extraction
   let amount = 0;
   const numMatches = [
     ...lower.matchAll(/\b(?:rs\.?|rupees|inr|\$|₹)\s*(\d+(?:\.\d+)?)\b/gi),
@@ -52,7 +57,7 @@ export function parseLocallyClient(
     }
   }
 
-  // 2. Identify Friends / Contacts mentioned
+  // STEP 3: Identify Friends / Contacts & Who Paid
   let foundFriendName: string | null = null;
   const matchedFriends: string[] = [];
 
@@ -65,7 +70,6 @@ export function parseLocallyClient(
     }
   }
 
-  // If no known friend matched, check for capitalized name or words after preposition
   if (matchedFriends.length === 0) {
     const nameMatch = clean.match(/\b(?:for|with|by|from|to|and)\s+([A-Z][a-z]+)\b/);
     if (nameMatch && nameMatch[1] && !['Me', 'My', 'Us', 'The', 'Cash', 'Bank', 'Card', 'Today', 'Yesterday'].includes(nameMatch[1])) {
@@ -77,12 +81,6 @@ export function parseLocallyClient(
     foundFriendName = matchedFriends[0];
   }
 
-  // 3. Flow (Income vs Spending)
-  const inKeywords = ['received', 'got', 'salary', 'cashback', 'income', 'earned', 'refund', 'deposit', 'credited'];
-  const isIncome = inKeywords.some(k => lower.includes(k));
-  const flow: ExpenseFlow = isIncome ? 'in' : 'out';
-
-  // 4. Who Paid & Split Mode Determination
   let whoPaid: 'me' | 'other' = 'me';
   let type: ExpenseType = 'personal';
   let splitMode: 'just_me' | 'equal_split' | 'custom_split' | 'for_friend' | 'pay_debt' | 'by_friend' = 'just_me';
@@ -90,13 +88,18 @@ export function parseLocallyClient(
   let friendShare: number | null = null;
 
   const friendPaidPattern = foundFriendName
-    ? new RegExp(`\\b(${foundFriendName}|friend|someone|he|she)\\s+(paid|bought|spent|gave)\\b|\\bpaid\\s+by\\s+(${foundFriendName}|friend)\\b|\\b(${foundFriendName})\\s+paid\\s+my\\b`, 'i')
-    : /\b(alex|arman|friend|someone|he|she)\s+(paid|bought|spent|gave)\b|\bpaid\s+by\s+\w+\b/i;
+    ? new RegExp(`\\b(${foundFriendName}|friend|someone|he|she)\\s+(paid|bought|spent|gave|sent)\\b|\\bpaid\\s+by\\s+(${foundFriendName}|friend)\\b|\\b(${foundFriendName})\\s+paid\\s+my\\b`, 'i')
+    : /\b(alex|arman|friend|someone|he|she)\s+(paid|bought|spent|gave|sent)\b|\bpaid\s+by\s+\w+\b/i;
 
   const splitPattern = /\b(split|me\s+and|both\s+of\s+us|equal\s+split|half\s+half)\b/i;
   const repayPattern = /\b(repaid|pay\s*back|settled|debt)\b/i;
 
-  if (friendPaidPattern.test(lower)) {
+  if (isIncome && foundFriendName) {
+    // Friend paid or sent money to user
+    whoPaid = 'other';
+    type = 'by_friend';
+    splitMode = 'pay_debt';
+  } else if (friendPaidPattern.test(lower)) {
     whoPaid = 'other';
     type = 'by_friend';
     splitMode = 'by_friend';

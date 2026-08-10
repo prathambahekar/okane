@@ -1195,7 +1195,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                                           step="0.01"
                                           className="form-input"
                                           style={{ width: 85, height: 28, fontSize: 12, padding: '2px 6px', textAlign: 'right' }}
-                                          value={customFriendShares[fId] ?? String(currentVal)}
+                                          value={customFriendShares[fId] ?? (isNaN(currentVal) ? '' : String(currentVal))}
                                           onChange={e => {
                                             setCustomFriendShares(prev => ({ ...prev, [fId]: e.target.value }));
                                           }}

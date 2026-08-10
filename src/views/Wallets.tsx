@@ -1,5 +1,24 @@
-import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Wallet as WalletIcon, TrendingDown, TrendingUp, ReceiptText, Search, X, RotateCcw, Handshake, ArrowLeftRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Wallet as WalletIcon,
+  TrendingDown,
+  TrendingUp,
+  ReceiptText,
+  Search,
+  X,
+  RotateCcw,
+  Handshake,
+  ArrowLeftRight,
+  PiggyBank,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Calendar,
+  CheckCircle2,
+  FolderPlus,
+} from 'lucide-react';
 import Drawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
@@ -7,17 +26,23 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import { useStore } from '../store';
-import type { Wallet } from '../types';
-import { walletBalance, expenseFlow, monthKey } from '../db';
+import type { Wallet, Envelope } from '../types';
+import { walletBalance, walletEnvelopeAllocated, walletUnallocatedBalance, expenseFlow, monthKey } from '../db';
 import { fmtMoney, fmtDate, typeLabel, statusLabel } from '../utils';
 import WalletModal from '../components/WalletModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ExpenseModal from '../components/ExpenseModal';
 import TransferModal from '../components/TransferModal';
+import EnvelopeModal from '../components/EnvelopeModal';
+import { getEnvelopeIconComponent } from '../utils/envelopeUtils';
+import EnvelopeFundModal from '../components/EnvelopeFundModal';
 
 export default function Wallets() {
-  const { db, deleteWallet, deleteSettlement, showToast } = useStore();
-  const { wallets, expenses, settings: { currency } } = db;
+  const { db, deleteWallet, deleteSettlement, deleteEnvelope, showToast } = useStore();
+  const { wallets, expenses, envelopes = [], settings } = db;
+  const currency = settings?.currency || 'INR';
+  const enableEnvelopes = settings?.enableEnvelopes ?? true;
+
   const [editW, setEditW] = useState<Wallet | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showAddExp, setShowAddExp] = useState(false);
@@ -28,6 +53,14 @@ export default function Wallets() {
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferFromId, setTransferFromId] = useState<string | undefined>(undefined);
 
+  // Envelope state
+  const [showEnvelopeModal, setShowEnvelopeModal] = useState(false);
+  const [editingEnvelope, setEditingEnvelope] = useState<Envelope | null>(null);
+  const [fundingEnvelope, setFundingEnvelope] = useState<Envelope | null>(null);
+  const [deletingEnvelopeId, setDeletingEnvelopeId] = useState<string | null>(null);
+  const [envelopeWalletFilter, setEnvelopeWalletFilter] = useState<string>('all');
+  const [defaultEnvelopeWalletId, setDefaultEnvelopeWalletId] = useState<string | undefined>(undefined);
+
   const handleDelete = (id: string) => {
     if (!deleteWallet(id)) {
       showToast('Cannot delete the only wallet.');
@@ -37,6 +70,11 @@ export default function Wallets() {
       setSelectedWalletForTx(null);
     }
     setDelId(null);
+  };
+
+  const handleDeleteEnvelope = (id: string) => {
+    deleteEnvelope(id);
+    setDeletingEnvelopeId(null);
   };
 
   const activeWallet = selectedWalletForTx;
@@ -118,14 +156,47 @@ export default function Wallets() {
       .filter(s => monthKey(s.date) === thisKey && s.amount > 0)
       .reduce((acc, s) => acc + s.amount, 0);
 
+  // Envelopes statistics
+  const filteredEnvelopes = useMemo(() => {
+    if (envelopeWalletFilter === 'all') return envelopes;
+    return envelopes.filter(e => e.walletId === envelopeWalletFilter);
+  }, [envelopes, envelopeWalletFilter]);
+
+  const totalGoalTarget = useMemo(() => {
+    return filteredEnvelopes.reduce((sum, e) => sum + (Number(e.targetAmount) || 0), 0);
+  }, [filteredEnvelopes]);
+
+  const totalGoalCurrent = useMemo(() => {
+    return filteredEnvelopes.reduce((sum, e) => sum + (Number(e.currentAmount) || 0), 0);
+  }, [filteredEnvelopes]);
+
+  const overallProgressPct = totalGoalTarget > 0 ? Math.min(100, Math.round((totalGoalCurrent / totalGoalTarget) * 100)) : 0;
+
   return (
     <div className="view-container">
-      {/* Header */}
+      {/* Page Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Wallets</h1>
+          <h1 className="page-title">{enableEnvelopes ? 'Wallets & Sub-Accounts' : 'Wallets'}</h1>
+          <p style={{ color: 'var(--text-2)', fontSize: 13, marginTop: 2 }}>
+            {enableEnvelopes
+              ? 'Manage your physical wallets, bank accounts, and goal-based savings envelopes.'
+              : 'Manage your physical wallets and bank accounts.'}
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {enableEnvelopes && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setDefaultEnvelopeWalletId(undefined);
+                setEditingEnvelope(null);
+                setShowEnvelopeModal(true);
+              }}
+            >
+              <FolderPlus size={16} /> New Goal Envelope
+            </button>
+          )}
           {wallets.length >= 2 && (
             <button
               className="btn btn-secondary"
@@ -144,9 +215,12 @@ export default function Wallets() {
       </div>
 
       {/* Wallet Cards Grid Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 32 }}>
         {wallets.map(w => {
           const bal = walletBalance(db, w.id);
+          const allocated = walletEnvelopeAllocated(db, w.id);
+          const unallocated = walletUnallocatedBalance(db, w.id);
+          const wEnvelopes = envelopes.filter(e => e.walletId === w.id);
           const wExpenses = expenses.filter(e => e.walletId === w.id);
           const wSettlements = db.settlements.filter(s => s.walletId === w.id);
           const wExpCount = wExpenses.length + wSettlements.length;
@@ -161,8 +235,8 @@ export default function Wallets() {
               style={{
                 background: 'var(--surface)',
                 border: `1.5px solid var(--border)`,
-                borderRadius: 12,
-                padding: '18px 20px',
+                borderRadius: 14,
+                padding: '20px',
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -176,8 +250,8 @@ export default function Wallets() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div
                       style={{
-                        width: 38,
-                        height: 38,
+                        width: 40,
+                        height: 40,
                         borderRadius: 10,
                         background: `${w.color}22`,
                         display: 'flex',
@@ -185,10 +259,15 @@ export default function Wallets() {
                         justifyContent: 'center',
                       }}
                     >
-                      <WalletIcon style={{ color: w.color }} size={20} />
+                      <WalletIcon style={{ color: w.color }} size={22} />
                     </div>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 16 }}>{w.name}</div>
+                      {enableEnvelopes && (
+                        <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                          {wEnvelopes.length} {wEnvelopes.length === 1 ? 'Goal Envelope' : 'Goal Envelopes'}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -210,12 +289,33 @@ export default function Wallets() {
 
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
-                    Current Balance
+                    Total Wallet Balance
                   </div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>
+                  <div style={{ fontSize: 26, fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>
                     {fmtMoney(bal, currency)}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+
+                  {/* Allocated vs Unallocated Breakdown Bar */}
+                  {enableEnvelopes && bal > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>
+                        <span>Available: <strong style={{ color: 'var(--text)' }}>{fmtMoney(unallocated, currency)}</strong></span>
+                        <span>Saved Goals: <strong style={{ color: w.color }}>{fmtMoney(allocated, currency)}</strong></span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 99, background: 'var(--surface2)', overflow: 'hidden', display: 'flex' }}>
+                        <div
+                          style={{
+                            width: `${Math.min(100, Math.max(0, (allocated / bal) * 100))}%`,
+                            background: w.color,
+                            transition: 'width 0.3s ease',
+                          }}
+                          title={`Allocated to goals: ${fmtMoney(allocated, currency)}`}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ padding: '3px 8px', borderRadius: 6, background: 'var(--surface-hover)', border: '1px solid var(--border)', fontSize: 11, fontWeight: 600, color: 'var(--text-2)' }}>
                       Opening Balance: <strong style={{ color: 'var(--text)' }}>{fmtMoney(w.openingBalance, currency)}</strong>
                     </span>
@@ -230,30 +330,45 @@ export default function Wallets() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 8 }}>
+                  {enableEnvelopes && (
+                    <button
+                      className="btn btn-secondary"
+                      style={{ flex: 1, justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 600, padding: '7px 8px' }}
+                      onClick={() => {
+                        setDefaultEnvelopeWalletId(w.id);
+                        setEditingEnvelope(null);
+                        setShowEnvelopeModal(true);
+                      }}
+                      title="Add sub-account envelope to this wallet"
+                    >
+                      <Plus size={14} />
+                      Goal
+                    </button>
+                  )}
                   {wallets.length >= 2 && (
                     <button
                       className="btn btn-secondary"
-                      style={{ flex: 1, justifyContent: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, padding: '7px 10px' }}
+                      style={{ flex: 1, justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 600, padding: '7px 8px' }}
                       onClick={() => {
                         setTransferFromId(w.id);
                         setShowTransfer(true);
                       }}
                       title="Transfer funds from this wallet"
                     >
-                      <ArrowLeftRight size={15} />
+                      <ArrowLeftRight size={14} />
                       Transfer
                     </button>
                   )}
                   <button
                     className="btn btn-secondary"
-                    style={{ flex: 1, justifyContent: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, padding: '7px 10px' }}
+                    style={{ flex: 1, justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 600, padding: '7px 8px' }}
                     onClick={() => {
                       setSelectedWalletForTx(w);
                       setSearchQuery('');
                     }}
                   >
-                    <ReceiptText size={15} />
-                    Transactions ({wExpCount})
+                    <ReceiptText size={14} />
+                    Tx ({wExpCount})
                   </button>
                 </div>
               </div>
@@ -261,6 +376,374 @@ export default function Wallets() {
           );
         })}
       </div>
+
+      {/* Sub-Accounts & Goal Envelopes Section */}
+      {enableEnvelopes && (
+        <div
+          style={{
+            background: 'var(--surface)',
+            border: '1.5px solid var(--border)',
+            borderRadius: 16,
+            padding: 24,
+            boxShadow: 'var(--shadow)',
+          }}
+        >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 12,
+                background: 'rgba(59, 130, 246, 0.12)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#3B82F6',
+              }}
+            >
+              <PiggyBank size={22} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Goal-Based Savings Envelopes</h2>
+              <p style={{ fontSize: 12.5, color: 'var(--text-2)', margin: '2px 0 0 0' }}>
+                Track dedicated savings targets (e.g. Emergency reserve, Vacation, Buying a gadget) inside your wallets.
+              </p>
+            </div>
+          </div>
+
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setDefaultEnvelopeWalletId(undefined);
+              setEditingEnvelope(null);
+              setShowEnvelopeModal(true);
+            }}
+          >
+            <Plus size={16} /> Create Goal Envelope
+          </button>
+        </div>
+
+        {/* Filters & Overall Stats */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+          {/* Wallet Filter Pills */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setEnvelopeWalletFilter('all')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 20,
+                fontSize: 12.5,
+                fontWeight: 600,
+                border: envelopeWalletFilter === 'all' ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                background: envelopeWalletFilter === 'all' ? 'var(--accent)18' : 'var(--surface2)',
+                color: envelopeWalletFilter === 'all' ? 'var(--accent)' : 'var(--text-2)',
+                cursor: 'pointer',
+              }}
+            >
+              All Wallets ({envelopes.length})
+            </button>
+            {wallets.map(w => {
+              const count = envelopes.filter(e => e.walletId === w.id).length;
+              const isSel = envelopeWalletFilter === w.id;
+              return (
+                <button
+                  key={w.id}
+                  onClick={() => setEnvelopeWalletFilter(w.id)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    border: isSel ? `1.5px solid ${w.color}` : '1px solid var(--border)',
+                    background: isSel ? `${w.color}18` : 'var(--surface2)',
+                    color: isSel ? w.color : 'var(--text-2)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: w.color }} />
+                  {w.name} ({count})
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Goal Progress Summary Badge */}
+          <div
+            style={{
+              padding: '8px 16px',
+              borderRadius: 12,
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 10.5, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase' }}>
+                Total Saved
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+                {fmtMoney(totalGoalCurrent, currency)}
+                <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-2)', marginLeft: 4 }}>
+                  / {fmtMoney(totalGoalTarget, currency)}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ width: 100 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-2)', marginBottom: 3 }}>
+                <span>Achieved</span>
+                <span style={{ fontWeight: 700, color: 'var(--credit)' }}>{overallProgressPct}%</span>
+              </div>
+              <div style={{ height: 6, borderRadius: 99, background: 'var(--surface3)', overflow: 'hidden' }}>
+                <div style={{ width: `${overallProgressPct}%`, height: '100%', background: 'var(--credit)', transition: 'width 0.3s ease' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Envelope Grid */}
+        {filteredEnvelopes.length === 0 ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '48px 20px',
+              background: 'var(--surface2)',
+              borderRadius: 12,
+              border: '1px dashed var(--border2)',
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: 'rgba(59, 130, 246, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 12px auto',
+                color: '#3B82F6',
+              }}
+            >
+              <PiggyBank size={24} />
+            </div>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>No savings envelopes yet</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-2)', maxWidth: 400, margin: '0 auto 16px auto' }}>
+              Create goal-based sub-accounts like Emergency Reserve, Vacation, or Tech Upgrade to allocate your savings purposefully.
+            </p>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setDefaultEnvelopeWalletId(envelopeWalletFilter !== 'all' ? envelopeWalletFilter : undefined);
+                setEditingEnvelope(null);
+                setShowEnvelopeModal(true);
+              }}
+            >
+              <Plus size={16} /> Add First Savings Goal
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {filteredEnvelopes.map(env => {
+              const targetWal = wallets.find(w => w.id === env.walletId);
+              const pct = env.targetAmount > 0 ? Math.min(100, Math.round((env.currentAmount / env.targetAmount) * 100)) : 100;
+              const isCompleted = env.targetAmount > 0 && env.currentAmount >= env.targetAmount;
+              const remaining = Math.max(0, env.targetAmount - env.currentAmount);
+
+              return (
+                <div
+                  key={env.id}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: `1.5px solid ${isCompleted ? 'rgba(16, 185, 129, 0.4)' : 'var(--border)'}`,
+                    borderRadius: 14,
+                    padding: '18px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: 14,
+                    position: 'relative',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div>
+                    {/* Header */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div
+                          style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 10,
+                            background: `${env.color}22`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: env.color,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {React.createElement(getEnvelopeIconComponent(env.icon), { size: 20 })}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {env.name}
+                            {isCompleted && <CheckCircle2 size={16} style={{ color: 'var(--credit)' }} />}
+                          </div>
+                          {targetWal && (
+                            <div style={{ fontSize: 11, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: targetWal.color }} />
+                              {targetWal.name}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 2 }}>
+                        <button
+                          className="btn-icon"
+                          style={{ padding: 4 }}
+                          onClick={() => {
+                            setEditingEnvelope(env);
+                            setShowEnvelopeModal(true);
+                          }}
+                          title="Edit Envelope Goal"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          className="btn-icon"
+                          style={{ padding: 4, color: 'var(--debit)' }}
+                          onClick={() => setDeletingEnvelopeId(env.id)}
+                          title="Delete Envelope"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Numbers */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
+                        {fmtMoney(env.currentAmount, currency)}
+                        {env.targetAmount > 0 && (
+                          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-3)', marginLeft: 6 }}>
+                            / {fmtMoney(env.targetAmount, currency)}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Progress Bar */}
+                      {env.targetAmount > 0 && (
+                        <div style={{ marginTop: 8 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>
+                            <span>{pct}% complete</span>
+                            <span>{remaining > 0 ? `${fmtMoney(remaining, currency)} left` : 'Goal Reached!'}</span>
+                          </div>
+                          <div style={{ height: 8, borderRadius: 99, background: 'var(--surface3)', overflow: 'hidden' }}>
+                            <div
+                              style={{
+                                width: `${pct}%`,
+                                height: '100%',
+                                background: isCompleted ? 'var(--credit)' : env.color,
+                                transition: 'width 0.3s ease',
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Metadata Badges */}
+                    {(env.targetDate || env.notes) && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                        {env.targetDate && (
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: 6,
+                              background: 'var(--surface3)',
+                              border: '1px solid var(--border)',
+                              fontSize: 10.5,
+                              color: 'var(--text-2)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                            }}
+                          >
+                            <Calendar size={11} /> Target: {fmtDate(env.targetDate)}
+                          </span>
+                        )}
+                        {env.notes && (
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: 6,
+                              background: 'var(--surface3)',
+                              border: '1px solid var(--border)',
+                              fontSize: 10.5,
+                              color: 'var(--text-2)',
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title={env.notes}
+                          >
+                            {env.notes}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Fund Actions */}
+                  <div style={{ display: 'flex', gap: 8, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                    <button
+                      className="btn btn-secondary"
+                      style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        gap: 4,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: '6px 10px',
+                        color: 'var(--credit)',
+                      }}
+                      onClick={() => setFundingEnvelope(env)}
+                    >
+                      <ArrowDownLeft size={14} /> Deposit
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        gap: 4,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: '6px 10px',
+                        color: 'var(--debit)',
+                      }}
+                      onClick={() => setFundingEnvelope(env)}
+                    >
+                      <ArrowUpRight size={14} /> Withdraw
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      )}
 
       {/* Wallet Transactions Slide-over Drawer */}
       <Drawer
@@ -485,6 +968,7 @@ export default function Wallets() {
         )}
       </Drawer>
 
+      {/* Wallet Modals */}
       {showAdd && <WalletModal onClose={() => setShowAdd(false)} />}
       {editW && <WalletModal wallet={editW} onClose={() => setEditW(null)} />}
       {showAddExp && activeWallet && <ExpenseModal expense={{ walletId: activeWallet.id } as never} onClose={() => setShowAddExp(false)} />}
@@ -493,6 +977,27 @@ export default function Wallets() {
         onClose={() => setShowTransfer(false)}
         defaultFromWalletId={transferFromId}
       />
+
+      {/* Envelope Modals */}
+      {showEnvelopeModal && (
+        <EnvelopeModal
+          envelope={editingEnvelope}
+          defaultWalletId={defaultEnvelopeWalletId}
+          onClose={() => {
+            setShowEnvelopeModal(false);
+            setEditingEnvelope(null);
+            setDefaultEnvelopeWalletId(undefined);
+          }}
+        />
+      )}
+
+      {fundingEnvelope && (
+        <EnvelopeFundModal
+          envelope={fundingEnvelope}
+          onClose={() => setFundingEnvelope(null)}
+        />
+      )}
+
       {delId && (
         <ConfirmDialog
           title="Delete Wallet"
@@ -501,6 +1006,17 @@ export default function Wallets() {
           onClose={() => setDelId(null)}
         />
       )}
+
+      {deletingEnvelopeId && (
+        <ConfirmDialog
+          title="Delete Goal Envelope"
+          message="Are you sure you want to delete this savings goal envelope?"
+          confirmLabel="Delete Envelope"
+          onConfirm={() => handleDeleteEnvelope(deletingEnvelopeId)}
+          onClose={() => setDeletingEnvelopeId(null)}
+        />
+      )}
+
       {undoStlId && (
         <ConfirmDialog
           title="Undo Settlement"

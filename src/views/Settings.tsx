@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -176,6 +176,7 @@ export default function Settings({
   const [showDevSheet, setShowDevSheet] = useState(false);
   const [showAppearanceSheet, setShowAppearanceSheet] = useState(false);
   const [showPerformanceSheet, setShowPerformanceSheet] = useState(false);
+  const [showAdvancedSheet, setShowAdvancedSheet] = useState(false);
   const [showCategoriesSheet, setShowCategoriesSheet] = useState(false);
   const [showPreferencesSheet, setShowPreferencesSheet] = useState(false);
   const [showDataSheet, setShowDataSheet] = useState(false);
@@ -228,7 +229,63 @@ export default function Settings({
     setCreatedIssueInfo(null);
 
     const appVersion = String(settings.installedVersion || jsonSettings.appVersion || '0.8.2');
+    const platformName = Capacitor.isNativePlatform() ? Capacitor.getPlatform() : 'Web Browser';
+    const token = githubTokenInput.trim() || localStorage.getItem('okane_github_token')?.trim() || '';
 
+    const bodyContent = `${trimmedDesc}\n\n---\n**Metadata:**\n- Type: ${feedbackType}\n${includeVersionInfo ? `- Version: ${appVersion}\n- Platform: ${platformName}\n- User Agent: ${navigator.userAgent}` : ''}`;
+
+    // 1. If GitHub Token is provided, post directly to GitHub API
+    if (token) {
+      try {
+        const ghRes = await fetch('https://api.github.com/repos/prathambahekar/okane/issues', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: `[${feedbackType.toUpperCase()}] ${trimmedTitle}`,
+            body: bodyContent,
+            labels: [feedbackType === 'bug' ? 'bug' : 'enhancement'],
+          }),
+        });
+
+        let data: { html_url?: string; number?: number; message?: string } | null = null;
+        try {
+          data = await ghRes.json();
+        } catch {
+          data = null;
+        }
+
+        if (ghRes.ok && data?.html_url && data?.number) {
+          localStorage.setItem('okane_github_token', token);
+          setCreatedIssueInfo({ url: data.html_url, number: data.number });
+          setFeedbackStatus('success');
+          showToast(`Issue #${data.number} created automatically!`);
+          setFeedbackTitle('');
+          setFeedbackDescription('');
+          return;
+        } else {
+          const errText = data?.message || (ghRes.status === 401 ? 'Invalid or expired GitHub Personal Access Token. Please check your token permissions (repo scope required).' : `GitHub API error (${ghRes.status})`);
+          setErrorMessage(errText);
+          setFeedbackStatus('error');
+          showToast(errText);
+          return;
+        }
+      } catch (err: unknown) {
+        console.error('Direct GitHub API creation failed:', err);
+        const message = err instanceof Error ? err.message : 'Failed to connect to GitHub API.';
+        setErrorMessage(message);
+        setFeedbackStatus('error');
+        showToast('GitHub API connection failed.');
+        return;
+      } finally {
+        setIsSubmittingFeedback(false);
+      }
+    }
+
+    // 2. If no token, attempt backend proxy /api/github-issue if available
     try {
       const res = await fetch('/api/github-issue', {
         method: 'POST',
@@ -240,44 +297,48 @@ export default function Settings({
           description: trimmedDesc,
           type: feedbackType,
           version: includeVersionInfo ? appVersion : undefined,
-          platform: includeVersionInfo ? (Capacitor.isNativePlatform() ? Capacitor.getPlatform() : 'Web Browser') : undefined,
+          platform: includeVersionInfo ? platformName : undefined,
           userAgent: includeVersionInfo ? navigator.userAgent : undefined,
-          token: githubTokenInput.trim() || undefined,
+          token: undefined,
         }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (data.code === 'MISSING_TOKEN') {
-          setErrorMessage('GitHub Access Token required: Please enter a Personal Access Token below or configure GITHUB_TOKEN in .env.example.');
-        } else {
-          setErrorMessage(data.error || 'Failed to create GitHub issue.');
+      let data: { success?: boolean; issueUrl?: string; issueNumber?: number; error?: string; code?: string } | null = null;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await res.json().catch(() => null);
+      } else {
+        const text = await res.text().catch(() => '');
+        if (text) {
+          try { data = JSON.parse(text); } catch { data = null; }
         }
-        setFeedbackStatus('error');
-        showToast(data.error || 'Failed to create GitHub issue.');
+      }
+
+      if (res.ok && data?.success && data?.issueUrl) {
+        setCreatedIssueInfo({ url: data.issueUrl, number: data.issueNumber || 0 });
+        setFeedbackStatus('success');
+        showToast(`Issue #${data.issueNumber || ''} created automatically!`);
+        setFeedbackTitle('');
+        setFeedbackDescription('');
         return;
       }
 
-      if (data.success) {
-        if (githubTokenInput.trim()) {
-          localStorage.setItem('okane_github_token', githubTokenInput.trim());
-        }
-        setCreatedIssueInfo({ url: data.issueUrl, number: data.issueNumber });
-        setFeedbackStatus('success');
-        showToast(`Issue #${data.issueNumber} created automatically!`);
-        setFeedbackTitle('');
-        setFeedbackDescription('');
+      if (data?.error && data.code !== 'MISSING_TOKEN') {
+        setErrorMessage(data.error);
+        setFeedbackStatus('error');
+        showToast(data.error);
+        return;
       }
-    } catch (err: unknown) {
-      console.error('Error creating GitHub issue:', err);
-      const message = err instanceof Error ? err.message : 'Network error while creating GitHub issue.';
-      setErrorMessage(message);
-      setFeedbackStatus('error');
-      showToast('Failed to connect to backend server.');
+    } catch (backendErr) {
+      console.warn('Backend proxy /api/github-issue unavailable:', backendErr);
     } finally {
       setIsSubmittingFeedback(false);
     }
+
+    // 3. Fallback when no token is configured & backend endpoint is unavailable
+    setErrorMessage('GitHub Personal Access Token is required for direct API issue creation. You can enter a token below or click "Open Form on GitHub Web".');
+    setFeedbackStatus('error');
+    showToast('GitHub Access Token required for direct creation');
   };
 
   useEffect(() => {
@@ -1078,29 +1139,31 @@ export default function Settings({
           document.body
         )}
 
-        {/* Performance & Animations Card */}
-        <div className="card settings-summary-card" onClick={() => setShowPerformanceSheet(true)}>
-          <div className="settings-card-inner">
-            <div className="settings-card-left">
-              <div className="settings-card-icon">
-                <Zap size={19} />
+        {/* Performance & Animations Card (Developer Mode) */}
+        {isDevMode && (settings.enablePerformanceCard ?? true) && (
+          <div className="card settings-summary-card" onClick={() => setShowPerformanceSheet(true)}>
+            <div className="settings-card-inner">
+              <div className="settings-card-left">
+                <div className="settings-card-icon">
+                  <Zap size={19} />
+                </div>
+                <div className="settings-card-text">
+                  <h2 className="settings-card-title">Performance & Animations</h2>
+                  <p className="settings-card-sub">
+                    {(settings.enableAnimations ?? true) ? 'Animations On' : 'Animations Off (Fast)'} • {(settings.performanceMode ?? false) ? 'Ultra Performance On' : 'Standard Visuals'}
+                  </p>
+                </div>
               </div>
-              <div className="settings-card-text">
-                <h2 className="settings-card-title">Performance & Animations</h2>
-                <p className="settings-card-sub">
-                  {(settings.enableAnimations ?? true) ? 'Animations On' : 'Animations Off (Fast)'} • {(settings.performanceMode ?? false) ? 'Ultra Performance On' : 'Standard Visuals'}
-                </p>
-              </div>
-            </div>
 
-            <div className="settings-card-right">
-              <span className="badge settings-card-badge">
-                {(settings.performanceMode ?? false) ? 'Ultra' : ((settings.enableAnimations ?? true) ? 'Smooth' : 'Instant')}
-              </span>
-              <ChevronRight className="settings-card-arrow" size={18} />
+              <div className="settings-card-right">
+                <span className="badge settings-card-badge">
+                  {(settings.performanceMode ?? false) ? 'Ultra' : ((settings.enableAnimations ?? true) ? 'Smooth' : 'Instant')}
+                </span>
+                <ChevronRight className="settings-card-arrow" size={18} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Bottom Sheet Drawer Modal for Performance & Animations */}
         {showPerformanceSheet && createPortal(
@@ -1217,6 +1280,183 @@ export default function Settings({
                 lineHeight: 1.4
               }}>
                 💡 <strong>Mobile performance tip:</strong> If page switching feels sluggish or stutters on your phone, turn off <strong>UI Animations</strong> or enable <strong>Ultra Performance Mode</strong> for instant, butter-smooth navigation.
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Advanced Features Card */}
+        <div className="card settings-summary-card" onClick={() => setShowAdvancedSheet(true)}>
+          <div className="settings-card-inner">
+            <div className="settings-card-left">
+              <div className="settings-card-icon">
+                <Sliders size={19} />
+              </div>
+              <div className="settings-card-text">
+                <h2 className="settings-card-title">Advanced Features</h2>
+                <p className="settings-card-sub">
+                  {(settings.enableEnvelopes ?? true) ? 'Envelopes On' : 'Envelopes Off'} • {(settings.enableSplitTrips ?? true) ? 'Trips & Splits On' : 'Trips & Splits Off'}
+                </p>
+              </div>
+            </div>
+
+            <div className="settings-card-right">
+              <span className="badge settings-card-badge" style={{
+                background: ((settings.enableEnvelopes ?? true) || (settings.enableSplitTrips ?? true)) ? 'var(--accent-soft)' : 'var(--surface2)',
+                color: ((settings.enableEnvelopes ?? true) || (settings.enableSplitTrips ?? true)) ? 'var(--accent)' : 'var(--text-3)',
+              }}>
+                {((settings.enableEnvelopes ?? true) && (settings.enableSplitTrips ?? true)) ? '2 Active' : (((settings.enableEnvelopes ?? true) || (settings.enableSplitTrips ?? true)) ? '1 Active' : 'Disabled')}
+              </span>
+              <ChevronRight className="settings-card-arrow" size={18} />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Sheet Drawer Modal for Advanced Features */}
+        {showAdvancedSheet && createPortal(
+          <div className="sheet-backdrop" onClick={() => setShowAdvancedSheet(false)}>
+            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
+              {/* Drag Handle */}
+              <div className="sheet-drag-handle" />
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                  }}>
+                    <Sliders size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Advanced Features
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      Toggle sub-accounts, savings envelopes & trip bill splitting
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedSheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* List of Advanced Features */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+                {/* 1. Goal-Based Savings Envelopes */}
+                <div style={{
+                  padding: '14px 16px',
+                  borderRadius: 14,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: (settings.enableEnvelopes ?? true) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <PiggyBank size={18} style={{ color: (settings.enableEnvelopes ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Sub-Accounts / Savings Envelopes</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                        Goal-based sub-accounts (e.g. Emergency reserve, Vacation) inside wallets
+                      </div>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings.enableEnvelopes ?? true}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      updateSettings({ enableEnvelopes: enabled });
+                      showToast(enabled ? 'Savings Envelopes enabled' : 'Savings Envelopes disabled');
+                    }}
+                    color="primary"
+                  />
+                </div>
+
+                {/* 2. Trips & Group Splits */}
+                <div style={{
+                  padding: '14px 16px',
+                  borderRadius: 14,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: (settings.enableSplitTrips ?? true) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <Plane size={18} style={{ color: (settings.enableSplitTrips ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Trips & Bill Splits</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                        Group ledgers, trip budgets & expense splitting with friends
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {(settings.enableSplitTrips ?? true) && onNavigate && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => { setShowAdvancedSheet(false); onNavigate('split-trips'); }}
+                        style={{ padding: '3px 10px', fontSize: 11.5, height: 28, gap: 4 }}
+                      >
+                        <Plane size={13} /> Open
+                      </button>
+                    )}
+                    <Switch
+                      checked={settings.enableSplitTrips ?? true}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({ enableSplitTrips: enabled });
+                        showToast(enabled ? 'Trips & Splits enabled' : 'Trips & Splits disabled');
+                      }}
+                      color="primary"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Information Note */}
+              <div style={{
+                fontSize: 12,
+                color: 'var(--text-3)',
+                padding: '10px 12px',
+                borderRadius: 10,
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                lineHeight: 1.4
+              }}>
+                💡 <strong>About Advanced Features:</strong> Turn specialized modules on or off to keep your finance navigation simple and focused on what you use most.
               </div>
             </div>
           </div>,
@@ -1843,7 +2083,7 @@ export default function Settings({
                   )}
                 </div>
 
-                {/* 3. Split & Trips */}
+                {/* 3. Performance & Animations Card Switch */}
                 <div style={{
                   padding: '12px 14px',
                   borderRadius: 12,
@@ -1857,37 +2097,37 @@ export default function Settings({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: 8,
-                      background: (isDevMode && (settings.enableSplitTrips ?? true)) ? 'var(--accent-soft)' : 'var(--border)',
+                      background: (isDevMode && (settings.enablePerformanceCard ?? true)) ? 'var(--accent-soft)' : 'var(--border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                     }}>
-                      <Plane size={17} style={{ color: (isDevMode && (settings.enableSplitTrips ?? true)) ? 'var(--accent)' : 'var(--text-3)' }} />
+                      <Zap size={17} style={{ color: (isDevMode && (settings.enablePerformanceCard ?? true)) ? 'var(--accent)' : 'var(--text-3)' }} />
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>Trips & Splits</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>Performance & Animations Card</div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        Group ledgers & trip expense splitting
+                        Show performance & animations card in Settings
                       </div>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {isDevMode && (settings.enableSplitTrips ?? true) && onNavigate && (
+                    {isDevMode && (settings.enablePerformanceCard ?? true) && (
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
-                        onClick={() => { setShowDevSheet(false); onNavigate('split-trips'); }}
+                        onClick={() => { setShowDevSheet(false); setShowPerformanceSheet(true); }}
                         style={{ padding: '3px 10px', fontSize: 11.5, height: 28, gap: 4 }}
                       >
-                        <Plane size={13} /> Open
+                        <Sliders size={13} /> Configure
                       </button>
                     )}
                     <Switch
                       disabled={!isDevMode}
-                      checked={isDevMode && (settings.enableSplitTrips ?? true)}
+                      checked={isDevMode && (settings.enablePerformanceCard ?? true)}
                       onChange={(e) => {
                         const enabled = e.target.checked;
-                        updateSettings({ enableSplitTrips: enabled });
-                        showToast(enabled ? 'Split & Trips enabled' : 'Split & Trips disabled');
+                        updateSettings({ enablePerformanceCard: enabled });
+                        showToast(enabled ? 'Performance Card enabled' : 'Performance Card disabled');
                       }}
                       color="primary"
                       size="small"
@@ -1895,7 +2135,47 @@ export default function Settings({
                   </div>
                 </div>
 
-                {/* 4. Sample Data Loader */}
+                {/* 4. Report Bug & Feature Request Card Switch */}
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: (isDevMode && (settings.enableReportBugCard ?? true)) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <MessageSquarePlus size={17} style={{ color: (isDevMode && (settings.enableReportBugCard ?? true)) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>Report Bug & Feature Card</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        Show feedback card in Settings
+                      </div>
+                    </div>
+                  </div>
+
+                  <Switch
+                    disabled={!isDevMode}
+                    checked={isDevMode && (settings.enableReportBugCard ?? true)}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      updateSettings({ enableReportBugCard: enabled });
+                      showToast(enabled ? 'Report Bug Card enabled' : 'Report Bug Card disabled');
+                    }}
+                    color="primary"
+                    size="small"
+                  />
+                </div>
+
+                {/* 6. Sample Data Loader */}
                 <div style={{
                   padding: '12px 14px',
                   borderRadius: 12,
@@ -2106,8 +2386,10 @@ export default function Settings({
           document.body
         )}
 
-        {/* Report a Bug / Suggest a Feature Card (Only visible when Dev Mode is active) */}
-        {isDevMode && (
+
+
+        {/* Report a Bug / Suggest a Feature Card (Visible when Dev Mode & Report Bug switch are active) */}
+        {isDevMode && (settings.enableReportBugCard ?? true) && (
           <div className="card settings-summary-card" onClick={() => setShowFeedbackSheet(true)}>
             <div className="settings-card-inner">
               <div className="settings-card-left">
@@ -2362,14 +2644,25 @@ export default function Settings({
 
                 {/* Error Notification */}
                 {feedbackStatus === 'error' && errorMessage && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 10, color: '#ef4444', fontSize: 12.5 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 10, color: '#ef4444', fontSize: 12.5 }}>
                     <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <X size={16} />
-                      <span>Unable to create GitHub issue</span>
+                      <span>Unable to create GitHub issue automatically</span>
                     </div>
-                    <div style={{ fontSize: 12, opacity: 0.9 }}>
+                    <div style={{ fontSize: 12, opacity: 0.9, lineHeight: 1.4 }}>
                       {errorMessage}
                     </div>
+                    {feedbackTitle.trim() && (
+                      <a
+                        href={`https://github.com/prathambahekar/okane/issues/new?title=${encodeURIComponent(`[${feedbackType.toUpperCase()}] ${feedbackTitle.trim()}`)}&body=${encodeURIComponent(`${feedbackDescription.trim()}\n\n---\n**Metadata:**\n- Type: ${feedbackType}\n- Version: ${settings.installedVersion || jsonSettings.appVersion || '0.8.2'}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-secondary btn-sm"
+                        style={{ marginTop: 4, alignSelf: 'flex-start', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                      >
+                        <ExternalLink size={14} /> Open Form on GitHub Web
+                      </a>
+                    )}
                   </div>
                 )}
               </form>
@@ -3040,6 +3333,8 @@ export default function Settings({
         </div>,
         document.body
       )}
+
+
     </div>
   );
 }
