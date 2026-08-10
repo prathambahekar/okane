@@ -51,7 +51,7 @@ import {
 import { useStore } from '../store';
 import { currencySymbol } from '../utils';
 import { parseLocallyClient } from '../nlp';
-import { uid, todayISO } from '../db';
+import { uid, todayISO, friendBalance } from '../db';
 import type { ExpenseType, ExpenseFlow } from '../types';
 
 interface ISpeechRecognition {
@@ -494,7 +494,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           flow: e.flow,
           walletName: w ? w.name : undefined,
           friendName: f ? f.name : undefined,
-          splitMode: e.splitMode,
+          splitMode: (e as unknown as { splitMode?: string }).splitMode,
         };
       });
 
@@ -505,8 +505,8 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       const summaryStats = {
         totalSpent,
         totalExpensesCount: db.expenses.length,
-        walletsOverview: db.wallets.map(w => ({ name: w.name, balance: w.balance, type: w.type })),
-        friendsOverview: db.friends.map(f => ({ name: f.name, balance: f.balance })),
+        walletsOverview: db.wallets.map(w => ({ name: w.name, balance: w.currentBalance ?? w.openingBalance })),
+        friendsOverview: db.friends.map(f => ({ name: f.name, balance: friendBalance(db, f.id).net })),
       };
 
       const chatHistory = messages.slice(-10).map(m => ({

@@ -41,7 +41,7 @@ export default function Wallets() {
   const { db, deleteWallet, deleteSettlement, deleteEnvelope, showToast } = useStore();
   const { wallets, expenses, envelopes = [], settings } = db;
   const currency = settings?.currency || 'INR';
-  const enableEnvelopes = settings?.enableEnvelopes ?? true;
+  const enableEnvelopes = settings?.enableEnvelopes ?? false;
 
   const [editW, setEditW] = useState<Wallet | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -177,10 +177,10 @@ export default function Wallets() {
       {/* Page Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">{enableEnvelopes ? 'Wallets & Sub-Accounts' : 'Wallets'}</h1>
+          <h1 className="page-title">{enableEnvelopes ? 'Wallets & Envelopes' : 'Wallets'}</h1>
           <p style={{ color: 'var(--text-2)', fontSize: 13, marginTop: 2 }}>
             {enableEnvelopes
-              ? 'Manage your physical wallets, bank accounts, and goal-based savings envelopes.'
+              ? 'Manage your physical wallets, bank accounts, and goal-based envelopes.'
               : 'Manage your physical wallets and bank accounts.'}
           </p>
         </div>
@@ -339,7 +339,7 @@ export default function Wallets() {
                         setEditingEnvelope(null);
                         setShowEnvelopeModal(true);
                       }}
-                      title="Add sub-account envelope to this wallet"
+                      title="Add envelope to this wallet"
                     >
                       <Plus size={14} />
                       Goal
@@ -377,7 +377,7 @@ export default function Wallets() {
         })}
       </div>
 
-      {/* Sub-Accounts & Goal Envelopes Section */}
+      {/* Envelopes Section */}
       {enableEnvelopes && (
         <div
           style={{
@@ -406,7 +406,7 @@ export default function Wallets() {
               <PiggyBank size={22} />
             </div>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Goal-Based Savings Envelopes</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Goal-Based Envelopes</h2>
               <p style={{ fontSize: 12.5, color: 'var(--text-2)', margin: '2px 0 0 0' }}>
                 Track dedicated savings targets (e.g. Emergency reserve, Vacation, Buying a gadget) inside your wallets.
               </p>
@@ -534,9 +534,9 @@ export default function Wallets() {
             >
               <PiggyBank size={24} />
             </div>
-            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>No savings envelopes yet</h3>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>No envelopes yet</h3>
             <p style={{ fontSize: 13, color: 'var(--text-2)', maxWidth: 400, margin: '0 auto 16px auto' }}>
-              Create goal-based sub-accounts like Emergency Reserve, Vacation, or Tech Upgrade to allocate your savings purposefully.
+              Create goal-based envelopes like Emergency Reserve, Vacation, or Tech Upgrade to allocate your savings purposefully.
             </p>
             <button
               className="btn btn-primary"

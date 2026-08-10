@@ -98,7 +98,8 @@ function AppInner() {
   const isDevMode = db.settings?.devMode ?? false;
   const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
   const enableAIAssistant = isDevMode && (db.settings?.enableAIAssistant ?? true);
-  const enableSplitTrips = db.settings?.enableSplitTrips ?? true;
+  const enableSplitTrips = db.settings?.enableSplitTrips ?? false;
+  const enableAutopay = db.settings?.enableAutopay ?? false;
   const enableUserGuide = isDevMode && (db.settings?.enableUserGuide ?? true);
 
   useEffect(() => {
@@ -107,6 +108,13 @@ function AppInner() {
       return () => clearTimeout(timer);
     }
   }, [view, enableSplitTrips]);
+
+  useEffect(() => {
+    if (view === 'recurring' && !enableAutopay) {
+      const timer = setTimeout(() => setView('dashboard'), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [view, enableAutopay]);
 
   const toggleSidebar = () => {
     const next = !sidebarCollapsed;
@@ -215,7 +223,7 @@ function AppInner() {
       items: [
         { id: 'dashboard' as ViewName, label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
         { id: 'expenses' as ViewName, label: 'Expenses', icon: <ReceiptText size={18} /> },
-        { id: 'recurring' as ViewName, label: 'Autopay', icon: <RefreshCw size={18} />, badge: dueAutopaysCount, badgeColor: '#d32f2f', badgeBg: 'rgba(239, 83, 80, 0.15)' },
+        ...(enableAutopay ? [{ id: 'recurring' as ViewName, label: 'Autopay', icon: <RefreshCw size={18} />, badge: dueAutopaysCount, badgeColor: '#d32f2f', badgeBg: 'rgba(239, 83, 80, 0.15)' }] : []),
         { id: 'wallets' as ViewName, label: 'Wallets', icon: <Wallet size={18} /> },
       ]
     },
@@ -249,7 +257,7 @@ function AppInner() {
 
   const moreItems: { id: ViewName; label: string; icon: React.ReactNode }[] = [
     ...(enableSplitTrips ? [{ id: 'split-trips' as ViewName, label: 'Trips & Splits', icon: <Plane size={20} /> }] : []),
-    { id: 'recurring', label: 'Autopay', icon: <RefreshCw size={20} /> },
+    ...(enableAutopay ? [{ id: 'recurring' as ViewName, label: 'Autopay', icon: <RefreshCw size={20} /> }] : []),
     { id: 'wallets', label: 'Wallets', icon: <Wallet size={20} /> },
     { id: 'settlements', label: 'Settlements', icon: <Handshake size={20} /> },
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },

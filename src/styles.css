@@ -1367,9 +1367,12 @@ input[type="number"] {
   border: 1px solid var(--border2);
   padding: 4px;
   border-radius: var(--radius-lg);
+  width: 100%;
+  box-sizing: border-box;
 }
 .segment-btn {
   flex: 1;
+  min-width: 0;
   padding: 8px 6px;
   border-radius: var(--radius);
   font-size: 12.5px;
@@ -1435,6 +1438,131 @@ input[type="number"] {
     animation: slideup 0.24s cubic-bezier(0.16, 1, 0.3, 1);
     border-bottom: none;
   }
+  .modal.expense-drawer-modal {
+    max-height: 88vh;
+    max-height: 88dvh;
+    border-radius: 20px 20px 0 0;
+    overflow: hidden;
+  }
+  .modal.expense-drawer-modal .modal-handle-bar {
+    padding-top: 6px;
+    padding-bottom: 2px;
+  }
+  .modal.expense-drawer-modal .expense-modal-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .modal.expense-drawer-modal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px 14px 12px;
+  }
+  .modal.expense-drawer-modal .form-grid {
+    gap: 10px;
+  }
+  .modal.expense-drawer-modal .form-group {
+    gap: 4px;
+  }
+  .modal.expense-drawer-modal .form-label {
+    font-size: 11.5px;
+  }
+  .modal.expense-drawer-modal .form-input,
+  .modal.expense-drawer-modal .form-select {
+    min-height: 36px;
+    height: 36px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  .modal.expense-drawer-modal .hero-amount-card {
+    padding: 8px 12px 6px;
+    gap: 2px;
+  }
+  .modal.expense-drawer-modal .hero-amount-label {
+    font-size: 10px;
+  }
+  .modal.expense-drawer-modal .hero-amount-input {
+    font-size: 24px;
+  }
+  .modal.expense-drawer-modal .hero-currency-symbol {
+    font-size: 22px;
+  }
+  .modal.expense-drawer-modal .segment-btn {
+    min-height: 32px;
+    padding: 4px 3px;
+    font-size: 11px;
+    gap: 3px;
+  }
+  .modal.expense-drawer-modal .segment-btn svg {
+    flex-shrink: 0;
+  }
+  .modal.expense-drawer-modal .modal-footer {
+    padding: 8px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .modal.expense-drawer-modal .modal-footer .btn {
+    padding: 9px;
+    font-size: 13px;
+  }
+
+/* Compact Header for Expense Modal / Mobile Drawer */
+.compact-expense-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.header-flow-switcher {
+  display: flex;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 3px;
+  gap: 3px;
+}
+.header-flow-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  color: var(--text-3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.header-flow-tab.active-out {
+  background: var(--debit);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(239, 83, 80, 0.25);
+}
+.header-flow-tab.active-in {
+  background: var(--credit);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(102, 187, 106, 0.25);
+}
+.compact-close-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+}
   .modal-handle-bar {
     display: flex;
     justify-content: center;

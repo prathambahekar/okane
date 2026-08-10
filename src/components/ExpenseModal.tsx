@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, TrendingDown, TrendingUp, User, Users, Briefcase, CheckSquare, Square, Search, HeartHandshake, Sparkles, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { X, TrendingDown, TrendingUp, User, Users, Briefcase, CheckSquare, Square, HeartHandshake, Sparkles, ArrowRight, ArrowLeft, CheckCircle2, FileText, Plus, Search } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types';
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
@@ -93,6 +93,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
   const [walletId, setWalletId] = useState(initialData?.walletId ?? expense?.walletId ?? s.defaultWalletId);
   const [status, setStatus] = useState<ExpenseStatus>(expense?.status ?? s.defaultStatus);
   const [notes, setNotes] = useState(initialData?.notes ?? expense?.notes ?? '');
+  const [showNotes, setShowNotes] = useState(() => Boolean(initialData?.notes || expense?.notes));
   const [error, setError] = useState('');
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
   const [autoSettle, setAutoSettle] = useState(true);
@@ -108,14 +109,50 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
     return fId ? [fId] : [];
   }, [db.expenses, expense, forFriendItem, initialData]);
 
-  const initialVendorId = expense?.vendorId ?? (expense?.friendId && db.friends.find(f => f.id === expense.friendId)?.type === 'vendor' ? expense.friendId : '');
-  const [selectedVendorId, setSelectedVendorId] = useState<string>(initialVendorId);
-  const [vendorPaymentStatus, setVendorPaymentStatus] = useState<'paid' | 'unpaid'>('paid');
-  const [contactTypeFilter, setContactTypeFilter] = useState<'all' | 'friend' | 'vendor'>('all');
-
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>(initialFriendIds);
-  const [friendSearch, setFriendSearch] = useState('');
+  const [showSplitCustom, setShowSplitCustom] = useState(false);
   const [splitCalcMode, setSplitCalcMode] = useState<'equal_all' | 'equal_friends' | 'custom'>('equal_all');
+
+  // Friend Picker Dialog state
+  const [isFriendPickerOpen, setIsFriendPickerOpen] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerTypeFilter, setPickerTypeFilter] = useState<'all' | 'friend' | 'vendor'>('all');
+
+  // Top 4 friends computation
+  const topFriends = useMemo(() => {
+    const counts: Record<string, number> = {};
+    db.expenses.forEach(e => {
+      if (e.friendId) counts[e.friendId] = (counts[e.friendId] || 0) + 1;
+    });
+    return [...db.friends]
+      .sort((a, b) => {
+        const ca = counts[a.id] || 0;
+        const cb = counts[b.id] || 0;
+        if (cb !== ca) return cb - ca;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, 4);
+  }, [db.friends, db.expenses]);
+
+  // Visible pills on form: Top 4 + any selected friends outside top 4
+  const visiblePillFriends = useMemo(() => {
+    const topIds = new Set(topFriends.map(f => f.id));
+    const extraSelected = db.friends.filter(f => selectedFriendIds.includes(f.id) && !topIds.has(f.id));
+    return [...topFriends, ...extraSelected];
+  }, [topFriends, selectedFriendIds, db.friends]);
+
+  // Filtered friends inside the Friend Picker Dialog
+  const filteredPickerFriends = useMemo(() => {
+    let list = db.friends;
+    if (pickerTypeFilter !== 'all') {
+      list = list.filter(f => (f.type || 'friend') === pickerTypeFilter);
+    }
+    if (pickerSearch.trim()) {
+      const q = pickerSearch.toLowerCase().trim();
+      list = list.filter(f => f.name.toLowerCase().includes(q));
+    }
+    return list;
+  }, [db.friends, pickerTypeFilter, pickerSearch]);
   const [customFriendShares, setCustomFriendShares] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     if (expense?.groupId) {
@@ -128,18 +165,6 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
     }
     return init;
   });
-
-  const filteredFriends = useMemo(() => {
-    let list = db.friends;
-    if (contactTypeFilter !== 'all') {
-      list = list.filter(f => (f.type || 'friend') === contactTypeFilter);
-    }
-    if (friendSearch.trim()) {
-      const q = friendSearch.toLowerCase().trim();
-      list = list.filter(f => f.name.toLowerCase().includes(q));
-    }
-    return list;
-  }, [db.friends, contactTypeFilter, friendSearch]);
 
   const getFriendShare = (fId: string): number => {
     const tot = parseFloat(amount) || 0;
@@ -175,8 +200,6 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
       return sum + val;
     }, 0);
   }, [selectedFriendIds, amount, splitCalcMode, customFriendShares]);
-
-  const myCalculatedShare = Math.max(0, (parseFloat(amount) || 0) - totalFriendsShare);
 
   const selectedFriend = db.friends.find(f => f.id === friendId);
   const friendBal = friendId ? friendBalance(db, friendId) : { owedToMe: 0, owedByMe: 0, net: 0 };
@@ -466,8 +489,6 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
         }
       }
 
-      const isUnpaidVendor = Boolean(selectedVendorId && vendorPaymentStatus === 'unpaid');
-
       friendShareList.forEach(({ friendId: fId, share }) => {
         if (share > 0) {
           addExpense({
@@ -479,35 +500,14 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
             type: 'for_friend',
             flow,
             friendId: fId,
-            vendorId: selectedVendorId || null,
-            walletId: isUnpaidVendor ? '' : walletId,
+            walletId,
             status: 'unsettled',
             notes,
           });
         }
       });
 
-      if (selectedVendorId && vendorPaymentStatus === 'unpaid') {
-        const vObj = db.friends.find(f => f.id === selectedVendorId);
-        const vName = vObj?.name || 'Vendor';
-        addExpense({
-          groupId: targetGroupId,
-          description: finalDesc,
-          amount: totalAmt,
-          category,
-          date,
-          type: 'by_friend',
-          flow: 'out',
-          friendId: selectedVendorId,
-          vendorId: selectedVendorId,
-          walletId: '',
-          status: 'unsettled',
-          notes: notes ? `${notes} (Unpaid vendor bill)` : `Unpaid bill to ${vName}`,
-        });
-      }
-
       if (myShare > 0) {
-        const isUnpaidVendor = Boolean(selectedVendorId && vendorPaymentStatus === 'unpaid');
         addExpense({
           groupId: targetGroupId,
           description: finalDesc,
@@ -516,10 +516,8 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
           date,
           type: 'personal',
           flow,
-          friendId: selectedVendorId || null,
-          vendorId: selectedVendorId || null,
-          walletId: isUnpaidVendor ? '' : walletId,
-          status: isUnpaidVendor ? 'unpaid' : 'paid',
+          walletId,
+          status: 'paid',
           notes,
         });
       }
@@ -567,42 +565,43 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
 
   return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal">
+      <div className="modal expense-drawer-modal">
         {/* Drag Handle Indicator for Mobile Bottom Sheet */}
         <div className="modal-handle-bar">
           <div className="modal-handle" />
         </div>
 
-        <div className="modal-header">
-          <span className="modal-title">{expense ? 'Edit Transaction' : flow === 'out' ? 'Record Expense' : 'Record Income'}</span>
-          <button className="btn-icon" onClick={onClose} aria-label="Close dialog"><X size={18} /></button>
+        <div className="modal-header compact-expense-header">
+          {expense ? (
+            <span className="modal-title">Edit Transaction</span>
+          ) : (
+            <div className="header-flow-switcher">
+              <button
+                type="button"
+                className={`header-flow-tab ${flow === 'out' ? 'active-out' : ''}`}
+                onClick={() => {
+                  setFlow('out');
+                  setError('');
+                }}
+              >
+                <TrendingDown size={14} /> Expense
+              </button>
+              <button
+                type="button"
+                className={`header-flow-tab ${flow === 'in' ? 'active-in' : ''}`}
+                onClick={() => {
+                  setFlow('in');
+                  setError('');
+                }}
+              >
+                <TrendingUp size={14} /> Income
+              </button>
+            </div>
+          )}
+          <button className="btn-icon compact-close-btn" onClick={onClose} aria-label="Close dialog"><X size={18} /></button>
         </div>
 
-        {/* Expense / Income Flow Switcher */}
-        <div className="flow-switcher">
-          <button
-            type="button"
-            className={`flow-tab ${flow === 'out' ? 'active-out' : ''}`}
-            onClick={() => {
-              setFlow('out');
-              setError('');
-            }}
-          >
-            <TrendingDown size={18} /> Expense
-          </button>
-          <button
-            type="button"
-            className={`flow-tab ${flow === 'in' ? 'active-in' : ''}`}
-            onClick={() => {
-              setFlow('in');
-              setError('');
-            }}
-          >
-            <TrendingUp size={18} /> Income
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="expense-modal-form">
           <div className="modal-body">
             {isTutorialMode && (
               <div style={{
@@ -809,452 +808,309 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
               {/* SPENT TAB INPUTS */}
               {flow === 'out' ? (
                 <>
-                  {/* Who Paid Primary Switcher */}
-                  <div className="form-group">
-                    <label className="form-label">Who Paid?</label>
+                  {/* Ultra-Compact Unified Scope Selector */}
+                  <div className="form-group" style={{ marginBottom: 8 }}>
+                    <label className="form-label" style={{ fontSize: 11.5, marginBottom: 4 }}>Expense Type</label>
                     <div className="segment-control">
                       <button
                         type="button"
-                        className={`segment-btn ${whoPaid === 'me' ? 'active' : ''}`}
-                        onClick={() => { setWhoPaid('me'); setError(''); }}
+                        className={`segment-btn ${whoPaid === 'me' && splitMode === 'just_me' ? 'active' : ''}`}
+                        onClick={() => {
+                          setWhoPaid('me');
+                          setSplitMode('just_me');
+                          setSelectedExpenseIds([]);
+                          setError('');
+                        }}
                       >
-                        <User size={16} /> I Paid
+                        <User size={15} /> Just Me
+                      </button>
+                      <button
+                        type="button"
+                        className={`segment-btn ${whoPaid === 'me' && splitMode === 'for_friend' ? 'active' : ''}`}
+                        onClick={() => {
+                          setWhoPaid('me');
+                          setSplitMode('for_friend');
+                          setSelectedExpenseIds([]);
+                          if (!friendShare && amount) setFriendShare(amount);
+                          setError('');
+                        }}
+                      >
+                        <Users size={15} /> With Friends
                       </button>
                       <button
                         type="button"
                         className={`segment-btn ${whoPaid === 'other' ? 'active' : ''}`}
-                        onClick={() => { setWhoPaid('other'); setError(''); }}
+                        onClick={() => {
+                          setWhoPaid('other');
+                          setSplitMode('just_me');
+                          setError('');
+                        }}
                       >
-                        <Users size={16} /> Someone Else Paid
+                        <HeartHandshake size={15} /> Someone Paid
                       </button>
                     </div>
                   </div>
 
-                  {/* Progressive Disclosure: If I Paid */}
-                  {whoPaid === 'me' && (
-                    <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
-                      <label className="form-label">Expense Scope</label>
-                      <div className="segment-control stacked">
-                        <button
-                          type="button"
-                          className={`segment-btn ${splitMode === 'just_me' ? 'active' : ''}`}
-                          onClick={() => { setSplitMode('just_me'); setSelectedExpenseIds([]); }}
-                        >
-                          <User size={17} />
-                          <span>Just For Me</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`segment-btn ${splitMode === 'for_friend' ? 'active' : ''}`}
-                          onClick={() => {
-                            setSplitMode('for_friend');
-                            setSelectedExpenseIds([]);
-                            if (!friendShare && amount) setFriendShare(amount);
-                          }}
-                        >
-                          <Users size={17} />
-                          <span>With Friends / Group</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Optional Contact/Vendor Selector for Personal Expense */}
-                  {whoPaid === 'me' && splitMode === 'just_me' && db.friends.length > 0 && (
-                    <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
-                      <label className="form-label">Contact / Store (Optional)</label>
-                      <select className="form-select" value={friendId} onChange={e => setFriendId(e.target.value)}>
-                        <option value="">— Personal Expense —</option>
-                        {db.friends.map(f => {
-                          const t = f.type || 'friend';
-                          const tag = t === 'vendor' ? ' (Store/Vendor)' : t === 'subscription' ? ' (Sub)' : '';
-                          return <option key={f.id} value={f.id}>{f.name}{tag}</option>;
-                        })}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Vendor / Merchant Selector for Split Expense */}
+                  {/* Friend Selection & Split Summary: If With Friends */}
                   {whoPaid === 'me' && splitMode === 'for_friend' && (
-                    <div className="form-group" style={{ animation: 'fadein 0.15s ease', marginBottom: 14 }}>
-                      <label className="form-label">Store / Merchant (Optional)</label>
-                      <select
-                        className="form-select"
-                        value={selectedVendorId}
-                        onChange={e => {
-                          const vId = e.target.value;
-                          setSelectedVendorId(vId);
-                          if (vId) {
-                            const v = db.friends.find(f => f.id === vId);
-                            if (v?.category) setCategory(v.category);
-                          }
-                        }}
-                      >
-                        <option value="">— Direct / No Specific Store —</option>
-                        {db.friends.map(f => {
-                          const t = f.type || 'friend';
-                          const tag = t === 'vendor' ? ' (Vendor)' : t === 'subscription' ? ' (Sub)' : '';
-                          return <option key={f.id} value={f.id}>{f.name}{tag}</option>;
-                        })}
-                      </select>
-
-                      {selectedVendorId && (
-                        <div style={{ marginTop: 8, background: 'var(--surface2)', border: '1px solid var(--border)', padding: 10, borderRadius: 'var(--radius)' }}>
-                          <label className="form-label" style={{ fontSize: 11.5, marginBottom: 6 }}>Payment to Merchant</label>
-                          <div className="segment-control">
-                            <button
-                              type="button"
-                              className={`segment-btn ${vendorPaymentStatus === 'paid' ? 'active' : ''}`}
-                              onClick={() => setVendorPaymentStatus('paid')}
-                            >
-                              <span>Paid Upfront</span>
-                            </button>
-                            <button
-                              type="button"
-                              className={`segment-btn ${vendorPaymentStatus === 'unpaid' ? 'active' : ''}`}
-                              onClick={() => setVendorPaymentStatus('unpaid')}
-                            >
-                              <span>On Credit / Unpaid</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Friend Selection & Custom Split Share: If Split with Friend */}
-                  {whoPaid === 'me' && splitMode === 'for_friend' && (
-                    <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <label className="form-label" style={{ margin: 0 }}>Select Friends *</label>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <>
+                      <div className="form-group" style={{ marginBottom: 6, animation: 'fadein 0.15s ease' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <label className="form-label" style={{ margin: 0, fontSize: 11.5 }}>
+                            Select Friends {selectedFriendIds.length > 0 && `(${selectedFriendIds.length})`}
+                          </label>
                           {selectedFriendIds.length > 0 && (
-                            <span style={{ fontSize: 11, background: 'rgba(56, 189, 248, 0.12)', color: 'var(--accent)', fontWeight: 600, padding: '2px 8px', borderRadius: 99 }}>
-                              {selectedFriendIds.length} selected
-                            </span>
-                          )}
-                          {db.friends.length > 0 && (
                             <button
                               type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 6 }}
-                              onClick={() => {
-                                if (selectedFriendIds.length === db.friends.length) {
-                                  setSelectedFriendIds([]);
-                                } else {
-                                  setSelectedFriendIds(db.friends.map(f => f.id));
-                                }
-                              }}
+                              style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--debit)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                              onClick={() => setSelectedFriendIds([])}
                             >
-                              {selectedFriendIds.length === db.friends.length ? 'Deselect All' : 'Select All'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Clean Search & Category Filter Bar */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-                        <div style={{ position: 'relative' }}>
-                          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
-                          <input
-                            type="text"
-                            className="form-input"
-                            style={{ paddingLeft: 30, fontSize: 12.5, height: 34, borderRadius: 'var(--radius)' }}
-                            placeholder="Search friends..."
-                            value={friendSearch}
-                            onChange={e => setFriendSearch(e.target.value)}
-                          />
-                          {friendSearch && (
-                            <button
-                              type="button"
-                              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer' }}
-                              onClick={() => setFriendSearch('')}
-                            >
-                              <X size={13} />
+                              Clear
                             </button>
                           )}
                         </div>
 
-                        {/* Filter Tabs */}
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button
-                            type="button"
-                            className={`btn btn-sm ${contactTypeFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ fontSize: 10.5, padding: '2px 10px', borderRadius: 99 }}
-                            onClick={() => setContactTypeFilter('all')}
-                          >
-                            All
-                          </button>
-                          <button
-                            type="button"
-                            className={`btn btn-sm ${contactTypeFilter === 'friend' ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ fontSize: 10.5, padding: '2px 10px', borderRadius: 99 }}
-                            onClick={() => setContactTypeFilter('friend')}
-                          >
-                            Friends
-                          </button>
-                          <button
-                            type="button"
-                            className={`btn btn-sm ${contactTypeFilter === 'vendor' ? 'btn-primary' : 'btn-secondary'}`}
-                            style={{ fontSize: 10.5, padding: '2px 10px', borderRadius: 99 }}
-                            onClick={() => setContactTypeFilter('vendor')}
-                          >
-                            Stores
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Clean Grid / Tile List of Friends */}
-                      <div
-                        style={{
-                          maxHeight: 190,
-                          overflowY: 'auto',
-                          paddingRight: 2,
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                          gap: 6,
-                        }}
-                      >
-                        {filteredFriends.length > 0 ? (
-                          filteredFriends.map(f => {
+                        {/* Top Friends Pills + More Button (Flex Wrapped, No Horizontal Overflow) */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '2px 0 4px' }}>
+                          {visiblePillFriends.map(f => {
                             const isSel = selectedFriendIds.includes(f.id);
                             return (
-                              <div
+                              <button
                                 key={f.id}
+                                type="button"
                                 onClick={() => {
                                   setSelectedFriendIds(prev =>
                                     prev.includes(f.id) ? prev.filter(id => id !== f.id) : [...prev, f.id]
                                   );
                                 }}
                                 style={{
-                                  display: 'flex',
+                                  display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: 8,
-                                  padding: '8px 10px',
-                                  borderRadius: 'var(--radius)',
-                                  background: isSel ? 'rgba(56, 189, 248, 0.08)' : 'var(--surface2)',
-                                  border: isSel ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                                  gap: 5,
+                                  padding: '3px 10px 3px 4px',
+                                  borderRadius: 99,
+                                  background: isSel ? 'var(--accent)' : 'var(--surface2)',
+                                  color: isSel ? 'var(--accent-contrast)' : 'var(--text-1)',
+                                  border: isSel ? 'none' : '1px solid var(--border)',
+                                  fontSize: 12,
+                                  fontWeight: isSel ? 600 : 500,
                                   cursor: 'pointer',
-                                  userSelect: 'none',
                                   transition: 'all 0.12s ease',
                                 }}
                               >
                                 <div
                                   style={{
-                                    width: 26,
-                                    height: 26,
+                                    width: 20,
+                                    height: 20,
                                     borderRadius: '50%',
                                     ...getAvatarStyle(f.color),
-                                    fontSize: 11,
+                                    fontSize: 10,
                                     fontWeight: 700,
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    flexShrink: 0,
                                   }}
                                 >
                                   {f.name[0]?.toUpperCase()}
                                 </div>
-                                <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                                  <div style={{
-                                    fontSize: 12.5,
-                                    fontWeight: isSel ? 600 : 500,
-                                    color: 'var(--text-1)',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis'
-                                  }}>
-                                    {f.name}
-                                  </div>
-                                </div>
-                                <div
-                                  style={{
-                                    width: 16,
-                                    height: 16,
-                                    borderRadius: '50%',
-                                    background: isSel ? 'var(--accent)' : 'transparent',
-                                    border: isSel ? 'none' : '1.5px solid var(--text-3)',
-                                    display: 'grid',
-                                    placeItems: 'center',
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {isSel && <CheckSquare size={12} style={{ color: 'var(--accent-contrast)' }} />}
-                                </div>
-                              </div>
+                                <span>{f.name}</span>
+                                {isSel && <CheckCircle2 size={12} />}
+                              </button>
                             );
-                          })
-                        ) : (
-                          <div style={{ gridColumn: '1 / -1', padding: '16px', textAlign: 'center', fontSize: 12, color: 'var(--text-3)' }}>
-                            {friendSearch ? `No friends matching "${friendSearch}"` : 'No friends added yet'}
-                          </div>
-                        )}
+                          })}
+
+                          {/* Dialog Launcher Button for All / More Friends */}
+                          {db.friends.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setIsFriendPickerOpen(true)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '3px 10px',
+                                borderRadius: 99,
+                                background: 'var(--surface2)',
+                                color: 'var(--accent)',
+                                border: '1px dashed var(--accent)',
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.12s ease',
+                              }}
+                            >
+                              <Plus size={13} />
+                              {db.friends.length > visiblePillFriends.length
+                                ? `+${db.friends.length - visiblePillFriends.length} More`
+                                : 'All Friends'}
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Multi-Friend Split Calculation Breakdown */}
+                      {/* Compact Split Summary Bar */}
                       {selectedFriendIds.length > 0 && (
-                        <div style={{ animation: 'fadein 0.15s ease', marginTop: 14 }}>
-                          <label className="form-label" style={{ marginBottom: 6 }}>How to Divide Bill?</label>
-                          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                        <div style={{ marginBottom: 8, animation: 'fadein 0.15s ease' }}>
+                          <div className="flex-between" style={{ padding: '5px 10px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', fontSize: 11.5 }}>
+                            <span style={{ color: 'var(--text-1)', fontWeight: 500 }}>
+                              Split ({selectedFriendIds.length + (splitCalcMode === 'equal_all' ? 1 : 0)} people):{' '}
+                              <strong style={{ color: 'var(--accent)' }}>
+                                {fmtMoney(splitCalcMode === 'equal_all' ? (Number(amount) || 0) / (selectedFriendIds.length + 1) : totalFriendsShare, s.currency)}
+                              </strong>{' '}
+                              / person
+                            </span>
                             <button
                               type="button"
-                              className={`btn btn-sm ${splitCalcMode === 'equal_all' ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{ flex: 1, fontSize: 11, padding: '6px 4px', textTransform: 'none' }}
-                              onClick={() => setSplitCalcMode('equal_all')}
+                              style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                              onClick={() => setShowSplitCustom(!showSplitCustom)}
                             >
-                              Split Equally
-                            </button>
-                            <button
-                              type="button"
-                              className={`btn btn-sm ${splitCalcMode === 'equal_friends' ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{ flex: 1, fontSize: 11, padding: '6px 4px', textTransform: 'none' }}
-                              onClick={() => setSplitCalcMode('equal_friends')}
-                            >
-                              100% For Friend
-                            </button>
-                            <button
-                              type="button"
-                              className={`btn btn-sm ${splitCalcMode === 'custom' ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{ flex: 1, fontSize: 11, padding: '6px 4px', textTransform: 'none' }}
-                              onClick={() => setSplitCalcMode('custom')}
-                            >
-                              Custom Amounts
+                              {showSplitCustom ? 'Hide Split' : 'Custom Split'}
                             </button>
                           </div>
 
-                          <div
-                            style={{
-                              background: 'var(--surface2)',
-                              border: '1px solid var(--border)',
-                              borderRadius: 'var(--radius-lg)',
-                              padding: '12px',
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>
-                              <span>Shares Breakdown ({selectedFriendIds.length + (splitCalcMode === 'equal_all' ? 1 : 0)} people)</span>
-                              <span style={{ color: 'var(--accent)' }}>
-                                Total Owed: {fmtMoney(totalFriendsShare, s.currency)}
-                              </span>
-                            </div>
+                          {showSplitCustom && (
+                            <div style={{ marginTop: 6, padding: 8, background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', animation: 'fadein 0.15s ease' }}>
+                              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                                <button
+                                  type="button"
+                                  className={`btn btn-sm ${splitCalcMode === 'equal_all' ? 'btn-primary' : 'btn-secondary'}`}
+                                  style={{ flex: 1, fontSize: 10.5, padding: '3px' }}
+                                  onClick={() => setSplitCalcMode('equal_all')}
+                                >
+                                  Equal Split
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`btn btn-sm ${splitCalcMode === 'equal_friends' ? 'btn-primary' : 'btn-secondary'}`}
+                                  style={{ flex: 1, fontSize: 10.5, padding: '3px' }}
+                                  onClick={() => setSplitCalcMode('equal_friends')}
+                                >
+                                  100% Friend
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`btn btn-sm ${splitCalcMode === 'custom' ? 'btn-primary' : 'btn-secondary'}`}
+                                  style={{ flex: 1, fontSize: 10.5, padding: '3px' }}
+                                  onClick={() => setSplitCalcMode('custom')}
+                                >
+                                  Custom
+                                </button>
+                              </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {splitCalcMode !== 'equal_friends' && (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: 'var(--radius)', background: 'var(--surface)' }}>
-                                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>You (Personal Share)</span>
-                                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-2)' }}>
-                                    {fmtMoney(myCalculatedShare, s.currency)}
-                                  </span>
-                                </div>
-                              )}
-
-                              {selectedFriendIds.map(fId => {
-                                const friendObj = db.friends.find(f => f.id === fId);
-                                if (!friendObj) return null;
-                                const currentVal = getFriendShare(fId);
-
-                                return (
-                                  <div
-                                    key={fId}
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'space-between',
-                                      padding: '6px 10px',
-                                      borderRadius: 'var(--radius)',
-                                      background: 'var(--surface)',
-                                      gap: 8,
-                                    }}
-                                  >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                                      <div
-                                        style={{
-                                          width: 22,
-                                          height: 22,
-                                          borderRadius: '50%',
-                                          ...getAvatarStyle(friendObj.color),
-                                          fontSize: 10,
-                                          fontWeight: 700,
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          flexShrink: 0,
-                                        }}
-                                      >
-                                        {friendObj.name[0]?.toUpperCase()}
-                                      </div>
-                                      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {friendObj.name}
-                                      </span>
-                                    </div>
-
-                                    {splitCalcMode === 'custom' ? (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{currencySymbol(s.currency)}</span>
+                              {splitCalcMode === 'custom' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {selectedFriendIds.map(fId => {
+                                    const friendObj = db.friends.find(f => f.id === fId);
+                                    if (!friendObj) return null;
+                                    const currentVal = getFriendShare(fId);
+                                    return (
+                                      <div key={fId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5 }}>
+                                        <span>{friendObj.name}</span>
                                         <input
                                           type="number"
                                           step="0.01"
                                           className="form-input"
-                                          style={{ width: 85, height: 28, fontSize: 12, padding: '2px 6px', textAlign: 'right' }}
+                                          style={{ width: 75, height: 24, fontSize: 11.5, padding: '2px 6px', textAlign: 'right' }}
                                           value={customFriendShares[fId] ?? (isNaN(currentVal) ? '' : String(currentVal))}
-                                          onChange={e => {
-                                            setCustomFriendShares(prev => ({ ...prev, [fId]: e.target.value }));
-                                          }}
+                                          onChange={e => setCustomFriendShares(prev => ({ ...prev, [fId]: e.target.value }))}
                                         />
                                       </div>
-                                    ) : (
-                                      <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)' }}>
-                                        {fmtMoney(currentVal, s.currency)}
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
-                          </div>
+                          )}
                         </div>
                       )}
-                    </div>
+                    </>
                   )}
 
-
-
-                  {/* Friend Selection: If Someone Else Paid */}
+                  {/* If Someone Else Paid: Friend Selector */}
                   {whoPaid === 'other' && (
-                    <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
-                      <label className="form-label">Who Paid For You? *</label>
+                    <div className="form-group" style={{ marginBottom: 8, animation: 'fadein 0.15s ease' }}>
+                      <label className="form-label" style={{ fontSize: 11.5, marginBottom: 4 }}>Who Paid For You? *</label>
                       <select className="form-select" value={friendId} onChange={e => setFriendId(e.target.value)}>
                         <option value="">— select friend who paid —</option>
                         {db.friends.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                       </select>
-                      <p className="form-hint" style={{ marginTop: 2 }}>
-                        You will owe this friend the amount recorded. Money will not be deducted from your wallet.
-                      </p>
                     </div>
                   )}
 
-                  <div className="form-group">
-                    <label className="form-label">Description / Item *</label>
+                  {/* Description & Note Button Merged */}
+                  <div className="form-group" style={{ marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <label className="form-label" style={{ margin: 0, fontSize: 11.5 }}>Description / Item *</label>
+                      <button
+                        type="button"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: showNotes ? 'var(--accent)' : 'var(--text-3)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          padding: 0,
+                        }}
+                        onClick={() => setShowNotes(!showNotes)}
+                      >
+                        <FileText size={12} /> {showNotes ? 'Hide Note' : '+ Note'}
+                      </button>
+                    </div>
                     <input
                       className="form-input"
                       value={desc}
                       onChange={e => setDesc(e.target.value)}
                       placeholder={splitMode === 'pay_debt' ? "e.g. Settling dinner debt" : "What did you spend on?"}
                     />
+                    {showNotes && (
+                      <div style={{ marginTop: 4, position: 'relative', animation: 'fadein 0.15s ease' }}>
+                        <textarea
+                          className="form-textarea"
+                          value={notes}
+                          onChange={e => setNotes(e.target.value)}
+                          placeholder="Add optional notes or remarks..."
+                          rows={2}
+                          style={{ fontSize: 12, padding: '6px 10px', paddingRight: 24 }}
+                        />
+                        <button
+                          type="button"
+                          style={{
+                            position: 'absolute',
+                            right: 6,
+                            top: 6,
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--text-3)',
+                            cursor: 'pointer',
+                            padding: 2,
+                          }}
+                          onClick={() => setShowNotes(false)}
+                          title="Close note"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
                     {mostUsedDescriptions.length > 0 && (
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, alignItems: 'center' }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)' }}>Frequent:</span>
+                      <div style={{ display: 'flex', gap: 5, overflowX: 'auto', whiteSpace: 'nowrap', marginTop: 5, alignItems: 'center', scrollbarWidth: 'none' }}>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-3)', flexShrink: 0 }}>Frequent:</span>
                         {mostUsedDescriptions.map(suggestion => (
                           <button
                             key={suggestion}
                             type="button"
                             className="btn btn-secondary btn-sm"
                             style={{
-                              fontSize: 11,
-                              padding: '2px 8px',
+                              fontSize: 10.5,
+                              padding: '1px 7px',
                               borderRadius: 'var(--radius-lg)',
                               borderColor: desc === suggestion ? 'var(--accent)' : undefined,
                               background: desc === suggestion ? 'var(--surface2)' : undefined,
                               color: desc === suggestion ? 'var(--accent)' : 'var(--text-2)',
+                              flexShrink: 0,
                             }}
                             onClick={() => setDesc(suggestion)}
                           >
@@ -1335,13 +1191,45 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                   {incomeMode === 'direct' ? (
                     <>
                       <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
-                        <label className="form-label">Income Source / Name *</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <label className="form-label" style={{ margin: 0 }}>Income Source / Name *</label>
+                          <button
+                            type="button"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              fontSize: 11.5,
+                              fontWeight: 600,
+                              color: showNotes ? 'var(--accent)' : 'var(--text-3)',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              padding: 0,
+                            }}
+                            onClick={() => setShowNotes(!showNotes)}
+                          >
+                            <FileText size={12} /> {showNotes ? 'Hide Note' : '+ Note'}
+                          </button>
+                        </div>
                         <input
                           className="form-input"
                           value={desc}
                           onChange={e => setDesc(e.target.value)}
                           placeholder="e.g. Monthly Salary, Pocket Money from Parents"
                         />
+                        {showNotes && (
+                          <div style={{ marginTop: 6, animation: 'fadein 0.15s ease' }}>
+                            <textarea
+                              className="form-textarea"
+                              value={notes}
+                              onChange={e => setNotes(e.target.value)}
+                              placeholder="Add optional notes or remarks..."
+                              rows={2}
+                              style={{ fontSize: 12.5 }}
+                            />
+                          </div>
+                        )}
                         {/* Quick Presets for Speed */}
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                           {[
@@ -1688,10 +1576,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                 </>
               )}
 
-              <div className="form-group">
-                <label className="form-label">Notes</label>
-                <textarea className="form-textarea" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes..." rows={2} />
-              </div>
+
 
               {error && <p className="form-error">{error}</p>}
             </div>
@@ -1712,6 +1597,263 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
           </div>
         </form>
       </div>
+
+      {/* Friend Picker Overlay Dialog */}
+      {isFriendPickerOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1100,
+            background: 'rgba(0, 0, 0, 0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            animation: 'fadein 0.15s ease',
+          }}
+          onClick={() => setIsFriendPickerOpen(false)}
+        >
+          <div
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-xl, 16px)',
+              width: '100%',
+              maxWidth: '400px',
+              maxHeight: '82vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.35)',
+              overflow: 'hidden',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Dialog Header */}
+            <div
+              style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'var(--surface2)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Users size={18} style={{ color: 'var(--accent)' }} />
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-1)' }}>
+                  Select Friends
+                </h3>
+                <span style={{ fontSize: 11, background: 'var(--surface)', padding: '2px 8px', borderRadius: 99, color: 'var(--accent)', fontWeight: 600, border: '1px solid var(--border)' }}>
+                  {selectedFriendIds.length} selected
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsFriendPickerOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-3)',
+                  cursor: 'pointer',
+                  padding: 4,
+                  borderRadius: 6,
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Dialog Search & Filter Controls */}
+            <div style={{ padding: '12px 16px 8px', display: 'flex', flexDirection: 'column', gap: 8, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
+                <input
+                  type="text"
+                  className="form-input"
+                  style={{ paddingLeft: 30, fontSize: 12.5, height: 34, borderRadius: 'var(--radius)' }}
+                  placeholder="Search friends or stores..."
+                  value={pickerSearch}
+                  onChange={e => setPickerSearch(e.target.value)}
+                  autoFocus
+                />
+                {pickerSearch && (
+                  <button
+                    type="button"
+                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer' }}
+                    onClick={() => setPickerSearch('')}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Filter & Select All */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 5 }}>
+                  <button
+                    type="button"
+                    style={{
+                      fontSize: 10.5,
+                      padding: '3px 9px',
+                      borderRadius: 99,
+                      border: '1px solid var(--border)',
+                      background: pickerTypeFilter === 'all' ? 'var(--accent)' : 'var(--surface2)',
+                      color: pickerTypeFilter === 'all' ? 'var(--accent-contrast)' : 'var(--text-2)',
+                      fontWeight: pickerTypeFilter === 'all' ? 600 : 500,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => setPickerTypeFilter('all')}
+                  >
+                    All ({db.friends.length})
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      fontSize: 10.5,
+                      padding: '3px 9px',
+                      borderRadius: 99,
+                      border: '1px solid var(--border)',
+                      background: pickerTypeFilter === 'friend' ? 'var(--accent)' : 'var(--surface2)',
+                      color: pickerTypeFilter === 'friend' ? 'var(--accent-contrast)' : 'var(--text-2)',
+                      fontWeight: pickerTypeFilter === 'friend' ? 600 : 500,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => setPickerTypeFilter('friend')}
+                  >
+                    Friends
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      fontSize: 10.5,
+                      padding: '3px 9px',
+                      borderRadius: 99,
+                      border: '1px solid var(--border)',
+                      background: pickerTypeFilter === 'vendor' ? 'var(--accent)' : 'var(--surface2)',
+                      color: pickerTypeFilter === 'vendor' ? 'var(--accent-contrast)' : 'var(--text-2)',
+                      fontWeight: pickerTypeFilter === 'vendor' ? 600 : 500,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => setPickerTypeFilter('vendor')}
+                  >
+                    Stores
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--accent)', fontWeight: 600, cursor: 'pointer' }}
+                  onClick={() => {
+                    if (selectedFriendIds.length === db.friends.length) {
+                      setSelectedFriendIds([]);
+                    } else {
+                      setSelectedFriendIds(db.friends.map(f => f.id));
+                    }
+                  }}
+                >
+                  {selectedFriendIds.length === db.friends.length ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Friends List */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {filteredPickerFriends.length > 0 ? (
+                filteredPickerFriends.map(f => {
+                  const isSel = selectedFriendIds.includes(f.id);
+                  return (
+                    <div
+                      key={f.id}
+                      onClick={() => {
+                        setSelectedFriendIds(prev =>
+                          prev.includes(f.id) ? prev.filter(id => id !== f.id) : [...prev, f.id]
+                        );
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--radius)',
+                        background: isSel ? 'var(--accent-soft)' : 'var(--surface2)',
+                        border: isSel ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        transition: 'all 0.12s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            ...getAvatarStyle(f.color),
+                            fontSize: 11,
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {f.name[0]?.toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                          <div style={{ fontSize: 13, fontWeight: isSel ? 600 : 500, color: 'var(--text-1)' }}>
+                            {f.name}
+                          </div>
+                          {f.type && f.type !== 'friend' && (
+                            <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
+                              {f.type === 'vendor' ? 'Store / Vendor' : f.type}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 4,
+                          background: isSel ? 'var(--accent)' : 'transparent',
+                          border: isSel ? 'none' : '1.5px solid var(--text-3)',
+                          display: 'grid',
+                          placeItems: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isSel && <CheckCircle2 size={14} style={{ color: 'var(--accent-contrast)' }} />}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: 12.5, color: 'var(--text-3)' }}>
+                  {pickerSearch ? `No contacts matching "${pickerSearch}"` : 'No friends added yet'}
+                </div>
+              )}
+            </div>
+
+            {/* Dialog Footer */}
+            <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', background: 'var(--surface2)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ padding: '6px 20px', fontSize: 13, borderRadius: 'var(--radius)' }}
+                onClick={() => setIsFriendPickerOpen(false)}
+              >
+                Done ({selectedFriendIds.length} Selected)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   );

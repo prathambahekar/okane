@@ -1286,183 +1286,6 @@ export default function Settings({
           document.body
         )}
 
-        {/* Advanced Features Card */}
-        <div className="card settings-summary-card" onClick={() => setShowAdvancedSheet(true)}>
-          <div className="settings-card-inner">
-            <div className="settings-card-left">
-              <div className="settings-card-icon">
-                <Sliders size={19} />
-              </div>
-              <div className="settings-card-text">
-                <h2 className="settings-card-title">Advanced Features</h2>
-                <p className="settings-card-sub">
-                  {(settings.enableEnvelopes ?? true) ? 'Envelopes On' : 'Envelopes Off'} • {(settings.enableSplitTrips ?? true) ? 'Trips & Splits On' : 'Trips & Splits Off'}
-                </p>
-              </div>
-            </div>
-
-            <div className="settings-card-right">
-              <span className="badge settings-card-badge" style={{
-                background: ((settings.enableEnvelopes ?? true) || (settings.enableSplitTrips ?? true)) ? 'var(--accent-soft)' : 'var(--surface2)',
-                color: ((settings.enableEnvelopes ?? true) || (settings.enableSplitTrips ?? true)) ? 'var(--accent)' : 'var(--text-3)',
-              }}>
-                {((settings.enableEnvelopes ?? true) && (settings.enableSplitTrips ?? true)) ? '2 Active' : (((settings.enableEnvelopes ?? true) || (settings.enableSplitTrips ?? true)) ? '1 Active' : 'Disabled')}
-              </span>
-              <ChevronRight className="settings-card-arrow" size={18} />
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Sheet Drawer Modal for Advanced Features */}
-        {showAdvancedSheet && createPortal(
-          <div className="sheet-backdrop" onClick={() => setShowAdvancedSheet(false)}>
-            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
-              {/* Drag Handle */}
-              <div className="sheet-drag-handle" />
-
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
-                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
-                  }}>
-                    <Sliders size={20} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                      Advanced Features
-                    </h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
-                      Toggle sub-accounts, savings envelopes & trip bill splitting
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowAdvancedSheet(false)}
-                  style={{
-                    background: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '50%',
-                    width: 32,
-                    height: 32,
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: 'var(--text-2)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* List of Advanced Features */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
-                {/* 1. Goal-Based Savings Envelopes */}
-                <div style={{
-                  padding: '14px 16px',
-                  borderRadius: 14,
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 8,
-                      background: (settings.enableEnvelopes ?? true) ? 'var(--accent-soft)' : 'var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                    }}>
-                      <PiggyBank size={18} style={{ color: (settings.enableEnvelopes ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Sub-Accounts / Savings Envelopes</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
-                        Goal-based sub-accounts (e.g. Emergency reserve, Vacation) inside wallets
-                      </div>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={settings.enableEnvelopes ?? true}
-                    onChange={(e) => {
-                      const enabled = e.target.checked;
-                      updateSettings({ enableEnvelopes: enabled });
-                      showToast(enabled ? 'Savings Envelopes enabled' : 'Savings Envelopes disabled');
-                    }}
-                    color="primary"
-                  />
-                </div>
-
-                {/* 2. Trips & Group Splits */}
-                <div style={{
-                  padding: '14px 16px',
-                  borderRadius: 14,
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 8,
-                      background: (settings.enableSplitTrips ?? true) ? 'var(--accent-soft)' : 'var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                    }}>
-                      <Plane size={18} style={{ color: (settings.enableSplitTrips ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Trips & Bill Splits</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
-                        Group ledgers, trip budgets & expense splitting with friends
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {(settings.enableSplitTrips ?? true) && onNavigate && (
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => { setShowAdvancedSheet(false); onNavigate('split-trips'); }}
-                        style={{ padding: '3px 10px', fontSize: 11.5, height: 28, gap: 4 }}
-                      >
-                        <Plane size={13} /> Open
-                      </button>
-                    )}
-                    <Switch
-                      checked={settings.enableSplitTrips ?? true}
-                      onChange={(e) => {
-                        const enabled = e.target.checked;
-                        updateSettings({ enableSplitTrips: enabled });
-                        showToast(enabled ? 'Trips & Splits enabled' : 'Trips & Splits disabled');
-                      }}
-                      color="primary"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Information Note */}
-              <div style={{
-                fontSize: 12,
-                color: 'var(--text-3)',
-                padding: '10px 12px',
-                borderRadius: 10,
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                lineHeight: 1.4
-              }}>
-                💡 <strong>About Advanced Features:</strong> Turn specialized modules on or off to keep your finance navigation simple and focused on what you use most.
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
-
         {/* Preferences Summary Card */}
         <div className="card settings-summary-card" onClick={() => setShowPreferencesSheet(true)}>
           <div className="settings-card-inner">
@@ -1839,6 +1662,610 @@ export default function Settings({
               </form>
             </div>
           </div>
+        )}
+
+        {/* Data Summary Card */}
+        <div className="card settings-summary-card" onClick={() => setShowDataSheet(true)}>
+          <div className="settings-card-inner">
+            <div className="settings-card-left">
+              <div className="settings-card-icon">
+                <Database size={19} />
+              </div>
+              <div className="settings-card-text">
+                <h2 className="settings-card-title">Data</h2>
+                <p className="settings-card-sub">
+                  Export backup, import data, or reset storage
+                </p>
+              </div>
+            </div>
+
+            <div className="settings-card-right">
+              <ChevronRight className="settings-card-arrow" size={18} />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Sheet Drawer Modal for Data */}
+        {showDataSheet && createPortal(
+          <div className="sheet-backdrop" onClick={() => setShowDataSheet(false)}>
+            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
+              {/* Drag Handle */}
+              <div className="sheet-drag-handle" />
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                  }}>
+                    <Database size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Data
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      Export, import, or manage local storage
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowDataSheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Action Buttons Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 16 }}>
+                <button type="button" className="data-action-card" onClick={() => { setShowDataSheet(false); handleExportClick(); }}>
+                  <Download size={24} />
+                  <span className="data-action-label" style={{ fontWeight: 600 }}>Export</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Save or share backup</span>
+                </button>
+
+                <button type="button" className="data-action-card" onClick={() => fileRef.current?.click()}>
+                  <Upload size={24} />
+                  <span className="data-action-label" style={{ fontWeight: 600 }}>Import</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Restore from backup</span>
+                </button>
+
+                {settings.devMode && (settings.enableSampleData ?? false) && (
+                  <button type="button" className="data-action-card" onClick={handleLoadSample}>
+                    <FlaskConical size={24} />
+                    <span className="data-action-label" style={{ fontWeight: 600 }}>Sample Data</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Load Demo</span>
+                  </button>
+                )}
+                <input ref={fileRef} type="file" accept="*/*" style={{ display: 'none' }} onChange={handleImport} />
+              </div>
+
+              <div className="data-reset-row" onClick={() => { setShowDataSheet(false); setShowReset(true); }} role="button" tabIndex={0}>
+                <div className="data-reset-left">
+                  <Trash2 size={20} />
+                  <span>Reset all data</span>
+                </div>
+                <ChevronRight size={20} style={{ color: 'var(--text-3)' }} />
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+
+
+        {/* Report a Bug / Suggest a Feature Card (Visible when Dev Mode & Report Bug switch are active) */}
+        {isDevMode && (settings.enableReportBugCard ?? true) && (
+          <div className="card settings-summary-card" onClick={() => setShowFeedbackSheet(true)}>
+            <div className="settings-card-inner">
+              <div className="settings-card-left">
+                <div className="settings-card-icon">
+                  <MessageSquarePlus size={19} />
+                </div>
+                <div className="settings-card-text">
+                  <h2 className="settings-card-title">
+                    Report Bug / Feature Request
+                  </h2>
+                  <p className="settings-card-sub">
+                    Submit feedback, bug report, or feature request
+                  </p>
+                </div>
+              </div>
+
+              <div className="settings-card-right">
+                <ChevronRight className="settings-card-arrow" size={18} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Sheet Drawer Modal for Report Bug / Suggest Feature */}
+        {showFeedbackSheet && createPortal(
+          <div className="sheet-backdrop" onClick={() => setShowFeedbackSheet(false)}>
+            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
+              {/* Drag Handle */}
+              <div className="sheet-drag-handle" />
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                  }}>
+                    <MessageSquarePlus size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Report Bug / Feature Request
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      Create an issue on prathambahekar/okane
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowFeedbackSheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Type Selection */}
+                <div>
+                  <label className="form-label" style={{ marginBottom: 8, display: 'block', fontSize: 12.5, fontWeight: 600 }}>
+                    Feedback Type
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => setFeedbackType('bug')}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius)',
+                        border: feedbackType === 'bug' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        background: feedbackType === 'bug' ? 'var(--accent-soft)' : 'var(--surface2)',
+                        color: 'var(--text)',
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <Bug size={16} style={{ color: feedbackType === 'bug' ? 'var(--accent)' : 'var(--text-2)' }} />
+                      <span>Bug / Issue</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFeedbackType('feature')}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius)',
+                        border: feedbackType === 'feature' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                        background: feedbackType === 'feature' ? 'var(--accent-soft)' : 'var(--surface2)',
+                        color: 'var(--text)',
+                        fontWeight: 600,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <Lightbulb size={16} style={{ color: feedbackType === 'feature' ? 'var(--accent)' : 'var(--text-2)' }} />
+                      <span>Suggest Feature</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: 12.5, fontWeight: 600 }}>
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={feedbackTitle}
+                    onChange={(e) => setFeedbackTitle(e.target.value)}
+                    placeholder={feedbackType === 'bug' ? "e.g., Error when settling friend balance" : "e.g., Add custom tags for expense search"}
+                    required
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: 12.5, fontWeight: 600 }}>
+                    Description
+                  </label>
+                  <textarea
+                    className="form-input"
+                    rows={4}
+                    value={feedbackDescription}
+                    onChange={(e) => setFeedbackDescription(e.target.value)}
+                    placeholder={feedbackType === 'bug' ? "Describe what happened, expected behavior, or steps to reproduce..." : "Describe the feature idea and how it would improve the app..."}
+                    required
+                    style={{ resize: 'vertical', minHeight: 90 }}
+                  />
+                </div>
+
+                {/* App Version Checkbox */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface2)', padding: '10px 12px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                  <input
+                    type="checkbox"
+                    id="includeVersionInfo"
+                    checked={includeVersionInfo}
+                    onChange={(e) => setIncludeVersionInfo(e.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="includeVersionInfo" style={{ fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', flex: 1, userSelect: 'none' }}>
+                    Include current app version (<strong style={{ color: 'var(--text)' }}>v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}</strong>) & device details
+                  </label>
+                </div>
+
+                {/* Action Toolbar */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', paddingTop: 4 }}>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <GitPullRequest size={13} />
+                    <span>Target Repo: prathambahekar/okane</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-sm"
+                      disabled={isSubmittingFeedback || !feedbackTitle.trim() || !feedbackDescription.trim()}
+                      style={{ fontSize: 12.5, fontWeight: 700, padding: '8px 18px', borderRadius: 8, gap: 6 }}
+                    >
+                      {isSubmittingFeedback ? (
+                        <>
+                          <RefreshCw size={14} className="spin" />
+                          <span>Creating Issue...</span>
+                        </>
+                      ) : (
+                        <>
+                          <GitPullRequest size={15} />
+                          <span>Submit Issue</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* GitHub PAT field */}
+                <div style={{ marginTop: 2, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
+                  <details open={Boolean(errorMessage && errorMessage.includes('Token'))} style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--text)', userSelect: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <GitPullRequest size={14} style={{ color: 'var(--accent)' }} />
+                      <span>GitHub Personal Access Token Settings</span>
+                    </summary>
+                    
+                    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--surface2)', padding: 12, borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>
+                        <strong style={{ color: 'var(--text)' }}>What is this token?</strong>
+                        <br />
+                        GitHub requires authentication to create issues on repository <code style={{ background: 'var(--surface)', padding: '1px 5px', borderRadius: 4, color: 'var(--accent)' }}>prathambahekar/okane</code> without opening the web form manually.
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2 }}>
+                        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text)' }}>
+                          Paste GitHub Token here:
+                        </label>
+                        <input
+                          type="password"
+                          className="form-input"
+                          value={githubTokenInput}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setGithubTokenInput(val);
+                            localStorage.setItem('okane_github_token', val.trim());
+                          }}
+                          placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          style={{ fontSize: 12, padding: '8px 12px', fontFamily: 'monospace' }}
+                        />
+                      </div>
+                    </div>
+                  </details>
+                </div>
+
+                {/* Success Notification */}
+                {feedbackStatus === 'success' && createdIssueInfo && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '12px 14px', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: 10, color: '#22c55e', fontSize: 12.5, fontWeight: 600 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <CheckCircle2 size={18} />
+                      <span>Issue #{createdIssueInfo.number} created!</span>
+                    </div>
+                    <a
+                      href={createdIssueInfo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#22c55e', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}
+                    >
+                      <span>View Issue</span>
+                      <ExternalLink size={13} />
+                    </a>
+                  </div>
+                )}
+
+                {/* Error Notification */}
+                {feedbackStatus === 'error' && errorMessage && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 10, color: '#ef4444', fontSize: 12.5 }}>
+                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <X size={16} />
+                      <span>Unable to create GitHub issue automatically</span>
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.9, lineHeight: 1.4 }}>
+                      {errorMessage}
+                    </div>
+                    {feedbackTitle.trim() && (
+                      <a
+                        href={`https://github.com/prathambahekar/okane/issues/new?title=${encodeURIComponent(`[${feedbackType.toUpperCase()}] ${feedbackTitle.trim()}`)}&body=${encodeURIComponent(`${feedbackDescription.trim()}\n\n---\n**Metadata:**\n- Type: ${feedbackType}\n- Version: ${settings.installedVersion || jsonSettings.appVersion || '0.8.2'}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-secondary btn-sm"
+                        style={{ marginTop: 4, alignSelf: 'flex-start', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                      >
+                        <ExternalLink size={14} /> Open Form on GitHub Web
+                      </a>
+                    )}
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Advanced Features Card */}
+        <div className="card settings-summary-card" onClick={() => setShowAdvancedSheet(true)}>
+          <div className="settings-card-inner">
+            <div className="settings-card-left">
+              <div className="settings-card-icon">
+                <Sliders size={19} />
+              </div>
+              <div className="settings-card-text">
+                <h2 className="settings-card-title">Advanced Features</h2>
+                <p className="settings-card-sub">
+                  {(settings.enableEnvelopes ?? false) ? 'Envelopes On' : 'Envelopes Off'} • {(settings.enableAutopay ?? false) ? 'Autopay On' : 'Autopay Off'} • {(settings.enableSplitTrips ?? false) ? 'Trips & Splits On' : 'Trips & Splits Off'}
+                </p>
+              </div>
+            </div>
+
+            <div className="settings-card-right">
+              <span className="badge settings-card-badge" style={{
+                background: ((settings.enableEnvelopes ?? false) || (settings.enableAutopay ?? false) || (settings.enableSplitTrips ?? false)) ? 'var(--accent-soft)' : 'var(--surface2)',
+                color: ((settings.enableEnvelopes ?? false) || (settings.enableAutopay ?? false) || (settings.enableSplitTrips ?? false)) ? 'var(--accent)' : 'var(--text-3)',
+              }}>
+                {
+                  [settings.enableEnvelopes ?? false, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length === 0
+                    ? 'Disabled'
+                    : `${[settings.enableEnvelopes ?? false, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length} Active`
+                }
+              </span>
+              <ChevronRight className="settings-card-arrow" size={18} />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Sheet Drawer Modal for Advanced Features */}
+        {showAdvancedSheet && createPortal(
+          <div className="sheet-backdrop" onClick={() => setShowAdvancedSheet(false)}>
+            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
+              {/* Drag Handle */}
+              <div className="sheet-drag-handle" />
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                  }}>
+                    <Sliders size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Advanced Features
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                      Toggle envelopes, autopay & trip bill splitting
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedSheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* List of Advanced Features */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* 1. Goal-Based Envelopes */}
+                <div style={{
+                  padding: '14px 16px',
+                  borderRadius: 14,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: (settings.enableEnvelopes ?? false) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <PiggyBank size={18} style={{ color: (settings.enableEnvelopes ?? false) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Envelopes</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                        Goal-based envelopes (e.g. Emergency reserve, Vacation) inside wallets
+                      </div>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings.enableEnvelopes ?? false}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      updateSettings({ enableEnvelopes: enabled });
+                      showToast(enabled ? 'Envelopes enabled' : 'Envelopes disabled');
+                    }}
+                    color="primary"
+                  />
+                </div>
+
+                {/* 2. Autopay & Subscriptions */}
+                <div style={{
+                  padding: '14px 16px',
+                  borderRadius: 14,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: (settings.enableAutopay ?? false) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <RefreshCw size={18} style={{ color: (settings.enableAutopay ?? false) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Autopay & Subscriptions</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                        Automated recurring bill logs & subscription reminders
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {(settings.enableAutopay ?? false) && onNavigate && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => { setShowAdvancedSheet(false); onNavigate('recurring'); }}
+                        style={{ padding: '3px 10px', fontSize: 11.5, height: 28, gap: 4 }}
+                      >
+                        <RefreshCw size={13} /> Open
+                      </button>
+                    )}
+                    <Switch
+                      checked={settings.enableAutopay ?? false}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({ enableAutopay: enabled });
+                        showToast(enabled ? 'Autopay enabled' : 'Autopay disabled');
+                      }}
+                      color="primary"
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Trips & Group Splits */}
+                <div style={{
+                  padding: '14px 16px',
+                  borderRadius: 14,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: (settings.enableSplitTrips ?? false) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <Plane size={18} style={{ color: (settings.enableSplitTrips ?? false) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Trips & Bill Splits</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                        Group ledgers, trip budgets & expense splitting with friends
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {(settings.enableSplitTrips ?? false) && onNavigate && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => { setShowAdvancedSheet(false); onNavigate('split-trips'); }}
+                        style={{ padding: '3px 10px', fontSize: 11.5, height: 28, gap: 4 }}
+                      >
+                        <Plane size={13} /> Open
+                      </button>
+                    )}
+                    <Switch
+                      checked={settings.enableSplitTrips ?? false}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({ enableSplitTrips: enabled });
+                        showToast(enabled ? 'Trips & Splits enabled' : 'Trips & Splits disabled');
+                      }}
+                      color="primary"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
         )}
 
         {/* Developer Mode Card */}
@@ -2279,393 +2706,6 @@ export default function Settings({
                   </div>
                 </div>
               </div>
-            </div>
-          </div>,
-          document.body
-        )}
-
-        {/* Data Summary Card */}
-        <div className="card settings-summary-card" onClick={() => setShowDataSheet(true)}>
-          <div className="settings-card-inner">
-            <div className="settings-card-left">
-              <div className="settings-card-icon">
-                <Database size={19} />
-              </div>
-              <div className="settings-card-text">
-                <h2 className="settings-card-title">Data</h2>
-                <p className="settings-card-sub">
-                  Export backup, import data, or reset storage
-                </p>
-              </div>
-            </div>
-
-            <div className="settings-card-right">
-              <ChevronRight className="settings-card-arrow" size={18} />
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Sheet Drawer Modal for Data */}
-        {showDataSheet && createPortal(
-          <div className="sheet-backdrop" onClick={() => setShowDataSheet(false)}>
-            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
-              {/* Drag Handle */}
-              <div className="sheet-drag-handle" />
-
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
-                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
-                  }}>
-                    <Database size={20} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                      Data
-                    </h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
-                      Export, import, or manage local storage
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowDataSheet(false)}
-                  style={{
-                    background: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '50%',
-                    width: 32,
-                    height: 32,
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: 'var(--text-2)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Action Buttons Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 16 }}>
-                <button type="button" className="data-action-card" onClick={() => { setShowDataSheet(false); handleExportClick(); }}>
-                  <Download size={24} />
-                  <span className="data-action-label" style={{ fontWeight: 600 }}>Export</span>
-                  <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Save or share backup</span>
-                </button>
-
-                <button type="button" className="data-action-card" onClick={() => fileRef.current?.click()}>
-                  <Upload size={24} />
-                  <span className="data-action-label" style={{ fontWeight: 600 }}>Import</span>
-                  <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Restore from backup</span>
-                </button>
-
-                {settings.devMode && (settings.enableSampleData ?? false) && (
-                  <button type="button" className="data-action-card" onClick={handleLoadSample}>
-                    <FlaskConical size={24} />
-                    <span className="data-action-label" style={{ fontWeight: 600 }}>Sample Data</span>
-                    <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Load Demo</span>
-                  </button>
-                )}
-                <input ref={fileRef} type="file" accept="*/*" style={{ display: 'none' }} onChange={handleImport} />
-              </div>
-
-              <div className="data-reset-row" onClick={() => { setShowDataSheet(false); setShowReset(true); }} role="button" tabIndex={0}>
-                <div className="data-reset-left">
-                  <Trash2 size={20} />
-                  <span>Reset all data</span>
-                </div>
-                <ChevronRight size={20} style={{ color: 'var(--text-3)' }} />
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
-
-
-
-        {/* Report a Bug / Suggest a Feature Card (Visible when Dev Mode & Report Bug switch are active) */}
-        {isDevMode && (settings.enableReportBugCard ?? true) && (
-          <div className="card settings-summary-card" onClick={() => setShowFeedbackSheet(true)}>
-            <div className="settings-card-inner">
-              <div className="settings-card-left">
-                <div className="settings-card-icon">
-                  <MessageSquarePlus size={19} />
-                </div>
-                <div className="settings-card-text">
-                  <h2 className="settings-card-title">
-                    Report Bug / Feature Request
-                  </h2>
-                  <p className="settings-card-sub">
-                    Submit feedback, bug report, or feature request
-                  </p>
-                </div>
-              </div>
-
-              <div className="settings-card-right">
-                <ChevronRight className="settings-card-arrow" size={18} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Bottom Sheet Drawer Modal for Report Bug / Suggest Feature */}
-        {showFeedbackSheet && createPortal(
-          <div className="sheet-backdrop" onClick={() => setShowFeedbackSheet(false)}>
-            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
-              {/* Drag Handle */}
-              <div className="sheet-drag-handle" />
-
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
-                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
-                  }}>
-                    <MessageSquarePlus size={20} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                      Report Bug / Feature Request
-                    </h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
-                      Create an issue on prathambahekar/okane
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowFeedbackSheet(false)}
-                  style={{
-                    background: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '50%',
-                    width: 32,
-                    height: 32,
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: 'var(--text-2)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {/* Type Selection */}
-                <div>
-                  <label className="form-label" style={{ marginBottom: 8, display: 'block', fontSize: 12.5, fontWeight: 600 }}>
-                    Feedback Type
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <button
-                      type="button"
-                      onClick={() => setFeedbackType('bug')}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 'var(--radius)',
-                        border: feedbackType === 'bug' ? '2px solid var(--accent)' : '1px solid var(--border)',
-                        background: feedbackType === 'bug' ? 'var(--accent-soft)' : 'var(--surface2)',
-                        color: 'var(--text)',
-                        fontWeight: 600,
-                        fontSize: 13,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <Bug size={16} style={{ color: feedbackType === 'bug' ? 'var(--accent)' : 'var(--text-2)' }} />
-                      <span>Bug / Issue</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setFeedbackType('feature')}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 'var(--radius)',
-                        border: feedbackType === 'feature' ? '2px solid var(--accent)' : '1px solid var(--border)',
-                        background: feedbackType === 'feature' ? 'var(--accent-soft)' : 'var(--surface2)',
-                        color: 'var(--text)',
-                        fontWeight: 600,
-                        fontSize: 13,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <Lightbulb size={16} style={{ color: feedbackType === 'feature' ? 'var(--accent)' : 'var(--text-2)' }} />
-                      <span>Suggest Feature</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Title */}
-                <div className="form-group">
-                  <label className="form-label" style={{ fontSize: 12.5, fontWeight: 600 }}>
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={feedbackTitle}
-                    onChange={(e) => setFeedbackTitle(e.target.value)}
-                    placeholder={feedbackType === 'bug' ? "e.g., Error when settling friend balance" : "e.g., Add custom tags for expense search"}
-                    required
-                  />
-                </div>
-
-                {/* Description */}
-                <div className="form-group">
-                  <label className="form-label" style={{ fontSize: 12.5, fontWeight: 600 }}>
-                    Description
-                  </label>
-                  <textarea
-                    className="form-input"
-                    rows={4}
-                    value={feedbackDescription}
-                    onChange={(e) => setFeedbackDescription(e.target.value)}
-                    placeholder={feedbackType === 'bug' ? "Describe what happened, expected behavior, or steps to reproduce..." : "Describe the feature idea and how it would improve the app..."}
-                    required
-                    style={{ resize: 'vertical', minHeight: 90 }}
-                  />
-                </div>
-
-                {/* App Version Checkbox */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface2)', padding: '10px 12px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-                  <input
-                    type="checkbox"
-                    id="includeVersionInfo"
-                    checked={includeVersionInfo}
-                    onChange={(e) => setIncludeVersionInfo(e.target.checked)}
-                    style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }}
-                  />
-                  <label htmlFor="includeVersionInfo" style={{ fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', flex: 1, userSelect: 'none' }}>
-                    Include current app version (<strong style={{ color: 'var(--text)' }}>v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}</strong>) & device details
-                  </label>
-                </div>
-
-                {/* Action Toolbar */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', paddingTop: 4 }}>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <GitPullRequest size={13} />
-                    <span>Target Repo: prathambahekar/okane</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-                    <button
-                      type="submit"
-                      className="btn btn-primary btn-sm"
-                      disabled={isSubmittingFeedback || !feedbackTitle.trim() || !feedbackDescription.trim()}
-                      style={{ fontSize: 12.5, fontWeight: 700, padding: '8px 18px', borderRadius: 8, gap: 6 }}
-                    >
-                      {isSubmittingFeedback ? (
-                        <>
-                          <RefreshCw size={14} className="spin" />
-                          <span>Creating Issue...</span>
-                        </>
-                      ) : (
-                        <>
-                          <GitPullRequest size={15} />
-                          <span>Submit Issue</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* GitHub PAT field */}
-                <div style={{ marginTop: 2, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
-                  <details open={Boolean(errorMessage && errorMessage.includes('Token'))} style={{ fontSize: 12, color: 'var(--text-3)' }}>
-                    <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--text)', userSelect: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <GitPullRequest size={14} style={{ color: 'var(--accent)' }} />
-                      <span>GitHub Personal Access Token Settings</span>
-                    </summary>
-                    
-                    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--surface2)', padding: 12, borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>
-                        <strong style={{ color: 'var(--text)' }}>What is this token?</strong>
-                        <br />
-                        GitHub requires authentication to create issues on repository <code style={{ background: 'var(--surface)', padding: '1px 5px', borderRadius: 4, color: 'var(--accent)' }}>prathambahekar/okane</code> without opening the web form manually.
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2 }}>
-                        <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text)' }}>
-                          Paste GitHub Token here:
-                        </label>
-                        <input
-                          type="password"
-                          className="form-input"
-                          value={githubTokenInput}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setGithubTokenInput(val);
-                            localStorage.setItem('okane_github_token', val.trim());
-                          }}
-                          placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          style={{ fontSize: 12, padding: '8px 12px', fontFamily: 'monospace' }}
-                        />
-                      </div>
-                    </div>
-                  </details>
-                </div>
-
-                {/* Success Notification */}
-                {feedbackStatus === 'success' && createdIssueInfo && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '12px 14px', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: 10, color: '#22c55e', fontSize: 12.5, fontWeight: 600 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CheckCircle2 size={18} />
-                      <span>Issue #{createdIssueInfo.number} created!</span>
-                    </div>
-                    <a
-                      href={createdIssueInfo.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: '#22c55e', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}
-                    >
-                      <span>View Issue</span>
-                      <ExternalLink size={13} />
-                    </a>
-                  </div>
-                )}
-
-                {/* Error Notification */}
-                {feedbackStatus === 'error' && errorMessage && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 10, color: '#ef4444', fontSize: 12.5 }}>
-                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <X size={16} />
-                      <span>Unable to create GitHub issue automatically</span>
-                    </div>
-                    <div style={{ fontSize: 12, opacity: 0.9, lineHeight: 1.4 }}>
-                      {errorMessage}
-                    </div>
-                    {feedbackTitle.trim() && (
-                      <a
-                        href={`https://github.com/prathambahekar/okane/issues/new?title=${encodeURIComponent(`[${feedbackType.toUpperCase()}] ${feedbackTitle.trim()}`)}&body=${encodeURIComponent(`${feedbackDescription.trim()}\n\n---\n**Metadata:**\n- Type: ${feedbackType}\n- Version: ${settings.installedVersion || jsonSettings.appVersion || '0.8.2'}`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm"
-                        style={{ marginTop: 4, alignSelf: 'flex-start', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
-                      >
-                        <ExternalLink size={14} /> Open Form on GitHub Web
-                      </a>
-                    )}
-                  </div>
-                )}
-              </form>
             </div>
           </div>,
           document.body

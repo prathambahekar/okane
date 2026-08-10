@@ -51,7 +51,7 @@ export default function EnvelopeModal({ envelope, defaultWalletId, onClose }: Pr
         targetDate,
         notes: notes.trim(),
       });
-      showToast('Savings envelope updated');
+      showToast('Envelope updated');
     } else {
       addEnvelope({
         name: name.trim(),
@@ -63,7 +63,7 @@ export default function EnvelopeModal({ envelope, defaultWalletId, onClose }: Pr
         targetDate,
         notes: notes.trim(),
       });
-      showToast('Savings envelope created');
+      showToast('Envelope created');
     }
     onClose();
   };
@@ -87,7 +87,7 @@ export default function EnvelopeModal({ envelope, defaultWalletId, onClose }: Pr
             >
               {React.createElement(getEnvelopeIconComponent(icon), { size: 18 })}
             </div>
-            <span className="modal-title">{envelope ? 'Edit Savings Envelope' : 'New Goal Savings Envelope'}</span>
+            <span className="modal-title">{envelope ? 'Edit Envelope' : 'New Goal Envelope'}</span>
           </div>
           <button className="btn-icon" onClick={onClose}><X size={18} /></button>
         </div>

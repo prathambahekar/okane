@@ -425,8 +425,7 @@ export const DEFAULT_CATEGORIES = [
 
 export const DEFAULT_WALLETS: Wallet[] = [
   { id: 'wal_cash', name: 'Cash', openingBalance: 0, color: '#FBBF24' },
-  { id: 'wal_bank', name: 'Bank', openingBalance: 0, color: '#38BDF8' },
-  { id: 'wal_upi', name: 'UPI / Wallet', openingBalance: 0, color: '#34D399' },
+  { id: 'wal_upi', name: 'UPI', openingBalance: 0, color: '#34D399' },
 ];
 
 export const FRIEND_PALETTE = [
@@ -512,11 +511,12 @@ export function defaultDB(): AppDB {
       defaultStatus: 'paid',
       defaultWalletId: defaultWal,
       enableAIAssistant: true,
-      enableEnvelopes: true,
+      enableEnvelopes: false,
+      enableAutopay: false,
       defaultAiEngine: 'offline',
       devMode: false,
       enableDevSQLConsole: true,
-      enableSplitTrips: true,
+      enableSplitTrips: false,
       enableSampleData: false,
       enableUserGuide: false,
       colorMode: (localStorage.getItem('color-mode') as 'light' | 'dark') || 'light',
@@ -978,10 +978,12 @@ export function loadDBFromSQLTables(): AppDB {
       defaultStatus: 'paid',
       defaultWalletId: wallets[0]?.id || 'wal_cash',
       enableAIAssistant: true,
+      enableEnvelopes: false,
+      enableAutopay: false,
       defaultAiEngine: 'offline',
       devMode: false,
       enableDevSQLConsole: true,
-      enableSplitTrips: true,
+      enableSplitTrips: false,
       enableSampleData: false,
       enableUserGuide: false,
       colorMode: (localStorage.getItem('color-mode') as 'light' | 'dark') || 'light',
