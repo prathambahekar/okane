@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Dialog from '@mui/material/Dialog';
 import Fade from '@mui/material/Fade';
 import type { TransitionProps } from '@mui/material/transitions';
@@ -12,9 +12,6 @@ const ModalFadeTransition = React.forwardRef(function Transition(
 ) {
   return <Fade ref={ref} {...props} timeout={180} />;
 });
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -41,12 +38,11 @@ import {
   X,
   User,
   PlusCircle,
-  Sparkles,
   Users,
   CreditCard,
   TrendingDown,
   TrendingUp,
-  Zap,
+  Sparkles,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { currencySymbol } from '../utils';
@@ -181,14 +177,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     return (localStorage.getItem('ai_engine_mode') as 'offline' | 'online') || 'online';
   });
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'welcome',
-      sender: 'bot',
-      text: `Hi! I'm Max, your AI Financial Assistant.\nSpeak or type what you spent, received, or split:\n• "Paid 30rs for poha"\n• "I paid 100 for me and Alex"\n• "Alex paid 500 for dinner"\n• "Yesterday arman paid my poha"`,
-      timestamp: 'Just now',
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [activeDraft, setActiveDraft] = useState<DraftExpense | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -230,11 +219,14 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     setVolumeLevel(0);
   }, []);
 
-  const startAudioAnalysis = useCallback(async () => {
+  const startAudioAnalysis = useCallback(async (existingStream?: MediaStream) => {
     stopAudioAnalysis();
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      let stream = existingStream;
+      if (!stream) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
       mediaStreamRef.current = stream;
 
       const AudioCtxClass =
@@ -333,16 +325,23 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       return;
     }
 
+    let activeStream: MediaStream | null = null;
+
     try {
-      // Prompt user for microphone permission explicitly via getUserMedia first
+      // Prompt user for microphone permission explicitly via getUserMedia first (works on Web & Capacitor Android)
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          // Stop stream tracks so SpeechRecognition can lock the audio device
-          stream.getTracks().forEach((track) => track.stop());
+          activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (mediaErr) {
           console.warn('Microphone permission check failed:', mediaErr);
-          showToast('Microphone access denied. Please allow microphone permissions in browser settings.');
+          const errName = (mediaErr as Error)?.name;
+          if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+            showToast('Microphone access denied. Please allow microphone permission in your app/device settings.');
+          } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+            showToast('No microphone detected on this device.');
+          } else {
+            showToast('Unable to access microphone. Please check app permissions.');
+          }
           setIsListening(false);
           return;
         }
@@ -357,7 +356,9 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
 
       recognition.onstart = () => {
         setIsListening(true);
-        startAudioAnalysis();
+        if (activeStream) {
+          startAudioAnalysis(activeStream);
+        }
       };
 
       recognition.onresult = (event) => {
@@ -384,7 +385,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         stopAudioAnalysis();
         setIsListening(false);
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          showToast('Microphone access blocked. Please allow mic permissions in browser settings.');
+          showToast('Microphone access blocked. Please allow mic permission in app settings.');
         } else if (event.error === 'audio-capture') {
           showToast('No microphone found on your device.');
         } else if (event.error === 'network') {
@@ -402,12 +403,14 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       recognitionRef.current = recognition;
       recognition.start();
       setIsListening(true);
-      startAudioAnalysis();
+      if (activeStream) {
+        startAudioAnalysis(activeStream);
+      }
     } catch (err) {
       console.error('Error starting mic:', err);
       stopAudioAnalysis();
       setIsListening(false);
-      showToast('Could not start microphone. Please check browser permissions or try typing.');
+      showToast('Could not start microphone. Please check permissions or try typing.');
     }
   };
 
@@ -761,272 +764,331 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     setActiveDraft(null);
   };
 
-  const quickPills = [
-    'Paid 30rs for poha',
-    'Got 5000 salary income',
-    'I paid 100 for me and Alex',
-    'Coffee 150rs for Alex',
-    'Alex paid 500 for dinner',
-    'Arman paid 150 for my poha',
-  ];
+  const hasData = db.expenses.length > 0 || db.friends.length > 0;
+
+  const dynamicQuickPills = useMemo(() => {
+    if (!hasData) return [];
+
+    const pills: string[] = [];
+
+    // 1. Friend-based pill if friends exist
+    const topFriend = db.friends[0]?.name;
+    if (topFriend) {
+      pills.push(`Split dinner with ${topFriend}`);
+      pills.push(`Paid 100 for ${topFriend}`);
+    }
+
+    // 2. Category / Expense pill
+    const recentExpenses = [...db.expenses].reverse();
+    const lastExpense = recentExpenses.find((e) => e.flow !== 'in');
+    if (lastExpense) {
+      pills.push(`Paid 150 for ${lastExpense.category || lastExpense.description}`);
+    }
+
+    // 3. Income pill
+    const incomeExpense = recentExpenses.find((e) => e.flow === 'in');
+    if (incomeExpense) {
+      pills.push(`Received ${incomeExpense.amount} ${incomeExpense.description || 'income'}`);
+    }
+
+    // 4. Monthly summary query pill
+    pills.push(`How much did I spend this month?`);
+
+    return pills.slice(0, 5);
+  }, [hasData, db.expenses, db.friends]);
 
   const headerContent = (
-    <DialogTitle
+    <Box
       sx={{
-        px: { xs: 2, sm: 2.5 },
-        py: { xs: 1.5, sm: 2 },
+        px: { xs: 2.5, sm: 3.5 },
+        pt: isMobile ? 0.5 : { xs: 2.5, sm: 3 },
+        pb: 1,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'space-between',
-        borderBottom: '1px solid',
-        borderColor: 'var(--border)',
         bgcolor: 'var(--surface)',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
         <Box
           sx={{
-            width: 38,
-            height: 38,
-            borderRadius: '12px',
+            width: 44,
+            height: 44,
+            borderRadius: '50%',
             background: 'var(--accent-gradient)',
             color: 'var(--accent-contrast, #ffffff)',
             display: 'grid',
             placeItems: 'center',
-            boxShadow: '0 4px 12px var(--accent-soft)',
+            flexShrink: 0,
+            boxShadow: '0 4px 14px var(--accent-soft)',
           }}
         >
-          <Sparkles size={20} color="#ffffff" />
+          <Sparkles size={22} color="currentColor" />
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.01em', color: 'var(--text)' }}>
-            Max
-          </Typography>
-          <Chip
-            label="Financial Assistant"
-            size="small"
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+          <Typography
+            variant="h6"
             sx={{
-              height: 20,
-              fontSize: '10px',
-              fontWeight: 600,
-              bgcolor: 'var(--accent-soft)',
-              color: 'var(--accent)',
-              borderRadius: '99px',
-              px: 0.5,
+              fontWeight: 700,
+              fontSize: { xs: '18px', sm: '20px' },
+              letterSpacing: '-0.01em',
+              color: 'var(--text)',
+              lineHeight: 1.2,
             }}
-          />
+          >
+            Max Assistant
+          </Typography>
+          <Box
+            onClick={() => {
+              const next = aiEngineMode === 'offline' ? 'online' : 'offline';
+              setAiEngineMode(next);
+              localStorage.setItem('ai_engine_mode', next);
+              showToast(next === 'offline' ? '⚡ Switched to Offline AI (100% local)' : '✨ Switched to Gemini Cloud AI');
+            }}
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              width: 'fit-content',
+              px: 1.2,
+              py: 0.35,
+              borderRadius: '8px',
+              bgcolor: 'var(--surface2)',
+              border: '1px solid',
+              borderColor: 'var(--border2)',
+              color: 'var(--text-2)',
+              fontSize: '11px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              userSelect: 'none',
+              transition: 'all 0.15s ease',
+              '&:hover': {
+                borderColor: 'var(--accent)',
+                color: 'var(--text)',
+              },
+            }}
+          >
+            Financial Assistant / {aiEngineMode === 'offline' ? 'Offline AI' : 'Gemini Cloud'}
+          </Box>
         </Box>
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box
-          onClick={() => {
-            const next = aiEngineMode === 'offline' ? 'online' : 'offline';
-            setAiEngineMode(next);
-            localStorage.setItem('ai_engine_mode', next);
-            showToast(next === 'offline' ? '⚡ Switched to Offline AI (100% local, no internet needed)' : '✨ Switched to Gemini Cloud AI');
-          }}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.6,
-            px: 1.2,
-            py: 0.5,
-            borderRadius: '99px',
-            cursor: 'pointer',
-            userSelect: 'none',
-            fontSize: '11px',
-            fontWeight: 600,
-            bgcolor: aiEngineMode === 'offline' ? 'var(--credit-bg)' : 'var(--accent-soft)',
-            color: aiEngineMode === 'offline' ? 'var(--credit)' : 'var(--accent)',
-            border: `1px solid ${aiEngineMode === 'offline' ? 'var(--credit-border)' : 'var(--accent-soft)'}`,
-            transition: 'all 0.15s ease',
-            '&:hover': {
-              opacity: 0.9,
-              transform: 'scale(1.02)'
-            }
-          }}
-        >
-          {aiEngineMode === 'offline' ? (
-            <>
-              <Zap size={13} style={{ flexShrink: 0 }} />
-              <span>Offline AI</span>
-            </>
-          ) : (
-            <>
-              <Sparkles size={13} style={{ flexShrink: 0 }} />
-              <span>Gemini Cloud</span>
-            </>
-          )}
-        </Box>
-        <IconButton size="small" onClick={onClose} sx={{ color: 'var(--text-2)', p: 0.75, borderRadius: '50%', '&:hover': { bgcolor: 'var(--surface2)', color: 'var(--text)' } }}>
-          <X size={20} />
-        </IconButton>
-      </Box>
-    </DialogTitle>
+      <IconButton
+        size="small"
+        onClick={onClose}
+        sx={{
+          color: 'var(--text-2)',
+          p: 0.75,
+          borderRadius: '50%',
+          '&:hover': { bgcolor: 'var(--surface2)', color: 'var(--text)' },
+        }}
+      >
+        <X size={20} />
+      </IconButton>
+    </Box>
   );
 
   const mainBodyContent = (
-    <DialogContent
+    <Box
       sx={{
-        p: { xs: 2, sm: 2.5 },
+        px: { xs: 2.5, sm: 3.5 },
+        py: 1.5,
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
         flex: 1,
         overflowY: 'auto',
-        bgcolor: 'var(--bg)',
+        bgcolor: 'var(--surface)',
       }}
     >
-      {/* Messages */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1.75,
-          flex: 1,
-        }}
-      >
-        {messages.map((m) => (
-          <Box
-            key={m.id}
-            sx={{
-              display: 'flex',
-              justifyContent: m.sender === 'user' ? 'flex-end' : 'flex-start',
-              alignItems: 'flex-start',
-              gap: 1,
-            }}
-          >
-            {m.sender === 'bot' && (
+      {/* Empty State / Suggestions shown on clean start */}
+      {messages.length === 0 && !activeDraft && (
+        <>
+          {!hasData ? (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                py: 4,
+                px: 2,
+                gap: 1.75,
+                my: 'auto',
+              }}
+            >
               <Box
                 sx={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: '10px',
-                  background: 'var(--accent-gradient)',
-                  color: 'var(--accent-contrast)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  flexShrink: 0,
-                  mt: 0.25,
-                  boxShadow: '0 2px 6px var(--accent-soft)',
+                  width: 64,
+                  height: 64,
+                  borderRadius: '20px',
+                  bgcolor: 'var(--surface2)',
+                  border: '1px solid var(--border2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent)',
+                  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.05)',
                 }}
               >
-                <Sparkles size={16} color="var(--accent-contrast)" />
+                <Sparkles size={28} color="currentColor" />
               </Box>
-            )}
-
-            {m.id === 'welcome' ? (
-              <Paper
-                elevation={0}
+              <Box sx={{ maxWidth: 290 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'var(--text)', mb: 0.5, fontSize: '15px' }}>
+                  No Data Found
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '13px', lineHeight: 1.5 }}>
+                  Import or log your financial data to see quick prompts, or type/speak below to log your first transaction!
+                </Typography>
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, my: 0.5 }}>
+              <Typography
+                variant="body1"
                 sx={{
-                  p: 2,
-                  borderRadius: '18px 18px 18px 6px',
-                  bgcolor: 'var(--surface)',
-                  color: 'var(--text)',
-                  maxWidth: { xs: '92%', sm: '85%' },
-                  border: '1px solid',
-                  borderColor: 'var(--border)',
-                  boxShadow: 'var(--shadow)',
+                  fontStyle: 'italic',
+                  color: 'var(--text-2)',
+                  fontSize: { xs: '14px', sm: '15px' },
+                  lineHeight: 1.6,
+                }}
+              >
+                "Speak or type what you spent, received, or split in plain Hindi, Hinglish, or English. I'll take care of the details for you."
+              </Typography>
+
+              <Box
+                sx={{
                   display: 'flex',
-                  flexDirection: 'column',
+                  flexWrap: 'wrap',
                   gap: 1.25,
                 }}
               >
-                <Box>
-                  <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '14.5px', color: 'var(--text)', mb: 0.25 }}>
-                    Hi! I'm Max, your AI Assistant 👋
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '12.5px', lineHeight: 1.5 }}>
-                    Speak or type what you spent, received, or split:
-                  </Typography>
-                </Box>
+                {dynamicQuickPills.map((pill) => (
+                  <Box
+                    key={pill}
+                    onClick={() => handleSend(pill)}
+                    sx={{
+                      px: 2,
+                      py: 1,
+                      borderRadius: '99px',
+                      bgcolor: 'var(--surface2)',
+                      color: 'var(--text)',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      border: '1px solid',
+                      borderColor: 'var(--border2)',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)',
+                      '&:hover': {
+                        bgcolor: 'var(--surface3)',
+                        borderColor: 'var(--accent)',
+                        color: 'var(--accent)',
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 2px 8px var(--accent-soft)',
+                      },
+                      '&:active': {
+                        transform: 'translateY(0)',
+                      },
+                    }}
+                  >
+                    {pill}
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+        </>
+      )}
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.25 }}>
-                  {quickPills.map((example) => (
-                    <Box
-                      key={example}
-                      onClick={() => handleSend(example)}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        px: 1.25,
-                        py: 0.85,
-                        borderRadius: '10px',
-                        bgcolor: 'var(--surface2)',
-                        border: '1px solid',
-                        borderColor: 'var(--border2)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        '&:hover': {
-                          bgcolor: 'var(--surface3)',
-                          borderColor: 'var(--accent)',
-                          transform: 'translateX(2px)',
-                        },
-                      }}
-                    >
-                      <Sparkles size={13} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                      <Typography variant="body2" sx={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--text)' }}>
-                        "{example}"
-                      </Typography>
-                    </Box>
-                  ))}
+      {/* Messages stream */}
+      {messages.length > 0 && (
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+            flex: 1,
+          }}
+        >
+          {messages.map((m) => (
+            <Box
+              key={m.id}
+              sx={{
+                display: 'flex',
+                justifyContent: m.sender === 'user' ? 'flex-end' : 'flex-start',
+                alignItems: 'flex-start',
+                gap: 1,
+              }}
+            >
+              {m.sender === 'bot' && (
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '10px',
+                    background: 'var(--accent-gradient)',
+                    color: 'var(--accent-contrast, #ffffff)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                    mt: 0.25,
+                  }}
+                >
+                  <Sparkles size={16} color="currentColor" />
                 </Box>
-              </Paper>
-            ) : (
+              )}
+
               <Paper
                 elevation={0}
                 sx={{
                   px: 2,
                   py: 1.25,
-                  borderRadius: m.sender === 'user' ? '18px 18px 6px 18px' : '18px 18px 18px 6px',
-                  background: m.sender === 'user' ? 'var(--accent-gradient)' : 'var(--surface)',
-                  color: m.sender === 'user' ? '#ffffff' : 'var(--text)',
+                  borderRadius: m.sender === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  background: m.sender === 'user' ? 'var(--accent-gradient)' : 'var(--surface2)',
+                  color: m.sender === 'user' ? 'var(--accent-contrast, #ffffff)' : 'var(--text)',
                   maxWidth: { xs: '90%', sm: '82%' },
                   whiteSpace: 'pre-line',
                   border: '1px solid',
-                  borderColor: m.sender === 'user' ? 'transparent' : 'var(--border)',
-                  boxShadow: m.sender === 'bot' ? 'var(--shadow)' : '0 2px 8px var(--accent-soft)',
+                  borderColor: m.sender === 'user' ? 'transparent' : 'var(--border2)',
                 }}
               >
                 <Typography variant="body2" sx={{ lineHeight: 1.55, fontSize: '13.5px' }}>
                   {m.text}
                 </Typography>
               </Paper>
-            )}
 
-            {m.sender === 'user' && (
-              <Box
-                sx={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: '10px',
-                  background: 'var(--accent-gradient)',
-                  color: 'var(--accent-contrast)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  flexShrink: 0,
-                  mt: 0.25,
-                  boxShadow: '0 2px 6px var(--accent-soft)',
-                }}
-              >
-                <User size={16} />
-              </Box>
-            )}
-          </Box>
-        ))}
+              {m.sender === 'user' && (
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '10px',
+                    background: 'var(--accent-gradient)',
+                    color: 'var(--accent-contrast, #ffffff)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                    mt: 0.25,
+                  }}
+                >
+                  <User size={16} color="currentColor" />
+                </Box>
+              )}
+            </Box>
+          ))}
 
-        {loading && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'var(--text-2)', p: 1, ml: 4 }}>
-            <CircularProgress size={16} />
-            <Typography variant="body2" sx={{ fontSize: '13px', fontWeight: 500 }}>
-              Extracting details...
-            </Typography>
-          </Box>
-        )}
+          {loading && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'var(--text-2)', p: 1, ml: 4 }}>
+              <CircularProgress size={16} sx={{ color: 'var(--accent)' }} />
+              <Typography variant="body2" sx={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-2)' }}>
+                Extracting details...
+              </Typography>
+            </Box>
+          )}
 
-        <div ref={messagesEndRef} />
-      </Box>
+          <div ref={messagesEndRef} />
+        </Box>
+      )}
 
       {/* Extracted Details & Live Form Box */}
       {activeDraft && (
@@ -1250,7 +1312,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                         border: 'none !important',
                         '&.Mui-selected': {
                           bgcolor: 'var(--accent)',
-                          color: '#ffffff !important',
+                          color: 'var(--accent-contrast, #ffffff) !important',
                           boxShadow: '0 2px 6px var(--accent-soft)',
                         },
                       },
@@ -1468,6 +1530,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                 py: 1,
                 textTransform: 'none',
                 bgcolor: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--accent)',
+                color: activeDraft.flow === 'in' ? '#ffffff' : 'var(--accent-contrast, #ffffff)',
                 boxShadow: '0 4px 12px var(--accent-soft)',
                 '&:hover': {
                   bgcolor: activeDraft.flow === 'in' ? '#15803d' : 'var(--accent-dark)',
@@ -1485,95 +1548,44 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         </Paper>
       )}
       <div ref={contentEndRef} />
-    </DialogContent>
+    </Box>
   );
 
   const footerActions = (
-    <DialogActions
+    <Box
       sx={{
-        p: { xs: 1.5, sm: 2 },
-        pt: 0.5,
-        borderTop: 'none',
+        px: { xs: 2.5, sm: 3.5 },
+        pb: { xs: 2.5, sm: 3.5 },
+        pt: 1,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'stretch',
-        gap: 1.25,
         bgcolor: 'var(--surface)',
       }}
     >
-      {/* Quick Voice Suggestion Pills */}
-      {!activeDraft && (
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 0.75,
-            overflowX: 'auto',
-            py: 0.25,
-            px: 0.25,
-            width: '100%',
-            scrollbarWidth: 'none',
-            '&::-webkit-scrollbar': { display: 'none' },
-          }}
-        >
-          {quickPills.map((pill) => (
-            <Chip
-              key={pill}
-              label={pill}
-              size="small"
-              onClick={() => handleSend(pill)}
-              sx={{
-                fontSize: '11.5px',
-                cursor: 'pointer',
-                borderRadius: '99px',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                bgcolor: 'var(--surface2)',
-                border: '1px solid',
-                borderColor: 'var(--border2)',
-                color: 'var(--text-2)',
-                fontWeight: 500,
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: 'var(--surface3)',
-                  borderColor: 'var(--accent)',
-                  color: 'var(--accent)',
-                  transform: 'translateY(-1px)',
-                },
-              }}
-            />
-          ))}
-        </Box>
-      )}
-
-      {/* Floating Capsule Input Shell */}
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
           gap: 1,
           width: '100%',
+          px: 2,
+          py: 0.75,
           bgcolor: 'var(--surface2)',
-          borderRadius: '99px',
-          p: '5px 6px 5px 14px',
+          borderRadius: '24px',
           border: '1px solid',
           borderColor: isListening ? 'var(--debit)' : 'var(--border2)',
-          boxShadow: isListening
-            ? `0 0 ${10 + volumeLevel * 12}px rgba(239, 68, 68, ${0.25 + volumeLevel * 0.25})`
-            : '0 2px 10px rgba(0, 0, 0, 0.03)',
           transition: 'all 0.15s ease',
           '&:focus-within': {
-            borderColor: isListening ? 'var(--debit)' : 'var(--accent)',
+            borderColor: 'var(--accent)',
             bgcolor: 'var(--surface)',
-            boxShadow: isListening
-              ? `0 0 16px rgba(239, 68, 68, 0.35)`
-              : '0 4px 16px var(--accent-soft)',
+            boxShadow: '0 2px 10px var(--accent-soft)',
           },
         }}
       >
         <AudioWaveVisualizer volume={volumeLevel} isListening={isListening} />
 
         <InputBase
-          placeholder={isListening ? 'Listening... Speak now...' : 'Type e.g. "Paid 30rs for poha"...'}
+          placeholder={isListening ? 'Listening... Speak now...' : 'Tell Max something...'}
           fullWidth
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
@@ -1585,8 +1597,9 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           }}
           disabled={loading}
           sx={{
-            fontSize: '14px',
+            fontSize: '15px',
             color: 'var(--text)',
+            fontFamily: 'inherit',
             '& input::placeholder': {
               color: 'var(--text-3)',
               opacity: 0.85,
@@ -1597,54 +1610,41 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         <Tooltip title={isListening ? 'Stop mic' : 'Speak to Max'}>
           <IconButton
             onClick={toggleListening}
+            size="small"
             sx={{
-              width: 38,
-              height: 38,
-              borderRadius: '50%',
-              bgcolor: isListening ? 'var(--debit)' : 'transparent',
-              color: isListening ? '#ffffff' : 'var(--text-2)',
-              flexShrink: 0,
-              transition: 'all 0.08s cubic-bezier(0, 0, 0.2, 1)',
-              boxShadow: isListening
-                ? `0 0 0 ${3 + volumeLevel * 6}px rgba(239, 68, 68, ${0.15 + volumeLevel * 0.25}), 0 0 ${12 + volumeLevel * 14}px rgba(239, 68, 68, ${0.3 + volumeLevel * 0.3})`
-                : 'none',
-              transform: isListening ? `scale(${1 + volumeLevel * 0.1})` : 'scale(1)',
+              color: isListening ? 'var(--debit)' : 'var(--text-2)',
+              p: 0.75,
               '&:hover': {
-                bgcolor: isListening ? 'var(--debit)' : 'var(--surface3)',
-                color: isListening ? '#ffffff' : 'var(--text)',
+                color: 'var(--text)',
+                bgcolor: 'var(--surface2)',
               },
             }}
           >
-            {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
           </IconButton>
         </Tooltip>
 
         <IconButton
           onClick={() => handleSend()}
           disabled={!inputText.trim() || loading}
+          size="small"
           sx={{
-            width: 38,
-            height: 38,
-            borderRadius: '50%',
-            background: 'var(--accent-gradient)',
-            color: 'var(--accent-contrast)',
-            flexShrink: 0,
-            transition: 'all 0.2s ease',
+            color: inputText.trim() ? 'var(--accent)' : 'var(--text-3)',
+            p: 0.75,
             '&:hover': {
-              filter: 'brightness(1.18)',
-              transform: 'scale(1.05)',
+              color: 'var(--accent)',
+              bgcolor: 'var(--surface2)',
             },
             '&.Mui-disabled': {
-              bgcolor: 'var(--surface3)',
               color: 'var(--text-3)',
               opacity: 0.5,
             },
           }}
         >
-          <Send size={16} />
+          <Send size={18} />
         </IconButton>
       </Box>
-    </DialogActions>
+    </Box>
   );
 
   if (isMobile) {
@@ -1658,23 +1658,22 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         slotProps={{
           backdrop: {
             sx: {
-              backdropFilter: 'blur(6px)',
-              backgroundColor: 'rgba(17,17,17,0.55)',
-              animation: 'fadein 0.15s ease',
+              backdropFilter: 'blur(8px)',
+              backgroundColor: 'rgba(0,0,0,0.65)',
             },
           },
         }}
         PaperProps={{
           sx: {
-            borderTopLeftRadius: '20px',
-            borderTopRightRadius: '20px',
-            height: '88vh',
-            maxHeight: '88vh',
+            borderTopLeftRadius: '28px',
+            borderTopRightRadius: '28px',
+            maxHeight: '90vh',
             width: '100vw',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
             bgcolor: 'var(--surface)',
+            color: 'var(--text)',
             borderTop: '1px solid',
             borderColor: 'var(--border2)',
             transform: dragOffsetY > 0 ? `translateY(${dragOffsetY}px) !important` : undefined,
@@ -1682,79 +1681,34 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           },
         }}
       >
-        {/* Unified Header with Drag Handle */}
         <Box
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           sx={{
             touchAction: 'none',
-            bgcolor: 'var(--surface)',
-            borderBottom: '1px solid',
-            borderColor: 'var(--border)',
-            pt: 1.25,
-            pb: 1.25,
+            pt: 1.5,
+            pb: 0.5,
             px: 2,
+            bgcolor: 'var(--surface)',
             cursor: 'grab',
             userSelect: 'none',
-            '&:active': { cursor: 'grabbing' },
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          {/* Drag Indicator Pill */}
           <Box
             sx={{
               width: dragOffsetY > 0 ? 48 : 36,
               height: 4,
-              bgcolor: dragOffsetY > 0
-                ? 'var(--text-2)'
-                : 'var(--border2)',
+              bgcolor: 'var(--text-3)',
+              opacity: 0.6,
               borderRadius: 99,
-              mx: 'auto',
-              mb: 1.25,
-              transition: dragOffsetY > 0 ? 'width 0.1s ease-out, background-color 0.15s ease' : 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           />
-          {/* Header Bar */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-              <Box
-                sx={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: '12px',
-                  background: 'var(--accent-gradient)',
-                  color: 'var(--accent-contrast)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  boxShadow: '0 4px 12px var(--accent-soft)',
-                }}
-              >
-                <Sparkles size={20} color="var(--accent-contrast)" />
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.01em', color: 'var(--text)' }}>
-                  Max
-                </Typography>
-                <Chip
-                  label="Financial Assistant"
-                  size="small"
-                  sx={{
-                    height: 20,
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    bgcolor: 'var(--accent-soft)',
-                    color: 'var(--accent)',
-                    borderRadius: '99px',
-                    px: 0.5,
-                  }}
-                />
-              </Box>
-            </Box>
-            <IconButton size="small" onClick={onClose} sx={{ color: 'var(--text-2)', p: 0.75, borderRadius: '50%', '&:hover': { bgcolor: 'var(--surface2)', color: 'var(--text)' } }}>
-              <X size={20} />
-            </IconButton>
-          </Box>
         </Box>
+        {headerContent}
         {mainBodyContent}
         {footerActions}
       </SwipeableDrawer>
@@ -1766,31 +1720,31 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       open={open}
       onClose={onClose}
       TransitionComponent={ModalFadeTransition}
-      maxWidth="md"
+      maxWidth="xs"
       fullWidth
       slotProps={{
         backdrop: {
           sx: {
             backdropFilter: 'blur(6px)',
-            backgroundColor: 'rgba(17,17,17,0.55)',
-            animation: 'fadein 0.15s ease',
+            backgroundColor: 'rgba(0,0,0,0.5)',
           },
         },
       }}
       PaperProps={{
         sx: {
-          borderRadius: '16px',
+          borderRadius: '28px',
           overflow: 'hidden',
-          height: '82vh',
-          maxHeight: '780px',
-          maxWidth: '740px',
+          maxWidth: '540px',
+          width: '100%',
+          maxHeight: '82vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: 'var(--shadow-lg)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
           border: '1px solid',
           borderColor: 'var(--border2)',
           bgcolor: 'var(--surface)',
-          animation: 'slidein 0.18s ease',
+          color: 'var(--text)',
+          m: 2,
         },
       }}
     >

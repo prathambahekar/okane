@@ -1173,7 +1173,7 @@ html, body, #root {
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   flex-shrink: 0;
 }
 .modal-title { font-size: 16px; font-weight: 600; }
@@ -1183,7 +1183,7 @@ html, body, #root {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  border-top: 1px solid var(--border);
+  border-top: none;
   background: var(--surface);
   flex-shrink: 0;
 }
@@ -1192,7 +1192,7 @@ html, body, #root {
 .flow-switcher {
   display: flex;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   padding: 0 16px;
   gap: 8px;
   flex-shrink: 0;
@@ -1515,7 +1515,7 @@ input[type="number"] {
 /* Compact Header for Expense Modal / Mobile Drawer (Global for Desktop & Mobile) */
 .compact-expense-header {
   padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   display: flex;
   align-items: center;
   justify-content: space-between;

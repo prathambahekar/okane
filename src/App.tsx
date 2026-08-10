@@ -589,24 +589,6 @@ function AppInner() {
                 </Box>
               )}
 
-              {enableAIAssistant && (
-                <IconButton
-                  size="small"
-                  onClick={() => setShowAIAssistant(true)}
-                  sx={{
-                    color: 'primary.main',
-                    bgcolor: 'var(--accent-soft)',
-                    p: 0.6,
-                    borderRadius: '10px',
-                    transition: 'transform 0.2s ease',
-                    '&:active': { transform: 'scale(0.9)' }
-                  }}
-                  title="AI Assistant"
-                >
-                  <Sparkles size={17} />
-                </IconButton>
-              )}
-
               <NotificationBell onNavigate={navigate} />
             </Box>
           </Toolbar>
