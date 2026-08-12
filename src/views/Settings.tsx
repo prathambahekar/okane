@@ -226,7 +226,7 @@ export default function Settings({
   const [newColorName, setNewColorName] = useState('');
   const [isCustomAccentCardExpanded, setIsCustomAccentCardExpanded] = useState(false);
   const [showCustomColorPickerModal, setShowCustomColorPickerModal] = useState(false);
-  const customAccentInputRef = useRef<HTMLInputElement>(null);
+  // const customAccentInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveCustomColor = () => {
     const hex = customColor.trim();
@@ -2291,7 +2291,7 @@ export default function Settings({
                       <GitPullRequest size={14} style={{ color: 'var(--accent)' }} />
                       <span>GitHub Personal Access Token Settings</span>
                     </summary>
-                    
+
                     <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--surface2)', padding: 12, borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>
                         <strong style={{ color: 'var(--text)' }}>What is this token?</strong>
