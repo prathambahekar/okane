@@ -38,7 +38,7 @@ export const AVAILABLE_ICONS = [
   { id: 'shopping', label: 'Shopping', Icon: ShoppingBag },
   { id: 'travel', label: 'Travel / Flights', Icon: Plane },
   { id: 'health', label: 'Health / Medical', Icon: HeartPulse },
-  { id: 'income', label: 'Income / Salary', Icon: TrendingUp },
+  { id: 'income', label: 'Income', Icon: TrendingUp },
   { id: 'refund', label: 'Refund / Cashback', Icon: RotateCcw },
   { id: 'education', label: 'Education', Icon: GraduationCap },
   { id: 'gift', label: 'Gift', Icon: Gift },

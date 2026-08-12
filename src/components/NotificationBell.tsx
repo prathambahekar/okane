@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, RefreshCw, Zap, CheckCircle2, ArrowRight, X, ArrowUpCircle, Sparkles } from 'lucide-react';
+import { Bell, RefreshCw, Zap, CheckCircle2, ArrowRight, ArrowUpCircle, Sparkles, X } from 'lucide-react';
 import { useStore } from '../store';
 import { todayISO } from '../db';
 import { fmtMoney } from '../utils';
@@ -114,7 +114,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                 </div>
                 <button
                   type="button"
-                  className="btn-icon"
+                  className="btn-icon drawer-close-btn"
                   onClick={() => setOpen(false)}
                   aria-label="Close dialog"
                 >

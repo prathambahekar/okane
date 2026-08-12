@@ -16,7 +16,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
   return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal confirm-modal" onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)' }}>
-        <div className="modal-header" style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--border)', background: 'transparent' }}>
+        <div className="modal-header" style={{ padding: '18px 20px 10px', borderBottom: 'none', background: 'transparent' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
@@ -54,7 +54,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
           </p>
         </div>
 
-        <div className="confirm-actions" style={{ padding: '14px 20px 18px', background: 'transparent', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <div className="confirm-actions" style={{ padding: '10px 20px 18px', background: 'transparent', borderTop: 'none', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button
             className="btn btn-secondary btn-sm"
             onClick={onClose}

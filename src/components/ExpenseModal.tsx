@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, TrendingDown, TrendingUp, User, Users, Briefcase, CheckSquare, Square, HeartHandshake, Sparkles, ArrowRight, ArrowLeft, CheckCircle2, FileText, Plus, Search } from 'lucide-react';
+import { X, TrendingDown, TrendingUp, User, Users, CheckSquare, Square, HeartHandshake, Sparkles, ArrowRight, ArrowLeft, CheckCircle2, FileText, Plus, Search, Store } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types';
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
@@ -16,6 +16,7 @@ export interface ExpenseInitialData {
   splitMode?: 'just_me' | 'for_friend' | 'pay_debt';
   walletId?: string;
   friendId?: string;
+  vendorId?: string;
   date?: string;
   notes?: string;
 }
@@ -90,8 +91,13 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
   const [splitMode, setSplitMode] = useState<'just_me' | 'for_friend' | 'pay_debt'>(initialSplitMode);
   const [flow, setFlow] = useState<ExpenseFlow>(initialData?.flow ?? expense?.flow ?? 'out');
   const [friendId, setFriendId] = useState(initialFriendId);
+  const [vendorId, setVendorId] = useState<string>(initialData?.vendorId ?? expense?.vendorId ?? '');
+  const [isAddingVendor, setIsAddingVendor] = useState(false);
+  const [newVendorName, setNewVendorName] = useState('');
   const [walletId, setWalletId] = useState(initialData?.walletId ?? expense?.walletId ?? s.defaultWalletId);
   const [status, setStatus] = useState<ExpenseStatus>(expense?.status ?? s.defaultStatus);
+
+  const vendorsList = useMemo(() => db.friends.filter(f => f.type === 'vendor'), [db.friends]);
   const [notes, setNotes] = useState(initialData?.notes ?? expense?.notes ?? '');
   const [showNotes, setShowNotes] = useState(() => Boolean(initialData?.notes || expense?.notes));
   const [error, setError] = useState('');
@@ -349,6 +355,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
         type: targetType,
         flow: 'in',
         friendId: targetType === 'personal' ? null : (friendId || null),
+        vendorId: vendorId || null,
         walletId,
         status: 'paid',
         settled: isAutoSettling,
@@ -440,6 +447,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
         type: 'by_friend',
         flow: 'out',
         friendId,
+        vendorId: vendorId || null,
         walletId,
         status: 'paid',
         settled: isAutoSettling,
@@ -516,6 +524,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
             type: 'for_friend',
             flow,
             friendId: fId,
+            vendorId: vendorId || null,
             walletId,
             status: 'unsettled',
             notes,
@@ -533,7 +542,8 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
           type: 'personal',
           flow,
           walletId,
-          status: 'paid',
+          vendorId: vendorId || null,
+          status: status,
           notes,
         });
       }
@@ -555,6 +565,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
         category, date, type: calculatedType,
         flow,
         friendId: friendId || null,
+        vendorId: vendorId || null,
         walletId: whoPaid === 'other' ? '' : walletId,
         status: calculatedStatus,
         notes,
@@ -614,7 +625,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
               </button>
             </div>
           )}
-          <button className="btn-icon compact-close-btn" onClick={onClose} aria-label="Close dialog"><X size={18} /></button>
+          <button className="btn-icon compact-close-btn drawer-close-btn" onClick={onClose} aria-label="Close dialog"><X size={18} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="expense-modal-form">
@@ -1054,24 +1065,160 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                     </div>
                   </div>
 
-                  {/* Paid From (Wallet) & Status — ONLY shown when I Paid! */}
+                  {/* Wallet & Vendor on the Same Row with Inline Payment Status (Only shown when I paid) */}
                   {whoPaid === 'me' && (
                     <div className="form-row">
                       <div className="form-group">
-                        <label className="form-label">Paid From (Wallet)</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <label className="form-label" style={{ margin: 0, fontSize: 11.5 }}>
+                            {status === 'unpaid' ? 'Wallet (For Settlement)' : 'Paid From'}
+                          </label>
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              background: 'var(--surface2)',
+                              padding: '2px',
+                              borderRadius: 6,
+                              border: '1px solid var(--border)',
+                              gap: 2,
+                            }}
+                          >
+                            <button
+                              type="button"
+                              title="Paid now from wallet"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                padding: '2px 7px',
+                                borderRadius: 4,
+                                border: 'none',
+                                fontSize: 10.5,
+                                fontWeight: status === 'paid' ? 700 : 500,
+                                cursor: 'pointer',
+                                background: status === 'paid' ? 'var(--surface)' : 'transparent',
+                                color: status === 'paid' ? 'var(--credit, #22c55e)' : 'var(--text-3)',
+                                boxShadow: status === 'paid' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                                transition: 'all 0.12s ease',
+                              }}
+                              onClick={() => setStatus('paid')}
+                            >
+                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--credit, #22c55e)' }} />
+                              Paid
+                            </button>
+                            <button
+                              type="button"
+                              title="Unpaid debt / pending bill"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                padding: '2px 7px',
+                                borderRadius: 4,
+                                border: 'none',
+                                fontSize: 10.5,
+                                fontWeight: status === 'unpaid' ? 700 : 500,
+                                cursor: 'pointer',
+                                background: status === 'unpaid' ? 'var(--surface)' : 'transparent',
+                                color: status === 'unpaid' ? 'var(--debit, #ef4444)' : 'var(--text-3)',
+                                boxShadow: status === 'unpaid' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                                transition: 'all 0.12s ease',
+                              }}
+                              onClick={() => setStatus('unpaid')}
+                            >
+                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--debit, #ef4444)' }} />
+                              Debt
+                            </button>
+                          </div>
+                        </div>
                         <select className="form-select" value={walletId} onChange={e => setWalletId(e.target.value)}>
                           {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                         </select>
                       </div>
-                      {splitMode === 'just_me' && (
-                        <div className="form-group">
-                          <label className="form-label">Status</label>
-                          <select className="form-select" value={status} onChange={e => setStatus(e.target.value as ExpenseStatus)}>
-                            <option value="paid">Paid</option>
-                            <option value="unpaid">Unpaid</option>
-                          </select>
+
+                      <div className="form-group">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <label className="form-label" style={{ margin: 0, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Store size={12} style={{ color: 'var(--text-3)' }} /> Vendor (Optional)
+                          </label>
+                          {!isAddingVendor && (
+                            <button
+                              type="button"
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                fontSize: 10.5,
+                                fontWeight: 600,
+                                color: 'var(--accent)',
+                                cursor: 'pointer',
+                                padding: 0,
+                              }}
+                              onClick={() => setIsAddingVendor(true)}
+                            >
+                              + Add
+                            </button>
+                          )}
                         </div>
-                      )}
+
+                        {isAddingVendor ? (
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center', animation: 'fadein 0.15s ease' }}>
+                            <input
+                              className="form-input"
+                              style={{ fontSize: 11.5, height: 34, flex: 1, padding: '0 8px' }}
+                              placeholder="Store name..."
+                              value={newVendorName}
+                              onChange={e => setNewVendorName(e.target.value)}
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              style={{ height: 34, padding: '0 8px', fontSize: 10.5 }}
+                              onClick={() => {
+                                if (newVendorName.trim()) {
+                                  const created = addFriend({ name: newVendorName.trim(), type: 'vendor' });
+                                  setVendorId(created.id);
+                                  showToast(`Added vendor ${created.name}`);
+                                  setNewVendorName('');
+                                  setIsAddingVendor(false);
+                                }
+                              }}
+                            >
+                              Add
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              style={{ height: 34, padding: '0 6px', fontSize: 10.5 }}
+                              onClick={() => {
+                                setIsAddingVendor(false);
+                                setNewVendorName('');
+                              }}
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <select
+                            className="form-select"
+                            value={vendorId}
+                            onChange={e => {
+                              if (e.target.value === '__add_new__') {
+                                setIsAddingVendor(true);
+                              } else {
+                                setVendorId(e.target.value);
+                              }
+                            }}
+                          >
+                            <option value="">— None —</option>
+                            {vendorsList.map(v => (
+                              <option key={v.id} value={v.id}>{v.name}</option>
+                            ))}
+                            <option value="__add_new__">+ Add Store...</option>
+                          </select>
+                        )}
+                      </div>
                     </div>
                   )}
                 </>
@@ -1092,7 +1239,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                           setError('');
                         }}
                       >
-                        <Briefcase size={16} /> Salary / Allowance
+                        <TrendingUp size={16} /> Income
                       </button>
                       <button
                         type="button"
@@ -1530,8 +1677,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
             {/* Dialog Header */}
             <div
               style={{
-                padding: '14px 18px 12px',
-                borderBottom: '1px solid var(--border)',
+                padding: '14px 18px 8px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -1581,16 +1727,34 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
               </button>
             </div>
 
-            {/* Search & Inline Category Filter Row */}
-            <div style={{ padding: '10px 18px 8px', background: 'var(--surface2)', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
+            {/* Merged Ultra-Sleek Search & Filter Bar */}
+            <div style={{ padding: '0 18px 8px', background: 'var(--surface)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  padding: '3px 4px 3px 10px',
+                }}
+              >
+                {/* Search Input Box */}
+                <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 75, gap: 6 }}>
+                  <Search size={13} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
                   <input
                     type="text"
-                    className="form-input"
-                    style={{ paddingLeft: 28, paddingRight: 24, fontSize: 12, height: 32, borderRadius: 'var(--radius)' }}
-                    placeholder="Search or add friend..."
+                    style={{
+                      width: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: 12,
+                      color: 'var(--text)',
+                      padding: '4px 0',
+                    }}
+                    placeholder="Search or add..."
                     value={pickerSearch}
                     onChange={e => setPickerSearch(e.target.value)}
                     autoFocus
@@ -1598,7 +1762,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                   {pickerSearch && (
                     <button
                       type="button"
-                      style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer' }}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', padding: '0 4px', display: 'flex', alignItems: 'center' }}
                       onClick={() => setPickerSearch('')}
                     >
                       <X size={12} />
@@ -1606,12 +1770,12 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                   )}
                 </div>
 
-                {/* Inline Quick Add Friend */}
+                {/* Quick Add Button if typed search doesn't match existing */}
                 {pickerSearch.trim() && !filteredPickerFriends.some(f => f.name.toLowerCase() === pickerSearch.trim().toLowerCase()) && (
                   <button
                     type="button"
                     className="btn btn-primary btn-sm"
-                    style={{ fontSize: 11, padding: '0 10px', height: 32, whiteSpace: 'nowrap' }}
+                    style={{ fontSize: 10.5, padding: '2px 8px', height: 26, borderRadius: 8, whiteSpace: 'nowrap', flexShrink: 0 }}
                     onClick={() => {
                       const created = addFriend({ name: pickerSearch.trim(), type: 'friend' });
                       setSelectedFriendIds(prev => [...prev, created.id]);
@@ -1619,41 +1783,43 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                       setPickerSearch('');
                     }}
                   >
-                    <Plus size={12} /> Add
+                    <Plus size={11} /> Add
                   </button>
                 )}
-              </div>
 
-              {/* Filter Pills & Select All Bar */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
-                <div style={{ display: 'flex', gap: 4 }}>
+                {/* Filter Segment Pills */}
+                <div style={{ display: 'flex', gap: 2, background: 'var(--surface)', padding: 2, borderRadius: 8, border: '1px solid var(--border)', flexShrink: 0 }}>
                   <button
                     type="button"
                     style={{
-                      fontSize: 10.5,
-                      padding: '2px 8px',
-                      borderRadius: 99,
-                      border: '1px solid var(--border)',
-                      background: pickerTypeFilter === 'all' ? 'var(--accent)' : 'var(--surface)',
-                      color: pickerTypeFilter === 'all' ? 'var(--accent-contrast)' : 'var(--text-2)',
-                      fontWeight: pickerTypeFilter === 'all' ? 600 : 500,
+                      fontSize: 10,
+                      padding: '2px 6px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: pickerTypeFilter === 'all' ? 'var(--accent)' : 'transparent',
+                      color: pickerTypeFilter === 'all' ? 'var(--accent-contrast)' : 'var(--text-3)',
+                      fontWeight: pickerTypeFilter === 'all' ? 700 : 500,
                       cursor: 'pointer',
+                      transition: 'all 0.12s ease',
+                      lineHeight: 1.2,
                     }}
                     onClick={() => setPickerTypeFilter('all')}
                   >
-                    All ({db.friends.length})
+                    All
                   </button>
                   <button
                     type="button"
                     style={{
-                      fontSize: 10.5,
-                      padding: '2px 8px',
-                      borderRadius: 99,
-                      border: '1px solid var(--border)',
-                      background: pickerTypeFilter === 'friend' ? 'var(--accent)' : 'var(--surface)',
-                      color: pickerTypeFilter === 'friend' ? 'var(--accent-contrast)' : 'var(--text-2)',
-                      fontWeight: pickerTypeFilter === 'friend' ? 600 : 500,
+                      fontSize: 10,
+                      padding: '2px 6px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: pickerTypeFilter === 'friend' ? 'var(--accent)' : 'transparent',
+                      color: pickerTypeFilter === 'friend' ? 'var(--accent-contrast)' : 'var(--text-3)',
+                      fontWeight: pickerTypeFilter === 'friend' ? 700 : 500,
                       cursor: 'pointer',
+                      transition: 'all 0.12s ease',
+                      lineHeight: 1.2,
                     }}
                     onClick={() => setPickerTypeFilter('friend')}
                   >
@@ -1662,14 +1828,16 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                   <button
                     type="button"
                     style={{
-                      fontSize: 10.5,
-                      padding: '2px 8px',
-                      borderRadius: 99,
-                      border: '1px solid var(--border)',
-                      background: pickerTypeFilter === 'vendor' ? 'var(--accent)' : 'var(--surface)',
-                      color: pickerTypeFilter === 'vendor' ? 'var(--accent-contrast)' : 'var(--text-2)',
-                      fontWeight: pickerTypeFilter === 'vendor' ? 600 : 500,
+                      fontSize: 10,
+                      padding: '2px 6px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: pickerTypeFilter === 'vendor' ? 'var(--accent)' : 'transparent',
+                      color: pickerTypeFilter === 'vendor' ? 'var(--accent-contrast)' : 'var(--text-3)',
+                      fontWeight: pickerTypeFilter === 'vendor' ? 700 : 500,
                       cursor: 'pointer',
+                      transition: 'all 0.12s ease',
+                      lineHeight: 1.2,
                     }}
                     onClick={() => setPickerTypeFilter('vendor')}
                   >
@@ -1677,9 +1845,20 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                   </button>
                 </div>
 
+                {/* Select All Action */}
                 <button
                   type="button"
-                  style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--accent)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: 10.5,
+                    color: 'var(--accent)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: '2px 4px',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
                   onClick={() => {
                     if (selectedFriendIds.length === db.friends.length) {
                       setSelectedFriendIds([]);
@@ -1698,13 +1877,13 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                     }
                   }}
                 >
-                  {selectedFriendIds.length === db.friends.length ? 'Clear All' : 'Select All'}
+                  {selectedFriendIds.length === db.friends.length ? 'Clear' : 'Select All'}
                 </button>
               </div>
             </div>
 
             {/* Equal / Dynamic Vertical Space: Friend Selection Section */}
-            <div style={{ flex: splitCalcMode === 'custom' && selectedFriendIds.length > 2 ? 0.5 : (selectedFriendIds.length > 1 ? 0.7 : 1), minHeight: 0, overflowY: 'auto', padding: '10px 18px', background: 'var(--surface)', transition: 'flex 0.2s ease' }}>
+            <div style={{ flex: splitCalcMode === 'custom' && selectedFriendIds.length > 2 ? 0.5 : (selectedFriendIds.length > 1 ? 0.7 : 1), minHeight: 0, overflowY: 'auto', padding: '6px 18px 10px', background: 'var(--surface)', transition: 'flex 0.2s ease' }}>
               {(() => {
                 const showYouChip = (pickerTypeFilter === 'all' || pickerTypeFilter === 'friend') &&
                   (!pickerSearch.trim() || 'you'.includes(pickerSearch.toLowerCase().trim()) || 'me'.includes(pickerSearch.toLowerCase().trim()));
@@ -1719,109 +1898,24 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                 }
 
                 return (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))', gap: 6 }}>
-                    {showYouChip && (
-                      <div
-                        onClick={() => {
-                          if (isYouSelected) {
-                            if (selectedFriendIds.length > 1) {
-                              handleSelectSplitCalcMode('custom', false);
-                            } else {
-                              handleSelectSplitCalcMode('equal_friends');
-                            }
-                          } else {
-                            if (selectedFriendIds.length > 1) {
-                              handleSelectSplitCalcMode('custom', true);
-                            } else {
-                              handleSelectSplitCalcMode('equal_all');
-                            }
-                          }
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '5px 8px',
-                          borderRadius: 8,
-                          background: isYouSelected ? 'var(--accent-soft)' : 'var(--surface2)',
-                          border: isYouSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-                          cursor: 'pointer',
-                          userSelect: 'none',
-                          transition: 'all 0.1s ease',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                          <div
-                            style={{
-                              width: 22,
-                              height: 22,
-                              borderRadius: '50%',
-                              background: 'var(--accent)',
-                              color: 'var(--accent-contrast)',
-                              fontSize: 10,
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                            }}
-                          >
-                            Y
-                          </div>
-                          <span style={{ fontSize: 11.5, fontWeight: isYouSelected ? 700 : 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            You (Me)
-                          </span>
-                        </div>
-
+                  <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, padding: 8 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))', gap: 6 }}>
+                      {showYouChip && (
                         <div
-                          style={{
-                            width: 15,
-                            height: 15,
-                            borderRadius: '50%',
-                            background: isYouSelected ? 'var(--accent)' : 'transparent',
-                            border: isYouSelected ? 'none' : '1px solid var(--text-3)',
-                            display: 'grid',
-                            placeItems: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {isYouSelected && <CheckCircle2 size={11} style={{ color: 'var(--accent-contrast)' }} />}
-                        </div>
-                      </div>
-                    )}
-
-                    {filteredPickerFriends.map(f => {
-                      const isSel = selectedFriendIds.includes(f.id);
-                      return (
-                        <div
-                          key={f.id}
                           onClick={() => {
-                            setSelectedFriendIds(prev => {
-                              const isCurrentlySel = prev.includes(f.id);
-                              const next = isCurrentlySel ? prev.filter(id => id !== f.id) : [...prev, f.id];
-                              if (next.length > 1) {
-                                handleSelectSplitCalcMode('custom', isYouSelected);
-                              } else if (next.length === 1) {
-                                if (isYouSelected) {
-                                  handleSelectSplitCalcMode('equal_all');
-                                } else {
-                                  handleSelectSplitCalcMode('equal_friends');
-                                }
+                            if (isYouSelected) {
+                              if (selectedFriendIds.length > 1) {
+                                handleSelectSplitCalcMode('custom', false);
+                              } else {
+                                handleSelectSplitCalcMode('equal_friends');
                               }
-                              if (next.length > 0) {
-                                const tot = parseFloat(amount) || 0;
-                                const denom = isYouSelected ? next.length + 1 : next.length;
-                                const equalVal = tot > 0 && denom > 0 ? String(Math.floor((tot * 100) / denom) / 100) : '0';
-                                setCustomFriendShares(existing => {
-                                  const updated = { ...existing };
-                                  next.forEach(id => {
-                                    if (!updated[id] || updated[id] === '0') updated[id] = equalVal;
-                                  });
-                                  return updated;
-                                });
+                            } else {
+                              if (selectedFriendIds.length > 1) {
+                                handleSelectSplitCalcMode('custom', true);
+                              } else {
+                                handleSelectSplitCalcMode('equal_all');
                               }
-                              return next;
-                            });
+                            }
                           }}
                           style={{
                             display: 'flex',
@@ -1829,8 +1923,8 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                             justifyContent: 'space-between',
                             padding: '5px 8px',
                             borderRadius: 8,
-                            background: isSel ? 'var(--accent-soft)' : 'var(--surface2)',
-                            border: isSel ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                            background: isYouSelected ? 'var(--accent-soft)' : 'var(--surface)',
+                            border: isYouSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
                             cursor: 'pointer',
                             userSelect: 'none',
                             transition: 'all 0.1s ease',
@@ -1842,7 +1936,8 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                                 width: 22,
                                 height: 22,
                                 borderRadius: '50%',
-                                ...getAvatarStyle(f.color),
+                                background: 'var(--accent)',
+                                color: 'var(--accent-contrast)',
                                 fontSize: 10,
                                 fontWeight: 700,
                                 display: 'flex',
@@ -1851,10 +1946,10 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                                 flexShrink: 0,
                               }}
                             >
-                              {f.name[0]?.toUpperCase()}
+                              Y
                             </div>
-                            <span style={{ fontSize: 11.5, fontWeight: isSel ? 700 : 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {f.name}
+                            <span style={{ fontSize: 11.5, fontWeight: isYouSelected ? 700 : 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              You (Me)
                             </span>
                           </div>
 
@@ -1863,25 +1958,111 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                               width: 15,
                               height: 15,
                               borderRadius: '50%',
-                              background: isSel ? 'var(--accent)' : 'transparent',
-                              border: isSel ? 'none' : '1px solid var(--text-3)',
+                              background: isYouSelected ? 'var(--accent)' : 'transparent',
+                              border: isYouSelected ? 'none' : '1px solid var(--text-3)',
                               display: 'grid',
                               placeItems: 'center',
                               flexShrink: 0,
                             }}
                           >
-                            {isSel && <CheckCircle2 size={11} style={{ color: 'var(--accent-contrast)' }} />}
+                            {isYouSelected && <CheckCircle2 size={11} style={{ color: 'var(--accent-contrast)' }} />}
                           </div>
                         </div>
-                      );
-                    })}
+                      )}
+
+                      {filteredPickerFriends.map(f => {
+                        const isSel = selectedFriendIds.includes(f.id);
+                        return (
+                          <div
+                            key={f.id}
+                            onClick={() => {
+                              setSelectedFriendIds(prev => {
+                                const isCurrentlySel = prev.includes(f.id);
+                                const next = isCurrentlySel ? prev.filter(id => id !== f.id) : [...prev, f.id];
+                                if (next.length > 1) {
+                                  handleSelectSplitCalcMode('custom', isYouSelected);
+                                } else if (next.length === 1) {
+                                  if (isYouSelected) {
+                                    handleSelectSplitCalcMode('equal_all');
+                                  } else {
+                                    handleSelectSplitCalcMode('equal_friends');
+                                  }
+                                }
+                                if (next.length > 0) {
+                                  const tot = parseFloat(amount) || 0;
+                                  const denom = isYouSelected ? next.length + 1 : next.length;
+                                  const equalVal = tot > 0 && denom > 0 ? String(Math.floor((tot * 100) / denom) / 100) : '0';
+                                  setCustomFriendShares(existing => {
+                                    const updated = { ...existing };
+                                    next.forEach(id => {
+                                      if (!updated[id] || updated[id] === '0') updated[id] = equalVal;
+                                    });
+                                    return updated;
+                                  });
+                                }
+                                return next;
+                              });
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '5px 8px',
+                              borderRadius: 8,
+                              background: isSel ? 'var(--accent-soft)' : 'var(--surface)',
+                              border: isSel ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                              cursor: 'pointer',
+                              userSelect: 'none',
+                              transition: 'all 0.1s ease',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  width: 22,
+                                  height: 22,
+                                  borderRadius: '50%',
+                                  ...getAvatarStyle(f.color),
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {f.name[0]?.toUpperCase()}
+                              </div>
+                              <span style={{ fontSize: 11.5, fontWeight: isSel ? 700 : 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {f.name}
+                              </span>
+                            </div>
+
+                            <div
+                              style={{
+                                width: 15,
+                                height: 15,
+                                borderRadius: '50%',
+                                background: isSel ? 'var(--accent)' : 'transparent',
+                                border: isSel ? 'none' : '1px solid var(--text-3)',
+                                display: 'grid',
+                                placeItems: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {isSel && <CheckCircle2 size={11} style={{ color: 'var(--accent-contrast)' }} />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })()}
             </div>
 
             {/* Dynamic Vertical Space: Split Rule Section */}
-            <div style={{ flex: splitCalcMode === 'custom' && selectedFriendIds.length > 2 ? 1.8 : (selectedFriendIds.length > 1 ? 1.4 : 1), minHeight: 0, overflowY: 'auto', borderTop: '1px solid var(--border)', background: 'var(--surface2)', padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10, transition: 'flex 0.2s ease' }}>
+            <div style={{ flex: splitCalcMode === 'custom' && selectedFriendIds.length > 2 ? 1.8 : (selectedFriendIds.length > 1 ? 1.4 : 1), minHeight: 0, overflowY: 'auto', background: 'var(--surface)', padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10, transition: 'flex 0.2s ease' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Split Rule
@@ -1895,7 +2076,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
               <div
                 style={{
                   display: 'flex',
-                  background: 'var(--surface)',
+                  background: 'var(--surface2)',
                   padding: 3,
                   borderRadius: 10,
                   border: '1px solid var(--border)',
@@ -1968,7 +2149,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                     maxHeight: selectedFriendIds.length > 4 ? 260 : (selectedFriendIds.length > 2 ? 200 : 130),
                     overflowY: 'auto',
                     padding: '8px 10px',
-                    background: 'var(--surface)',
+                    background: 'var(--surface2)',
                     borderRadius: 10,
                     border: '1px solid var(--border)',
                   }}
@@ -2016,7 +2197,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                 <div
                   style={{
                     padding: '10px 12px',
-                    background: 'var(--surface)',
+                    background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     borderRadius: 10,
                     display: 'flex',
@@ -2057,7 +2238,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
             </div>
 
             {/* Footer Actions */}
-            <div style={{ padding: '12px 18px', background: 'var(--surface)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
+            <div style={{ padding: '12px 18px', background: 'var(--surface)', borderTop: 'none', display: 'flex', gap: 10 }}>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"

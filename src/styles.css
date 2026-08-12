@@ -36,11 +36,11 @@
 
 [data-color-scheme="dark"] {
   --bg: #0f0f11;
-  --surface: #18181b;
-  --surface2: #222226;
-  --surface3: #2c2c32;
-  --border: #2c2f36;
-  --border2: #3a3e47;
+  --surface: #121212;
+  --surface2: #1e1e24;
+  --surface3: #292932;
+  --border: #2a2a32;
+  --border2: #383844;
   --text: #eceef2;
   --text-2: #9ea3b0;
   --text-3: #6b7080;
@@ -427,6 +427,12 @@ html, body, #root {
   font-size: 13px;
   color: var(--text-2);
   margin-top: 2px;
+}
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* Cards */
@@ -1109,6 +1115,11 @@ html, body, #root {
 }
 
 /* Drawer Modal / Sheet Styles for Settings & Dialogs */
+.MuiDrawer-paper {
+  background-color: var(--surface) !important;
+  background-image: none !important;
+}
+
 .sheet-backdrop {
   position: fixed;
   inset: 0;
@@ -1579,6 +1590,9 @@ input[type="number"] {
 }
 
 @media (max-width: 640px) {
+  .drawer-close-btn {
+    display: none !important;
+  }
   .modal-handle-bar {
     display: flex;
     justify-content: center;
@@ -1906,6 +1920,21 @@ input[type="number"] {
   .page-title { display: none; }
   .page-header { margin-bottom: 12px; }
   .page-header:not(:has(button:not(.desktop-only))) { display: none; }
+  .page-header-actions {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  .page-header-actions .btn {
+    flex: 1 1 0px;
+    min-width: 0;
+    justify-content: center;
+    white-space: nowrap;
+    padding: 8px 10px;
+    font-size: 12.5px;
+  }
   .form-row { grid-template-columns: 1fr 1fr; }
   .stat-grid { grid-template-columns: 1fr 1fr; }
   .toast-container { bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
@@ -2151,7 +2180,7 @@ input[type="number"] {
   justify-content: flex-end;
   padding: 12px 20px 18px;
   background: var(--surface);
-  border-top: 1px solid var(--border);
+  border-top: none;
 }
 
 @media (max-width: 640px) {

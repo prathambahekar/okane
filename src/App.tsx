@@ -753,8 +753,8 @@ function AppInner() {
       >
         <Box sx={{ width: 40, height: 4, bgcolor: 'divider', borderRadius: 99, mx: 'auto', mb: 2 }} />
 
-        {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
+        {/* Header close button: hidden on mobile drawer, shown on desktop */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
           <IconButton size="small" onClick={() => setMoreOpen(false)} sx={{ bgcolor: 'action.hover' }}>
             <X size={18} />
           </IconButton>

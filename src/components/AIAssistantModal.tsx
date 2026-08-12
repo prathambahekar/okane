@@ -875,6 +875,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         size="small"
         onClick={onClose}
         sx={{
+          display: { xs: 'none', md: 'inline-flex' },
           color: 'var(--text-2)',
           p: 0.75,
           borderRadius: '50%',

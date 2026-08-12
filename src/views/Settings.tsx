@@ -807,6 +807,7 @@ export default function Settings({
 
                 <button
                   type="button"
+                  className="drawer-close-btn"
                   onClick={() => setShowAppearanceSheet(false)}
                   style={{
                     background: 'var(--surface2)',
@@ -1191,6 +1192,7 @@ export default function Settings({
 
                 <button
                   type="button"
+                  className="drawer-close-btn"
                   onClick={() => setShowPerformanceSheet(false)}
                   style={{
                     background: 'var(--surface2)',
@@ -1338,6 +1340,7 @@ export default function Settings({
 
                 <button
                   type="button"
+                  className="drawer-close-btn"
                   onClick={() => setShowPreferencesSheet(false)}
                   style={{
                     background: 'var(--surface2)',
@@ -1454,6 +1457,7 @@ export default function Settings({
                   </button>
                   <button
                     type="button"
+                    className="drawer-close-btn"
                     onClick={() => setShowCategoriesSheet(false)}
                     style={{
                       background: 'var(--surface2)',
@@ -1713,6 +1717,7 @@ export default function Settings({
 
                 <button
                   type="button"
+                  className="drawer-close-btn"
                   onClick={() => setShowDataSheet(false)}
                   style={{
                     background: 'var(--surface2)',
@@ -1821,6 +1826,7 @@ export default function Settings({
 
                 <button
                   type="button"
+                  className="drawer-close-btn"
                   onClick={() => setShowFeedbackSheet(false)}
                   style={{
                     background: 'var(--surface2)',
@@ -2110,6 +2116,7 @@ export default function Settings({
 
                 <button
                   type="button"
+                  className="drawer-close-btn"
                   onClick={() => setShowAdvancedSheet(false)}
                   style={{
                     background: 'var(--surface2)',
@@ -2323,6 +2330,7 @@ export default function Settings({
 
                 <button
                   type="button"
+                  className="drawer-close-btn"
                   onClick={() => setShowDevSheet(false)}
                   style={{
                     background: 'var(--surface2)',
@@ -2763,6 +2771,7 @@ export default function Settings({
 
                 <button
                   type="button"
+                  className="drawer-close-btn"
                   onClick={() => setShowVersionSheet(false)}
                   style={{
                     background: 'var(--surface2)',
@@ -3036,6 +3045,7 @@ export default function Settings({
               </div>
               <button
                 type="button"
+                className="drawer-close-btn"
                 onClick={() => setExportModalOpen(false)}
                 style={{
                   background: 'var(--surface2)',

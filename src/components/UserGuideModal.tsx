@@ -196,6 +196,7 @@ export default function UserGuideModal({
           onClick={onClose}
           size="small"
           sx={{
+            display: { xs: 'none', md: 'inline-flex' },
             color: 'var(--text-2)',
             borderRadius: '10px',
             p: 0.8,

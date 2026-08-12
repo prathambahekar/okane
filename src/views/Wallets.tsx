@@ -178,13 +178,13 @@ export default function Wallets() {
       <div className="page-header">
         <div>
           <h1 className="page-title">{enableEnvelopes ? 'Wallets & Envelopes' : 'Wallets'}</h1>
-          <p style={{ color: 'var(--text-2)', fontSize: 13, marginTop: 2 }}>
+          <p className="page-subtitle desktop-only">
             {enableEnvelopes
               ? 'Manage your physical wallets, bank accounts, and goal-based envelopes.'
               : 'Manage your physical wallets and bank accounts.'}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div className="page-header-actions">
           {enableEnvelopes && (
             <button
               className="btn btn-secondary"
@@ -797,7 +797,7 @@ export default function Wallets() {
                     </Typography>
                   </Box>
                 </Box>
-                <IconButton size="small" onClick={() => setSelectedWalletForTx(null)} sx={{ color: 'var(--text-2)' }}>
+                <IconButton size="small" onClick={() => setSelectedWalletForTx(null)} sx={{ color: 'var(--text-2)', display: { xs: 'none', md: 'inline-flex' } }}>
                   <X size={18} />
                 </IconButton>
               </Box>

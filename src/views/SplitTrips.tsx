@@ -295,6 +295,7 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
 
           <button
             type="button"
+            className="drawer-close-btn"
             onClick={onClose}
             style={{
               width: '32px',

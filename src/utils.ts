@@ -427,16 +427,16 @@ export function getAvatarStyle(color?: string): React.CSSProperties {
     return {
       background: 'var(--accent-soft)',
       color: 'var(--accent)',
-      border: '1px solid var(--border)',
+      border: '1px solid var(--accent-border-soft)',
     };
   }
 
   // Hex color (#RRGGBB)
   if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
     return {
-      background: `${color}1A`,
+      background: `${color}28`,
       color: color,
-      border: `1px solid ${color}33`,
+      border: `1px solid ${color}55`,
     };
   }
 
@@ -444,9 +444,9 @@ export function getAvatarStyle(color?: string): React.CSSProperties {
   if (/^#[0-9A-Fa-f]{3}$/.test(color)) {
     const fullHex = '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
     return {
-      background: `${fullHex}1A`,
+      background: `${fullHex}28`,
       color: fullHex,
-      border: `1px solid ${fullHex}33`,
+      border: `1px solid ${fullHex}55`,
     };
   }
 
