@@ -1091,7 +1091,9 @@ html, body, #root {
     border-top-right-radius: 20px;
     max-height: 85vh;
     animation: slideUpMobile 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-    border-bottom: none;
+    border: none !important;
+    background: var(--surface) !important;
+    background-color: var(--surface) !important;
   }
 
   .modal-handle-bar {
@@ -1118,6 +1120,28 @@ html, body, #root {
 .MuiDrawer-paper {
   background-color: var(--surface) !important;
   background-image: none !important;
+  border: none !important;
+}
+
+@media (max-width: 768px) {
+  .MuiDrawer-paper,
+  .MuiDrawer-paperAnchorBottom,
+  .MuiDrawer-paperAnchorLeft,
+  .MuiDrawer-paperAnchorRight,
+  .MuiDialog-paper,
+  .modal,
+  .modal.expense-drawer-modal,
+  .sheet-modal,
+  .friend-picker-sheet {
+    border: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    outline: none !important;
+    background-color: var(--surface) !important;
+    background: var(--surface) !important;
+  }
 }
 
 .sheet-backdrop {

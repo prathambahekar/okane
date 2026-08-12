@@ -151,7 +151,7 @@ export default function UserGuideModal({
     >
       {/* Mobile Drag Handle Indicator */}
       {isMobile && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.2, pb: 0.2, bgcolor: 'var(--surface2)' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.2, pb: 0.2, bgcolor: 'var(--surface)' }}>
           <Box sx={{ width: 38, height: 4, borderRadius: 2, bgcolor: 'var(--border2)' }} />
         </Box>
       )}
@@ -165,7 +165,7 @@ export default function UserGuideModal({
           alignItems: 'center',
           justifyContent: 'space-between',
           borderBottom: '1px solid var(--border)',
-          bgcolor: 'var(--surface2)',
+          bgcolor: 'var(--surface)',
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
