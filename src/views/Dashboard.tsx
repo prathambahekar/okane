@@ -60,7 +60,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
   const monthName = now.toLocaleDateString(undefined, { month: 'long' });
 
   return (
-    <div className="view-container">
+    <div className="view-container dashboard-view">
       <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
@@ -84,7 +84,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
           {/* Left Column: Total Net Worth & Interactive Wallet Chips */}
           <div style={{
             padding: '20px 24px',
-            borderRight: '1px solid var(--border)',
+            borderRight: 'none',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
@@ -145,9 +145,9 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 6,
-                        padding: '4px 10px',
-                        background: 'var(--surface)',
-                        border: '1px solid var(--border)',
+                        padding: '5px 12px',
+                        background: 'var(--surface2)',
+                        border: 'none',
                         borderRadius: 8,
                         fontSize: 11.5,
                         cursor: 'pointer',
