@@ -232,11 +232,16 @@ export default function Wallets() {
           return (
             <div
               key={w.id}
-              className="wallet-card"
               style={{
+                background: 'var(--surface)',
+                border: `1.5px solid var(--border)`,
+                borderRadius: 14,
+                padding: '20px',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
+                boxShadow: 'var(--shadow)',
                 position: 'relative',
               }}
             >
@@ -311,7 +316,7 @@ export default function Wallets() {
                   )}
 
                   <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ padding: '3px 8px', borderRadius: 6, background: 'var(--surface2)', fontSize: 11, fontWeight: 600, color: 'var(--text-2)' }}>
+                    <span style={{ padding: '3px 8px', borderRadius: 6, background: 'var(--surface-hover)', border: '1px solid var(--border)', fontSize: 11, fontWeight: 600, color: 'var(--text-2)' }}>
                       Opening Balance: <strong style={{ color: 'var(--text)' }}>{fmtMoney(w.openingBalance, currency)}</strong>
                     </span>
                   </div>
@@ -319,7 +324,7 @@ export default function Wallets() {
               </div>
 
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-2)', marginBottom: 14, paddingTop: 10, borderTop: '1px solid var(--surface2)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-2)', marginBottom: 14, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
                   <span>Monthly Spend</span>
                   <span style={{ fontWeight: 600, color: 'var(--debit)' }}>-{fmtMoney(wSpend, currency)}</span>
                 </div>
@@ -375,9 +380,12 @@ export default function Wallets() {
       {/* Envelopes Section */}
       {enableEnvelopes && (
         <div
-          className="card"
           style={{
+            background: 'var(--surface)',
+            border: '1.5px solid var(--border)',
+            borderRadius: 16,
             padding: 24,
+            boxShadow: 'var(--shadow)',
           }}
         >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>

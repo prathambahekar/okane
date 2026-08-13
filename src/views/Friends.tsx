@@ -484,15 +484,19 @@ export default function Friends({ onNavigate }: Props) {
             return (
               <div
                 key={f.id}
-                className="card card-hover"
                 onClick={() => onNavigate('friend-detail', f.id)}
                 style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
                   padding: 12,
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   gap: 10,
                   cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: 'var(--shadow-sm)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>

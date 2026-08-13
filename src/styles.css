@@ -1,5 +1,5 @@
 :root {
-  --bg: #f3f4f8;
+  --bg: #fafafa;
   --surface: #ffffff;
   --surface2: #f4f4f6;
   --surface3: #eaeaee;
@@ -35,15 +35,15 @@
 }
 
 [data-color-scheme="dark"] {
-  --bg: #0e0e0e;
-  --surface: #181818;
-  --surface2: #222222;
-  --surface3: #2a2a2a;
-  --border: #2c2c2c;
-  --border2: #3a3a3a;
-  --text: #f0f0f0;
-  --text-2: #a3a3a3;
-  --text-3: #737373;
+  --bg: #0f0f11;
+  --surface: #121212;
+  --surface2: #1e1e24;
+  --surface3: #292932;
+  --border: #2a2a32;
+  --border2: #383844;
+  --text: #eceef2;
+  --text-2: #9ea3b0;
+  --text-3: #6b7080;
   --accent: #42a5f5;
   --accent-soft: rgba(66,165,245,0.14);
   --accent-dark: #1976d2;
@@ -60,8 +60,8 @@
   --debit-bg: rgba(248, 113, 113, 0.12);
   --debit-border: rgba(248, 113, 113, 0.28);
   --info: #29b6f6;
-  --shadow: 0 4px 16px rgba(0,0,0,.45);
-  --shadow-lg: 0 16px 48px rgba(0,0,0,.65);
+  --shadow: 0 2px 10px rgba(0,0,0,.35);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.5);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -95,7 +95,7 @@ html, body, #root {
   background: var(--surface);
   display: flex;
   flex-direction: column;
-  border-right: none;
+  border-right: 1px solid var(--border);
   height: 100vh;
   position: sticky;
   top: 0;
@@ -106,17 +106,16 @@ html, body, #root {
   margin: 12px 0 12px 12px;
   height: calc(100vh - 24px);
   border-radius: var(--radius-xl);
-  border: none;
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
   z-index: 100;
   overflow: hidden;
   background: var(--surface);
 }
 
 [data-color-scheme="dark"] .sidebar.floating {
-  border: none;
-  background: #181818;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+  border-color: var(--border);
 }
 
 .sidebar.collapsed {
@@ -439,21 +438,21 @@ html, body, #root {
 /* Cards */
 .card {
   background: var(--surface);
-  border: none;
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 20px;
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
-  transition: box-shadow var(--transition), transform var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .card.card-accent {
   background: var(--accent-surface-gradient);
-  border: none;
-  box-shadow: 0 8px 24px var(--accent-soft);
+  border: 1px solid var(--accent-border-soft);
+  box-shadow: 0 4px 20px var(--accent-soft);
 }
 
 .card.card-hover:hover {
-  box-shadow: 0 14px 36px var(--accent-soft), 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: var(--accent-border-soft);
+  box-shadow: 0 6px 20px var(--accent-soft);
   transform: translateY(-2px);
 }
 
@@ -466,23 +465,16 @@ html, body, #root {
 
 .stat-card {
   background: var(--surface);
-  border: none;
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 18px 20px;
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
-  transition: box-shadow var(--transition), transform var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .stat-card:hover {
-  box-shadow: 0 12px 32px var(--accent-soft), 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: var(--accent-border-soft);
+  box-shadow: 0 4px 16px var(--accent-soft);
   transform: translateY(-2px);
-}
-
-[data-color-scheme="dark"] .card,
-[data-color-scheme="dark"] .stat-card {
-  border: none;
-  background: #181818;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .stat-label {
@@ -557,41 +549,6 @@ html, body, #root {
   font-size: 11px;
   color: var(--text-3);
   margin-top: 5px;
-}
-
-/* Dashboard Specific Borderless Cards with Elevated Soft Surfaces & Rich Shadows */
-.dashboard-view .card,
-.dashboard-view .stat-card {
-  border: none !important;
-  background: var(--surface) !important;
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03) !important;
-}
-
-.dashboard-view .dashboard-mini-stat {
-  border: none !important;
-  background: var(--surface2) !important;
-  box-shadow: none !important;
-}
-
-.dashboard-view .dashboard-mini-stat:hover {
-  background: var(--surface3) !important;
-}
-
-[data-color-scheme="dark"] .dashboard-view .card,
-[data-color-scheme="dark"] .dashboard-view .stat-card {
-  border: none !important;
-  background: #181818 !important;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-}
-
-[data-color-scheme="dark"] .dashboard-view .dashboard-mini-stat {
-  border: none !important;
-  background: #222222 !important;
-  box-shadow: none !important;
-}
-
-[data-color-scheme="dark"] .dashboard-view .dashboard-mini-stat:hover {
-  background: #2a2a2a !important;
 }
 
 /* Buttons */
@@ -1134,9 +1091,7 @@ html, body, #root {
     border-top-right-radius: 20px;
     max-height: 85vh;
     animation: slideUpMobile 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-    border: none !important;
-    background: var(--surface) !important;
-    background-color: var(--surface) !important;
+    border-bottom: none;
   }
 
   .modal-handle-bar {
@@ -1163,28 +1118,6 @@ html, body, #root {
 .MuiDrawer-paper {
   background-color: var(--surface) !important;
   background-image: none !important;
-  border: none !important;
-}
-
-@media (max-width: 768px) {
-  .MuiDrawer-paper,
-  .MuiDrawer-paperAnchorBottom,
-  .MuiDrawer-paperAnchorLeft,
-  .MuiDrawer-paperAnchorRight,
-  .MuiDialog-paper,
-  .modal,
-  .modal.expense-drawer-modal,
-  .sheet-modal,
-  .friend-picker-sheet {
-    border: none !important;
-    border-top: none !important;
-    border-bottom: none !important;
-    border-left: none !important;
-    border-right: none !important;
-    outline: none !important;
-    background-color: var(--surface) !important;
-    background: var(--surface) !important;
-  }
 }
 
 .sheet-backdrop {
@@ -2212,23 +2145,18 @@ input[type="number"] {
 /* Wallet card */
 .wallet-card {
   background: var(--surface);
-  border: none;
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 20px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
-  transition: box-shadow var(--transition), transform var(--transition);
 }
 .wallet-card::before {
-  display: none !important;
-  content: none !important;
-}
-
-[data-color-scheme="dark"] .wallet-card {
-  border: none;
-  background: #181818;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.3);
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--wallet-color, var(--accent));
 }
 
 /* Animations */
@@ -3266,17 +3194,10 @@ body.no-animations *::after,
 /* Contact List Styles */
 .contact-list-card {
   background: var(--surface);
-  border: none;
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
-  transition: box-shadow var(--transition), transform var(--transition);
-}
-
-[data-color-scheme="dark"] .contact-list-card {
-  border: none;
-  background: #181818;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .contact-row {
