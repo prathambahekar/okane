@@ -165,6 +165,7 @@ export function generateSQLDumpString(): string {
     expenses: (alasql('SELECT * FROM expenses') as Record<string, unknown>[]) || [],
     settlements: (alasql('SELECT * FROM settlements') as Record<string, unknown>[]) || [],
     recurring_rules: (alasql('SELECT * FROM recurring_rules') as Record<string, unknown>[]) || [],
+    envelopes: (alasql('SELECT * FROM envelopes') as Record<string, unknown>[]) || [],
     categories: (alasql('SELECT * FROM categories') as Record<string, unknown>[]) || [],
     settings: (alasql('SELECT * FROM settings') as Record<string, unknown>[]) || [],
   };
@@ -177,6 +178,7 @@ CREATE TABLE IF NOT EXISTS wallets (id TEXT PRIMARY KEY, name TEXT, openingBalan
 CREATE TABLE IF NOT EXISTS expenses (id TEXT PRIMARY KEY, groupId TEXT, description TEXT, amount REAL, category TEXT, date TEXT, type TEXT, flow TEXT, friendId TEXT, walletId TEXT, status TEXT, settled INTEGER, settlementId TEXT, notes TEXT, createdAt INTEGER, originalAmount REAL, settledAmount REAL, parentExpenseId TEXT, vendorId TEXT);
 CREATE TABLE IF NOT EXISTS settlements (id TEXT PRIMARY KEY, friendId TEXT, amount REAL, date TEXT, note TEXT, walletId TEXT, createdAt INTEGER, expenseIds TEXT, originalTotal REAL, remainingAmount REAL, partialBreakdown TEXT);
 CREATE TABLE IF NOT EXISTS recurring_rules (id TEXT PRIMARY KEY, title TEXT, kind TEXT, amount REAL, category TEXT, walletId TEXT, friendId TEXT, type TEXT, flow TEXT, frequency TEXT, intervalValue INTEGER, startDate TEXT, nextDueDate TEXT, autoDeduct INTEGER, status TEXT, notes TEXT, createdAt INTEGER);
+CREATE TABLE IF NOT EXISTS envelopes (id TEXT PRIMARY KEY, walletId TEXT, name TEXT, targetAmount REAL, currentAmount REAL, color TEXT, icon TEXT, targetDate TEXT, notes TEXT, createdAt INTEGER);
 CREATE TABLE IF NOT EXISTS categories (name TEXT PRIMARY KEY, color TEXT, icon TEXT);
 CREATE TABLE IF NOT EXISTS settings (st_key TEXT PRIMARY KEY, st_val TEXT);
 
@@ -215,6 +217,11 @@ CREATE TABLE IF NOT EXISTS settings (st_key TEXT PRIMARY KEY, st_val TEXT);
   sql += `\nDELETE FROM recurring_rules;\n`;
   dump.recurring_rules.forEach(r => {
     sql += `INSERT INTO recurring_rules (id, title, kind, amount, category, walletId, friendId, type, flow, frequency, intervalValue, startDate, nextDueDate, autoDeduct, status, notes, createdAt) VALUES (${escapeVal(r.id)}, ${escapeVal(r.title)}, ${escapeVal(r.kind)}, ${escapeVal(r.amount)}, ${escapeVal(r.category)}, ${escapeVal(r.walletId)}, ${escapeVal(r.friendId)}, ${escapeVal(r.type)}, ${escapeVal(r.flow)}, ${escapeVal(r.frequency)}, ${escapeVal(r.intervalValue)}, ${escapeVal(r.startDate)}, ${escapeVal(r.nextDueDate)}, ${escapeVal(r.autoDeduct)}, ${escapeVal(r.status)}, ${escapeVal(r.notes)}, ${escapeVal(r.createdAt)});\n`;
+  });
+
+  sql += `\nDELETE FROM envelopes;\n`;
+  dump.envelopes.forEach(e => {
+    sql += `INSERT INTO envelopes (id, walletId, name, targetAmount, currentAmount, color, icon, targetDate, notes, createdAt) VALUES (${escapeVal(e.id)}, ${escapeVal(e.walletId)}, ${escapeVal(e.name)}, ${escapeVal(e.targetAmount)}, ${escapeVal(e.currentAmount)}, ${escapeVal(e.color)}, ${escapeVal(e.icon)}, ${escapeVal(e.targetDate)}, ${escapeVal(e.notes)}, ${escapeVal(e.createdAt)});\n`;
   });
 
   sql += `\nDELETE FROM categories;\n`;

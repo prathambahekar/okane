@@ -25,6 +25,7 @@ interface Props {
   categoryObj?: Category;
   walletObj?: Wallet;
   friendsMap: Map<string, Friend>;
+  walletsMap?: Map<string, Wallet>;
   settlementObj?: Settlement | null;
 }
 
@@ -46,6 +47,7 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
   categoryObj,
   walletObj,
   friendsMap,
+  walletsMap,
   settlementObj,
 }) => {
   const primaryItem = ge.items[0];
@@ -57,8 +59,8 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
     } else {
       const outItem = ge.items.find((i: Expense) => i.flow === 'out');
       const inItem = ge.items.find((i: Expense) => i.flow === 'in');
-      const fromW = outItem ? friendsMap.get(outItem.walletId) : null;
-      const toW = inItem ? friendsMap.get(inItem.walletId) : null;
+      const fromW = outItem && walletsMap ? walletsMap.get(outItem.walletId) : null;
+      const toW = inItem && walletsMap ? walletsMap.get(inItem.walletId) : null;
       if (fromW || toW) {
         effectiveWalletName = `${fromW?.name || 'Wallet'} → ${toW?.name || 'Wallet'}`;
       }

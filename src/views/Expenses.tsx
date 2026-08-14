@@ -5,7 +5,7 @@ import type { Expense } from '../types';
 import { cleanExpenseDescription, getGroupSettlementStatus, groupExpenses } from '../utils';
 import ExpenseModal from '../components/ExpenseModal';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { ExpenseFilterBar } from '../components/expenses/ExpenseFilterBar';
+import { ExpenseFilterBar } from '../components/expense/ExpenseFilterBar';
 import { ExpenseTableRow } from '../components/expenses/ExpenseTableRow';
 import { ExpenseMobileCard } from '../components/expenses/ExpenseMobileCard';
 
@@ -303,6 +303,7 @@ export default function Expenses() {
                           categoryObj={cat}
                           walletObj={wallet}
                           friendsMap={friendsMap}
+                          walletsMap={walletsMap}
                           settlementObj={stl}
                         />
                       );
@@ -348,6 +349,7 @@ export default function Expenses() {
                     categoryObj={cat}
                     walletObj={wallet}
                     friendsMap={friendsMap}
+                    walletsMap={walletsMap}
                     settlementObj={stl}
                   />
                 );
