@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, RefreshCw, ArrowLeftRight } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, RefreshCw, ArrowLeftRight, Store } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses } from '../utils';
@@ -34,7 +34,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
     return s + b.owedByMe;
   }, 0);
 
-  const recentExpenses = useMemo(() => groupExpenses(expenses, db.wallets).slice(0, 5), [expenses, db.wallets]);
+  const recentExpenses = useMemo(() => groupExpenses(expenses, db.wallets, db.friends).slice(0, 5), [expenses, db.wallets, db.friends]);
 
   const balancedFriends = useMemo(() =>
     friends
@@ -222,6 +222,8 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 const cat = db.settings.categories.find(c => c.name === ge.category);
                 const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
                 const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
+                const vendorId = ge.vendorId || ge.items.find(i => i.vendorId)?.vendorId;
+                const vendor = vendorId ? db.friends.find(f => f.id === vendorId) : null;
                 return (
                   <div key={ge.id} style={{
                     display: 'flex',
@@ -236,6 +238,28 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ge.description}</span>
+                          {vendor && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 600,
+                                padding: '1px 5px',
+                                borderRadius: 4,
+                                background: 'var(--surface2)',
+                                color: 'var(--text-2)',
+                                border: '1px solid var(--border)',
+                                whiteSpace: 'nowrap',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                flexShrink: 0
+                              }}
+                              title={`Vendor: ${vendor.name}`}
+                            >
+                              <Store size={9} style={{ color: 'var(--accent)' }} />
+                              {vendor.name}
+                            </span>
+                          )}
                           {ge.isSplit && (
                             <span style={{
                               fontSize: 10,

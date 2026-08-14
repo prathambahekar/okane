@@ -91,7 +91,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
   const [splitMode, setSplitMode] = useState<'just_me' | 'for_friend' | 'pay_debt'>(initialSplitMode);
   const [flow, setFlow] = useState<ExpenseFlow>(initialData?.flow ?? expense?.flow ?? 'out');
   const [friendId, setFriendId] = useState(initialFriendId);
-  const [vendorId, setVendorId] = useState<string>(initialData?.vendorId ?? expense?.vendorId ?? '');
+  const [vendorId, setVendorId] = useState<string>(initialData?.vendorId ?? expense?.vendorId ?? grpItems.find(e => e.vendorId)?.vendorId ?? '');
   const [isAddingVendor, setIsAddingVendor] = useState(false);
   const [newVendorName, setNewVendorName] = useState('');
   const [walletId, setWalletId] = useState(initialData?.walletId ?? expense?.walletId ?? s.defaultWalletId);
@@ -105,7 +105,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
   const [autoSettle, setAutoSettle] = useState(true);
 
   // Multi-friend selection state for splitting expenses
-  const initialFriendIds = useMemo(() => {
+  const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>(() => {
     if (initialData?.friendId) return [initialData.friendId];
     if (expense?.groupId) {
       const items = db.expenses.filter(e => e.groupId === expense.groupId && e.type === 'for_friend');
@@ -113,9 +113,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
     }
     const fId = forFriendItem?.friendId ?? expense?.friendId;
     return fId ? [fId] : [];
-  }, [db.expenses, expense, forFriendItem, initialData]);
-
-  const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>(initialFriendIds);
+  });
   const [splitCalcMode, setSplitCalcMode] = useState<'equal_all' | 'equal_friends' | 'custom'>('equal_all');
   const [includeYouInCustom, setIncludeYouInCustom] = useState(true);
 

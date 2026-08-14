@@ -18,6 +18,7 @@ import {
   Calendar,
   CheckCircle2,
   FolderPlus,
+  Store,
 } from 'lucide-react';
 import Drawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
@@ -95,6 +96,7 @@ export default function Wallets() {
         statusKey: e.settled ? 'settled' : e.status,
         typeLabelStr: typeLabel(e.type),
         rawExpense: e,
+        vendorId: e.vendorId,
       }));
 
     const stlItems = db.settlements
@@ -925,9 +927,36 @@ export default function Wallets() {
                             )
                           )}
                           <Box sx={{ minWidth: 0 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)' }}>
-                              {tx.description}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)' }}>
+                                {tx.description}
+                              </Typography>
+                              {(() => {
+                                const vendor = 'vendorId' in tx && tx.vendorId ? db.friends.find(f => f.id === tx.vendorId) : null;
+                                if (!vendor) return null;
+                                return (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3,
+                                      padding: '1px 6px',
+                                      borderRadius: 6,
+                                      background: 'var(--surface3)',
+                                      border: '1px solid var(--border)',
+                                      fontSize: 10,
+                                      color: 'var(--text-2)',
+                                      fontWeight: 600,
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                    title={`Vendor: ${vendor.name}`}
+                                  >
+                                    <Store size={10} style={{ color: 'var(--accent)' }} />
+                                    {vendor.name}
+                                  </span>
+                                );
+                              })()}
+                            </Box>
                             <Typography variant="caption" sx={{ color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.2 }}>
                               <span>{fmtDate(tx.date)}</span>
                               <span>·</span>

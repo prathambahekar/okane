@@ -642,13 +642,13 @@ html, body, #root {
               transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   will-change: background-color, color, transform;
 }
-.badge-paid { background: rgba(75,173,115,.15); color: var(--credit); }
-.badge-unpaid { background: rgba(201,162,39,.12); color: var(--accent); }
-.badge-unsettled { background: rgba(91,143,212,.12); color: var(--info); }
-.badge-credit { background: rgba(75,173,115,.12); color: var(--credit); }
-.badge-debit { background: rgba(224,92,92,.12); color: var(--debit); }
-.badge-settled { background: rgba(107,114,128,.15); color: var(--text-3); }
-.badge-partial { background: rgba(245,158,11,.15); color: #f59e0b; border: 1px solid rgba(245,158,11,.3); }
+.badge-paid { background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.28); font-weight: 600; }
+.badge-unpaid { background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); font-weight: 600; }
+.badge-unsettled { background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); font-weight: 600; }
+.badge-credit { background: rgba(75,173,115,.12); color: var(--credit); font-weight: 600; }
+.badge-debit { background: rgba(224,92,92,.12); color: var(--debit); font-weight: 600; }
+.badge-settled { background: rgba(107,114,128,.15); color: var(--text-3); font-weight: 600; }
+.badge-partial { background: rgba(245,158,11,.15); color: #f59e0b; border: 1px solid rgba(245,158,11,.3); font-weight: 600; }
 
 /* Dark Mode Badges - Brighter shades and crisp borders for high contrast against surface2/surface3 */
 [data-color-scheme="dark"] .badge-paid,
@@ -920,12 +920,24 @@ html, body, #root {
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
 }
 
-.tx-status-pill.status-unsettled {
+.tx-status-pill.status-paid {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+.tx-status-pill.status-paid .status-dot {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.tx-status-pill.status-unsettled,
+.tx-status-pill.status-unpaid {
   background: rgba(239, 68, 68, 0.10);
   color: #ef4444;
   border: 1px solid rgba(239, 68, 68, 0.24);
 }
-.tx-status-pill.status-unsettled .status-dot {
+.tx-status-pill.status-unsettled .status-dot,
+.tx-status-pill.status-unpaid .status-dot {
   background: #ef4444;
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
 }
@@ -948,6 +960,40 @@ html, body, #root {
 .tx-status-pill.status-completed .status-dot {
   background: var(--accent);
   box-shadow: 0 0 6px var(--accent-soft);
+}
+
+[data-color-scheme="dark"] .tx-status-pill.status-settled,
+[data-color-scheme="dark"] .tx-status-pill.status-paid {
+  background: rgba(74, 222, 128, 0.16);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.32);
+}
+[data-color-scheme="dark"] .tx-status-pill.status-settled .status-dot,
+[data-color-scheme="dark"] .tx-status-pill.status-paid .status-dot {
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.8);
+}
+
+[data-color-scheme="dark"] .tx-status-pill.status-unsettled,
+[data-color-scheme="dark"] .tx-status-pill.status-unpaid {
+  background: rgba(248, 113, 113, 0.16);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+}
+[data-color-scheme="dark"] .tx-status-pill.status-unsettled .status-dot,
+[data-color-scheme="dark"] .tx-status-pill.status-unpaid .status-dot {
+  background: #f87171;
+  box-shadow: 0 0 6px rgba(248, 113, 113, 0.8);
+}
+
+[data-color-scheme="dark"] .tx-status-pill.status-partial {
+  background: rgba(251, 191, 36, 0.16);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.32);
+}
+[data-color-scheme="dark"] .tx-status-pill.status-partial .status-dot {
+  background: #fbbf24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.8);
 }
 
 /* Type Pill */

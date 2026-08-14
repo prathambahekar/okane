@@ -18,11 +18,13 @@ import {
   Users,
   Filter,
   LayoutList,
-  List
+  List,
+  Store,
+  Tv
 } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend, Settlement, Expense } from '../types';
-import { friendBalance, todayISO } from '../db';
+import { friendBalance, todayISO, unsettledExpensesForFriend } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle } from '../utils';
 import SettleModal from '../components/SettleModal';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -71,7 +73,7 @@ export default function Settlements() {
   const targetWName = targetW?.name || targetS?.paymentMethod || 'wallet';
 
   const friendsWithUnsettled = friends.filter(f =>
-    f && expenses.some(e => e && e.friendId === f.id && !e.settled && e.type !== 'personal')
+    f && unsettledExpensesForFriend(db, f.id).length > 0
   );
 
   const sorted = useMemo(
@@ -290,9 +292,7 @@ export default function Settlements() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12 }}>
             {friendsWithUnsettled.map(f => {
               if (!f) return null;
-              const unsettledCount = expenses.filter(
-                e => e && e.friendId === f.id && !e.settled && e.type !== 'personal'
-              ).length;
+              const unsettledCount = unsettledExpensesForFriend(db, f.id).length;
               const bal = friendBalance(db, f.id) || { net: 0 };
               const netVal = bal.net || 0;
               const owesYou = netVal > 0.004;
@@ -323,9 +323,12 @@ export default function Settlements() {
                         fontWeight: 700,
                         borderRadius: '50%',
                         flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
-                      {friendInitial(f.name, f.avatarNumber)}
+                      {f.type === 'vendor' ? <Store size={16} /> : f.type === 'subscription' ? <Tv size={16} /> : friendInitial(f.name, f.avatarNumber)}
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div

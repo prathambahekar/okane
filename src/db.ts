@@ -28,7 +28,7 @@ export function initSQLTables() {
   try {
     alasql('CREATE TABLE IF NOT EXISTS friends (id STRING PRIMARY KEY, name STRING, notes STRING, color STRING, createdAt INT, type STRING, category STRING, billingCycle STRING, defaultAmount NUMBER, website STRING, avatarNumber STRING)');
     alasql('CREATE TABLE IF NOT EXISTS wallets (id STRING PRIMARY KEY, name STRING, openingBalance NUMBER, currentBalance NUMBER, color STRING)');
-    alasql('CREATE TABLE IF NOT EXISTS expenses (id STRING PRIMARY KEY, groupId STRING, description STRING, amount NUMBER, category STRING, date STRING, type STRING, flow STRING, friendId STRING, walletId STRING, status STRING, settled INT, settlementId STRING, notes STRING, createdAt INT, originalAmount NUMBER, settledAmount NUMBER, parentExpenseId STRING)');
+    alasql('CREATE TABLE IF NOT EXISTS expenses (id STRING PRIMARY KEY, groupId STRING, description STRING, amount NUMBER, category STRING, date STRING, type STRING, flow STRING, friendId STRING, walletId STRING, status STRING, settled INT, settlementId STRING, notes STRING, createdAt INT, originalAmount NUMBER, settledAmount NUMBER, parentExpenseId STRING, vendorId STRING)');
     alasql('CREATE TABLE IF NOT EXISTS settlements (id STRING PRIMARY KEY, friendId STRING, amount NUMBER, date STRING, note STRING, walletId STRING, createdAt INT, expenseIds STRING, originalTotal NUMBER, remainingAmount NUMBER, partialBreakdown STRING)');
     alasql('CREATE TABLE IF NOT EXISTS recurring_rules (id STRING PRIMARY KEY, title STRING, kind STRING, amount NUMBER, category STRING, walletId STRING, friendId STRING, type STRING, flow STRING, frequency STRING, intervalValue INT, startDate STRING, nextDueDate STRING, autoDeduct INT, status STRING, notes STRING, createdAt INT)');
     alasql('CREATE TABLE IF NOT EXISTS envelopes (id STRING PRIMARY KEY, walletId STRING, name STRING, targetAmount NUMBER, currentAmount NUMBER, color STRING, icon STRING, targetDate STRING, notes STRING, createdAt INT)');
@@ -174,7 +174,7 @@ export function generateSQLDumpString(): string {
 
 CREATE TABLE IF NOT EXISTS friends (id TEXT PRIMARY KEY, name TEXT, notes TEXT, color TEXT, createdAt INTEGER, type TEXT, category TEXT, billingCycle TEXT, defaultAmount REAL, website TEXT, avatarNumber TEXT);
 CREATE TABLE IF NOT EXISTS wallets (id TEXT PRIMARY KEY, name TEXT, openingBalance REAL, currentBalance REAL, color TEXT);
-CREATE TABLE IF NOT EXISTS expenses (id TEXT PRIMARY KEY, groupId TEXT, description TEXT, amount REAL, category TEXT, date TEXT, type TEXT, flow TEXT, friendId TEXT, walletId TEXT, status TEXT, settled INTEGER, settlementId TEXT, notes TEXT, createdAt INTEGER, originalAmount REAL, settledAmount REAL, parentExpenseId TEXT);
+CREATE TABLE IF NOT EXISTS expenses (id TEXT PRIMARY KEY, groupId TEXT, description TEXT, amount REAL, category TEXT, date TEXT, type TEXT, flow TEXT, friendId TEXT, walletId TEXT, status TEXT, settled INTEGER, settlementId TEXT, notes TEXT, createdAt INTEGER, originalAmount REAL, settledAmount REAL, parentExpenseId TEXT, vendorId TEXT);
 CREATE TABLE IF NOT EXISTS settlements (id TEXT PRIMARY KEY, friendId TEXT, amount REAL, date TEXT, note TEXT, walletId TEXT, createdAt INTEGER, expenseIds TEXT, originalTotal REAL, remainingAmount REAL, partialBreakdown TEXT);
 CREATE TABLE IF NOT EXISTS recurring_rules (id TEXT PRIMARY KEY, title TEXT, kind TEXT, amount REAL, category TEXT, walletId TEXT, friendId TEXT, type TEXT, flow TEXT, frequency TEXT, intervalValue INTEGER, startDate TEXT, nextDueDate TEXT, autoDeduct INTEGER, status TEXT, notes TEXT, createdAt INTEGER);
 CREATE TABLE IF NOT EXISTS categories (name TEXT PRIMARY KEY, color TEXT, icon TEXT);
@@ -204,7 +204,7 @@ CREATE TABLE IF NOT EXISTS settings (st_key TEXT PRIMARY KEY, st_val TEXT);
 
   sql += `\nDELETE FROM expenses;\n`;
   dump.expenses.forEach(e => {
-    sql += `INSERT INTO expenses (id, groupId, description, amount, category, date, type, flow, friendId, walletId, status, settled, settlementId, notes, createdAt, originalAmount, settledAmount, parentExpenseId) VALUES (${escapeVal(e.id)}, ${escapeVal(e.groupId)}, ${escapeVal(e.description)}, ${escapeVal(e.amount)}, ${escapeVal(e.category)}, ${escapeVal(e.date)}, ${escapeVal(e.type)}, ${escapeVal(e.flow)}, ${escapeVal(e.friendId)}, ${escapeVal(e.walletId)}, ${escapeVal(e.status)}, ${escapeVal(e.settled)}, ${escapeVal(e.settlementId)}, ${escapeVal(e.notes)}, ${escapeVal(e.createdAt)}, ${escapeVal(e.originalAmount)}, ${escapeVal(e.settledAmount)}, ${escapeVal(e.parentExpenseId)});\n`;
+    sql += `INSERT INTO expenses (id, groupId, description, amount, category, date, type, flow, friendId, walletId, status, settled, settlementId, notes, createdAt, originalAmount, settledAmount, parentExpenseId, vendorId) VALUES (${escapeVal(e.id)}, ${escapeVal(e.groupId)}, ${escapeVal(e.description)}, ${escapeVal(e.amount)}, ${escapeVal(e.category)}, ${escapeVal(e.date)}, ${escapeVal(e.type)}, ${escapeVal(e.flow)}, ${escapeVal(e.friendId)}, ${escapeVal(e.walletId)}, ${escapeVal(e.status)}, ${escapeVal(e.settled)}, ${escapeVal(e.settlementId)}, ${escapeVal(e.notes)}, ${escapeVal(e.createdAt)}, ${escapeVal(e.originalAmount)}, ${escapeVal(e.settledAmount)}, ${escapeVal(e.parentExpenseId)}, ${escapeVal(e.vendorId)});\n`;
   });
 
   sql += `\nDELETE FROM settlements;\n`;
@@ -746,13 +746,14 @@ export function syncDBToSQLTables(db: AppDB): void {
     (db.expenses || []).forEach(e => {
       if (!e.id || seenExpenses.has(e.id)) return;
       seenExpenses.add(e.id);
-      safeInsert('INSERT INTO expenses VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+      safeInsert('INSERT INTO expenses VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
         e.id, e.groupId || null, e.description, Number(e.amount) || 0, e.category, e.date,
         e.type, e.flow, e.friendId || null, e.walletId || null, e.status, e.settled ? 1 : 0,
         e.settlementId || null, e.notes || '', e.createdAt || Date.now(),
         e.originalAmount != null ? Number(e.originalAmount) : null,
         e.settledAmount != null ? Number(e.settledAmount) : null,
-        e.parentExpenseId || null
+        e.parentExpenseId || null,
+        e.vendorId || null
       ]);
     });
 
@@ -902,6 +903,7 @@ export function loadDBFromSQLTables(): AppDB {
       originalAmount: e.originalAmount != null ? Number(e.originalAmount) : undefined,
       settledAmount: e.settledAmount != null ? Number(e.settledAmount) : undefined,
       parentExpenseId: e.parentExpenseId ? String(e.parentExpenseId) : undefined,
+      vendorId: e.vendorId ? String(e.vendorId) : null,
     }));
 
     const settlements: Settlement[] = sqlSettlements.map(s => {
@@ -1107,13 +1109,14 @@ export function loadDB(): AppDB {
             const id = String(row.id ?? '');
             if (!id || seenExpenses.has(id)) return;
             seenExpenses.add(id);
-            insertSafe('INSERT INTO expenses VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+            insertSafe('INSERT INTO expenses VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
               row.id, row.groupId || null, row.description, Number(row.amount) || 0, row.category, row.date,
               row.type, row.flow, row.friendId || null, row.walletId || null, row.status, row.settled ? 1 : 0,
               row.settlementId || null, row.notes || '', row.createdAt || Date.now(),
               row.originalAmount != null ? Number(row.originalAmount) : null,
               row.settledAmount != null ? Number(row.settledAmount) : null,
-              row.parentExpenseId || null
+              row.parentExpenseId || null,
+              row.vendorId || null
             ]);
           });
         }
@@ -1268,21 +1271,46 @@ export function totalWalletBalance(db: AppDB): number {
 export function friendBalance(db: AppDB, friendId: string): { owedToMe: number; owedByMe: number; net: number } {
   let owedToMe = 0, owedByMe = 0;
   db.expenses.forEach(e => {
-    if (e.friendId !== friendId || e.type === 'personal' || e.settled) return;
+    if (e.settled) return;
     const amt = Number(e.amount) || 0;
     const isIncoming = expenseFlow(e) === 'in';
-    if (e.type === 'for_friend') {
-      if (isIncoming) {
-        owedToMe -= amt; // Repayment received from friend reduces what friend owes me
-      } else {
-        owedToMe += amt; // Money spent for friend increases what friend owes me
+
+    // 1. Expense is split or friend-related with e.friendId === friendId
+    if (e.friendId === friendId && e.type !== 'personal') {
+      if (e.type === 'for_friend') {
+        if (isIncoming) {
+          owedToMe -= amt; // Repayment received from friend reduces what friend owes me
+        } else {
+          owedToMe += amt; // Money spent for friend increases what friend owes me
+        }
+      } else if (e.type === 'by_friend') {
+        if (isIncoming) {
+          owedByMe -= amt; // Repayment paid to friend reduces what I owe friend
+        } else {
+          owedByMe += amt; // Expense paid by friend for me increases what I owe friend
+        }
       }
-    } else if (e.type === 'by_friend') {
+      return;
+    }
+
+    // 2. Unpaid debt associated with vendorId or friendId (e.g. user selected Debt for vendor)
+    if ((e.vendorId === friendId || e.friendId === friendId) && e.status === 'unpaid') {
       if (isIncoming) {
-        owedByMe -= amt; // Repayment paid to friend reduces what I owe friend
+        owedToMe += amt; // Uncollected incoming debt
       } else {
-        owedByMe += amt; // Expense paid by friend for me increases what I owe friend
+        owedByMe += amt; // Unpaid vendor debt - I owe the vendor money
       }
+      return;
+    }
+
+    // 3. Vendor expense billed by vendor (by_friend) where vendorId is friendId
+    if (e.vendorId === friendId && e.type === 'by_friend') {
+      if (isIncoming) {
+        owedByMe -= amt;
+      } else {
+        owedByMe += amt;
+      }
+      return;
     }
   });
   return { owedToMe, owedByMe, net: owedToMe - owedByMe };
@@ -1314,13 +1342,23 @@ export function personalNetAmount(e: Expense): number {
 
 export function unsettledExpensesForFriend(db: AppDB, friendId: string): Expense[] {
   return db.expenses
-    .filter(e => e.friendId === friendId && e.type !== 'personal' && !e.settled && expenseFlow(e) === 'out')
-    .sort((a, b) => b.date.localeCompare(a.date));
+    .filter(e => {
+      if (e.settled) return false;
+      if (expenseFlow(e) !== 'out') return false;
+      // 1. Shared friend expenses
+      if (e.friendId === friendId && e.type !== 'personal') return true;
+      // 2. Unpaid vendor/contact debt
+      if ((e.vendorId === friendId || e.friendId === friendId) && e.status === 'unpaid') return true;
+      // 3. Vendor billed on credit/tab
+      if (e.vendorId === friendId && e.type === 'by_friend') return true;
+      return false;
+    })
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 export function contactTotalSpent(db: AppDB, contactId: string): number {
   return db.expenses
-    .filter(e => e.friendId === contactId)
+    .filter(e => e.friendId === contactId || e.vendorId === contactId)
     .reduce((sum, e) => {
       const amt = Number(e.amount) || 0;
       return sum + (expenseFlow(e) === 'in' ? -amt : amt);
@@ -1328,12 +1366,12 @@ export function contactTotalSpent(db: AppDB, contactId: string): number {
 }
 
 export function contactTransactionCount(db: AppDB, contactId: string): number {
-  return db.expenses.filter(e => e.friendId === contactId).length;
+  return db.expenses.filter(e => e.friendId === contactId || e.vendorId === contactId).length;
 }
 
 export function contactLastTransaction(db: AppDB, contactId: string): Expense | null {
   const exps = db.expenses
-    .filter(e => e.friendId === contactId)
+    .filter(e => e.friendId === contactId || e.vendorId === contactId)
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
   return exps[0] || null;
 }
@@ -1412,6 +1450,7 @@ export function addExpense(db: AppDB, data: Partial<Expense>): AppDB {
     type: (data.type as ExpenseType) || 'personal',
     flow: data.flow === 'in' ? 'in' : 'out',
     friendId: data.friendId || null,
+    vendorId: data.vendorId || null,
     walletId: data.type === 'by_friend' ? (data.walletId || '') : (data.walletId || db.settings.defaultWalletId || db.wallets[0]?.id),
     status: (data.status as ExpenseStatus) || db.settings.defaultStatus,
     settled: false,
@@ -1587,8 +1626,17 @@ export function recordSettlement(
   let owedToMe = 0, owedByMe = 0;
   selectedExpenses.forEach(e => {
     const amt = Number(e.amount) || 0;
-    if (e.type === 'for_friend') owedToMe += amt;
-    else if (e.type === 'by_friend') owedByMe += amt;
+    const isIncoming = expenseFlow(e) === 'in';
+    if (e.type === 'for_friend') {
+      if (isIncoming) owedToMe -= amt;
+      else owedToMe += amt;
+    } else if (e.type === 'by_friend') {
+      if (isIncoming) owedByMe -= amt;
+      else owedByMe += amt;
+    } else if (e.status === 'unpaid') {
+      if (isIncoming) owedToMe += amt;
+      else owedByMe += amt;
+    }
   });
   
   const fullNet = owedToMe - owedByMe;
@@ -1633,6 +1681,7 @@ export function recordSettlement(
         originalAmount: origAmt,
         originalDate: e.originalDate || e.date,
         settledAmount: currentAmt,
+        status: 'paid',
         settled: true,
         settlementId: '', // Will assign below
         date: settlementDate,
@@ -1655,6 +1704,7 @@ export function recordSettlement(
         originalDate: e.originalDate || e.date,
         settledAmount: coveredPortion,
         amount: coveredPortion,
+        status: 'paid',
         settled: true,
         settlementId: '', // Will assign below
         date: settlementDate,
@@ -1669,6 +1719,7 @@ export function recordSettlement(
         originalDate: e.originalDate || e.date,
         amount: remainingPortion,
         description: e.description.includes('Remaining') ? e.description : `${e.description} (Remaining)`,
+        status: e.status === 'unpaid' ? 'unpaid' : e.status,
         settled: false,
         settlementId: null,
         createdAt: Date.now() + 1,
@@ -1738,6 +1789,7 @@ export function deleteSettlement(db: AppDB, id: string): AppDB {
         ...e,
         amount: restoredAmt,
         date: restoredDate,
+        status: (e.vendorId || e.type === 'personal') ? 'unpaid' : e.status,
         settled: false,
         settlementId: null,
         originalAmount: undefined,

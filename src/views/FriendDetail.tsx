@@ -40,7 +40,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
   const bal = useMemo(() => friend ? friendBalance(db, friend.id) : { owedToMe: 0, owedByMe: 0, net: 0 }, [db, friend]);
   const allExps = useMemo(() =>
     db.expenses
-      .filter(e => e.friendId === friendId)
+      .filter(e => e.friendId === friendId || e.vendorId === friendId)
       .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt),
     [db.expenses, friendId]
   );
@@ -48,9 +48,9 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
   const totalSpent = useMemo(() => friend ? contactTotalSpent(db, friend.id) : 0, [db, friend]);
   const avgOrderVal = useMemo(() => allExps.length > 0 ? totalSpent / allExps.length : 0, [totalSpent, allExps]);
 
-  const activeExps = allExps.filter(e => !e.settled);
-  const settledExps = allExps.filter(e => e.settled);
-  const shown = contactType === 'friend' ? (tab === 'active' ? activeExps : settledExps) : allExps;
+  const activeExps = allExps.filter(e => !e.settled && (e.type !== 'personal' || e.status === 'unpaid'));
+  const settledExps = allExps.filter(e => e.settled || (e.type === 'personal' && e.status === 'paid'));
+  const shown = tab === 'active' ? activeExps : settledExps;
 
   const dateGroupInfo = useMemo(() => {
     const groupMap: Record<string, number> = {};
@@ -633,10 +633,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       </div>
 
                       <div className="mobile-expense-meta">
-                        <div className="mobile-expense-meta-left">
+                        <div className="mobile-expense-meta-left" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           <span>{fmtDate(e.date)}</span>
                           <span>·</span>
                           <span>{e.category}</span>
+                          <span className={`badge badge-${statusKey}`} style={{ fontSize: 10, padding: '1px 6px' }}>
+                            {e.originalAmount && e.settled ? 'Partially Settled' : (e.settled ? 'Settled' : e.status.charAt(0).toUpperCase() + e.status.slice(1))}
+                          </span>
                         </div>
                         <div className="mobile-expense-expand-btn">
                           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}

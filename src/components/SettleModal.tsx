@@ -29,8 +29,16 @@ export default function SettleModal({ friend, onClose }: Props) {
 
   const selectedArr = unsettled.filter(e => selected.has(e.id));
 
-  const owedToMe = selectedArr.filter(e => e.type === 'for_friend' && expenseFlow(e) === 'out').reduce((s, e) => s + Number(e.amount), 0);
-  const owedByMe = selectedArr.filter(e => e.type === 'by_friend' && expenseFlow(e) === 'out').reduce((s, e) => s + Number(e.amount), 0);
+  const owedToMe = selectedArr.filter(e => {
+    if (e.type === 'for_friend' && expenseFlow(e) === 'out') return true;
+    return false;
+  }).reduce((s, e) => s + Number(e.amount), 0);
+
+  const owedByMe = selectedArr.filter(e => {
+    if (e.type === 'by_friend' && expenseFlow(e) === 'out') return true;
+    if (e.status === 'unpaid' && expenseFlow(e) === 'out') return true;
+    return false;
+  }).reduce((s, e) => s + Number(e.amount), 0);
   const net = owedToMe - owedByMe;
   const absNet = Math.abs(net);
 

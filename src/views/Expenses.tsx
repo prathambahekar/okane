@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, ChevronRight, Filter, Users, Layers, ArrowUpRight, ArrowDownLeft, RotateCcw, User, ReceiptText, Wallet, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, ChevronRight, Filter, Users, Layers, ArrowUpRight, ArrowDownLeft, RotateCcw, User, ReceiptText, Wallet, CheckCircle2, Store } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense } from '../types';
 import { fmtMoney, fmtDate, typeLabel, statusLabel, friendInitial, getAvatarStyle, groupExpenses, cleanExpenseDescription } from '../utils';
@@ -63,6 +63,11 @@ export default function Expenses() {
           return f && f.name.toLowerCase().includes(q);
         })) return true;
 
+        if (ge.vendorId) {
+          const v = db.friends.find(fr => fr.id === ge.vendorId);
+          if (v && v.name.toLowerCase().includes(q)) return true;
+        }
+
         if (ge.settlementId) {
           const stl = db.settlements.find(s => s.id === ge.settlementId);
           if (stl) {
@@ -102,8 +107,17 @@ export default function Expenses() {
       );
     }
     if (statusFilter) {
-      if (statusFilter === 'settled') arr = arr.filter(ge => ge.items.every(i => i.settled));
-      else arr = arr.filter(ge => ge.items.some(i => !i.settled && i.status === statusFilter));
+      if (statusFilter === 'settled') {
+        arr = arr.filter(ge => ge.items.every(i => i.settled || i.status === 'paid'));
+      } else if (statusFilter === 'paid') {
+        arr = arr.filter(ge => ge.items.some(i => i.status === 'paid' || i.settled));
+      } else if (statusFilter === 'unpaid') {
+        arr = arr.filter(ge => ge.items.some(i => !i.settled && i.status === 'unpaid'));
+      } else if (statusFilter === 'unsettled') {
+        arr = arr.filter(ge => ge.items.some(i => !i.settled && (i.type !== 'personal' || i.status === 'unpaid')));
+      } else {
+        arr = arr.filter(ge => ge.items.some(i => !i.settled && i.status === statusFilter));
+      }
     }
     if (flowFilter) arr = arr.filter(ge => ge.flow === flowFilter);
     if (walletFilter) arr = arr.filter(ge => ge.walletId === walletFilter);
@@ -289,6 +303,8 @@ export default function Expenses() {
                       const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
                       const isExpanded = !!expandedIds[ge.id];
                       const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
+                      const vendorId = ge.vendorId || ge.items.find(i => i.vendorId)?.vendorId;
+                      const vendor = vendorId ? db.friends.find(f => f.id === vendorId) : null;
 
                       // Calculate friend settlement status for this group
                       const friendItems = ge.items.filter(i => i.type === 'for_friend' || i.type === 'by_friend');
@@ -380,6 +396,28 @@ export default function Expenses() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                     <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{ge.description}</span>
+                                    {vendor && (
+                                      <span
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 3.5,
+                                          padding: '1.5px 7px',
+                                          borderRadius: 10,
+                                          fontSize: 10.5,
+                                          fontWeight: 600,
+                                          background: 'var(--surface2)',
+                                          color: 'var(--text-2)',
+                                          border: '1px solid var(--border)',
+                                          whiteSpace: 'nowrap',
+                                          flexShrink: 0
+                                        }}
+                                        title={`Vendor / Store: ${vendor.name}`}
+                                      >
+                                        <Store size={11} style={{ color: 'var(--accent)' }} />
+                                        <span>{vendor.name}</span>
+                                      </span>
+                                    )}
                                     {(ge.isSplit || ge.items.length > 1 || ge.isSettlementGroup) && (
                                       <button
                                         type="button"
@@ -656,6 +694,8 @@ export default function Expenses() {
                 const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
                 const isExpanded = !!expandedIds[ge.id];
                 const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
+                const vendorId = ge.vendorId || ge.items.find(i => i.vendorId)?.vendorId;
+                const vendor = vendorId ? db.friends.find(f => f.id === vendorId) : null;
 
                 const isEvenGroup = dateGroupInfo.groupMap[ge.id] === 0;
                 const isFirstOfDate = dateGroupInfo.isFirstMap[ge.id];
@@ -679,6 +719,28 @@ export default function Expenses() {
                         <div className="mobile-expense-desc-wrap">
                           <CategoryIcon category={ge.category} icon={cat?.icon} size={15} style={{ color: cat?.color ?? 'var(--accent)', flexShrink: 0 }} />
                           <span className="mobile-expense-title">{ge.description}</span>
+                          {vendor && (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                padding: '1px 6px',
+                                borderRadius: 8,
+                                fontSize: 9.5,
+                                fontWeight: 600,
+                                background: 'var(--surface2)',
+                                color: 'var(--text-2)',
+                                border: '1px solid var(--border)',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0
+                              }}
+                              title={`Vendor: ${vendor.name}`}
+                            >
+                              <Store size={10} style={{ color: 'var(--accent)' }} />
+                              <span>{vendor.name}</span>
+                            </span>
+                          )}
                           {ge.isSplit && (
                             <span style={{
                               display: 'inline-flex',
@@ -695,7 +757,7 @@ export default function Expenses() {
                               <Users size={11} /> {ge.isSettlementGroup ? 'Settlement' : 'Split'}
                             </span>
                           )}
-                          {hasFriendItem && !ge.isSettlementGroup && (
+                          {hasFriendItem && !ge.isSettlementGroup ? (
                             <>
                               {isGroupAllSettled ? (
                                 <span style={{
@@ -744,6 +806,38 @@ export default function Expenses() {
                                 </span>
                               )}
                             </>
+                          ) : !ge.isSettlementGroup && (
+                            primaryItem.status === 'unpaid' ? (
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '2px 7px',
+                                borderRadius: 10,
+                                fontSize: 10,
+                                fontWeight: 600,
+                                background: 'rgba(239, 68, 68, 0.12)',
+                                color: '#ef4444',
+                                border: '1px solid rgba(239, 68, 68, 0.25)',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                Unpaid
+                              </span>
+                            ) : primaryItem.settled ? (
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '2px 7px',
+                                borderRadius: 10,
+                                fontSize: 10,
+                                fontWeight: 600,
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                color: '#10b981',
+                                border: '1px solid rgba(16, 185, 129, 0.3)',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                Settled ✓
+                              </span>
+                            ) : null
                           )}
                         </div>
                         <div className="mobile-expense-amount">
@@ -893,6 +987,16 @@ export default function Expenses() {
                             <span className="mobile-expense-detail-label">Wallet</span>
                             <span className="mobile-expense-detail-val">{effectiveWalletName}</span>
                           </div>
+
+                          {vendor && (
+                            <div className="mobile-expense-detail-item">
+                              <span className="mobile-expense-detail-label">Vendor / Store</span>
+                              <span className="mobile-expense-detail-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <Store size={12} style={{ color: 'var(--accent)' }} />
+                                <span>{vendor.name}</span>
+                              </span>
+                            </div>
+                          )}
 
                           <div className="mobile-expense-detail-item">
                             <span className="mobile-expense-detail-label">Type</span>

@@ -226,7 +226,6 @@ export default function Settings({
   const [newColorName, setNewColorName] = useState('');
   const [isCustomAccentCardExpanded, setIsCustomAccentCardExpanded] = useState(false);
   const [showCustomColorPickerModal, setShowCustomColorPickerModal] = useState(false);
-  const customAccentInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveCustomColor = () => {
     const hex = customColor.trim();

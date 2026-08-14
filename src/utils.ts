@@ -112,6 +112,7 @@ export interface GroupedExpense {
   personalShare: number;
   friendShare: number;
   friendIds: string[];
+  vendorId?: string | null;
   fromWalletName?: string;
   toWalletName?: string;
 }
@@ -212,6 +213,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
         personalShare: 0,
         friendShare: totalAmount,
         friendIds,
+        vendorId: first.vendorId || null,
       });
     } else {
       const isTransferGroup = items.some(i => i.category === 'Transfer') || gId.startsWith('trf_grp');
@@ -261,6 +263,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
           personalShare: 0,
           friendShare: 0,
           friendIds: [],
+          vendorId: null,
           fromWalletName: fromWName,
           toWalletName: toWName,
         });
@@ -282,10 +285,12 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
           personalShare: e.type === 'personal' ? e.amount : 0,
           friendShare: e.type !== 'personal' ? e.amount : 0,
           friendIds,
+          vendorId: e.vendorId || null,
         });
       } else {
         items.sort((a) => (a.type === 'personal' ? -1 : 1));
         const first = items[0];
+        const groupVendorId = items.find(i => i.vendorId)?.vendorId || first.vendorId || null;
 
         const byFriendItems = items.filter(i => i.type === 'by_friend');
         const forFriendItems = items.filter(i => i.type === 'for_friend');
@@ -319,6 +324,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
             type: 'personal',
             flow: first.flow,
             friendId: null,
+            vendorId: groupVendorId,
             walletId: first.walletId,
             status: 'paid',
             settled: false,
@@ -344,6 +350,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
           personalShare,
           friendShare,
           friendIds,
+          vendorId: groupVendorId,
         });
       }
     }
@@ -377,6 +384,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
         personalShare: 0,
         friendShare: 0,
         friendIds: [],
+        vendorId: null,
         fromWalletName: fromWName,
         toWalletName: toWName,
       });
@@ -397,6 +405,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
         personalShare: e.type === 'personal' ? e.amount : 0,
         friendShare: e.type !== 'personal' ? e.amount : 0,
         friendIds,
+        vendorId: e.vendorId || null,
       });
     }
   }
