@@ -7,7 +7,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import { useStore } from '../store';
 import type { Friend, ContactType, ViewName } from '../types';
-import { friendBalance, contactTotalSpent, contactTransactionCount, contactLastTransaction } from '../db';
+import { friendBalance, contactTotalSpent, contactTransactionCount, contactLastTransaction, unsettledExpensesForFriend } from '../db';
 import { fmtMoney, friendInitial, getAvatarStyle } from '../utils';
 import { renderBrandLogo } from '../components/BrandIcons';
 import FriendModal from '../components/FriendModal';
@@ -109,7 +109,7 @@ export default function Friends({ onNavigate }: Props) {
         (f.category || '').toLowerCase().includes(search.toLowerCase());
       if (!matchesSearch) return false;
 
-      if (fType === 'friend') {
+      if (fType === 'friend' || fType === 'vendor') {
         const bal = friendBalance(db, f.id);
         switch (statusFilter) {
           case 'owes_me': return bal.net > 0.004;
@@ -122,7 +122,7 @@ export default function Friends({ onNavigate }: Props) {
     });
 
     return list.sort((a, b) => {
-      if (typeFilter === 'friend' && (sortBy === 'owed_desc' || sortBy === 'owed_asc')) {
+      if ((typeFilter === 'friend' || typeFilter === 'vendor') && (sortBy === 'owed_desc' || sortBy === 'owed_asc')) {
         const balA = friendBalance(db, a.id).net;
         const balB = friendBalance(db, b.id).net;
         if (sortBy === 'owed_desc') return balB - balA;
@@ -316,8 +316,8 @@ export default function Friends({ onNavigate }: Props) {
           </button>
         </div>
 
-        {/* Secondary Status Filter Segment Bar for Friends tab */}
-        {typeFilter === 'friend' && counts.friend > 0 && (
+        {/* Secondary Status Filter Segment Bar for Friends and Vendors tabs */}
+        {(typeFilter === 'friend' || typeFilter === 'vendor') && counts[typeFilter] > 0 && (
           <div className="status-segment-bar">
             <button
               type="button"
@@ -377,8 +377,8 @@ export default function Friends({ onNavigate }: Props) {
                   padding: '2px 0'
                 }}
               >
-                {typeFilter === 'friend' && <option value="owed_desc">Highest Owed</option>}
-                {typeFilter === 'friend' && <option value="owed_asc">You Owe Most</option>}
+                {(typeFilter === 'friend' || typeFilter === 'vendor') && <option value="owed_desc">Highest Owed</option>}
+                {(typeFilter === 'friend' || typeFilter === 'vendor') && <option value="owed_asc">You Owe Most</option>}
                 <option value="name">Name (A-Z)</option>
                 <option value="recent">Recent Activity</option>
                 <option value="expenses_count">Most Expenses</option>
@@ -472,11 +472,11 @@ export default function Friends({ onNavigate }: Props) {
         <div className="contact-grid">
           {filtered.map(f => {
             const fType: ContactType = f.type || 'friend';
-            const contactExpenses = db.expenses.filter(e => e.friendId === f.id);
+            const contactExpenses = db.expenses.filter(e => e.friendId === f.id || e.vendorId === f.id);
             const totalSpent = contactTotalSpent(db, f.id);
             const txCount = contactTransactionCount(db, f.id);
             const bal = friendBalance(db, f.id);
-            const unsettledCount = contactExpenses.filter(e => !e.settled && e.type !== 'personal').length;
+            const unsettledCount = unsettledExpensesForFriend(db, f.id).length;
             const isOwed = bal.net > 0.004;
             const isDebt = bal.net < -0.004;
             const brandLogo = renderBrandLogo(f.name, 22);
@@ -541,20 +541,18 @@ export default function Friends({ onNavigate }: Props) {
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingTop: 6, borderTop: '1px solid var(--border)' }}>
                   <div>
-                    {fType === 'friend' ? (
-                      isOwed ? (
-                        <span style={{ background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
-                          Owes {fmtMoney(Math.abs(bal.net), currency)}
-                        </span>
-                      ) : isDebt ? (
-                        <span style={{ background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
-                          You owe {fmtMoney(Math.abs(bal.net), currency)}
-                        </span>
-                      ) : (
-                        <span style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)', fontWeight: 500, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
-                          Settled Up ✓
-                        </span>
-                      )
+                    {isOwed ? (
+                      <span style={{ background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
+                        Owes {fmtMoney(Math.abs(bal.net), currency)}
+                      </span>
+                    ) : isDebt ? (
+                      <span style={{ background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)', fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
+                        You owe {fmtMoney(Math.abs(bal.net), currency)}
+                      </span>
+                    ) : fType === 'friend' ? (
+                      <span style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)', fontWeight: 500, fontSize: 11, padding: '2px 8px', borderRadius: 99 }}>
+                        Settled Up ✓
+                      </span>
                     ) : (
                       <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>
                         {fmtMoney(totalSpent, currency)}
@@ -563,7 +561,7 @@ export default function Friends({ onNavigate }: Props) {
                   </div>
 
                   <div style={{ display: 'flex', gap: 4 }}>
-                    {fType === 'friend' && unsettledCount > 0 && (
+                    {unsettledCount > 0 && (
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
@@ -599,11 +597,11 @@ export default function Friends({ onNavigate }: Props) {
         <div className="contact-list-card">
           {filtered.map(f => {
             const fType: ContactType = f.type || 'friend';
-            const contactExpenses = db.expenses.filter(e => e.friendId === f.id);
+            const contactExpenses = db.expenses.filter(e => e.friendId === f.id || e.vendorId === f.id);
             const totalSpent = contactTotalSpent(db, f.id);
             const txCount = contactTransactionCount(db, f.id);
             const bal = friendBalance(db, f.id);
-            const unsettledCount = contactExpenses.filter(e => !e.settled && e.type !== 'personal').length;
+            const unsettledCount = unsettledExpensesForFriend(db, f.id).length;
             const isOwed = bal.net > 0.004;
             const isDebt = bal.net < -0.004;
             const brandLogo = renderBrandLogo(f.name, 18);
@@ -664,20 +662,18 @@ export default function Friends({ onNavigate }: Props) {
 
                 {/* Status Badge & Quick Action Buttons */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                  {fType === 'friend' ? (
-                    isOwed ? (
-                      <span style={{ background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', fontWeight: 600, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
-                        Owes {fmtMoney(Math.abs(bal.net), currency)}
-                      </span>
-                    ) : isDebt ? (
-                      <span style={{ background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)', fontWeight: 600, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
-                        You owe {fmtMoney(Math.abs(bal.net), currency)}
-                      </span>
-                    ) : (
-                      <span style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)', fontWeight: 500, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
-                        Settled Up ✓
-                      </span>
-                    )
+                  {isOwed ? (
+                    <span style={{ background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', fontWeight: 600, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                      Owes {fmtMoney(Math.abs(bal.net), currency)}
+                    </span>
+                  ) : isDebt ? (
+                    <span style={{ background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)', fontWeight: 600, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                      You owe {fmtMoney(Math.abs(bal.net), currency)}
+                    </span>
+                  ) : fType === 'friend' ? (
+                    <span style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)', fontWeight: 500, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                      Settled Up ✓
+                    </span>
                   ) : (
                     <span style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)', fontWeight: 600, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
                       {fmtMoney(totalSpent, currency)}

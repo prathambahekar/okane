@@ -596,6 +596,27 @@ function AppInner() {
       )}
 
       <main className={`main-content${isMobile ? ' mobile-layout' : ''}`}>
+        {!isMobile && view === 'friend-detail' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <IconButton
+              size="small"
+              onClick={() => setView('friends')}
+              sx={{
+                color: 'text.primary',
+                bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                p: 0.8,
+                borderRadius: '10px',
+                border: '1px solid var(--border)',
+                '&:hover': { bgcolor: 'action.hover' },
+                '&:active': { transform: 'scale(0.92)' }
+              }}
+              title="Back to Contacts"
+            >
+              <ArrowLeft size={18} />
+            </IconButton>
+            <span style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text-2)' }}>Back to Contacts</span>
+          </div>
+        )}
         <div key={view} className="view-page-animate">
           {renderView()}
         </div>

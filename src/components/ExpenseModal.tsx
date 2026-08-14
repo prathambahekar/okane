@@ -18,6 +18,7 @@ export interface ExpenseInitialData {
   friendId?: string;
   vendorId?: string;
   date?: string;
+  status?: ExpenseStatus;
   notes?: string;
 }
 
@@ -54,7 +55,9 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
     : (expense ? [expense] : []);
 
   const isGrp = grpItems.length > 1;
-  const forFriendItem = grpItems.find(e => e.type === 'for_friend');
+  const forFriendItems = grpItems.filter(e => e.type === 'for_friend');
+  const personalItem = grpItems.find(e => e.type === 'personal');
+  const forFriendItem = forFriendItems[0];
 
   const initialTotalAmount = initialData?.amount !== undefined && initialData?.amount !== ''
     ? String(initialData.amount)
@@ -95,7 +98,8 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
   const [isAddingVendor, setIsAddingVendor] = useState(false);
   const [newVendorName, setNewVendorName] = useState('');
   const [walletId, setWalletId] = useState(initialData?.walletId ?? expense?.walletId ?? s.defaultWalletId);
-  const [status, setStatus] = useState<ExpenseStatus>(expense?.status ?? s.defaultStatus);
+  const initialStatus = initialData?.status ?? expense?.status ?? (grpItems.find(e => e.status === 'unpaid')?.status) ?? s.defaultStatus;
+  const [status, setStatus] = useState<ExpenseStatus>(initialStatus);
 
   const vendorsList = useMemo(() => db.friends.filter(f => f.type === 'vendor'), [db.friends]);
   const [notes, setNotes] = useState(initialData?.notes ?? expense?.notes ?? '');
@@ -105,7 +109,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
   const [autoSettle, setAutoSettle] = useState(true);
 
   // Multi-friend selection state for splitting expenses
-  const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>(() => {
+  const initialFriendIdsList = (() => {
     if (initialData?.friendId) return [initialData.friendId];
     if (expense?.groupId) {
       const items = db.expenses.filter(e => e.groupId === expense.groupId && e.type === 'for_friend');
@@ -113,9 +117,74 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
     }
     const fId = forFriendItem?.friendId ?? expense?.friendId;
     return fId ? [fId] : [];
-  });
-  const [splitCalcMode, setSplitCalcMode] = useState<'equal_all' | 'equal_friends' | 'custom'>('equal_all');
-  const [includeYouInCustom, setIncludeYouInCustom] = useState(true);
+  })();
+
+  const initialCustomSharesMap = (() => {
+    const init: Record<string, string> = {};
+    if (expense?.groupId) {
+      const items = db.expenses.filter(e => e.groupId === expense.groupId && e.type === 'for_friend');
+      items.forEach(e => {
+        if (e.friendId) init[e.friendId] = String(e.amount);
+      });
+    } else if (forFriendItem?.friendId) {
+      init[forFriendItem.friendId] = String(forFriendItem.amount);
+    } else if (expense?.friendId && expense.type === 'for_friend') {
+      init[expense.friendId] = String(expense.amount);
+    } else if (initialFriendShare && initialFriendId) {
+      init[initialFriendId] = initialFriendShare;
+    }
+    return init;
+  })();
+
+  // Infer previous split rule so that editing an expense preserves its exact mode (Equal, Friends Only, or Custom)
+  const { inferredSplitCalcMode, inferredIncludeYou } = (() => {
+    if (!expense && !initialData) {
+      return { inferredSplitCalcMode: 'equal_all' as const, inferredIncludeYou: true };
+    }
+
+    const n = initialFriendIdsList.length;
+    if (n === 0) {
+      return { inferredSplitCalcMode: 'equal_all' as const, inferredIncludeYou: true };
+    }
+
+    const tot = parseFloat(initialTotalAmount) || 0;
+    const personalAmt = personalItem ? (Number(personalItem.amount) || 0) : 0;
+    const hasPersonalShare = personalAmt > 0.001;
+
+    // If there is NO personal share (my share = 0, e.g. 100% Friend or Friends Only)
+    if (!hasPersonalShare) {
+      const expectedFriendShare = tot / n;
+      const allEqual = forFriendItems.length > 0 && forFriendItems.every(e => {
+        const amt = Number(e.amount) || 0;
+        return Math.abs(amt - expectedFriendShare) < 0.05;
+      });
+
+      if (allEqual || forFriendItems.length <= 1) {
+        return { inferredSplitCalcMode: 'equal_friends' as const, inferredIncludeYou: false };
+      } else {
+        return { inferredSplitCalcMode: 'custom' as const, inferredIncludeYou: false };
+      }
+    }
+
+    // There IS a personal share (my share > 0)
+    const expectedShare = tot / (n + 1);
+    const personalEqual = Math.abs(personalAmt - expectedShare) < 0.05;
+    const allFriendsEqual = forFriendItems.length > 0 && forFriendItems.every(e => {
+      const amt = Number(e.amount) || 0;
+      return Math.abs(amt - expectedShare) < 0.05;
+    });
+
+    if (personalEqual && allFriendsEqual) {
+      return { inferredSplitCalcMode: 'equal_all' as const, inferredIncludeYou: true };
+    } else {
+      return { inferredSplitCalcMode: 'custom' as const, inferredIncludeYou: true };
+    }
+  })();
+
+  const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>(initialFriendIdsList);
+  const [splitCalcMode, setSplitCalcMode] = useState<'equal_all' | 'equal_friends' | 'custom'>(inferredSplitCalcMode);
+  const [includeYouInCustom, setIncludeYouInCustom] = useState<boolean>(inferredIncludeYou);
+  const [customFriendShares, setCustomFriendShares] = useState<Record<string, string>>(initialCustomSharesMap);
 
   const isYouSelected = splitCalcMode === 'equal_all' || (splitCalcMode === 'custom' && includeYouInCustom);
 
@@ -136,18 +205,6 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
     }
     return list;
   }, [db.friends, pickerTypeFilter, pickerSearch]);
-  const [customFriendShares, setCustomFriendShares] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    if (expense?.groupId) {
-      const items = db.expenses.filter(e => e.groupId === expense.groupId && e.type === 'for_friend');
-      items.forEach(e => {
-        if (e.friendId) init[e.friendId] = String(e.amount);
-      });
-    } else if (initialFriendShare && initialFriendId) {
-      init[initialFriendId] = initialFriendShare;
-    }
-    return init;
-  });
 
   const getFriendShare = useCallback((fId: string): number => {
     const tot = parseFloat(amount) || 0;
@@ -183,16 +240,13 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
   }, [amount, selectedFriendIds, splitCalcMode, customFriendShares, includeYouInCustom]);
 
   const handleSelectSplitCalcMode = (mode: 'equal_all' | 'equal_friends' | 'custom', includeYouOverride?: boolean) => {
-    let targetMode = mode;
+    const targetMode = mode;
     let nextIncludeYou = includeYouOverride !== undefined ? includeYouOverride : includeYouInCustom;
 
     if (targetMode === 'equal_all') {
       nextIncludeYou = true;
     } else if (targetMode === 'equal_friends') {
       nextIncludeYou = false;
-      if (selectedFriendIds.length > 1) {
-        targetMode = 'custom';
-      }
     }
 
     setIncludeYouInCustom(nextIncludeYou);
@@ -203,11 +257,15 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
       const tot = parseFloat(amount) || 0;
       const denom = (nextIncludeYou ? n + 1 : n) || 1;
       const equalVal = tot > 0 && denom > 0 ? String(Math.floor((tot * 100) / denom) / 100) : '0';
-      const initialCustom: Record<string, string> = {};
-      selectedFriendIds.forEach(fId => {
-        initialCustom[fId] = equalVal;
+      setCustomFriendShares(prev => {
+        const initialCustom: Record<string, string> = { ...prev };
+        selectedFriendIds.forEach(fId => {
+          if (!initialCustom[fId] || isNaN(parseFloat(initialCustom[fId])) || parseFloat(initialCustom[fId]) <= 0) {
+            initialCustom[fId] = equalVal;
+          }
+        });
+        return initialCustom;
       });
-      setCustomFriendShares(initialCustom);
     }
   };
 
@@ -524,7 +582,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
             friendId: fId,
             vendorId: vendorId || null,
             walletId,
-            status: 'unsettled',
+            status: status === 'unpaid' ? 'unpaid' : 'unsettled',
             notes,
           });
         }
@@ -1863,14 +1921,19 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                     } else {
                       const allIds = db.friends.map(f => f.id);
                       setSelectedFriendIds(allIds);
-                      if (allIds.length > 1) {
-                        handleSelectSplitCalcMode('custom', isYouSelected);
-                      } else if (allIds.length === 1) {
-                        if (isYouSelected) {
-                          handleSelectSplitCalcMode('equal_all');
-                        } else {
-                          handleSelectSplitCalcMode('equal_friends');
-                        }
+                      if (splitCalcMode === 'custom' && allIds.length > 0) {
+                        const tot = parseFloat(amount) || 0;
+                        const denom = isYouSelected ? allIds.length + 1 : allIds.length;
+                        const equalVal = tot > 0 && denom > 0 ? String(Math.floor((tot * 100) / denom) / 100) : '0';
+                        setCustomFriendShares(existing => {
+                          const updated = { ...existing };
+                          allIds.forEach(id => {
+                            if (!updated[id] || isNaN(parseFloat(updated[id])) || parseFloat(updated[id]) <= 0) {
+                              updated[id] = equalVal;
+                            }
+                          });
+                          return updated;
+                        });
                       }
                     }
                   }}
@@ -1901,15 +1964,11 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                       {showYouChip && (
                         <div
                           onClick={() => {
-                            if (isYouSelected) {
-                              if (selectedFriendIds.length > 1) {
-                                handleSelectSplitCalcMode('custom', false);
-                              } else {
-                                handleSelectSplitCalcMode('equal_friends');
-                              }
+                            if (splitCalcMode === 'custom') {
+                              setIncludeYouInCustom(!includeYouInCustom);
                             } else {
-                              if (selectedFriendIds.length > 1) {
-                                handleSelectSplitCalcMode('custom', true);
+                              if (isYouSelected) {
+                                handleSelectSplitCalcMode('equal_friends');
                               } else {
                                 handleSelectSplitCalcMode('equal_all');
                               }
@@ -1977,23 +2036,16 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                               setSelectedFriendIds(prev => {
                                 const isCurrentlySel = prev.includes(f.id);
                                 const next = isCurrentlySel ? prev.filter(id => id !== f.id) : [...prev, f.id];
-                                if (next.length > 1) {
-                                  handleSelectSplitCalcMode('custom', isYouSelected);
-                                } else if (next.length === 1) {
-                                  if (isYouSelected) {
-                                    handleSelectSplitCalcMode('equal_all');
-                                  } else {
-                                    handleSelectSplitCalcMode('equal_friends');
-                                  }
-                                }
-                                if (next.length > 0) {
+                                if (splitCalcMode === 'custom' && next.length > 0) {
                                   const tot = parseFloat(amount) || 0;
                                   const denom = isYouSelected ? next.length + 1 : next.length;
                                   const equalVal = tot > 0 && denom > 0 ? String(Math.floor((tot * 100) / denom) / 100) : '0';
                                   setCustomFriendShares(existing => {
                                     const updated = { ...existing };
                                     next.forEach(id => {
-                                      if (!updated[id] || updated[id] === '0') updated[id] = equalVal;
+                                      if (!updated[id] || isNaN(parseFloat(updated[id])) || parseFloat(updated[id]) <= 0) {
+                                        updated[id] = equalVal;
+                                      }
                                     });
                                     return updated;
                                   });

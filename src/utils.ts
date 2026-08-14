@@ -269,24 +269,65 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
         });
       } else if (items.length <= 1) {
         const e = items[0];
+        const isSplitGroup = Boolean(gId && (gId.startsWith('grp_') || gId.startsWith('split_')));
         const friendIds = e.friendId ? [e.friendId] : [];
-        result.push({
-          id: e.id,
-          groupId: e.groupId,
-          description: e.description.replace(/\s*\(Friend share\)$/i, '').trim(),
-          totalAmount: e.amount,
-          date: e.date,
-          category: e.category,
-          walletId: e.walletId,
-          flow: e.flow,
-          createdAt: e.createdAt,
-          items: [e],
-          isSplit: false,
-          personalShare: e.type === 'personal' ? e.amount : 0,
-          friendShare: e.type !== 'personal' ? e.amount : 0,
-          friendIds,
-          vendorId: e.vendorId || null,
-        });
+        const cleanDesc = e.description.replace(/\s*\(Friend share\)$/i, '').trim();
+
+        if (isSplitGroup && e.type === 'for_friend') {
+          const synthMine: Expense = {
+            id: `synth_mine_${gId}`,
+            description: cleanDesc,
+            amount: 0,
+            category: e.category,
+            date: e.date,
+            type: 'personal',
+            flow: e.flow,
+            friendId: null,
+            vendorId: e.vendorId || null,
+            walletId: e.walletId,
+            status: 'paid',
+            settled: false,
+            settlementId: null,
+            notes: '',
+            createdAt: e.createdAt,
+            groupId: gId,
+          };
+          result.push({
+            id: gId,
+            groupId: gId,
+            description: cleanDesc,
+            totalAmount: e.amount,
+            date: e.date,
+            category: e.category,
+            walletId: e.walletId,
+            flow: e.flow,
+            createdAt: e.createdAt,
+            items: [synthMine, e],
+            isSplit: true,
+            personalShare: 0,
+            friendShare: e.amount,
+            friendIds,
+            vendorId: e.vendorId || null,
+          });
+        } else {
+          result.push({
+            id: e.id,
+            groupId: e.groupId,
+            description: cleanDesc,
+            totalAmount: e.amount,
+            date: e.date,
+            category: e.category,
+            walletId: e.walletId,
+            flow: e.flow,
+            createdAt: e.createdAt,
+            items: [e],
+            isSplit: isSplitGroup,
+            personalShare: e.type === 'personal' ? e.amount : 0,
+            friendShare: e.type !== 'personal' ? e.amount : 0,
+            friendIds,
+            vendorId: e.vendorId || null,
+          });
+        }
       } else {
         items.sort((a) => (a.type === 'personal' ? -1 : 1));
         const first = items[0];
@@ -313,8 +354,14 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
         const maxCreatedAt = Math.max(...items.map(i => i.createdAt || 0));
         const cleanDesc = first.description.replace(/\s*\([^)]*\)$/i, '').trim();
 
+        const isSplit = Boolean(
+          gId.startsWith('grp_') ||
+          gId.startsWith('split_') ||
+          (forFriendItems.length > 0 || byFriendItems.length > 0)
+        );
+
         const finalItems = [...items];
-        if (personalItems.length === 0 && personalShare > 0) {
+        if (personalItems.length === 0 && isSplit) {
           finalItems.unshift({
             id: `synth_mine_${gId}`,
             description: cleanDesc,
@@ -346,7 +393,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
           flow: first.flow,
           createdAt: maxCreatedAt,
           items: finalItems,
-          isSplit: personalItems.length > 0 && (forFriendItems.length > 0 || byFriendItems.length > 0),
+          isSplit,
           personalShare,
           friendShare,
           friendIds,
@@ -547,4 +594,143 @@ export function generateInsights(
   }
 
   return out.slice(0, 5);
+}
+
+export function getGroupSettlementStatus(ge: GroupedExpense): {
+  statusKey: 'settled' | 'partial' | 'unsettled' | 'unpaid' | 'paid' | 'completed';
+  statusLabel: string;
+  isAllSettled: boolean;
+  isPartiallySettled: boolean;
+} {
+  if (ge.isSettlementGroup) {
+    return {
+      statusKey: 'settled',
+      statusLabel: 'Settled ✓',
+      isAllSettled: true,
+      isPartiallySettled: false,
+    };
+  }
+
+  const primaryItem = ge.items[0] || { category: ge.category, status: 'paid' as const, settled: false };
+  const isTransfer = ge.category === 'Transfer' || primaryItem.category === 'Transfer';
+  if (isTransfer) {
+    return {
+      statusKey: 'completed',
+      statusLabel: 'Completed',
+      isAllSettled: true,
+      isPartiallySettled: false,
+    };
+  }
+
+  const realItems = ge.items.filter(i => !i.id?.startsWith('synth_mine_'));
+  const friendItems = realItems.filter(i => i.type === 'for_friend' || i.type === 'by_friend');
+  const hasFriendObligation = friendItems.length > 0 || ge.friendIds.length > 0 || ge.isSplit;
+
+  // Check friend settlement
+  const totalFriendItems = friendItems.length;
+  const settledFriendItems = friendItems.filter(i => i.settled || i.settlementId).length;
+  const isFriendAllSettled = totalFriendItems > 0 && settledFriendItems === totalFriendItems;
+  const isFriendSomeSettled = settledFriendItems > 0 || friendItems.some(i => i.parentExpenseId || (i.originalAmount && i.settledAmount));
+
+  // Check vendor debt obligation (e.g. debt / unpaid on vendor)
+  const itemsWithVendorDebt = realItems.filter(i => i.vendorId && (i.status === 'unpaid' || i.vendorSettled !== undefined));
+  const hasVendorDebt = itemsWithVendorDebt.length > 0 || (ge.vendorId && ge.items.some(i => i.status === 'unpaid'));
+  const targetVendorItems = itemsWithVendorDebt.length > 0 ? itemsWithVendorDebt : realItems.filter(i => i.vendorId);
+  const isVendorAllSettled = hasVendorDebt && targetVendorItems.length > 0 && targetVendorItems.every(i => i.vendorSettled === true || (i.status === 'paid' && i.vendorSettled !== false));
+  const isVendorUnsettled = hasVendorDebt && !isVendorAllSettled;
+
+  if (hasFriendObligation) {
+    if (hasVendorDebt) {
+      if (isFriendAllSettled && isVendorAllSettled) {
+        return {
+          statusKey: 'settled',
+          statusLabel: 'Completely Settled',
+          isAllSettled: true,
+          isPartiallySettled: false,
+        };
+      }
+      if (isFriendAllSettled && isVendorUnsettled) {
+        // Friend paid user, but user hasn't paid vendor yet
+        return {
+          statusKey: 'partial',
+          statusLabel: 'Partially Settled',
+          isAllSettled: false,
+          isPartiallySettled: true,
+        };
+      }
+      if (isVendorAllSettled && !isFriendAllSettled) {
+        // User paid vendor, but friend hasn't paid user yet
+        return {
+          statusKey: 'partial',
+          statusLabel: 'Partially Settled',
+          isAllSettled: false,
+          isPartiallySettled: true,
+        };
+      }
+      if (isFriendSomeSettled) {
+        return {
+          statusKey: 'partial',
+          statusLabel: 'Partially Settled',
+          isAllSettled: false,
+          isPartiallySettled: true,
+        };
+      }
+      return {
+        statusKey: 'unsettled',
+        statusLabel: 'Unsettled',
+        isAllSettled: false,
+        isPartiallySettled: false,
+      };
+    } else {
+      // No vendor debt
+      if (isFriendAllSettled) {
+        return {
+          statusKey: 'settled',
+          statusLabel: 'Completely Settled',
+          isAllSettled: true,
+          isPartiallySettled: false,
+        };
+      }
+      if (isFriendSomeSettled) {
+        return {
+          statusKey: 'partial',
+          statusLabel: 'Partially Settled',
+          isAllSettled: false,
+          isPartiallySettled: true,
+        };
+      }
+      return {
+        statusKey: 'unsettled',
+        statusLabel: 'Unsettled',
+        isAllSettled: false,
+        isPartiallySettled: false,
+      };
+    }
+  }
+
+  // Pure personal / single vendor transaction
+  if (hasVendorDebt) {
+    if (isVendorAllSettled) {
+      return {
+        statusKey: 'settled',
+        statusLabel: 'Settled',
+        isAllSettled: true,
+        isPartiallySettled: false,
+      };
+    }
+    return {
+      statusKey: 'unpaid',
+      statusLabel: 'Unpaid',
+      isAllSettled: false,
+      isPartiallySettled: false,
+    };
+  }
+
+  const isSettled = Boolean(primaryItem.settled || primaryItem.status === 'paid');
+  return {
+    statusKey: isSettled ? 'settled' : primaryItem.status,
+    statusLabel: isSettled ? 'Settled' : (primaryItem.status ? primaryItem.status.charAt(0).toUpperCase() + primaryItem.status.slice(1) : 'Paid'),
+    isAllSettled: isSettled,
+    isPartiallySettled: false,
+  };
 }

@@ -1247,6 +1247,11 @@ export function expenseWalletDelta(e: Expense, db?: AppDB): number {
     const group = db.expenses.filter(g => g.groupId === e.groupId);
     if (group.some(g => g.type === 'by_friend')) return 0;
   }
+  // If an expense was settled via a Settlement object (or is tied to a settlement record),
+  // the settlement itself moves the funds to/from the wallet. Deducting again from the expense
+  // causes a double deduction.
+  if (e.settlementId || e.vendorSettlementId) return 0;
+
   const amt = Number(e.amount) || 0;
   return expenseFlow(e) === 'in' ? amt : -amt;
 }
@@ -1271,46 +1276,58 @@ export function totalWalletBalance(db: AppDB): number {
 export function friendBalance(db: AppDB, friendId: string): { owedToMe: number; owedByMe: number; net: number } {
   let owedToMe = 0, owedByMe = 0;
   db.expenses.forEach(e => {
-    if (e.settled) return;
     const amt = Number(e.amount) || 0;
     const isIncoming = expenseFlow(e) === 'in';
 
     // 1. Expense is split or friend-related with e.friendId === friendId
     if (e.friendId === friendId && e.type !== 'personal') {
-      if (e.type === 'for_friend') {
-        if (isIncoming) {
-          owedToMe -= amt; // Repayment received from friend reduces what friend owes me
-        } else {
-          owedToMe += amt; // Money spent for friend increases what friend owes me
-        }
-      } else if (e.type === 'by_friend') {
-        if (isIncoming) {
-          owedByMe -= amt; // Repayment paid to friend reduces what I owe friend
-        } else {
-          owedByMe += amt; // Expense paid by friend for me increases what I owe friend
+      if (!e.settled) {
+        if (e.type === 'for_friend') {
+          if (isIncoming) {
+            owedToMe -= amt; // Repayment received from friend reduces what friend owes me
+          } else {
+            owedToMe += amt; // Money spent for friend increases what friend owes me
+          }
+        } else if (e.type === 'by_friend') {
+          if (isIncoming) {
+            owedByMe -= amt; // Repayment paid to friend reduces what I owe friend
+          } else {
+            owedByMe += amt; // Expense paid by friend for me increases what I owe friend
+          }
         }
       }
-      return;
     }
 
-    // 2. Unpaid debt associated with vendorId or friendId (e.g. user selected Debt for vendor)
-    if ((e.vendorId === friendId || e.friendId === friendId) && e.status === 'unpaid') {
-      if (isIncoming) {
-        owedToMe += amt; // Uncollected incoming debt
-      } else {
-        owedByMe += amt; // Unpaid vendor debt - I owe the vendor money
+    // 2. Unpaid personal debt directly for this friend/contact
+    if (e.friendId === friendId && e.type === 'personal' && e.status === 'unpaid') {
+      if (!e.settled) {
+        if (isIncoming) {
+          owedToMe += amt;
+        } else {
+          owedByMe += amt;
+        }
       }
-      return;
     }
 
-    // 3. Vendor expense billed by vendor (by_friend) where vendorId is friendId
-    if (e.vendorId === friendId && e.type === 'by_friend') {
-      if (isIncoming) {
-        owedByMe -= amt;
-      } else {
-        owedByMe += amt;
+    // 3. Unpaid debt associated with vendorId (e.g. user selected Debt for vendor, including split expenses)
+    if (e.vendorId === friendId && e.status === 'unpaid') {
+      const isVendorUnsettled = !e.vendorSettled && (!e.settled || e.type === 'for_friend');
+      if (isVendorUnsettled) {
+        if (isIncoming) {
+          owedToMe += amt;
+        } else {
+          owedByMe += amt;
+        }
       }
-      return;
+    } else if (e.vendorId === friendId && e.type === 'by_friend') {
+      const isVendorUnsettled = !e.vendorSettled && !e.settled;
+      if (isVendorUnsettled) {
+        if (isIncoming) {
+          owedByMe -= amt;
+        } else {
+          owedByMe += amt;
+        }
+      }
     }
   });
   return { owedToMe, owedByMe, net: owedToMe - owedByMe };
@@ -1343,14 +1360,23 @@ export function personalNetAmount(e: Expense): number {
 export function unsettledExpensesForFriend(db: AppDB, friendId: string): Expense[] {
   return db.expenses
     .filter(e => {
-      if (e.settled) return false;
       if (expenseFlow(e) !== 'out') return false;
-      // 1. Shared friend expenses
-      if (e.friendId === friendId && e.type !== 'personal') return true;
-      // 2. Unpaid vendor/contact debt
-      if ((e.vendorId === friendId || e.friendId === friendId) && e.status === 'unpaid') return true;
-      // 3. Vendor billed on credit/tab
-      if (e.vendorId === friendId && e.type === 'by_friend') return true;
+      // 1. Shared friend expenses (friend owes user)
+      if (e.friendId === friendId && e.type !== 'personal') {
+        return !e.settled;
+      }
+      // 2. Unpaid vendor debt (user owes vendor)
+      if (e.vendorId === friendId && e.status === 'unpaid') {
+        return !e.vendorSettled && (!e.settled || e.type === 'for_friend');
+      }
+      // 3. Unpaid friend debt
+      if (e.friendId === friendId && e.status === 'unpaid') {
+        return !e.settled;
+      }
+      // 4. Vendor billed on credit/tab
+      if (e.vendorId === friendId && e.type === 'by_friend') {
+        return !e.vendorSettled && !e.settled;
+      }
       return false;
     })
     .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
@@ -1627,13 +1653,29 @@ export function recordSettlement(
   selectedExpenses.forEach(e => {
     const amt = Number(e.amount) || 0;
     const isIncoming = expenseFlow(e) === 'in';
-    if (e.type === 'for_friend') {
-      if (isIncoming) owedToMe -= amt;
-      else owedToMe += amt;
-    } else if (e.type === 'by_friend') {
-      if (isIncoming) owedByMe -= amt;
-      else owedByMe += amt;
-    } else if (e.status === 'unpaid') {
+    const isSettlingVendor = e.vendorId === friendId;
+    const isSettlingFriend = e.friendId === friendId;
+
+    if (isSettlingVendor) {
+      // Settling with the vendor! Buying goods/services (flow === 'out') on credit means user owes vendor (owedByMe)
+      if (isIncoming) {
+        owedToMe += amt;
+      } else {
+        owedByMe += amt;
+      }
+    } else if (isSettlingFriend) {
+      if (e.type === 'for_friend') {
+        if (isIncoming) owedToMe -= amt;
+        else owedToMe += amt;
+      } else if (e.type === 'by_friend') {
+        if (isIncoming) owedByMe -= amt;
+        else owedByMe += amt;
+      } else if (e.status === 'unpaid') {
+        if (isIncoming) owedToMe += amt;
+        else owedByMe += amt;
+      }
+    } else {
+      // General debt / contact
       if (isIncoming) owedToMe += amt;
       else owedByMe += amt;
     }
@@ -1666,6 +1708,11 @@ export function recordSettlement(
     const origAmt = e.originalAmount ?? (Number(e.amount) || 0);
     const currentAmt = Number(e.amount) || 0;
 
+    const isSettlingVendor = e.vendorId === friendId;
+    const isSettlingFriend = e.friendId === friendId;
+    const willSettleFriend = isSettlingFriend || (!e.friendId && !isSettlingVendor) || e.type === 'personal';
+    const willSettleVendor = isSettlingVendor || (!e.vendorId && !isSettlingFriend);
+
     if (isFullSettlement || remainingCover >= currentAmt) {
       if (!isFullSettlement) {
         remainingCover -= currentAmt;
@@ -1681,9 +1728,11 @@ export function recordSettlement(
         originalAmount: origAmt,
         originalDate: e.originalDate || e.date,
         settledAmount: currentAmt,
-        status: 'paid',
-        settled: true,
-        settlementId: '', // Will assign below
+        status: (willSettleVendor && willSettleFriend) ? 'paid' : (willSettleVendor ? 'paid' : e.status),
+        settled: willSettleFriend ? true : e.settled,
+        settlementId: willSettleFriend ? '' : e.settlementId, // Will assign below
+        vendorSettled: willSettleVendor ? true : e.vendorSettled,
+        vendorSettlementId: isSettlingVendor ? '' : e.vendorSettlementId,
         date: settlementDate,
       });
     } else if (remainingCover > 0) {
@@ -1704,9 +1753,11 @@ export function recordSettlement(
         originalDate: e.originalDate || e.date,
         settledAmount: coveredPortion,
         amount: coveredPortion,
-        status: 'paid',
-        settled: true,
-        settlementId: '', // Will assign below
+        status: (willSettleVendor && willSettleFriend) ? 'paid' : (willSettleVendor ? 'paid' : e.status),
+        settled: willSettleFriend ? true : e.settled,
+        settlementId: willSettleFriend ? '' : e.settlementId, // Will assign below
+        vendorSettled: willSettleVendor ? true : e.vendorSettled,
+        vendorSettlementId: isSettlingVendor ? '' : e.vendorSettlementId,
         date: settlementDate,
       });
 
@@ -1720,8 +1771,10 @@ export function recordSettlement(
         amount: remainingPortion,
         description: e.description.includes('Remaining') ? e.description : `${e.description} (Remaining)`,
         status: e.status === 'unpaid' ? 'unpaid' : e.status,
-        settled: false,
+        settled: willSettleFriend ? false : e.settled,
         settlementId: null,
+        vendorSettled: isSettlingVendor ? false : e.vendorSettled,
+        vendorSettlementId: null,
         createdAt: Date.now() + 1,
       });
     } else {
@@ -1745,9 +1798,16 @@ export function recordSettlement(
     partialBreakdown: Object.keys(breakdown).length > 0 ? breakdown : undefined,
   };
 
-  const finalUpdatedExpenses = updatedExpenses.map(e =>
-    e.settlementId === '' ? { ...e, settlementId: s.id } : e
-  );
+  const finalUpdatedExpenses = updatedExpenses.map(e => {
+    let res = e;
+    if (res.settlementId === '') {
+      res = { ...res, settlementId: s.id };
+    }
+    if (res.vendorSettlementId === '') {
+      res = { ...res, vendorSettlementId: s.id };
+    }
+    return res;
+  });
 
   return {
     ...db,
@@ -1764,7 +1824,7 @@ export function deleteSettlement(db: AppDB, id: string): AppDB {
   const parentExpenseIdsToRestore = new Set<string>(targetExpenseIds);
 
   db.expenses.forEach(e => {
-    if (e.settlementId === id) {
+    if (e.settlementId === id || e.vendorSettlementId === id) {
       if (e.parentExpenseId) {
         childExpenseIdsToDelete.add(e.id);
         parentExpenseIdsToRestore.add(e.parentExpenseId);
@@ -1782,16 +1842,21 @@ export function deleteSettlement(db: AppDB, id: string): AppDB {
 
   // Restore parent / settled expenses back to pre-settlement state
   expenses = expenses.map(e => {
-    if (e.settlementId === id || parentExpenseIdsToRestore.has(e.id) || (e.groupId && parentExpenseIdsToRestore.has(e.groupId))) {
+    const isMainSettlement = e.settlementId === id;
+    const isVendorSettlement = e.vendorSettlementId === id;
+
+    if (isMainSettlement || isVendorSettlement || parentExpenseIdsToRestore.has(e.id) || (e.groupId && parentExpenseIdsToRestore.has(e.groupId))) {
       const restoredAmt = e.originalAmount ?? e.amount;
       const restoredDate = e.originalDate || e.date;
       return {
         ...e,
         amount: restoredAmt,
         date: restoredDate,
-        status: (e.vendorId || e.type === 'personal') ? 'unpaid' : e.status,
-        settled: false,
-        settlementId: null,
+        status: (e.vendorId && (!e.vendorSettled || isVendorSettlement)) ? 'unpaid' : e.status,
+        settled: isMainSettlement ? false : e.settled,
+        settlementId: isMainSettlement ? null : e.settlementId,
+        vendorSettled: isVendorSettlement ? false : e.vendorSettled,
+        vendorSettlementId: isVendorSettlement ? null : e.vendorSettlementId,
         originalAmount: undefined,
         originalDate: undefined,
         settledAmount: undefined,

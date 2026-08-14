@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Plus, Edit2, Trash2, Search, ChevronDown, ChevronUp, ChevronRight, Filter, Users, Layers, ArrowUpRight, ArrowDownLeft, RotateCcw, User, ReceiptText, Wallet, CheckCircle2, Store } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense } from '../types';
-import { fmtMoney, fmtDate, typeLabel, statusLabel, friendInitial, getAvatarStyle, groupExpenses, cleanExpenseDescription } from '../utils';
+import { fmtMoney, fmtDate, typeLabel, friendInitial, getAvatarStyle, groupExpenses, cleanExpenseDescription, getGroupSettlementStatus } from '../utils';
 import ExpenseModal from '../components/ExpenseModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CategoryIcon, { CategoryBadge } from '../components/CategoryIcon';
@@ -108,15 +108,18 @@ export default function Expenses() {
     }
     if (statusFilter) {
       if (statusFilter === 'settled') {
-        arr = arr.filter(ge => ge.items.every(i => i.settled || i.status === 'paid'));
-      } else if (statusFilter === 'paid') {
-        arr = arr.filter(ge => ge.items.some(i => i.status === 'paid' || i.settled));
+        arr = arr.filter(ge => getGroupSettlementStatus(ge).statusKey === 'settled');
+      } else if (statusFilter === 'partial') {
+        arr = arr.filter(ge => getGroupSettlementStatus(ge).statusKey === 'partial');
       } else if (statusFilter === 'unpaid') {
-        arr = arr.filter(ge => ge.items.some(i => !i.settled && i.status === 'unpaid'));
+        arr = arr.filter(ge => getGroupSettlementStatus(ge).statusKey === 'unpaid');
       } else if (statusFilter === 'unsettled') {
-        arr = arr.filter(ge => ge.items.some(i => !i.settled && (i.type !== 'personal' || i.status === 'unpaid')));
+        arr = arr.filter(ge => {
+          const st = getGroupSettlementStatus(ge).statusKey;
+          return st === 'unsettled' || st === 'partial';
+        });
       } else {
-        arr = arr.filter(ge => ge.items.some(i => !i.settled && i.status === statusFilter));
+        arr = arr.filter(ge => getGroupSettlementStatus(ge).statusKey === statusFilter);
       }
     }
     if (flowFilter) arr = arr.filter(ge => ge.flow === flowFilter);
@@ -306,16 +309,8 @@ export default function Expenses() {
                       const vendorId = ge.vendorId || ge.items.find(i => i.vendorId)?.vendorId;
                       const vendor = vendorId ? db.friends.find(f => f.id === vendorId) : null;
 
-                      // Calculate friend settlement status for this group
-                      const friendItems = ge.items.filter(i => i.type === 'for_friend' || i.type === 'by_friend');
-                      const hasFriendItem = friendItems.length > 0 || ge.friendIds.length > 0 || ge.isSplit;
-                      const targetItemsForStatus = friendItems.length > 0 ? friendItems : ge.items;
-                      const totalTargetCount = targetItemsForStatus.length;
-                      const settledTargetCount = targetItemsForStatus.filter(i => i.settled || i.settlementId).length;
-                      const isGroupAllSettled = totalTargetCount > 0 && settledTargetCount === totalTargetCount;
-                      const isGroupSomeSettled = settledTargetCount > 0;
-                      const hasChildOrPartial = ge.items.some(i => i.parentExpenseId || (i.originalAmount && i.settledAmount));
-                      const isGroupPartiallySettled = (isGroupSomeSettled && !isGroupAllSettled) || (hasChildOrPartial && !isGroupAllSettled);
+                      // Calculate group settlement status using standard helper
+                      const groupStatus = getGroupSettlementStatus(ge);
 
                       // Check if date header should be shown
                       const isNewDateHeader = sort.startsWith('date') && ge.date !== prevDateStr;
@@ -472,23 +467,19 @@ export default function Expenses() {
                                   }
                                   if (isIn) return <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: 'var(--credit)' }}>+{fmtMoney(ge.totalAmount, currency)}</span>;
                                   if (ge.isSplit) {
-                                    if (isGroupAllSettled) {
-                                      if (ge.personalShare > 0) return <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: 'var(--debit)' }}>-{fmtMoney(ge.personalShare, currency)}</span>;
-                                      return (
+                                    return (
+                                      <>
                                         <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
                                           {ge.flow === 'in' ? '+' : '-'}{fmtMoney(ge.totalAmount, currency)}
                                         </span>
-                                      );
-                                    }
-                                    return <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: 'var(--debit)' }}>-{fmtMoney(ge.personalShare, currency)}</span>;
+                                        <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>
+                                          Your share: {fmtMoney(ge.personalShare, currency)}
+                                        </span>
+                                      </>
+                                    );
                                   }
                                   return <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: ge.flow === 'out' ? 'var(--debit)' : 'var(--credit)' }}>{ge.flow === 'out' ? '-' : '+'}{fmtMoney(ge.totalAmount, currency)}</span>;
                                 })()}
-                                {ge.isSplit && ge.personalShare > 0 && !isGroupAllSettled && (
-                                  <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>
-                                    Your share: {fmtMoney(ge.personalShare, currency)}
-                                  </span>
-                                )}
                               </div>
                             </td>
                             <td>
@@ -510,50 +501,17 @@ export default function Expenses() {
                               </span>
                             </td>
                             <td>
-                              {(() => {
-                                if (ge.isSettlementGroup) {
-                                  return (
-                                    <span className="tx-status-pill status-settled">
-                                      <span className="status-dot" />
-                                      <span>Settled ✓</span>
-                                    </span>
-                                  );
-                                }
-                                if (hasFriendItem) {
-                                  if (isGroupAllSettled) {
-                                    return (
-                                      <span className="tx-status-pill status-settled">
-                                        <span className="status-dot" />
-                                        <span>Completely Settled</span>
-                                      </span>
-                                    );
-                                  }
-                                  if (isGroupPartiallySettled) {
-                                    return (
-                                      <span className="tx-status-pill status-partial">
-                                        <span className="status-dot" />
-                                        <span>Partially Settled</span>
-                                      </span>
-                                    );
-                                  }
-                                  return (
-                                    <span className="tx-status-pill status-unsettled">
-                                      <span className="status-dot" />
-                                      <span>Unsettled</span>
-                                    </span>
-                                  );
-                                }
-
-                                const isTransfer = primaryItem.category === 'Transfer';
-                                const isSettled = primaryItem.settled || isTransfer;
-
-                                return (
-                                  <span className={`tx-status-pill status-${isTransfer || isSettled ? 'settled' : primaryItem.status}`}>
-                                    <span className="status-dot" />
-                                    <span>{isTransfer ? 'Completed' : (isSettled ? 'Settled' : statusLabel(primaryItem.status))}</span>
-                                  </span>
-                                );
-                              })()}
+                              {ge.isSettlementGroup ? (
+                                <span className="tx-status-pill status-settled">
+                                  <span className="status-dot" />
+                                  <span>Settled ✓</span>
+                                </span>
+                              ) : (
+                                <span className={`tx-status-pill status-${groupStatus.statusKey}`}>
+                                  <span className="status-dot" />
+                                  <span>{groupStatus.statusLabel}</span>
+                                </span>
+                              )}
                             </td>
                             <td style={{ textAlign: 'right' }}>
                               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
@@ -650,6 +608,42 @@ export default function Expenses() {
                                     </div>
                                   );
                                 })}
+                                {vendor && !ge.items.some(i => i.type === 'by_friend' && (i.friendId === vendor.id || i.vendorId === vendor.id)) && (() => {
+                                  const isVendorSettled = Boolean(
+                                    ge.items.every(i => i.vendorSettled || (i.status === 'paid' && !i.vendorId)) ||
+                                    (primaryItem.status === 'paid' && primaryItem.vendorSettled !== false) ||
+                                    ge.items.some(i => i.vendorSettled)
+                                  );
+                                  return (
+                                    <div style={{
+                                      background: 'var(--surface)',
+                                      border: '1px solid var(--border)',
+                                      borderRadius: 6,
+                                      padding: '8px 12px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 12,
+                                      minWidth: 210,
+                                    }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <div className="avatar avatar-sm" style={{ ...getAvatarStyle(vendor.color), width: 22, height: 22, fontSize: 10 }}>
+                                          <Store size={12} />
+                                        </div>
+                                        <div>
+                                          <div style={{ fontWeight: 600, fontSize: 12 }}>
+                                            {isVendorSettled ? `Paid to ${vendor.name}` : `You owe ${vendor.name}`}
+                                          </div>
+                                          <div style={{ fontSize: 11, fontWeight: 500, color: isVendorSettled ? 'var(--credit)' : '#ef4444' }}>
+                                            {isVendorSettled ? 'Paid to Vendor ✓' : 'Unpaid Vendor Bill'}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div style={{ marginLeft: 'auto', fontWeight: 700, fontSize: 13, color: 'var(--debit)' }}>
+                                        -{fmtMoney(ge.totalAmount, currency)}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </td>
                           </tr>
@@ -701,16 +695,8 @@ export default function Expenses() {
                 const isFirstOfDate = dateGroupInfo.isFirstMap[ge.id];
                 const cardClass = `mobile-expense-card ${isEvenGroup ? 'date-card-even' : 'date-card-odd'}${isFirstOfDate ? ' date-card-first' : ''}${isExpanded ? ' is-expanded' : ''}`;
 
-                // Calculate friend settlement status for this group
-                const friendItems = ge.items.filter(i => i.type === 'for_friend' || i.type === 'by_friend');
-                const hasFriendItem = friendItems.length > 0 || ge.friendIds.length > 0 || ge.isSplit;
-                const targetItemsForStatus = friendItems.length > 0 ? friendItems : ge.items;
-                const totalTargetCount = targetItemsForStatus.length;
-                const settledTargetCount = targetItemsForStatus.filter(i => i.settled || i.settlementId).length;
-                const isGroupAllSettled = totalTargetCount > 0 && settledTargetCount === totalTargetCount;
-                const isGroupSomeSettled = settledTargetCount > 0;
-                const hasChildOrPartial = ge.items.some(i => i.parentExpenseId || (i.originalAmount && i.settledAmount));
-                const isGroupPartiallySettled = (isGroupSomeSettled && !isGroupAllSettled) || (hasChildOrPartial && !isGroupAllSettled);
+                // Calculate group settlement status using standard helper
+                const groupStatus = getGroupSettlementStatus(ge);
 
                 return (
                   <div key={ge.id} className={cardClass}>
@@ -757,92 +743,52 @@ export default function Expenses() {
                               <Users size={11} /> {ge.isSettlementGroup ? 'Settlement' : 'Split'}
                             </span>
                           )}
-                          {hasFriendItem && !ge.isSettlementGroup ? (
-                            <>
-                              {isGroupAllSettled ? (
-                                <span style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  padding: '2px 7px',
-                                  borderRadius: 10,
-                                  fontSize: 10,
-                                  fontWeight: 600,
-                                  background: 'rgba(16, 185, 129, 0.15)',
-                                  color: '#10b981',
-                                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                                  whiteSpace: 'nowrap'
-                                }}>
-                                  Settled ✓
-                                </span>
-                              ) : isGroupPartiallySettled ? (
-                                <span style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  padding: '2px 7px',
-                                  borderRadius: 10,
-                                  fontSize: 10,
-                                  fontWeight: 600,
-                                  background: 'rgba(245, 158, 11, 0.18)',
-                                  color: '#f59e0b',
-                                  border: '1px solid rgba(245, 158, 11, 0.35)',
-                                  whiteSpace: 'nowrap'
-                                }}>
-                                  Partially Settled
-                                </span>
-                              ) : (
-                                <span style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  padding: '2px 7px',
-                                  borderRadius: 10,
-                                  fontSize: 10,
-                                  fontWeight: 600,
-                                  background: 'rgba(239, 68, 68, 0.12)',
-                                  color: '#ef4444',
-                                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                                  whiteSpace: 'nowrap'
-                                }}>
-                                  Unsettled
-                                </span>
-                              )}
-                            </>
-                          ) : !ge.isSettlementGroup && (
-                            primaryItem.status === 'unpaid' ? (
-                              <span style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                padding: '2px 7px',
-                                borderRadius: 10,
-                                fontSize: 10,
-                                fontWeight: 600,
-                                background: 'rgba(239, 68, 68, 0.12)',
-                                color: '#ef4444',
-                                border: '1px solid rgba(239, 68, 68, 0.25)',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                Unpaid
-                              </span>
-                            ) : primaryItem.settled ? (
-                              <span style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                padding: '2px 7px',
-                                borderRadius: 10,
-                                fontSize: 10,
-                                fontWeight: 600,
-                                background: 'rgba(16, 185, 129, 0.15)',
-                                color: '#10b981',
-                                border: '1px solid rgba(16, 185, 129, 0.3)',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                Settled ✓
-                              </span>
-                            ) : null
+                          {ge.isSettlementGroup ? (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '2px 7px',
+                              borderRadius: 10,
+                              fontSize: 10,
+                              fontWeight: 600,
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              color: '#10b981',
+                              border: '1px solid rgba(16, 185, 129, 0.3)',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              Settled ✓
+                            </span>
+                          ) : (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '2px 7px',
+                              borderRadius: 10,
+                              fontSize: 10,
+                              fontWeight: 600,
+                              background: groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed'
+                                ? 'rgba(16, 185, 129, 0.15)'
+                                : groupStatus.statusKey === 'partial'
+                                ? 'rgba(245, 158, 11, 0.18)'
+                                : 'rgba(239, 68, 68, 0.12)',
+                              color: groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed'
+                                ? '#10b981'
+                                : groupStatus.statusKey === 'partial'
+                                ? '#f59e0b'
+                                : '#ef4444',
+                              border: `1px solid ${groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed'
+                                ? 'rgba(16, 185, 129, 0.3)'
+                                : groupStatus.statusKey === 'partial'
+                                ? 'rgba(245, 158, 11, 0.35)'
+                                : 'rgba(239, 68, 68, 0.25)'}`,
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {groupStatus.statusLabel}
+                            </span>
                           )}
                         </div>
-                        <div className="mobile-expense-amount">
+                        <div className="mobile-expense-amount" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                           {(() => {
-                            const isAllSettled = ge.items.every(i => i.settled);
                             if (ge.isSettlementGroup) {
                               return (
                                 <span style={{ color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
@@ -852,15 +798,16 @@ export default function Expenses() {
                             }
                             if (isIn) return <span style={{ color: 'var(--credit)' }}>+{fmtMoney(ge.totalAmount, currency)}</span>;
                             if (ge.isSplit) {
-                              if (isAllSettled) {
-                                if (ge.personalShare > 0) return <span style={{ color: 'var(--debit)' }}>-{fmtMoney(ge.personalShare, currency)}</span>;
-                                return (
+                              return (
+                                <>
                                   <span style={{ color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
                                     {ge.flow === 'in' ? '+' : '-'}{fmtMoney(ge.totalAmount, currency)}
                                   </span>
-                                );
-                              }
-                              return <span style={{ color: 'var(--debit)' }}>-{fmtMoney(ge.totalAmount, currency)}</span>;
+                                  <span style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 500 }}>
+                                    You: {fmtMoney(ge.personalShare, currency)}
+                                  </span>
+                                </>
+                              );
                             }
                             return <span style={{ color: ge.flow === 'out' ? 'var(--debit)' : 'var(--credit)' }}>{ge.flow === 'out' ? '-' : '+'}{fmtMoney(ge.totalAmount, currency)}</span>;
                           })()}
@@ -971,6 +918,40 @@ export default function Expenses() {
                                   </div>
                                 );
                               })}
+                              {vendor && !ge.items.some(i => i.type === 'by_friend' && (i.friendId === vendor.id || i.vendorId === vendor.id)) && (() => {
+                                const isVendorSettled = Boolean(
+                                  ge.items.every(i => i.vendorSettled || (i.status === 'paid' && !i.vendorId)) ||
+                                  (primaryItem.status === 'paid' && primaryItem.vendorSettled !== false) ||
+                                  ge.items.some(i => i.vendorSettled)
+                                );
+                                return (
+                                  <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    fontSize: 12,
+                                    padding: '6px 0',
+                                    borderTop: '1px dashed var(--border)'
+                                  }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span className="avatar avatar-sm" style={{ ...getAvatarStyle(vendor.color), width: 22, height: 22, fontSize: 10 }}>
+                                        <Store size={12} />
+                                      </span>
+                                      <div>
+                                        <div style={{ fontWeight: 600 }}>
+                                          {isVendorSettled ? `Paid to ${vendor.name}` : `You owe ${vendor.name}`}
+                                        </div>
+                                        <div style={{ fontSize: 11, fontWeight: 500, color: isVendorSettled ? 'var(--credit)' : '#ef4444' }}>
+                                          {isVendorSettled ? 'Paid to Vendor ✓' : 'Unpaid Vendor Bill'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <span style={{ fontWeight: 700, fontSize: 13, marginLeft: 'auto', color: 'var(--debit)' }}>
+                                      -{fmtMoney(ge.totalAmount, currency)}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
                         )}
@@ -1006,36 +987,32 @@ export default function Expenses() {
                           <div className="mobile-expense-detail-item">
                             <span className="mobile-expense-detail-label">Status</span>
                             <span className="mobile-expense-detail-val">
-                              {(() => {
-                                if (hasFriendItem && !ge.isSettlementGroup) {
-                                  if (isGroupAllSettled) {
-                                    return (
-                                      <span className="badge badge-settled" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600 }}>
-                                        Completely Settled
-                                      </span>
-                                    );
-                                  }
-                                  if (isGroupPartiallySettled) {
-                                    return (
-                                      <span className="badge badge-partial" style={{ background: 'rgba(245, 158, 11, 0.18)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.35)', fontWeight: 600 }}>
-                                        Partially Settled
-                                      </span>
-                                    );
-                                  }
-                                  return (
-                                    <span className="badge badge-unsettled" style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.25)', fontWeight: 600 }}>
-                                      Unsettled
-                                    </span>
-                                  );
-                                }
-                                const isTransfer = primaryItem.category === 'Transfer';
-                                const isSettled = primaryItem.settled || isTransfer;
-                                return (
-                                  <span className={`badge badge-${isSettled ? 'settled' : primaryItem.status}`}>
-                                    {isTransfer ? 'Completed' : (isSettled ? 'Settled' : statusLabel(primaryItem.status))}
-                                  </span>
-                                );
-                              })()}
+                              {ge.isSettlementGroup ? (
+                                <span className="badge badge-settled" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600 }}>
+                                  Settled ✓
+                                </span>
+                              ) : (
+                                <span className={`badge badge-${groupStatus.statusKey}`} style={{
+                                  background: groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed'
+                                    ? 'rgba(16, 185, 129, 0.15)'
+                                    : groupStatus.statusKey === 'partial'
+                                    ? 'rgba(245, 158, 11, 0.18)'
+                                    : 'rgba(239, 68, 68, 0.12)',
+                                  color: groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed'
+                                    ? '#10b981'
+                                    : groupStatus.statusKey === 'partial'
+                                    ? '#f59e0b'
+                                    : '#ef4444',
+                                  border: `1px solid ${groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed'
+                                    ? 'rgba(16, 185, 129, 0.3)'
+                                    : groupStatus.statusKey === 'partial'
+                                    ? 'rgba(245, 158, 11, 0.35)'
+                                    : 'rgba(239, 68, 68, 0.25)'}`,
+                                  fontWeight: 600
+                                }}>
+                                  {groupStatus.statusLabel}
+                                </span>
+                              )}
                             </span>
                           </div>
 

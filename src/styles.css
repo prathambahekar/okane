@@ -2339,7 +2339,8 @@ table.desktop-only { display: table !important; }
 .mobile-expense-desc-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
   min-width: 0;
   flex: 1;
 }
@@ -2349,7 +2350,9 @@ table.desktop-only { display: table !important; }
   font-size: 13.5px;
   color: var(--text);
   line-height: 1.35;
-  word-break: break-word;
+  word-break: normal;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .mobile-expense-amount {

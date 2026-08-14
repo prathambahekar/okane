@@ -55,6 +55,9 @@ export interface Expense {
   originalDate?: string;
   settledAmount?: number;
   parentExpenseId?: string | null;
+  vendorSettled?: boolean;
+  vendorSettlementId?: string | null;
+  vendorSettledAmount?: number;
 }
 
 export interface SettlementPartialBreakdownItem {

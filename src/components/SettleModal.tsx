@@ -30,13 +30,15 @@ export default function SettleModal({ friend, onClose }: Props) {
   const selectedArr = unsettled.filter(e => selected.has(e.id));
 
   const owedToMe = selectedArr.filter(e => {
-    if (e.type === 'for_friend' && expenseFlow(e) === 'out') return true;
+    if (e.friendId === friend.id && e.type === 'for_friend' && expenseFlow(e) === 'out') return true;
     return false;
   }).reduce((s, e) => s + Number(e.amount), 0);
 
   const owedByMe = selectedArr.filter(e => {
-    if (e.type === 'by_friend' && expenseFlow(e) === 'out') return true;
-    if (e.status === 'unpaid' && expenseFlow(e) === 'out') return true;
+    if (e.friendId === friend.id && e.type === 'by_friend' && expenseFlow(e) === 'out') return true;
+    if (e.vendorId === friend.id && e.status === 'unpaid' && expenseFlow(e) === 'out') return true;
+    if (e.vendorId === friend.id && e.type === 'by_friend' && expenseFlow(e) === 'out') return true;
+    if (e.friendId === friend.id && e.status === 'unpaid' && expenseFlow(e) === 'out') return true;
     return false;
   }).reduce((s, e) => s + Number(e.amount), 0);
   const net = owedToMe - owedByMe;
@@ -96,7 +98,7 @@ export default function SettleModal({ friend, onClose }: Props) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto', marginBottom: 14 }}>
                 {unsettled.map(e => {
                   const cat = db.settings.categories.find(c => c.name === e.category);
-                  const isForFriend = e.type === 'for_friend';
+                  const isOwedToMe = e.friendId === friend.id && e.type === 'for_friend';
                   const origAmt = e.originalAmount;
                   return (
                     <label key={e.id} className="settle-check-row" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--surface2)', borderRadius: 8 }}>
@@ -111,8 +113,8 @@ export default function SettleModal({ friend, onClose }: Props) {
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: isForFriend ? 'var(--credit)' : 'var(--debit)' }}>
-                          {isForFriend ? '+' : '-'}{fmtMoney(e.amount, currency)}
+                        <div style={{ fontWeight: 700, fontSize: 13, color: isOwedToMe ? 'var(--credit)' : 'var(--debit)' }}>
+                          {isOwedToMe ? '+' : '-'}{fmtMoney(e.amount, currency)}
                         </div>
                         {origAmt && Math.abs(origAmt - e.amount) > 0.01 ? (
                           <div style={{ fontSize: 10, color: 'var(--text-3)' }}>

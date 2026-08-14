@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { ArrowLeft, Handshake, Plus, ChevronDown, ChevronUp, Edit2, Trash2, Store, Tv, ExternalLink, RefreshCw, Zap, Play } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, expenseFlow, contactTotalSpent } from '../db';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, statusLabel, cleanExpenseDescription } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, cleanExpenseDescription } from '../utils';
 import type { ViewName, Expense } from '../types';
 import FriendModal from '../components/FriendModal';
 import { renderBrandLogo } from '../components/BrandIcons';
@@ -48,8 +48,14 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
   const totalSpent = useMemo(() => friend ? contactTotalSpent(db, friend.id) : 0, [db, friend]);
   const avgOrderVal = useMemo(() => allExps.length > 0 ? totalSpent / allExps.length : 0, [totalSpent, allExps]);
 
-  const activeExps = allExps.filter(e => !e.settled && (e.type !== 'personal' || e.status === 'unpaid'));
-  const settledExps = allExps.filter(e => e.settled || (e.type === 'personal' && e.status === 'paid'));
+  const activeExps = allExps.filter(e => {
+    if (e.friendId === friendId && e.type !== 'personal') return !e.settled;
+    if (e.vendorId === friendId && e.status === 'unpaid') return !e.vendorSettled && (!e.settled || e.type === 'for_friend');
+    if (e.vendorId === friendId && e.type === 'by_friend') return !e.vendorSettled && !e.settled;
+    if (e.friendId === friendId && e.status === 'unpaid') return !e.settled;
+    return !e.settled && (e.type !== 'personal' || e.status === 'unpaid');
+  });
+  const settledExps = allExps.filter(e => !activeExps.includes(e));
   const shown = tab === 'active' ? activeExps : settledExps;
 
   const dateGroupInfo = useMemo(() => {
@@ -94,17 +100,6 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
   return (
     <div className="view-container">
-      {/* Back Button & Secondary Action Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('friends')} style={{ gap: 6 }}>
-          <ArrowLeft size={18} /> Back to Contacts
-        </button>
-
-        <button className="btn btn-secondary btn-sm" style={{ gap: 6 }} onClick={() => setShowEdit(true)}>
-          <Edit2 size={14} /> Edit Contact
-        </button>
-      </div>
-
       {/* Hero Profile & Stats Card */}
       <div
         className="card"
@@ -119,78 +114,106 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           overflow: 'hidden',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-          <div
-            className="avatar"
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+            <div
+              className="avatar"
+              style={{
+                ...getAvatarStyle(friend.color),
+                width: 44,
+                height: 44,
+                fontSize: 18,
+                fontWeight: 700,
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 10,
+              }}
+            >
+              {contactType === 'subscription' ? (
+                renderBrandLogo(friend.name, 22) || <Tv size={20} />
+              ) : contactType === 'vendor' ? (
+                <Store size={20} />
+              ) : (
+                friendInitial(friend.name, friend.avatarNumber)
+              )}
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{friend.name}</h2>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    padding: '2px 7px',
+                    borderRadius: 4,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.4px',
+                    background:
+                      contactType === 'vendor'
+                        ? 'rgba(245, 158, 11, 0.15)'
+                        : contactType === 'subscription'
+                        ? 'var(--accent-soft)'
+                        : 'var(--accent-soft)',
+                    color:
+                      contactType === 'vendor'
+                        ? '#D97706'
+                        : contactType === 'subscription'
+                        ? 'var(--accent)'
+                        : 'var(--accent)',
+                  }}
+                >
+                  {contactType}
+                </span>
+              </div>
+
+              {friend.website && (
+                <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <a
+                    href={friend.website.startsWith('http') ? friend.website : `https://${friend.website}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: 2 }}
+                  >
+                    <span>Website</span> <ExternalLink size={11} />
+                  </a>
+                </div>
+              )}
+              {friend.notes && (
+                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, fontStyle: 'italic' }}>
+                  {friend.notes}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Edit Contact: icon-only inside card */}
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setShowEdit(true)}
+            title="Edit Contact"
+            aria-label="Edit Contact"
             style={{
-              ...getAvatarStyle(friend.color),
-              width: 44,
-              height: 44,
-              fontSize: 18,
-              fontWeight: 700,
+              padding: '7px',
+              width: 34,
+              height: 34,
+              borderRadius: '9px',
+              border: '1px solid var(--border)',
+              background: 'var(--surface2)',
+              color: 'var(--text-2)',
               flexShrink: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              borderRadius: 10,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
           >
-            {contactType === 'subscription' ? (
-              renderBrandLogo(friend.name, 22) || <Tv size={20} />
-            ) : contactType === 'vendor' ? (
-              <Store size={20} />
-            ) : (
-              friendInitial(friend.name, friend.avatarNumber)
-            )}
-          </div>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{friend.name}</h2>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  padding: '2px 7px',
-                  borderRadius: 4,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.4px',
-                  background:
-                    contactType === 'vendor'
-                      ? 'rgba(245, 158, 11, 0.15)'
-                      : contactType === 'subscription'
-                      ? 'var(--accent-soft)'
-                      : 'var(--accent-soft)',
-                  color:
-                    contactType === 'vendor'
-                      ? '#D97706'
-                      : contactType === 'subscription'
-                      ? 'var(--accent)'
-                      : 'var(--accent)',
-                }}
-              >
-                {contactType}
-              </span>
-            </div>
-
-            {friend.website && (
-              <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <a
-                  href={friend.website.startsWith('http') ? friend.website : `https://${friend.website}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: 2 }}
-                >
-                  <span>Website</span> <ExternalLink size={11} />
-                </a>
-              </div>
-            )}
-            {friend.notes && (
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, fontStyle: 'italic' }}>
-                {friend.notes}
-              </div>
-            )}
-          </div>
+            <Edit2 size={15} />
+          </button>
         </div>
 
         {/* Dynamic Hero Banner for Contact Type */}
@@ -568,6 +591,18 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     const isFirstOfDate = dateGroupInfo.isFirstMap[e.id];
                     const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}`;
 
+                    const isVendorView = e.vendorId === friendId;
+                    const isSettled = isVendorView
+                      ? Boolean(e.vendorSettled || (e.status === 'paid' && !e.vendorId))
+                      : Boolean(e.settled);
+                    const isPartial = isVendorView
+                      ? Boolean(e.vendorSettledAmount && e.vendorSettledAmount > 0 && !e.vendorSettled)
+                      : Boolean((e.settledAmount && e.settledAmount > 0 && !e.settled) || (e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 && e.settled));
+                    const statusKey = isSettled ? (isPartial ? 'partial' : 'settled') : (isPartial ? 'partial' : e.status);
+                    const itemStatusLabel = isSettled
+                      ? (isPartial ? 'Partially Settled' : 'Settled')
+                      : (isPartial ? 'Partially Settled' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'));
+
                     return (
                       <tr key={e.id} className={rowClass}>
                         <td style={{ fontWeight: 500, fontSize: 13 }}>{cleanExpenseDescription(e.description)}</td>
@@ -585,8 +620,8 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} />
                         </td>
                         <td>
-                          <span className={`badge badge-${e.settled ? 'settled' : e.status}`}>
-                            {e.originalAmount && e.settled ? 'Partially Settled' : (e.settled ? 'Settled' : e.status.charAt(0).toUpperCase() + e.status.slice(1))}
+                          <span className={`badge badge-${statusKey}`}>
+                            {itemStatusLabel}
                           </span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
@@ -608,11 +643,22 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 const cat = db.settings.categories.find(c => c.name === e.category);
                 const wallet = db.wallets.find(w => w.id === e.walletId);
                 const isIn = expenseFlow(e) === 'in';
-                const statusKey = e.settled ? 'settled' : e.status;
                 const isExpanded = !!expandedIds[e.id];
                 const isEvenGroup = dateGroupInfo.groupMap[e.id] === 0;
                 const isFirstOfDate = dateGroupInfo.isFirstMap[e.id];
                 const cardClass = `mobile-expense-card ${isEvenGroup ? 'date-card-even' : 'date-card-odd'}${isFirstOfDate ? ' date-card-first' : ''}${isExpanded ? ' is-expanded' : ''}`;
+
+                const isVendorView = e.vendorId === friendId;
+                const isSettled = isVendorView
+                  ? Boolean(e.vendorSettled || (e.status === 'paid' && !e.vendorId))
+                  : Boolean(e.settled);
+                const isPartial = isVendorView
+                  ? Boolean(e.vendorSettledAmount && e.vendorSettledAmount > 0 && !e.vendorSettled)
+                  : Boolean((e.settledAmount && e.settledAmount > 0 && !e.settled) || (e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 && e.settled));
+                const statusKey = isSettled ? (isPartial ? 'partial' : 'settled') : (isPartial ? 'partial' : e.status);
+                const itemStatusLabel = isSettled
+                  ? (isPartial ? 'Partially Settled' : 'Settled')
+                  : (isPartial ? 'Partially Settled' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'));
 
                 return (
                   <div key={e.id} className={cardClass}>
@@ -638,7 +684,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <span>·</span>
                           <span>{e.category}</span>
                           <span className={`badge badge-${statusKey}`} style={{ fontSize: 10, padding: '1px 6px' }}>
-                            {e.originalAmount && e.settled ? 'Partially Settled' : (e.settled ? 'Settled' : e.status.charAt(0).toUpperCase() + e.status.slice(1))}
+                            {itemStatusLabel}
                           </span>
                         </div>
                         <div className="mobile-expense-expand-btn">
@@ -670,7 +716,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <div className="mobile-expense-detail-item">
                             <span className="mobile-expense-detail-label">Status</span>
                             <span className="mobile-expense-detail-val">
-                              <span className={`badge badge-${statusKey}`}>{statusLabel(statusKey)}</span>
+                              <span className={`badge badge-${statusKey}`}>{itemStatusLabel}</span>
                             </span>
                           </div>
 
