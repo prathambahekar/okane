@@ -93,7 +93,7 @@ export default function Wallets() {
         createdAt: e.createdAt,
         amount: Number(e.amount),
         flow: expenseFlow(e),
-        statusKey: e.settled ? 'settled' : e.status,
+        statusKey: expenseFlow(e) === 'in' ? 'none' : (e.settled ? 'settled' : (e.type === 'for_friend' || e.type === 'by_friend' ? 'unsettled' : (e.status || 'paid'))),
         typeLabelStr: typeLabel(e.type),
         rawExpense: e,
         vendorId: e.vendorId,
@@ -972,9 +972,11 @@ export default function Wallets() {
                             {isIn ? '+' : '-'}{fmtMoney(tx.amount, currency)}
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                            <span className={`badge badge-${tx.statusKey}`} style={{ fontSize: 10 }}>
-                              {statusLabel(tx.statusKey)}
-                            </span>
+                            {tx.statusKey && tx.statusKey !== 'none' && statusLabel(tx.statusKey) && (
+                              <span className={`badge badge-${tx.statusKey}`} style={{ fontSize: 10 }}>
+                                {statusLabel(tx.statusKey)}
+                              </span>
+                            )}
                             {tx.isSettlement && (
                               <button
                                 className="btn-icon"

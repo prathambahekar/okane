@@ -1188,7 +1188,7 @@ export default function Analytics() {
                                   gap: 4,
                                   fontSize: 11,
                                 }}>
-                                  {ge.items.map(sub => {
+                                  {ge.items.filter(sub => !(sub.type === 'personal' && (Number(sub.amount) || 0) <= 0)).map(sub => {
                                     const frObj = friends.find(f => f.id === sub.friendId);
                                     const isSubSettled = sub.settled || sub.status === 'paid';
                                     const name = frObj?.name || 'Contact';

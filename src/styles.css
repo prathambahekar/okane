@@ -647,11 +647,12 @@ html, body, #root {
 .badge-unsettled { background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); font-weight: 600; }
 .badge-credit { background: rgba(75,173,115,.12); color: var(--credit); font-weight: 600; }
 .badge-debit { background: rgba(224,92,92,.12); color: var(--debit); font-weight: 600; }
-.badge-settled { background: rgba(107,114,128,.15); color: var(--text-3); font-weight: 600; }
-.badge-partial { background: rgba(245,158,11,.15); color: #f59e0b; border: 1px solid rgba(245,158,11,.3); font-weight: 600; }
+.badge-settled { background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.28); font-weight: 600; }
+.badge-partial { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 600; }
 
 /* Dark Mode Badges - Brighter shades and crisp borders for high contrast against surface2/surface3 */
 [data-color-scheme="dark"] .badge-paid,
+[data-color-scheme="dark"] .badge-settled,
 [data-color-scheme="dark"] .badge-credit {
   background: rgba(74, 222, 128, 0.18);
   color: #4ade80;
@@ -1733,9 +1734,10 @@ input[type="number"] {
   border-radius: 20px;
   border: 1px solid var(--border);
   width: 100%;
-  max-width: 580px;
+  max-width: 520px;
   height: auto;
-  max-height: 85vh;
+  min-height: 520px;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1754,6 +1756,7 @@ input[type="number"] {
   }
   .friend-picker-sheet {
     max-width: 100%;
+    min-height: unset;
     height: 88vh;
     height: 88dvh;
     max-height: 92vh;

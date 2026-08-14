@@ -592,16 +592,21 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}`;
 
                     const isVendorView = e.vendorId === friendId;
+                    const isIncome = expenseFlow(e) === 'in' && e.type === 'personal';
                     const isSettled = isVendorView
-                      ? Boolean(e.vendorSettled || (e.status === 'paid' && !e.vendorId))
+                      ? Boolean(e.vendorSettled || (e.status === 'paid' && e.vendorSettled !== false))
                       : Boolean(e.settled);
                     const isPartial = isVendorView
                       ? Boolean(e.vendorSettledAmount && e.vendorSettledAmount > 0 && !e.vendorSettled)
                       : Boolean((e.settledAmount && e.settledAmount > 0 && !e.settled) || (e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 && e.settled));
-                    const statusKey = isSettled ? (isPartial ? 'partial' : 'settled') : (isPartial ? 'partial' : e.status);
-                    const itemStatusLabel = isSettled
-                      ? (isPartial ? 'Partially Settled' : 'Settled')
-                      : (isPartial ? 'Partially Settled' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'));
+                    const statusKey = isIncome
+                      ? 'none'
+                      : (isSettled ? (isPartial ? 'partial' : 'settled') : (isPartial ? 'partial' : (e.type === 'personal' && e.status === 'paid' ? 'paid' : (e.status || 'unsettled'))));
+                    const itemStatusLabel = isIncome
+                      ? ''
+                      : (isSettled
+                        ? (isPartial ? 'Partially Settled' : 'Settled')
+                        : (isPartial ? 'Partially Settled' : (e.type === 'personal' && e.status === 'paid' ? 'Paid' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'))));
 
                     return (
                       <tr key={e.id} className={rowClass}>
@@ -620,9 +625,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} />
                         </td>
                         <td>
-                          <span className={`badge badge-${statusKey}`}>
-                            {itemStatusLabel}
-                          </span>
+                          {statusKey !== 'none' && itemStatusLabel ? (
+                            <span className={`badge badge-${statusKey}`}>
+                              {itemStatusLabel}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-3)', fontSize: 12 }}>—</span>
+                          )}
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
@@ -649,16 +658,21 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 const cardClass = `mobile-expense-card ${isEvenGroup ? 'date-card-even' : 'date-card-odd'}${isFirstOfDate ? ' date-card-first' : ''}${isExpanded ? ' is-expanded' : ''}`;
 
                 const isVendorView = e.vendorId === friendId;
+                const isIncome = expenseFlow(e) === 'in' && e.type === 'personal';
                 const isSettled = isVendorView
-                  ? Boolean(e.vendorSettled || (e.status === 'paid' && !e.vendorId))
+                  ? Boolean(e.vendorSettled || (e.status === 'paid' && e.vendorSettled !== false))
                   : Boolean(e.settled);
                 const isPartial = isVendorView
                   ? Boolean(e.vendorSettledAmount && e.vendorSettledAmount > 0 && !e.vendorSettled)
                   : Boolean((e.settledAmount && e.settledAmount > 0 && !e.settled) || (e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 && e.settled));
-                const statusKey = isSettled ? (isPartial ? 'partial' : 'settled') : (isPartial ? 'partial' : e.status);
-                const itemStatusLabel = isSettled
-                  ? (isPartial ? 'Partially Settled' : 'Settled')
-                  : (isPartial ? 'Partially Settled' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'));
+                const statusKey = isIncome
+                  ? 'none'
+                  : (isSettled ? (isPartial ? 'partial' : 'settled') : (isPartial ? 'partial' : (e.type === 'personal' && e.status === 'paid' ? 'paid' : (e.status || 'unsettled'))));
+                const itemStatusLabel = isIncome
+                  ? ''
+                  : (isSettled
+                    ? (isPartial ? 'Partially Settled' : 'Settled')
+                    : (isPartial ? 'Partially Settled' : (e.type === 'personal' && e.status === 'paid' ? 'Paid' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'))));
 
                 return (
                   <div key={e.id} className={cardClass}>
@@ -683,9 +697,11 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <span>{fmtDate(e.date)}</span>
                           <span>·</span>
                           <span>{e.category}</span>
-                          <span className={`badge badge-${statusKey}`} style={{ fontSize: 10, padding: '1px 6px' }}>
-                            {itemStatusLabel}
-                          </span>
+                          {statusKey !== 'none' && itemStatusLabel && (
+                            <span className={`badge badge-${statusKey}`} style={{ fontSize: 10, padding: '1px 6px' }}>
+                              {itemStatusLabel}
+                            </span>
+                          )}
                         </div>
                         <div className="mobile-expense-expand-btn">
                           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -713,12 +729,14 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                             <span className="mobile-expense-detail-val">{typeLabel(e.type, contactType)}</span>
                           </div>
 
-                          <div className="mobile-expense-detail-item">
-                            <span className="mobile-expense-detail-label">Status</span>
-                            <span className="mobile-expense-detail-val">
-                              <span className={`badge badge-${statusKey}`}>{itemStatusLabel}</span>
-                            </span>
-                          </div>
+                          {statusKey !== 'none' && itemStatusLabel && (
+                            <div className="mobile-expense-detail-item">
+                              <span className="mobile-expense-detail-label">Status</span>
+                              <span className="mobile-expense-detail-val">
+                                <span className={`badge badge-${statusKey}`}>{itemStatusLabel}</span>
+                              </span>
+                            </div>
+                          )}
 
                           {e.notes && (
                             <div className="mobile-expense-detail-item" style={{ gridColumn: '1 / -1' }}>

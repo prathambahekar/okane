@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, RefreshCw, ArrowLeftRight, Store } from 'lucide-react';
 import { useStore } from '../store';
-import { friendBalance, walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey } from '../db';
+import { walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey, allFriendBalances } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses } from '../utils';
 import type { Friend, ViewName } from '../types';
 import { CategoryBadge } from '../components/CategoryIcon';
@@ -14,35 +14,45 @@ interface Props {
 
 export default function Dashboard({ onNavigate, onAddExpense }: Props) {
   const { db } = useStore();
-  const { expenses, friends, wallets, settings: { currency } } = db;
+  const { expenses, wallets, settings: { currency } } = db;
   const [showTransfer, setShowTransfer] = useState(false);
 
   const now = new Date();
   const thisKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  const totalBalance = totalWalletBalance(db);
+  const totalBalance = useMemo(() => totalWalletBalance(db), [db]);
 
-  const monthExpenses = expenses.filter(e => monthKey(e.date) === thisKey && e.type === 'personal');
-  const monthSpend = monthExpenses.reduce((s, e) => s + personalNetAmount(e), 0);
-  const monthIncome = monthExpenses.filter(e => expenseFlow(e) === 'in').reduce((s, e) => s + Number(e.amount), 0);
+  const { monthSpend, monthIncome } = useMemo(() => {
+    let spend = 0;
+    let income = 0;
+    expenses.forEach(e => {
+      if (monthKey(e.date) === thisKey && e.type === 'personal') {
+        spend += personalNetAmount(e);
+        if (expenseFlow(e) === 'in') {
+          income += Number(e.amount) || 0;
+        }
+      }
+    });
+    return { monthSpend: spend, monthIncome: income };
+  }, [expenses, thisKey]);
 
-  const overallCredit = friends.reduce((s, f) => {
-    const b = friendBalance(db, f.id);
-    return s + b.owedToMe;
-  }, 0);
-  const overallDebt = friends.reduce((s, f) => {
-    const b = friendBalance(db, f.id);
-    return s + b.owedByMe;
-  }, 0);
+  const { allBalances, overallCredit, overallDebt } = useMemo(() => {
+    let credit = 0;
+    let debt = 0;
+    const balances = allFriendBalances(db);
+    balances.forEach(b => {
+      credit += b.owedToMe;
+      debt += b.owedByMe;
+    });
+    return { allBalances: balances, overallCredit: credit, overallDebt: debt };
+  }, [db]);
 
   const recentExpenses = useMemo(() => groupExpenses(expenses, db.wallets, db.friends).slice(0, 5), [expenses, db.wallets, db.friends]);
 
   const balancedFriends = useMemo(() =>
-    friends
-      .map(f => ({ friend: f, ...friendBalance(db, f.id) }))
+    allBalances
       .filter(b => Math.abs(b.net) > 0.004)
-      .sort((a, b) => Math.abs(b.net) - Math.abs(a.net))
       .slice(0, 4),
-    [db, friends]
+    [allBalances]
   );
 
   const catTotals = useMemo(() => {

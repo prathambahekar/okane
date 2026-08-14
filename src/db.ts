@@ -1479,10 +1479,17 @@ export function addExpense(db: AppDB, data: Partial<Expense>): AppDB {
     vendorId: data.vendorId || null,
     walletId: data.type === 'by_friend' ? (data.walletId || '') : (data.walletId || db.settings.defaultWalletId || db.wallets[0]?.id),
     status: (data.status as ExpenseStatus) || db.settings.defaultStatus,
-    settled: false,
-    settlementId: null,
+    settled: data.settled !== undefined ? Boolean(data.settled) : false,
+    settlementId: data.settlementId !== undefined ? data.settlementId : null,
     notes: data.notes || '',
     createdAt: Date.now(),
+    originalAmount: data.originalAmount,
+    originalDate: data.originalDate,
+    settledAmount: data.settledAmount,
+    parentExpenseId: data.parentExpenseId,
+    vendorSettled: data.vendorSettled,
+    vendorSettlementId: data.vendorSettlementId,
+    vendorSettledAmount: data.vendorSettledAmount,
   };
   return { ...db, expenses: [e, ...db.expenses] };
 }

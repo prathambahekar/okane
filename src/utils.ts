@@ -62,6 +62,13 @@ export function typeLabelWithFlow(e: Expense, friendType?: 'friend' | 'vendor' |
 }
 
 export function statusLabel(s: string): string {
+  if (!s || s === 'none') return '';
+  if (s === 'paid') return 'Paid';
+  if (s === 'settled') return 'Settled';
+  if (s === 'unsettled') return 'Unsettled';
+  if (s === 'unpaid') return 'Unpaid';
+  if (s === 'partial') return 'Partially Settled';
+  if (s === 'completed') return 'Completed';
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -274,24 +281,6 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
         const cleanDesc = e.description.replace(/\s*\(Friend share\)$/i, '').trim();
 
         if (isSplitGroup && e.type === 'for_friend') {
-          const synthMine: Expense = {
-            id: `synth_mine_${gId}`,
-            description: cleanDesc,
-            amount: 0,
-            category: e.category,
-            date: e.date,
-            type: 'personal',
-            flow: e.flow,
-            friendId: null,
-            vendorId: e.vendorId || null,
-            walletId: e.walletId,
-            status: 'paid',
-            settled: false,
-            settlementId: null,
-            notes: '',
-            createdAt: e.createdAt,
-            groupId: gId,
-          };
           result.push({
             id: gId,
             groupId: gId,
@@ -302,7 +291,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
             walletId: e.walletId,
             flow: e.flow,
             createdAt: e.createdAt,
-            items: [synthMine, e],
+            items: [e],
             isSplit: true,
             personalShare: 0,
             friendShare: e.amount,
@@ -361,7 +350,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
         );
 
         const finalItems = [...items];
-        if (personalItems.length === 0 && isSplit) {
+        if (personalItems.length === 0 && isSplit && personalShare > 0) {
           finalItems.unshift({
             id: `synth_mine_${gId}`,
             description: cleanDesc,
@@ -373,7 +362,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
             friendId: null,
             vendorId: groupVendorId,
             walletId: first.walletId,
-            status: 'paid',
+            status: first.status || 'paid',
             settled: false,
             settlementId: null,
             notes: '',
@@ -597,11 +586,12 @@ export function generateInsights(
 }
 
 export function getGroupSettlementStatus(ge: GroupedExpense): {
-  statusKey: 'settled' | 'partial' | 'unsettled' | 'unpaid' | 'paid' | 'completed';
+  statusKey: 'settled' | 'partial' | 'unsettled' | 'unpaid' | 'paid' | 'completed' | 'none';
   statusLabel: string;
   isAllSettled: boolean;
   isPartiallySettled: boolean;
 } {
+  // 1. Settlement Group (Debt repayments / Settle Up records)
   if (ge.isSettlementGroup) {
     return {
       statusKey: 'settled',
@@ -622,9 +612,19 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
     };
   }
 
+  // 2. Regular Income (No badge for income)
+  if (ge.flow === 'in' && !ge.isSettlementGroup) {
+    return {
+      statusKey: 'none',
+      statusLabel: '',
+      isAllSettled: true,
+      isPartiallySettled: false,
+    };
+  }
+
   const realItems = ge.items.filter(i => !i.id?.startsWith('synth_mine_'));
   const friendItems = realItems.filter(i => i.type === 'for_friend' || i.type === 'by_friend');
-  const hasFriendObligation = friendItems.length > 0 || ge.friendIds.length > 0 || ge.isSplit;
+  const isSplitGroup = Boolean(ge.isSplit || (friendItems.length > 0 && ge.personalShare > 0) || friendItems.length > 1);
 
   // Check friend settlement
   const totalFriendItems = friendItems.length;
@@ -637,9 +637,10 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
   const hasVendorDebt = itemsWithVendorDebt.length > 0 || (ge.vendorId && ge.items.some(i => i.status === 'unpaid'));
   const targetVendorItems = itemsWithVendorDebt.length > 0 ? itemsWithVendorDebt : realItems.filter(i => i.vendorId);
   const isVendorAllSettled = hasVendorDebt && targetVendorItems.length > 0 && targetVendorItems.every(i => i.vendorSettled === true || (i.status === 'paid' && i.vendorSettled !== false));
-  const isVendorUnsettled = hasVendorDebt && !isVendorAllSettled;
 
-  if (hasFriendObligation) {
+  // 3. Split Expense (Multiple people involved: user + friends, or multiple friends)
+  // "only in case of split thing we use tags like partially settled or completely settled"
+  if (isSplitGroup) {
     if (hasVendorDebt) {
       if (isFriendAllSettled && isVendorAllSettled) {
         return {
@@ -649,25 +650,7 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
           isPartiallySettled: false,
         };
       }
-      if (isFriendAllSettled && isVendorUnsettled) {
-        // Friend paid user, but user hasn't paid vendor yet
-        return {
-          statusKey: 'partial',
-          statusLabel: 'Partially Settled',
-          isAllSettled: false,
-          isPartiallySettled: true,
-        };
-      }
-      if (isVendorAllSettled && !isFriendAllSettled) {
-        // User paid vendor, but friend hasn't paid user yet
-        return {
-          statusKey: 'partial',
-          statusLabel: 'Partially Settled',
-          isAllSettled: false,
-          isPartiallySettled: true,
-        };
-      }
-      if (isFriendSomeSettled) {
+      if ((isFriendSomeSettled || isVendorAllSettled) && !(isFriendAllSettled && isVendorAllSettled)) {
         return {
           statusKey: 'partial',
           statusLabel: 'Partially Settled',
@@ -682,7 +665,6 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
         isPartiallySettled: false,
       };
     } else {
-      // No vendor debt
       if (isFriendAllSettled) {
         return {
           statusKey: 'settled',
@@ -708,7 +690,28 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
     }
   }
 
-  // Pure personal / single vendor transaction
+  // 4. Single Friend Obligation (e.g. Paid 100% for 1 friend 'for_friend' or Someone paid for me 'by_friend')
+  if (friendItems.length === 1) {
+    const singleItem = friendItems[0];
+    const isSettled = Boolean(singleItem.settled || singleItem.settlementId || (hasVendorDebt && isVendorAllSettled));
+    if (isSettled) {
+      return {
+        statusKey: 'settled',
+        statusLabel: 'Settled',
+        isAllSettled: true,
+        isPartiallySettled: false,
+      };
+    }
+    return {
+      statusKey: 'unsettled',
+      statusLabel: singleItem.type === 'by_friend' ? 'You Owe' : 'Unsettled',
+      isAllSettled: false,
+      isPartiallySettled: false,
+    };
+  }
+
+  // 5. Pure Vendor Debt without friends (Unpaid bill / Debt to vendor)
+  // "when i paid owe, after settling it should be settled"
   if (hasVendorDebt) {
     if (isVendorAllSettled) {
       return {
@@ -726,11 +729,23 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
     };
   }
 
-  const isSettled = Boolean(primaryItem.settled || primaryItem.status === 'paid');
+  // 6. Direct Personal Payment (Directly paid from wallet)
+  // "when i paid directly it should be paid"
+  const isDirectPaid = primaryItem.status === 'paid' || (!primaryItem.status && !primaryItem.settled);
+  if (isDirectPaid) {
+    return {
+      statusKey: 'paid',
+      statusLabel: 'Paid',
+      isAllSettled: true,
+      isPartiallySettled: false,
+    };
+  }
+
+  const isExplicitSettled = Boolean(primaryItem.settled);
   return {
-    statusKey: isSettled ? 'settled' : primaryItem.status,
-    statusLabel: isSettled ? 'Settled' : (primaryItem.status ? primaryItem.status.charAt(0).toUpperCase() + primaryItem.status.slice(1) : 'Paid'),
-    isAllSettled: isSettled,
+    statusKey: isExplicitSettled ? 'settled' : (primaryItem.status || 'paid'),
+    statusLabel: isExplicitSettled ? 'Settled' : (primaryItem.status === 'unpaid' ? 'Unpaid' : 'Paid'),
+    isAllSettled: isExplicitSettled,
     isPartiallySettled: false,
   };
 }
