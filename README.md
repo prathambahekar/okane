@@ -7,7 +7,7 @@ Track your income and expenses with a clean, intuitive interface designed for bo
 ---
 
 ## ✨ Features
-  hello motto
+  hello motto aa
 ### 📊 Dashboard
 - Financial overview at a glance
 - Current balance
