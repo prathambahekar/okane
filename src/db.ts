@@ -1254,10 +1254,8 @@ export function expenseWalletDelta(e: Expense, db?: AppDB): number {
     const group = db.expenses.filter(g => g.groupId === e.groupId);
     if (group.some(g => g.type === 'by_friend')) return 0;
   }
-  // If an expense was settled via a Settlement object (or is tied to a settlement record),
-  // the settlement itself moves the funds to/from the wallet. Deducting again from the expense
-  // causes a double deduction.
-  if (e.settlementId || e.vendorSettlementId) return 0;
+  // If this was a vendor debt settled later, the settlement record already deducted the wallet
+  if (e.vendorId && e.vendorSettlementId) return 0;
 
   const amt = Number(e.amount) || 0;
   return expenseFlow(e) === 'in' ? amt : -amt;

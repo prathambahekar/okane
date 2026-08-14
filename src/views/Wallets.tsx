@@ -229,7 +229,10 @@ export default function Wallets() {
 
           const wSpend = wExpenses
             .filter(e => monthKey(e.date) === thisKey && expenseFlow(e) === 'out' && e.status !== 'unpaid')
-            .reduce((s, e) => s + Number(e.amount), 0);
+            .reduce((s, e) => s + Number(e.amount), 0) +
+            wSettlements
+              .filter(s => monthKey(s.date) === thisKey && s.amount < 0)
+              .reduce((acc, s) => acc + Math.abs(s.amount), 0);
 
           return (
             <div
