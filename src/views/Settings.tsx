@@ -15,21 +15,8 @@ import CategoryIcon, { AVAILABLE_ICONS } from '../components/CategoryIcon';
 
 function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeColor: (c: string) => void }) {
   const isCustom = !FRIEND_PALETTE.includes(color);
-  const colorInputRef = useRef<HTMLInputElement>(null);
-
-  const handleCustomTrigger = () => {
-    if (colorInputRef.current) {
-      try {
-        if ('showPicker' in colorInputRef.current && typeof colorInputRef.current.showPicker === 'function') {
-          colorInputRef.current.showPicker();
-          return;
-        }
-      } catch {
-        // Fallback to click
-      }
-      colorInputRef.current.click();
-    }
-  };
+  const [showModal, setShowModal] = useState(false);
+  const [tempHex, setTempHex] = useState(color);
 
   return (
     <div className="category-color-picker" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -46,7 +33,10 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
       <button
         type="button"
         className={`color-swatch-btn ${isCustom ? 'selected' : ''}`}
-        onClick={handleCustomTrigger}
+        onClick={() => {
+          setTempHex(color);
+          setShowModal(true);
+        }}
         style={{
           background: color,
           display: 'inline-flex',
@@ -63,21 +53,133 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
         <Palette size={14} style={{ color: '#fff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />
       </button>
 
-      {/* Touch-safe native color picker input */}
-      <input
-        ref={colorInputRef}
-        type="color"
-        value={color.startsWith('#') && color.length === 7 ? color : '#3B82F6'}
-        onChange={e => onChangeColor(e.target.value)}
-        style={{
-          position: 'absolute',
-          opacity: 0,
-          width: 1,
-          height: 1,
-          pointerEvents: 'none',
-          visibility: 'hidden',
-        }}
-      />
+      {showModal && createPortal(
+        <div className="sheet-backdrop" onClick={() => setShowModal(false)} style={{ zIndex: 11000 }}>
+          <div
+            className="sheet-modal"
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: 400,
+              width: '90%',
+              borderRadius: 20,
+              padding: '20px',
+              background: 'var(--surface)',
+              border: 'none',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Palette size={18} style={{ color: 'var(--accent)' }} />
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Choose Color</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                style={{
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: 'var(--text-2)',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(6, 1fr)',
+              gap: 10,
+              marginBottom: 16,
+              maxHeight: 200,
+              overflowY: 'auto',
+              padding: '4px',
+            }}>
+              {[
+                '#EF4444', '#F43F5E', '#EC4899', '#D946EF', '#A855F7', '#8B5CF6',
+                '#6366F1', '#3B82F6', '#0EA5E9', '#06B6D4', '#14B8A6', '#10B981',
+                '#22C55E', '#84CC16', '#EAB308', '#F97316', '#EA580C', '#64748B'
+              ].map(hex => (
+                <button
+                  key={hex}
+                  type="button"
+                  onClick={() => {
+                    setTempHex(hex);
+                    onChangeColor(hex);
+                  }}
+                  style={{
+                    width: '100%',
+                    aspectRatio: '1',
+                    borderRadius: '50%',
+                    background: hex,
+                    border: tempHex.toUpperCase() === hex ? '2.5px solid var(--text)' : '1px solid rgba(0,0,0,0.15)',
+                    boxShadow: tempHex.toUpperCase() === hex ? `0 0 0 2px ${hex}` : 'none',
+                    transform: tempHex.toUpperCase() === hex ? 'scale(1.12)' : 'scale(1)',
+                    transition: 'all 0.15s ease',
+                    cursor: 'pointer',
+                    display: 'grid',
+                    placeItems: 'center',
+                  }}
+                >
+                  {tempHex.toUpperCase() === hex && <Check size={14} style={{ color: '#fff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' }} />}
+                </button>
+              ))}
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: 10,
+              borderRadius: 12,
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              marginBottom: 16,
+            }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: tempHex, flexShrink: 0 }} />
+              <input
+                type="text"
+                value={tempHex}
+                onChange={e => {
+                  setTempHex(e.target.value);
+                  if (/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(e.target.value)) {
+                    onChangeColor(e.target.value);
+                  }
+                }}
+                placeholder="#3B82F6"
+                maxLength={7}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  color: 'var(--text)',
+                  textTransform: 'uppercase',
+                }}
+              />
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setShowModal(false)}
+              style={{ width: '100%', height: 40, borderRadius: 10, fontWeight: 600, fontSize: 13 }}
+            >
+              Done
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -122,6 +224,8 @@ export default function Settings({
     return [];
   });
   const [newColorName, setNewColorName] = useState('');
+  const [isCustomAccentCardExpanded, setIsCustomAccentCardExpanded] = useState(false);
+  const [showCustomColorPickerModal, setShowCustomColorPickerModal] = useState(false);
   const customAccentInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveCustomColor = () => {
@@ -984,157 +1088,364 @@ export default function Settings({
                 </div>
               )}
 
-              {/* Color Picker & Save Form */}
+              {/* Color Picker & Save Form (Custom Accent Card - Collapsed by Default) */}
               <div style={{
                 marginTop: 18,
-                padding: '16px',
                 borderRadius: 'var(--radius-lg)',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
+                overflow: 'hidden',
+                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Palette size={16} style={{ color: 'var(--accent)' }} />
-                    <span>Create Custom Accent</span>
-                  </div>
-                  {accent === 'custom' && (
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 12, background: 'var(--accent-soft)', color: 'var(--accent)' }}>
-                      Active
-                    </span>
-                  )}
-                </div>
-
-                <div style={{ display: 'grid', gap: 12 }}>
-                  {/* Quick Color Swatches */}
-                  <div>
-                    <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8 }}>
-                      Quick Color Palette
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      {[
-                        '#EF4444', '#F43F5E', '#EC4899', '#A855F7', '#8B5CF6', '#6366F1',
-                        '#3B82F6', '#0EA5E9', '#06B6D4', '#14B8A6', '#10B981', '#22C55E',
-                        '#84CC16', '#EAB308', '#F97316', '#EA580C', '#8D6E63', '#475569'
-                      ].map(swatch => (
-                        <button
-                          key={swatch}
-                          type="button"
-                          className={`color-swatch-btn ${customColor.toUpperCase() === swatch ? 'selected' : ''}`}
-                          style={{ background: swatch }}
-                          onClick={() => {
-                            setCustomColor(swatch);
-                            setAccent('custom');
-                            updateSettings({ accent: 'custom', customAccentColor: swatch });
-                          }}
-                          aria-label={`Select accent color ${swatch}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Pick Color Button + Native Picker + Hex Input */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (customAccentInputRef.current) {
-                          try {
-                            if ('showPicker' in customAccentInputRef.current && typeof customAccentInputRef.current.showPicker === 'function') {
-                              customAccentInputRef.current.showPicker();
-                              return;
-                            }
-                          } catch {
-                            // Fallback
-                          }
-                          customAccentInputRef.current.click();
-                        }
-                      }}
+                {/* Collapsible Header Row */}
+                <div
+                  onClick={() => setIsCustomAccentCardExpanded(prev => !prev)}
+                  style={{
+                    padding: '14px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    background: isCustomAccentCardExpanded ? 'var(--surface3)' : 'transparent',
+                    borderBottom: isCustomAccentCardExpanded ? '1px solid var(--border)' : 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
                       style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        padding: '0 16px',
-                        height: 40,
-                        borderRadius: 'var(--radius)',
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
                         background: customColor,
-                        color: '#ffffff',
-                        fontWeight: 600,
-                        fontSize: 13,
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                        userSelect: 'none',
+                        display: 'grid',
+                        placeItems: 'center',
+                        color: '#fff',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+                        border: '1.5px solid var(--border2)',
                         flexShrink: 0,
-                        border: 'none',
-                        touchAction: 'manipulation',
-                        WebkitTapHighlightColor: 'transparent',
                       }}
                     >
-                      <Palette size={16} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }} />
-                      <span>Pick Color</span>
-                    </button>
+                      <Palette size={15} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>Create Custom Accent</span>
+                        {accent === 'custom' && (
+                          <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>
+                        {isCustomAccentCardExpanded ? 'Choose custom color or save new preset' : `Current: ${customColor.toUpperCase()}`}
+                      </div>
+                    </div>
+                  </div>
 
-                    <input
-                      ref={customAccentInputRef}
-                      type="color"
-                      className="native-color-picker"
-                      value={customColor.startsWith('#') && customColor.length === 7 ? customColor : '#6366F1'}
-                      onChange={e => {
-                        const hex = e.target.value;
-                        setCustomColor(hex);
-                        setAccent('custom');
-                        updateSettings({ accent: 'custom', customAccentColor: hex });
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button
+                      type="button"
+                      style={{
+                        border: 'none',
+                        background: 'var(--surface)',
+                        borderRadius: '50%',
+                        width: 28,
+                        height: 28,
+                        display: 'grid',
+                        placeItems: 'center',
+                        color: 'var(--text-2)',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                       }}
-                      title="Native color picker"
-                    />
+                      aria-label={isCustomAccentCardExpanded ? 'Collapse custom accent card' : 'Expand custom accent card'}
+                    >
+                      {isCustomAccentCardExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
+                  </div>
+                </div>
 
-                    <div style={{ flex: 1, minWidth: 110 }}>
+                {/* Card Content when Expanded */}
+                {isCustomAccentCardExpanded && (
+                  <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {/* Quick Color Swatches - Reduced to 6 Core Accent Colors */}
+                    <div>
+                      <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8 }}>
+                        Quick Color Palette
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        {[
+                          { name: 'Indigo', hex: '#6366F1' },
+                          { name: 'Blue', hex: '#3B82F6' },
+                          { name: 'Emerald', hex: '#10B981' },
+                          { name: 'Rose', hex: '#F43F5E' },
+                          { name: 'Orange', hex: '#F97316' },
+                          { name: 'Amber', hex: '#EAB308' },
+                        ].map(swatch => {
+                          const isSelected = customColor.toUpperCase() === swatch.hex && accent === 'custom';
+                          return (
+                            <button
+                              key={swatch.hex}
+                              type="button"
+                              className={`color-swatch-btn ${isSelected ? 'selected' : ''}`}
+                              style={{
+                                background: swatch.hex,
+                                width: 32,
+                                height: 32,
+                                borderRadius: '50%',
+                                border: isSelected ? '2.5px solid var(--text)' : '1px solid rgba(0,0,0,0.15)',
+                                boxShadow: isSelected ? `0 0 0 2px ${swatch.hex}, 0 2px 8px rgba(0,0,0,0.25)` : '0 1px 4px rgba(0,0,0,0.12)',
+                                transition: 'all 0.15s ease',
+                                cursor: 'pointer',
+                                display: 'grid',
+                                placeItems: 'center',
+                              }}
+                              onClick={() => {
+                                setCustomColor(swatch.hex);
+                                setAccent('custom');
+                                updateSettings({ accent: 'custom', customAccentColor: swatch.hex });
+                              }}
+                              title={swatch.name}
+                            >
+                              {isSelected && <Check size={14} style={{ color: '#fff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Pick Color Trigger Button + Hex Input */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomColorPickerModal(true)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          padding: '0 16px',
+                          height: 40,
+                          borderRadius: 'var(--radius)',
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--text)',
+                          fontWeight: 600,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          flexShrink: 0,
+                          touchAction: 'manipulation',
+                          WebkitTapHighlightColor: 'transparent',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', background: customColor, border: '1px solid rgba(0,0,0,0.15)', flexShrink: 0 }} />
+                        <span>Color Picker</span>
+                      </button>
+
+                      <div style={{ flex: 1, minWidth: 120 }}>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={customColor}
+                          onChange={e => {
+                            const hex = e.target.value;
+                            setCustomColor(hex);
+                            setAccent('custom');
+                            updateSettings({ accent: 'custom', customAccentColor: hex });
+                          }}
+                          placeholder="#6366F1"
+                          maxLength={7}
+                          style={{ fontFamily: 'monospace', fontWeight: 600, textTransform: 'uppercase', minHeight: 40 }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Save Preset Name + Save Button */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <input
                         type="text"
                         className="form-input"
-                        value={customColor}
-                        onChange={e => {
-                          const hex = e.target.value;
-                          setCustomColor(hex);
-                          setAccent('custom');
-                          updateSettings({ accent: 'custom', customAccentColor: hex });
+                        value={newColorName}
+                        onChange={e => setNewColorName(e.target.value)}
+                        placeholder="Preset name (e.g. Neon Violet)"
+                        style={{ flex: 1, minWidth: 160, fontSize: 13, minHeight: 40 }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSaveCustomColor();
+                          }
                         }}
-                        placeholder="#6366F1"
-                        maxLength={7}
-                        style={{ fontFamily: 'monospace', fontWeight: 600, textTransform: 'uppercase', minHeight: 40 }}
                       />
+                      <button
+                        type="button"
+                        onClick={handleSaveCustomColor}
+                        className="btn btn-primary"
+                        style={{ height: 40, padding: '0 16px', whiteSpace: 'nowrap', fontSize: 13, fontWeight: 600, gap: 6 }}
+                      >
+                        <Plus size={16} /> Save Preset
+                      </button>
                     </div>
                   </div>
+                )}
+              </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={newColorName}
-                      onChange={e => setNewColorName(e.target.value)}
-                      placeholder="Preset name (e.g. Neon Violet)"
-                      style={{ flex: 1, minWidth: 160, fontSize: 13, minHeight: 40 }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleSaveCustomColor();
-                        }
-                      }}
-                    />
+              {/* Custom Color Picker Modal for Mobile & Web */}
+              {showCustomColorPickerModal && createPortal(
+                <div className="sheet-backdrop" onClick={() => setShowCustomColorPickerModal(false)} style={{ zIndex: 11000 }}>
+                  <div
+                    className="sheet-modal"
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      maxWidth: 420,
+                      width: '92%',
+                      borderRadius: 20,
+                      padding: '20px',
+                      background: 'var(--surface)',
+                      border: 'none',
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Palette size={18} style={{ color: 'var(--accent)' }} />
+                        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Choose Custom Accent</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomColorPickerModal(false)}
+                        style={{
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '50%',
+                          width: 32,
+                          height: 32,
+                          display: 'grid',
+                          placeItems: 'center',
+                          color: 'var(--text-2)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 14 }}>
+                      Select a color from the spectrum or enter your preferred hex code:
+                    </div>
+
+                    {/* Color Swatch Grid */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(6, 1fr)',
+                      gap: 10,
+                      marginBottom: 20,
+                      maxHeight: 220,
+                      overflowY: 'auto',
+                      padding: '4px',
+                    }}>
+                      {[
+                        '#EF4444', '#DC2626', '#B91C1C', '#F43F5E', '#E11D48', '#BE123C',
+                        '#EC4899', '#DB2777', '#C026D3', '#A855F7', '#9333EA', '#7E22CE',
+                        '#8B5CF6', '#7C3AED', '#6366F1', '#4F46E5', '#3B82F6', '#2563EB',
+                        '#0EA5E9', '#0284C7', '#06B6D4', '#0891B2', '#14B8A6', '#0D9488',
+                        '#10B981', '#059669', '#22C55E', '#16A34A', '#84CC16', '#65A30D',
+                        '#EAB308', '#CA8A04', '#F97316', '#EA580C', '#8D6E63', '#475569',
+                      ].map(hex => {
+                        const isSel = customColor.toUpperCase() === hex;
+                        return (
+                          <button
+                            key={hex}
+                            type="button"
+                            onClick={() => {
+                              setCustomColor(hex);
+                              setAccent('custom');
+                              updateSettings({ accent: 'custom', customAccentColor: hex });
+                            }}
+                            style={{
+                              width: '100%',
+                              aspectRatio: '1',
+                              borderRadius: '50%',
+                              background: hex,
+                              border: isSel ? '2.5px solid var(--text)' : '1px solid rgba(0,0,0,0.15)',
+                              boxShadow: isSel ? `0 0 0 2.5px ${hex}, 0 2px 8px rgba(0,0,0,0.3)` : '0 1px 4px rgba(0,0,0,0.15)',
+                              transform: isSel ? 'scale(1.12)' : 'scale(1)',
+                              transition: 'all 0.15s ease',
+                              cursor: 'pointer',
+                              display: 'grid',
+                              placeItems: 'center',
+                            }}
+                          >
+                            {isSel && <Check size={14} style={{ color: '#fff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' }} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Live Hex Input & Preview Row */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: 12,
+                      borderRadius: 14,
+                      background: 'var(--surface2)',
+                      border: '1px solid var(--border)',
+                      marginBottom: 18,
+                    }}>
+                      <div style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: customColor,
+                        border: '1px solid rgba(0,0,0,0.15)',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                        flexShrink: 0,
+                      }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', marginBottom: 2 }}>
+                          HEX CODE
+                        </div>
+                        <input
+                          type="text"
+                          value={customColor}
+                          onChange={e => {
+                            const hex = e.target.value;
+                            setCustomColor(hex);
+                            setAccent('custom');
+                            updateSettings({ accent: 'custom', customAccentColor: hex });
+                          }}
+                          placeholder="#6366F1"
+                          maxLength={7}
+                          style={{
+                            width: '100%',
+                            background: 'transparent',
+                            border: 'none',
+                            outline: 'none',
+                            fontFamily: 'monospace',
+                            fontWeight: 700,
+                            fontSize: 15,
+                            color: 'var(--text)',
+                            textTransform: 'uppercase',
+                          }}
+                        />
+                      </div>
+                    </div>
+
                     <button
                       type="button"
-                      onClick={handleSaveCustomColor}
                       className="btn btn-primary"
-                      style={{ height: 40, padding: '0 16px', whiteSpace: 'nowrap', fontSize: 13, fontWeight: 600, gap: 6 }}
+                      onClick={() => setShowCustomColorPickerModal(false)}
+                      style={{ width: '100%', height: 42, borderRadius: 12, fontWeight: 600, fontSize: 14 }}
                     >
-                      <Plus size={16} /> Save Preset
+                      Apply Color
                     </button>
                   </div>
-                </div>
-              </div>
+                </div>,
+                document.body
+              )}
             </div>
           </div>,
           document.body
