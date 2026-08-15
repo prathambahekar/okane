@@ -29,10 +29,27 @@ const KEYWORD_RULES: Record<string, string[]> = {
     'wifi', 'broadband', 'phone bill', 'mobile recharge', 'dth', 'recharge', 'utility',
     'maintenance', 'bill', 'sewer', 'trash', 'verizon', 'at&t', 'jio', 'airtel'
   ],
+  Gaming: [
+    'steam', 'steampowered', 'epic games', 'playstation', 'ps5', 'ps4', 'xbox', 'nintendo',
+    'switch', 'riot', 'valorant', 'gta', 'ea sports', 'ubisoft', 'game pass', 'blizzard',
+    'battlenet', 'game', 'gaming'
+  ],
   Entertainment: [
     'netflix', 'spotify', 'movie', 'cinema', 'theatre', 'theater', 'disney', 'hulu',
-    'prime video', 'youtube', 'game', 'gaming', 'steam', 'playstation', 'xbox', 'concert',
-    'club', 'pub', 'party', 'event', 'bowling', 'arcade', 'amusement', 'show'
+    'prime video', 'youtube', 'apple tv', 'hbo', 'concert', 'club', 'pub', 'party',
+    'event', 'bowling', 'arcade', 'amusement', 'show'
+  ],
+  Fitness: [
+    'gym', 'fitness', 'cult.fit', 'crossfit', 'workout', 'yoga', 'protein', 'creatine',
+    'dumbbell', 'gym membership', 'trainer', 'gold gym', 'anytime fitness'
+  ],
+  Pets: [
+    'vet', 'veterinary', 'dog food', 'cat food', 'pet food', 'pet care', 'puppy', 'kitten',
+    'pet shop', 'pedigree', 'whiskas', 'royal canin', 'grooming'
+  ],
+  Education: [
+    'tuition', 'school', 'college', 'udemy', 'coursera', 'books', 'textbook', 'course',
+    'training', 'exam fee', 'university', 'library', 'stationery'
   ],
   Shopping: [
     'amazon', 'flipkart', 'cloth', 'shirt', 'shoes', 'electronics', 'apple', 'nike',

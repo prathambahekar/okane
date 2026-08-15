@@ -48,15 +48,20 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
   const totalSpent = useMemo(() => friend ? contactTotalSpent(db, friend.id) : 0, [db, friend]);
   const avgOrderVal = useMemo(() => allExps.length > 0 ? totalSpent / allExps.length : 0, [totalSpent, allExps]);
 
-  const activeExps = allExps.filter(e => {
+  const activeExps = useMemo(() => allExps.filter(e => {
     if (e.friendId === friendId && e.type !== 'personal') return !e.settled;
     if (e.vendorId === friendId && e.status === 'unpaid') return !e.vendorSettled && (!e.settled || e.type === 'for_friend');
     if (e.vendorId === friendId && e.type === 'by_friend') return !e.vendorSettled && !e.settled;
     if (e.friendId === friendId && e.status === 'unpaid') return !e.settled;
     return !e.settled && (e.type !== 'personal' || e.status === 'unpaid');
-  });
-  const settledExps = allExps.filter(e => !activeExps.includes(e));
-  const shown = tab === 'active' ? activeExps : settledExps;
+  }), [allExps, friendId]);
+
+  const settledExps = useMemo(() => {
+    const activeSet = new Set(activeExps);
+    return allExps.filter(e => !activeSet.has(e));
+  }, [allExps, activeExps]);
+
+  const shown = useMemo(() => tab === 'active' ? activeExps : settledExps, [tab, activeExps, settledExps]);
 
   const dateGroupInfo = useMemo(() => {
     const groupMap: Record<string, number> = {};

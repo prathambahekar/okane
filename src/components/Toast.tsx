@@ -1,8 +1,8 @@
-import { useStore } from '../store';
+import { useToast } from '../store';
 import { X } from 'lucide-react';
 
 export default function Toast() {
-  const { toasts, dismissToast } = useStore();
+  const { toasts, dismissToast } = useToast();
   if (!toasts.length) return null;
   return (
     <div className="toast-container">

@@ -72,9 +72,9 @@ export default function Settlements() {
   const targetW = targetS?.walletId ? wallets.find(w => w && w.id === targetS.walletId) : null;
   const targetWName = targetW?.name || targetS?.paymentMethod || 'wallet';
 
-  const friendsWithUnsettled = friends.filter(f =>
-    f && unsettledExpensesForFriend(db, f.id).length > 0
-  );
+  const friendsWithUnsettled = useMemo(() => {
+    return friends.filter(f => f && unsettledExpensesForFriend(db, f.id).length > 0);
+  }, [friends, db]);
 
   const sorted = useMemo(
     () => [...settlements].filter(Boolean).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0)),

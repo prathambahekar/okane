@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import AppBar from '@mui/material/AppBar';
@@ -45,12 +45,16 @@ import Expenses from './views/Expenses';
 import Wallets from './views/Wallets';
 import Friends from './views/Friends';
 import FriendDetail from './views/FriendDetail';
-import Settlements from './views/Settlements';
-import Analytics from './views/Analytics';
-import Settings from './views/Settings';
-import Recurring from './views/Recurring';
-import DevSQLConsole from './views/DevSQLConsole';
-import SplitTrips from './views/SplitTrips';
+import ViewSkeleton from './components/ViewSkeleton';
+
+// Lazy loaded views for route-based splitting
+const Settlements = lazy(() => import('./views/Settlements'));
+const Analytics = lazy(() => import('./views/Analytics'));
+const Settings = lazy(() => import('./views/Settings'));
+const Recurring = lazy(() => import('./views/Recurring'));
+const DevSQLConsole = lazy(() => import('./views/DevSQLConsole'));
+const SplitTrips = lazy(() => import('./views/SplitTrips'));
+
 import ExpenseModal from './components/ExpenseModal';
 import type { ExpenseInitialData } from './components/ExpenseModal';
 import AIAssistantModal from './components/AIAssistantModal';
@@ -272,15 +276,45 @@ function AppInner() {
     switch (view) {
       case 'dashboard': return <Dashboard onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
       case 'expenses': return <Expenses />;
-      case 'recurring': return <Recurring onNavigate={navigate} />;
       case 'wallets': return <Wallets />;
       case 'friends': return <Friends onNavigate={navigate} />;
       case 'friend-detail': return <FriendDetail friendId={friendDetailId} onNavigate={navigate} />;
-      case 'settlements': return <Settlements />;
-      case 'split-trips': return <SplitTrips />;
-      case 'analytics': return <Analytics />;
-      case 'settings': return <Settings onNavigate={navigate} onOpenGuide={() => setShowGuideModal(true)} onStartExpenseTutorial={handleStartExpenseTutorial} />;
-      case 'dev-sql': return <DevSQLConsole onNavigate={navigate} />;
+      case 'recurring':
+        return (
+          <Suspense fallback={<ViewSkeleton type="table" />}>
+            <Recurring onNavigate={navigate} />
+          </Suspense>
+        );
+      case 'settlements':
+        return (
+          <Suspense fallback={<ViewSkeleton type="cards" />}>
+            <Settlements />
+          </Suspense>
+        );
+      case 'split-trips':
+        return (
+          <Suspense fallback={<ViewSkeleton type="table" />}>
+            <SplitTrips />
+          </Suspense>
+        );
+      case 'analytics':
+        return (
+          <Suspense fallback={<ViewSkeleton type="chart" />}>
+            <Analytics />
+          </Suspense>
+        );
+      case 'settings':
+        return (
+          <Suspense fallback={<ViewSkeleton type="settings" />}>
+            <Settings onNavigate={navigate} onOpenGuide={() => setShowGuideModal(true)} onStartExpenseTutorial={handleStartExpenseTutorial} />
+          </Suspense>
+        );
+      case 'dev-sql':
+        return (
+          <Suspense fallback={<ViewSkeleton type="table" />}>
+            <DevSQLConsole onNavigate={navigate} />
+          </Suspense>
+        );
       default: return <Dashboard onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
     }
   };

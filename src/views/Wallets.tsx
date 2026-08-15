@@ -134,29 +134,65 @@ export default function Wallets() {
     );
   }, [unifiedTransactions, searchQuery]);
 
-  const walletExpenses = activeWallet
-    ? [...expenses.filter(e => e.walletId === activeWallet.id)].sort((a, b) => b.date.localeCompare(a.date))
-    : [];
+  const now = useMemo(() => new Date(), []);
+  const thisKey = useMemo(() => now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'), [now]);
 
-  const walletSettlements = activeWallet
-    ? [...db.settlements.filter(s => s.walletId === activeWallet.id)].sort((a, b) => b.date.localeCompare(a.date))
-    : [];
+  const walletExpenses = useMemo(() => {
+    if (!activeWallet) return [];
+    return [...expenses.filter(e => e.walletId === activeWallet.id)].sort((a, b) => b.date.localeCompare(a.date));
+  }, [activeWallet, expenses]);
 
-  const now = new Date();
-  const thisKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  const walletMonthSpend = walletExpenses
-    .filter(e => monthKey(e.date) === thisKey && expenseFlow(e) === 'out' && e.status !== 'unpaid')
-    .reduce((s, e) => s + Number(e.amount), 0) +
-    walletSettlements
-      .filter(s => monthKey(s.date) === thisKey && s.amount < 0)
-      .reduce((acc, s) => acc + Math.abs(s.amount), 0);
+  const walletSettlements = useMemo(() => {
+    if (!activeWallet) return [];
+    return [...db.settlements.filter(s => s.walletId === activeWallet.id)].sort((a, b) => b.date.localeCompare(a.date));
+  }, [activeWallet, db.settlements]);
 
-  const walletMonthIn = walletExpenses
-    .filter(e => monthKey(e.date) === thisKey && expenseFlow(e) === 'in' && e.status !== 'unpaid')
-    .reduce((s, e) => s + Number(e.amount), 0) +
-    walletSettlements
-      .filter(s => monthKey(s.date) === thisKey && s.amount > 0)
-      .reduce((acc, s) => acc + s.amount, 0);
+  const walletMonthSpend = useMemo(() => {
+    return walletExpenses
+      .filter(e => monthKey(e.date) === thisKey && expenseFlow(e) === 'out' && e.status !== 'unpaid')
+      .reduce((s, e) => s + Number(e.amount), 0) +
+      walletSettlements
+        .filter(s => monthKey(s.date) === thisKey && s.amount < 0)
+        .reduce((acc, s) => acc + Math.abs(s.amount), 0);
+  }, [walletExpenses, walletSettlements, thisKey]);
+
+  const walletMonthIn = useMemo(() => {
+    return walletExpenses
+      .filter(e => monthKey(e.date) === thisKey && expenseFlow(e) === 'in' && e.status !== 'unpaid')
+      .reduce((s, e) => s + Number(e.amount), 0) +
+      walletSettlements
+        .filter(s => monthKey(s.date) === thisKey && s.amount > 0)
+        .reduce((acc, s) => acc + s.amount, 0);
+  }, [walletExpenses, walletSettlements, thisKey]);
+
+  const walletCardsData = useMemo(() => {
+    return wallets.map(w => {
+      const bal = walletBalance(db, w.id);
+      const allocated = walletEnvelopeAllocated(db, w.id);
+      const unallocated = walletUnallocatedBalance(db, w.id);
+      const wEnvelopes = envelopes.filter(e => e.walletId === w.id);
+      const wExpenses = expenses.filter(e => e.walletId === w.id);
+      const wSettlements = (db.settlements || []).filter(s => s.walletId === w.id);
+      const wExpCount = wExpenses.length + wSettlements.length;
+
+      const wSpend = wExpenses
+        .filter(e => monthKey(e.date) === thisKey && expenseFlow(e) === 'out' && e.status !== 'unpaid')
+        .reduce((s, e) => s + Number(e.amount), 0) +
+        wSettlements
+          .filter(s => monthKey(s.date) === thisKey && s.amount < 0)
+          .reduce((acc, s) => acc + Math.abs(s.amount), 0);
+
+      return {
+        wallet: w,
+        bal,
+        allocated,
+        unallocated,
+        wEnvelopes,
+        wExpCount,
+        wSpend,
+      };
+    });
+  }, [wallets, db, envelopes, expenses, thisKey]);
 
   // Envelopes statistics
   const filteredEnvelopes = useMemo(() => {
@@ -218,22 +254,7 @@ export default function Wallets() {
 
       {/* Wallet Cards Grid Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 32 }}>
-        {wallets.map(w => {
-          const bal = walletBalance(db, w.id);
-          const allocated = walletEnvelopeAllocated(db, w.id);
-          const unallocated = walletUnallocatedBalance(db, w.id);
-          const wEnvelopes = envelopes.filter(e => e.walletId === w.id);
-          const wExpenses = expenses.filter(e => e.walletId === w.id);
-          const wSettlements = db.settlements.filter(s => s.walletId === w.id);
-          const wExpCount = wExpenses.length + wSettlements.length;
-
-          const wSpend = wExpenses
-            .filter(e => monthKey(e.date) === thisKey && expenseFlow(e) === 'out' && e.status !== 'unpaid')
-            .reduce((s, e) => s + Number(e.amount), 0) +
-            wSettlements
-              .filter(s => monthKey(s.date) === thisKey && s.amount < 0)
-              .reduce((acc, s) => acc + Math.abs(s.amount), 0);
-
+        {walletCardsData.map(({ wallet: w, bal, allocated, unallocated, wEnvelopes, wExpCount, wSpend }) => {
           return (
             <div
               key={w.id}

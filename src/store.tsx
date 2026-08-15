@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import type { AppDB, Expense, Friend, Wallet, RecurringRule, Envelope } from './types';
 import {
   loadDB, saveDB, defaultDB, resetSQLTables, DEFAULT_CATEGORIES, DEFAULT_WALLETS,
@@ -24,32 +24,19 @@ import {
   type ReleaseItem,
 } from './utils/updateManager';
 
-interface UndoEntry {
+export interface UndoEntry {
   label: string;
   snapshot: AppDB;
 }
 
-interface Toast {
+export interface Toast {
   id: string;
   message: string;
   onUndo?: () => void;
 }
 
-interface StoreContextType {
+export interface DataStateContextType {
   db: AppDB;
-  toasts: Toast[];
-
-  availableUpdate: UpdateInfo | null;
-  releaseHistory: ReleaseItem[];
-  isCheckingUpdate: boolean;
-  isUpdating: boolean;
-  updateProgress: number;
-  updateStatusMessage: string;
-  checkForUpdates: (manual?: boolean) => Promise<void>;
-  simulateUpdate: (version?: string) => void;
-  installUpdate: (options?: { silent?: boolean; update?: UpdateInfo }) => Promise<void>;
-  dismissUpdateNotification: () => void;
-
   addExpense: (data: Partial<Expense>) => void;
   updateExpense: (id: string, data: Partial<Expense>) => void;
   deleteExpense: (id: string) => void;
@@ -84,12 +71,28 @@ interface StoreContextType {
   restoreDB: (data: AppDB) => void;
   loadSampleData: () => void;
   bulkAddExpenses: (expenses: Partial<Expense>[]) => number;
+}
 
+export interface UIFeedbackContextType {
+  toasts: Toast[];
+  availableUpdate: UpdateInfo | null;
+  releaseHistory: ReleaseItem[];
+  isCheckingUpdate: boolean;
+  isUpdating: boolean;
+  updateProgress: number;
+  updateStatusMessage: string;
+  checkForUpdates: (manual?: boolean) => Promise<void>;
+  simulateUpdate: (version?: string) => void;
+  installUpdate: (options?: { silent?: boolean; update?: UpdateInfo }) => Promise<void>;
+  dismissUpdateNotification: () => void;
   showToast: (message: string, onUndo?: () => void) => void;
   dismissToast: (id: string) => void;
 }
 
-const StoreContext = createContext<StoreContextType | null>(null);
+export type StoreContextType = DataStateContextType & UIFeedbackContextType;
+
+const DataStateContext = createContext<DataStateContextType | null>(null);
+const UIFeedbackContext = createContext<UIFeedbackContextType | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [db, setDB] = useState<AppDB>(() => loadDB());
@@ -242,30 +245,38 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
     if (db.settings.devMode !== false && db.settings.enableAutoUpdate !== false) {
-      fetchGitHubReleases().then(({ latest, history }) => {
-        if (!isMounted) return;
-        setReleaseHistory(history);
+      // Delay check slightly so the Android webview finishes first frame paint without network contention
+      const timer = setTimeout(() => {
+        fetchGitHubReleases().then(({ latest, history }) => {
+          if (!isMounted) return;
+          setReleaseHistory(history);
 
-        let currentVer = db.settings.installedVersion || getStoredInstalledVersion();
-        if (history.length > 0) {
-          const existsInHistory = history.some(h => h.version === currentVer);
-          if (!existsInHistory && history[0] && compareVersions(currentVer, history[0].version) > 0) {
-            currentVer = history[0].version;
-            setStoredInstalledVersion(currentVer);
-            setDB(current => {
-              const next = { ...current, settings: { ...current.settings, installedVersion: currentVer } };
-              saveDB(next);
-              return next;
-            });
+          let currentVer = db.settings.installedVersion || getStoredInstalledVersion();
+          if (history.length > 0) {
+            const existsInHistory = history.some(h => h.version === currentVer);
+            if (!existsInHistory && history[0] && compareVersions(currentVer, history[0].version) > 0) {
+              currentVer = history[0].version;
+              setStoredInstalledVersion(currentVer);
+              setDB(current => {
+                const next = { ...current, settings: { ...current.settings, installedVersion: currentVer } };
+                saveDB(next);
+                return next;
+              });
+            }
           }
-        }
 
-        if (latest && compareVersions(latest.version, currentVer) > 0) {
-          setAvailableUpdate(latest);
-        } else {
-          setAvailableUpdate(null);
-        }
-      }).catch(() => {});
+          if (latest && compareVersions(latest.version, currentVer) > 0) {
+            setAvailableUpdate(latest);
+          } else {
+            setAvailableUpdate(null);
+          }
+        }).catch(() => {});
+      }, 1200);
+
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+      };
     }
     return () => {
       isMounted = false;
@@ -622,8 +633,30 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return count;
   }, []);
 
-  const value: StoreContextType = {
-    db, toasts,
+  const dataValue = useMemo<DataStateContextType>(() => ({
+    db,
+    addExpense, updateExpense, deleteExpense,
+    addFriend, updateFriend, deleteFriend,
+    addWallet, updateWallet, deleteWallet: deleteWalletFn, transferFunds,
+    addEnvelope, updateEnvelope, deleteEnvelope, adjustEnvelopeBalance,
+    recordSettlement, deleteSettlement, unsettleExpense,
+    addRecurringRule, updateRecurringRule, deleteRecurringRule,
+    triggerAutopayDeduct, quickLogRecurringRule,
+    updateCategory, updateSettings, resetDB, restoreDB, loadSampleData, bulkAddExpenses,
+  }), [
+    db,
+    addExpense, updateExpense, deleteExpense,
+    addFriend, updateFriend, deleteFriend,
+    addWallet, updateWallet, deleteWalletFn, transferFunds,
+    addEnvelope, updateEnvelope, deleteEnvelope, adjustEnvelopeBalance,
+    recordSettlement, deleteSettlement, unsettleExpense,
+    addRecurringRule, updateRecurringRule, deleteRecurringRule,
+    triggerAutopayDeduct, quickLogRecurringRule,
+    updateCategory, updateSettings, resetDB, restoreDB, loadSampleData, bulkAddExpenses,
+  ]);
+
+  const uiValue = useMemo<UIFeedbackContextType>(() => ({
+    toasts,
     availableUpdate,
     releaseHistory,
     isCheckingUpdate,
@@ -634,22 +667,60 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     simulateUpdate,
     installUpdate,
     dismissUpdateNotification,
-    addExpense, updateExpense, deleteExpense,
-    addFriend, updateFriend, deleteFriend,
-    addWallet, updateWallet, deleteWallet: deleteWalletFn, transferFunds,
-    addEnvelope, updateEnvelope, deleteEnvelope, adjustEnvelopeBalance,
-    recordSettlement, deleteSettlement, unsettleExpense,
-    addRecurringRule, updateRecurringRule, deleteRecurringRule,
-    triggerAutopayDeduct, quickLogRecurringRule,
-    updateCategory, updateSettings, resetDB, restoreDB, loadSampleData, bulkAddExpenses,
-    showToast, dismissToast,
-  };
+    showToast,
+    dismissToast,
+  }), [
+    toasts,
+    availableUpdate,
+    releaseHistory,
+    isCheckingUpdate,
+    isUpdating,
+    updateProgress,
+    updateStatusMessage,
+    checkForUpdates,
+    simulateUpdate,
+    installUpdate,
+    dismissUpdateNotification,
+    showToast,
+    dismissToast,
+  ]);
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return (
+    <UIFeedbackContext.Provider value={uiValue}>
+      <DataStateContext.Provider value={dataValue}>
+        {children}
+      </DataStateContext.Provider>
+    </UIFeedbackContext.Provider>
+  );
+}
+
+export function useDataStore(): DataStateContextType {
+  const ctx = useContext(DataStateContext);
+  if (!ctx) throw new Error('useDataStore must be used within StoreProvider');
+  return ctx;
+}
+
+export function useUIStore(): UIFeedbackContextType {
+  const ctx = useContext(UIFeedbackContext);
+  if (!ctx) throw new Error('useUIStore must be used within StoreProvider');
+  return ctx;
+}
+
+export function useToast(): { toasts: Toast[]; showToast: (message: string, onUndo?: () => void) => void; dismissToast: (id: string) => void } {
+  const ui = useUIStore();
+  return {
+    toasts: ui.toasts,
+    showToast: ui.showToast,
+    dismissToast: ui.dismissToast,
+  };
 }
 
 export function useStore(): StoreContextType {
-  const ctx = useContext(StoreContext);
-  if (!ctx) throw new Error('useStore must be used within StoreProvider');
-  return ctx;
+  const data = useContext(DataStateContext);
+  const ui = useContext(UIFeedbackContext);
+  if (!data || !ui) throw new Error('useStore must be used within StoreProvider');
+  return useMemo(() => ({
+    ...data,
+    ...ui,
+  }), [data, ui]);
 }

@@ -1073,9 +1073,54 @@ export function loadDBFromSQLTables(): AppDB {
   }
 }
 
+// In-memory cache of current DB to avoid re-parsing JSON and executing synchronous SQL dumps on the main UI thread
+let cachedAppDB: AppDB | null = null;
+let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 export function loadDB(): AppDB {
-  initSQLTables();
+  if (cachedAppDB) {
+    return cachedAppDB;
+  }
+
   try {
+    const legacyRaw = localStorage.getItem(LEGACY_JSON_KEY);
+    if (legacyRaw) {
+      try {
+        const parsed = JSON.parse(legacyRaw) as Partial<AppDB>;
+        if (parsed && typeof parsed === 'object') {
+          const d = defaultDB();
+          const merged: AppDB = {
+            ...d,
+            ...parsed,
+            settings: { ...d.settings, ...(parsed.settings || {}) },
+            wallets: Array.isArray(parsed.wallets) && parsed.wallets.length > 0 ? parsed.wallets : d.wallets,
+            friends: Array.isArray(parsed.friends) ? parsed.friends : [],
+            expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
+            settlements: Array.isArray(parsed.settlements) ? parsed.settlements : [],
+            recurringRules: Array.isArray(parsed.recurringRules) ? parsed.recurringRules : [],
+            envelopes: Array.isArray(parsed.envelopes) ? parsed.envelopes : d.envelopes,
+          };
+          cachedAppDB = merged;
+
+          // Defer SQL table hydration so it doesn't block the initial Android Webview render frame
+          if (typeof window !== 'undefined') {
+            const deferInit = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 100));
+            deferInit(() => {
+              try {
+                syncDBToSQLTables(merged);
+              } catch (e) {
+                console.warn('Deferred SQL sync notice:', e);
+              }
+            });
+          }
+          return merged;
+        }
+      } catch (err) {
+        console.warn('Failed parsing direct JSON cache, checking SQL storage...', err);
+      }
+    }
+
+    initSQLTables();
     const rawSQLDump = localStorage.getItem(SQL_STORAGE_KEY);
     if (rawSQLDump) {
       const dump = JSON.parse(rawSQLDump);
@@ -1190,55 +1235,62 @@ export function loadDB(): AppDB {
         }
 
         const loaded = loadDBFromSQLTables();
-        const legacyRaw = localStorage.getItem(LEGACY_JSON_KEY);
-        if (legacyRaw && (!loaded.expenses || loaded.expenses.length === 0 || !loaded.friends || loaded.friends.length === 0)) {
-          try {
-            const parsed = JSON.parse(legacyRaw) as Partial<AppDB>;
-            if (parsed && typeof parsed === 'object') {
-              if ((!loaded.expenses || loaded.expenses.length === 0) && Array.isArray(parsed.expenses) && parsed.expenses.length > 0) {
-                loaded.expenses = parsed.expenses as Expense[];
-              }
-              if ((!loaded.friends || loaded.friends.length === 0) && Array.isArray(parsed.friends) && parsed.friends.length > 0) {
-                loaded.friends = parsed.friends as Friend[];
-              }
-              if ((!loaded.settlements || loaded.settlements.length === 0) && Array.isArray(parsed.settlements) && parsed.settlements.length > 0) {
-                loaded.settlements = parsed.settlements as Settlement[];
-              }
-              if ((!loaded.wallets || loaded.wallets.length === 0) && Array.isArray(parsed.wallets) && parsed.wallets.length > 0) {
-                loaded.wallets = parsed.wallets as Wallet[];
-              }
-            }
-          } catch (e) {
-            console.warn('Failed to recover data from legacy storage:', e);
-          }
-        }
-        syncDBToSQLTables(loaded);
+        cachedAppDB = loaded;
         return loaded;
       }
     }
 
-    const legacyRaw = localStorage.getItem(LEGACY_JSON_KEY);
-    let initialDB: AppDB;
-    if (legacyRaw) {
-      const parsed = JSON.parse(legacyRaw) as Partial<AppDB>;
-      const d = defaultDB();
-      initialDB = { ...d, ...parsed, settings: { ...d.settings, ...(parsed.settings || {}) } };
-    } else {
-      initialDB = defaultDB();
-    }
-
-    syncDBToSQLTables(initialDB);
-    return loadDBFromSQLTables();
+    const fresh = defaultDB();
+    cachedAppDB = fresh;
+    syncDBToSQLTables(fresh);
+    return fresh;
   } catch (e) {
     console.error('Failed to load DB, starting fresh SQL DB', e);
     const fresh = defaultDB();
-    syncDBToSQLTables(fresh);
+    cachedAppDB = fresh;
     return fresh;
   }
 }
 
 export function saveDB(db: AppDB): void {
-  syncDBToSQLTables(db);
+  cachedAppDB = db;
+
+  // Immediate lightweight JSON save to keep UI responsive and safe
+  try {
+    localStorage.setItem(LEGACY_JSON_KEY, JSON.stringify(db));
+  } catch (e) {
+    console.warn('localStorage save warning:', e);
+  }
+
+  // Debounce heavy full SQL relational table syncs and string generation
+  if (saveDebounceTimer) {
+    clearTimeout(saveDebounceTimer);
+  }
+
+  saveDebounceTimer = setTimeout(() => {
+    try {
+      syncDBToSQLTables(db);
+    } catch (e) {
+      console.warn('Debounced SQL sync notice:', e);
+    }
+  }, 300);
+}
+
+// Flush pending writes immediately if the Android app is closed/hidden
+if (typeof window !== 'undefined') {
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && cachedAppDB) {
+      if (saveDebounceTimer) {
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = null;
+      }
+      try {
+        syncDBToSQLTables(cachedAppDB);
+      } catch (e) {
+        console.warn('Visibility hidden sync notice:', e);
+      }
+    }
+  });
 }
 
 export function expenseFlow(e: Expense): ExpenseFlow {
@@ -1261,97 +1313,192 @@ export function expenseWalletDelta(e: Expense, db?: AppDB): number {
   return expenseFlow(e) === 'in' ? amt : -amt;
 }
 
-export function walletBalance(db: AppDB, walletId: string): number {
-  const w = db.wallets.find(x => x.id === walletId);
-  if (!w) return 0;
-  let bal = Number(w.openingBalance) || 0;
-  db.expenses.forEach(e => {
-    if (e.walletId === walletId) bal += expenseWalletDelta(e, db);
-  });
-  (db.settlements || []).forEach(s => {
-    if (s.walletId === walletId) bal += Number(s.amount) || 0;
-  });
-  return bal;
+export interface DBCalculationCache {
+  walletBalances: Map<string, number>;
+  totalWalletBalance: number;
+  friendBalances: Map<string, { owedToMe: number; owedByMe: number; net: number }>;
+  allFriendBalancesSorted: Array<{ friend: Friend; owedToMe: number; owedByMe: number; net: number }>;
+  overallBalance: { credit: number; debit: number; net: number };
+  contactStats: Map<string, { totalSpent: number; count: number; lastTx: Expense | null }>;
+  envelopeAllocated: Map<string, number>;
 }
 
-export function totalWalletBalance(db: AppDB): number {
-  return db.wallets.reduce((s, w) => s + walletBalance(db, w.id), 0);
-}
+const dbCalculationCache = new WeakMap<AppDB, DBCalculationCache>();
 
-export function friendBalance(db: AppDB, friendId: string): { owedToMe: number; owedByMe: number; net: number } {
-  let owedToMe = 0, owedByMe = 0;
-  db.expenses.forEach(e => {
+export function getDBCalculationCache(db: AppDB): DBCalculationCache {
+  const cached = dbCalculationCache.get(db);
+  if (cached) return cached;
+
+  const groupHasByFriend = new Set<string>();
+  (db.expenses || []).forEach(e => {
+    if (e.groupId && e.type === 'by_friend') {
+      groupHasByFriend.add(e.groupId);
+    }
+  });
+
+  const walletBalances = new Map<string, number>();
+  (db.wallets || []).forEach(w => {
+    walletBalances.set(w.id, Number(w.openingBalance) || 0);
+  });
+
+  const friendBalances = new Map<string, { owedToMe: number; owedByMe: number; net: number }>();
+  const contactStats = new Map<string, { totalSpent: number; count: number; lastTx: Expense | null }>();
+
+  const getOrCreateFriendBal = (id: string) => {
+    let b = friendBalances.get(id);
+    if (!b) {
+      b = { owedToMe: 0, owedByMe: 0, net: 0 };
+      friendBalances.set(id, b);
+    }
+    return b;
+  };
+
+  const getOrCreateContactStat = (id: string) => {
+    let s = contactStats.get(id);
+    if (!s) {
+      s = { totalSpent: 0, count: 0, lastTx: null };
+      contactStats.set(id, s);
+    }
+    return s;
+  };
+
+  (db.friends || []).forEach(f => {
+    getOrCreateFriendBal(f.id);
+    getOrCreateContactStat(f.id);
+  });
+
+  (db.expenses || []).forEach(e => {
     const amt = Number(e.amount) || 0;
     const isIncoming = expenseFlow(e) === 'in';
 
-    // 1. Expense is split or friend-related with e.friendId === friendId
-    if (e.friendId === friendId && e.type !== 'personal') {
-      if (!e.settled) {
-        if (e.type === 'for_friend') {
-          if (isIncoming) {
-            owedToMe -= amt; // Repayment received from friend reduces what friend owes me
-          } else {
-            owedToMe += amt; // Money spent for friend increases what friend owes me
-          }
-        } else if (e.type === 'by_friend') {
-          if (isIncoming) {
-            owedByMe -= amt; // Repayment paid to friend reduces what I owe friend
-          } else {
-            owedByMe += amt; // Expense paid by friend for me increases what I owe friend
-          }
-        }
+    // Wallet balance calculation
+    if (e.walletId && e.status !== 'unpaid' && e.type !== 'by_friend') {
+      const skipGroup = e.groupId ? groupHasByFriend.has(e.groupId) : false;
+      const skipVendorSettled = e.vendorId && e.vendorSettlementId;
+      if (!skipGroup && !skipVendorSettled) {
+        const delta = isIncoming ? amt : -amt;
+        walletBalances.set(e.walletId, (walletBalances.get(e.walletId) || 0) + delta);
       }
     }
 
-    // 2. Unpaid personal debt directly for this friend/contact
-    if (e.friendId === friendId && e.type === 'personal' && e.status === 'unpaid') {
-      if (!e.settled) {
-        if (isIncoming) {
-          owedToMe += amt;
-        } else {
-          owedByMe += amt;
+    // Friend & Contact statistics calculation
+    if (e.friendId) {
+      const fb = getOrCreateFriendBal(e.friendId);
+      const cs = getOrCreateContactStat(e.friendId);
+      cs.count += 1;
+      cs.totalSpent += (isIncoming ? -amt : amt);
+      if (!cs.lastTx || e.date > cs.lastTx.date || (e.date === cs.lastTx.date && (e.createdAt || 0) > (cs.lastTx.createdAt || 0))) {
+        cs.lastTx = e;
+      }
+
+      if (e.type !== 'personal') {
+        if (!e.settled) {
+          if (e.type === 'for_friend') {
+            if (isIncoming) fb.owedToMe -= amt;
+            else fb.owedToMe += amt;
+          } else if (e.type === 'by_friend') {
+            if (isIncoming) fb.owedByMe -= amt;
+            else fb.owedByMe += amt;
+          }
         }
+      } else if (e.status === 'unpaid' && !e.settled) {
+        if (isIncoming) fb.owedToMe += amt;
+        else fb.owedByMe += amt;
       }
     }
 
-    // 3. Unpaid debt associated with vendorId (e.g. user selected Debt for vendor, including split expenses)
-    if (e.vendorId === friendId && e.status === 'unpaid') {
-      const isVendorUnsettled = !e.vendorSettled && (!e.settled || e.type === 'for_friend');
-      if (isVendorUnsettled) {
-        if (isIncoming) {
-          owedToMe += amt;
-        } else {
-          owedByMe += amt;
-        }
+    if (e.vendorId) {
+      const cs = getOrCreateContactStat(e.vendorId);
+      cs.count += 1;
+      cs.totalSpent += (isIncoming ? -amt : amt);
+      if (!cs.lastTx || e.date > cs.lastTx.date || (e.date === cs.lastTx.date && (e.createdAt || 0) > (cs.lastTx.createdAt || 0))) {
+        cs.lastTx = e;
       }
-    } else if (e.vendorId === friendId && e.type === 'by_friend') {
-      const isVendorUnsettled = !e.vendorSettled && !e.settled;
-      if (isVendorUnsettled) {
-        if (isIncoming) {
-          owedByMe -= amt;
-        } else {
-          owedByMe += amt;
+
+      const fb = getOrCreateFriendBal(e.vendorId);
+      if (e.status === 'unpaid') {
+        const isVendorUnsettled = !e.vendorSettled && (!e.settled || e.type === 'for_friend');
+        if (isVendorUnsettled) {
+          if (isIncoming) fb.owedToMe += amt;
+          else fb.owedByMe += amt;
+        }
+      } else if (e.type === 'by_friend') {
+        const isVendorUnsettled = !e.vendorSettled && !e.settled;
+        if (isVendorUnsettled) {
+          if (isIncoming) fb.owedByMe -= amt;
+          else fb.owedByMe += amt;
         }
       }
     }
   });
-  return { owedToMe, owedByMe, net: owedToMe - owedByMe };
+
+  (db.settlements || []).forEach(s => {
+    if (s.walletId) {
+      const amt = Number(s.amount) || 0;
+      walletBalances.set(s.walletId, (walletBalances.get(s.walletId) || 0) + amt);
+    }
+  });
+
+  friendBalances.forEach(b => {
+    b.net = b.owedToMe - b.owedByMe;
+  });
+
+  let totalWallet = 0;
+  walletBalances.forEach(b => {
+    totalWallet += b;
+  });
+
+  const allFriendBalancesSorted = (db.friends || [])
+    .map(f => ({ friend: f, ...friendBalances.get(f.id)! }))
+    .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+
+  let credit = 0, debit = 0;
+  (db.friends || []).forEach(f => {
+    const b = friendBalances.get(f.id);
+    if (b) {
+      credit += b.owedToMe;
+      debit += b.owedByMe;
+    }
+  });
+  const overall = { credit, debit, net: credit - debit };
+
+  const envelopeAllocated = new Map<string, number>();
+  (db.envelopes || []).forEach(env => {
+    envelopeAllocated.set(env.walletId, (envelopeAllocated.get(env.walletId) || 0) + (Number(env.currentAmount) || 0));
+  });
+
+  const cacheEntry: DBCalculationCache = {
+    walletBalances,
+    totalWalletBalance: totalWallet,
+    friendBalances,
+    allFriendBalancesSorted,
+    overallBalance: overall,
+    contactStats,
+    envelopeAllocated,
+  };
+
+  dbCalculationCache.set(db, cacheEntry);
+  return cacheEntry;
+}
+
+export function walletBalance(db: AppDB, walletId: string): number {
+  return getDBCalculationCache(db).walletBalances.get(walletId) ?? 0;
+}
+
+export function totalWalletBalance(db: AppDB): number {
+  return getDBCalculationCache(db).totalWalletBalance;
+}
+
+export function friendBalance(db: AppDB, friendId: string): { owedToMe: number; owedByMe: number; net: number } {
+  return getDBCalculationCache(db).friendBalances.get(friendId) || { owedToMe: 0, owedByMe: 0, net: 0 };
 }
 
 export function allFriendBalances(db: AppDB) {
-  return db.friends
-    .map(f => ({ friend: f, ...friendBalance(db, f.id) }))
-    .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+  return getDBCalculationCache(db).allFriendBalancesSorted;
 }
 
 export function overallBalance(db: AppDB): { credit: number; debit: number; net: number } {
-  let credit = 0, debit = 0;
-  db.friends.forEach(f => {
-    const b = friendBalance(db, f.id);
-    credit += b.owedToMe;
-    debit += b.owedByMe;
-  });
-  return { credit, debit, net: credit - debit };
+  return getDBCalculationCache(db).overallBalance;
 }
 
 export function personalNetAmount(e: Expense): number {
@@ -1388,23 +1535,15 @@ export function unsettledExpensesForFriend(db: AppDB, friendId: string): Expense
 }
 
 export function contactTotalSpent(db: AppDB, contactId: string): number {
-  return db.expenses
-    .filter(e => e.friendId === contactId || e.vendorId === contactId)
-    .reduce((sum, e) => {
-      const amt = Number(e.amount) || 0;
-      return sum + (expenseFlow(e) === 'in' ? -amt : amt);
-    }, 0);
+  return getDBCalculationCache(db).contactStats.get(contactId)?.totalSpent || 0;
 }
 
 export function contactTransactionCount(db: AppDB, contactId: string): number {
-  return db.expenses.filter(e => e.friendId === contactId || e.vendorId === contactId).length;
+  return getDBCalculationCache(db).contactStats.get(contactId)?.count || 0;
 }
 
 export function contactLastTransaction(db: AppDB, contactId: string): Expense | null {
-  const exps = db.expenses
-    .filter(e => e.friendId === contactId || e.vendorId === contactId)
-    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
-  return exps[0] || null;
+  return getDBCalculationCache(db).contactStats.get(contactId)?.lastTx || null;
 }
 
 // CRUD helpers that return new DB state (immutable-ish)
@@ -2166,9 +2305,7 @@ export function quickLogRecurringRule(db: AppDB, ruleId: string, customDate?: st
 }
 
 export function walletEnvelopeAllocated(db: AppDB, walletId: string): number {
-  return (db.envelopes || [])
-    .filter(e => e.walletId === walletId)
-    .reduce((sum, e) => sum + (Number(e.currentAmount) || 0), 0);
+  return getDBCalculationCache(db).envelopeAllocated.get(walletId) || 0;
 }
 
 export function walletUnallocatedBalance(db: AppDB, walletId: string): number {
