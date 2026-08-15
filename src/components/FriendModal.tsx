@@ -267,7 +267,6 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                   value={name}
                   onChange={e => handleNameChange(e.target.value)}
                   placeholder={namePlaceholder}
-                  autoFocus
                 />
               </div>
 

@@ -128,6 +128,8 @@ export default function UserGuideModal({
     <Dialog
       open={open}
       onClose={onClose}
+      disableAutoFocus
+      disableRestoreFocus
       maxWidth="md"
       fullWidth
       TransitionComponent={isMobile ? Transition : undefined}

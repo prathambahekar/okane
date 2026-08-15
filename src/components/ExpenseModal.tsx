@@ -729,7 +729,6 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                       }
                     }}
                     placeholder="0.00"
-                    autoFocus
                   />
                 </div>
               </div>

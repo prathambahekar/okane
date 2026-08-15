@@ -260,7 +260,6 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   value={amount}
                   onChange={e => { setAmount(e.target.value); setError(''); }}
                   placeholder="0.00"
-                  autoFocus
                   style={{
                     fontSize: 20,
                     fontWeight: 700,

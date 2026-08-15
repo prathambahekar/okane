@@ -281,25 +281,25 @@ function AppInner() {
       case 'friend-detail': return <FriendDetail friendId={friendDetailId} onNavigate={navigate} />;
       case 'recurring':
         return (
-          <Suspense fallback={<ViewSkeleton type="table" />}>
+          <Suspense fallback={<ViewSkeleton type="recurring" />}>
             <Recurring onNavigate={navigate} />
           </Suspense>
         );
       case 'settlements':
         return (
-          <Suspense fallback={<ViewSkeleton type="cards" />}>
+          <Suspense fallback={<ViewSkeleton type="settlements" />}>
             <Settlements />
           </Suspense>
         );
       case 'split-trips':
         return (
-          <Suspense fallback={<ViewSkeleton type="table" />}>
+          <Suspense fallback={<ViewSkeleton type="split-trips" />}>
             <SplitTrips />
           </Suspense>
         );
       case 'analytics':
         return (
-          <Suspense fallback={<ViewSkeleton type="chart" />}>
+          <Suspense fallback={<ViewSkeleton type="analytics" />}>
             <Analytics />
           </Suspense>
         );
@@ -311,7 +311,7 @@ function AppInner() {
         );
       case 'dev-sql':
         return (
-          <Suspense fallback={<ViewSkeleton type="table" />}>
+          <Suspense fallback={<ViewSkeleton type="dev-sql" />}>
             <DevSQLConsole onNavigate={navigate} />
           </Suspense>
         );
@@ -794,6 +794,8 @@ function AppInner() {
         anchor="bottom"
         open={moreOpen && isMobile}
         onClose={() => setMoreOpen(false)}
+        disableAutoFocus
+        disableRestoreFocus
         PaperProps={{
           sx: {
             borderTopLeftRadius: 24,

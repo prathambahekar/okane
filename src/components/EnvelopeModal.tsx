@@ -107,7 +107,6 @@ export default function EnvelopeModal({ envelope, defaultWalletId, onClose }: Pr
                 value={name}
                 onChange={e => { setName(e.target.value); setError(''); }}
                 placeholder="e.g. Emergency Reserve, Goa Vacation, New Laptop"
-                autoFocus
               />
             </div>
 

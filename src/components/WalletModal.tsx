@@ -43,7 +43,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
             <div className="form-grid">
               <div className="form-group">
                 <label className="form-label">Wallet Name *</label>
-                <input className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Cash, Credit Card…" autoFocus />
+                <input className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Cash, Credit Card…" />
               </div>
               <div className="form-group">
                 <label className="form-label">Opening Balance</label>

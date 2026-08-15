@@ -69,7 +69,6 @@ export function VendorQuickAdd({
                 handleCreateVendor();
               }
             }}
-            autoFocus
           />
           <button
             type="button"

@@ -64,6 +64,56 @@
   --shadow-lg: 0 12px 40px rgba(0,0,0,.5);
 }
 
+/* Okane High-Fidelity Skeleton Loader Theme & Animations */
+@keyframes okane-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.sk-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--surface2) 0%,
+    var(--surface3) 50%,
+    var(--surface2) 100%
+  );
+  background-size: 200% 100%;
+  animation: okane-shimmer 1.7s ease-in-out infinite;
+  display: block;
+  flex-shrink: 0;
+}
+
+[data-color-scheme="dark"] .sk-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 200% 100%;
+}
+
+.no-animations .sk-shimmer {
+  animation: none !important;
+}
+
+/* Disable all transitions during startup/hydration to prevent initial theme/border flickering */
+.app-preload,
+.app-preload *,
+.app-preload *::before,
+.app-preload *::after {
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  -ms-transition: none !important;
+  transition: none !important;
+  animation-duration: 0s !important;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, #root {
@@ -456,13 +506,17 @@ html, body, #root {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 20px;
-  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+  background-clip: padding-box;
 }
 
 .card.card-accent {
   background: var(--accent-surface-gradient);
   border: 1px solid var(--accent-border-soft);
   box-shadow: 0 4px 20px var(--accent-soft);
+}
+
+.card.card-hover {
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .card.card-hover:hover {
@@ -483,6 +537,7 @@ html, body, #root {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 18px 20px;
+  background-clip: padding-box;
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
@@ -519,7 +574,7 @@ html, body, #root {
   flex-direction: column;
   justify-content: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  background-clip: padding-box;
 }
 
 .dashboard-mini-stat:hover {
@@ -537,6 +592,76 @@ html, body, #root {
 [data-color-scheme="dark"] .dashboard-mini-stat:hover {
   background: rgba(255, 255, 255, 0.13);
   border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* Dashboard Hero Card & Staged Layout */
+.dashboard-hero-card {
+  margin-bottom: 20px;
+  padding: 0;
+  overflow: hidden;
+  background: var(--accent-surface-gradient);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background-clip: padding-box;
+}
+
+.dashboard-hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+}
+
+.dashboard-hero-left {
+  padding: 20px 24px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 160px;
+}
+
+.dashboard-hero-right {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 160px;
+}
+
+.dashboard-wallet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 11.5px;
+  cursor: pointer;
+  background-clip: padding-box;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.dashboard-wallet-chip:hover {
+  border-color: var(--accent-border-soft);
+  background: var(--surface2);
+}
+
+@media (max-width: 680px) {
+  .dashboard-hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-hero-left {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 18px;
+    min-height: auto;
+  }
+  .dashboard-hero-right {
+    padding: 16px 18px;
+    min-height: auto;
+  }
 }
 
 .dashboard-mini-stat-header {

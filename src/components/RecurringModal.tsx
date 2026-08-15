@@ -360,7 +360,6 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                       placeholder="e.g. Tiffin Aunty"
                       value={newFriendName}
                       onChange={e => setNewFriendName(e.target.value)}
-                      autoFocus
                     />
                     <button
                       type="button"

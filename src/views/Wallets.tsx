@@ -776,6 +776,8 @@ export default function Wallets() {
         anchor={window.innerWidth < 600 ? 'bottom' : 'right'}
         open={Boolean(activeWallet)}
         onClose={() => setSelectedWalletForTx(null)}
+        disableAutoFocus
+        disableRestoreFocus
         PaperProps={{
           sx: {
             width: { xs: '100%', sm: 540 },

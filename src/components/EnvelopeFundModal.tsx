@@ -182,7 +182,6 @@ export default function EnvelopeFundModal({ envelope, onClose }: Props) {
                 value={amount}
                 onChange={e => { setAmount(e.target.value); setError(''); }}
                 placeholder="0.00"
-                autoFocus
               />
             </div>
 

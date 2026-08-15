@@ -1656,6 +1656,8 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         onClose={onClose}
         onOpen={() => {}}
         disableSwipeToOpen
+        disableAutoFocus
+        disableRestoreFocus
         slotProps={{
           backdrop: {
             sx: {
@@ -1721,6 +1723,8 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     <Dialog
       open={open}
       onClose={onClose}
+      disableAutoFocus
+      disableRestoreFocus
       TransitionComponent={ModalFadeTransition}
       maxWidth="xs"
       fullWidth

@@ -1931,7 +1931,6 @@ export default function Settings({
                         value={editName}
                         onChange={e => setEditName(e.target.value)}
                         placeholder="Category name..."
-                        autoFocus
                       />
                     </div>
 

@@ -88,18 +88,11 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
       </div>
 
       {/* Hero Financial Overview Header Card */}
-      <div className="card" style={{ marginBottom: 20, padding: 0, overflow: 'hidden', background: 'var(--accent-gradient-soft), var(--surface)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+      <div className="dashboard-hero-card">
+        <div className="dashboard-hero-grid">
 
           {/* Left Column: Total Net Worth & Interactive Wallet Chips */}
-          <div style={{
-            padding: '20px 24px',
-            borderRight: '1px solid var(--border)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            gap: 16
-          }}>
+          <div className="dashboard-hero-left">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
@@ -150,19 +143,8 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   return (
                     <div
                       key={w.id}
+                      className="dashboard-wallet-chip"
                       onClick={() => onNavigate('wallets')}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        padding: '4px 10px',
-                        background: 'var(--surface)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 8,
-                        fontSize: 11.5,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
-                      }}
                       title={`Click to view ${w.name} in Wallets`}
                     >
                       <span className="cat-dot" style={{ background: w.color }} />
@@ -176,10 +158,10 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
           </div>
 
           {/* Right Column: Month Cash Flow & Friends Net Summary */}
-          <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 16 }}>
+          <div className="dashboard-hero-right">
 
             {/* 3 Metric Cards Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(95px, 1fr))', gap: 10 }}>
               <div className="dashboard-mini-stat">
                 <div className="dashboard-mini-stat-header">
                   <TrendingDown size={13} style={{ color: 'var(--debit)' }} /> {monthName} Spend
