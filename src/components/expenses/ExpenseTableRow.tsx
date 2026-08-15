@@ -313,8 +313,8 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                   roleLabel = item.settled ? `${name} paid you` : `${name} owes you`;
                   statusText = item.settled ? 'Settled ✓' : 'Owes You';
                 } else if (item.type === 'by_friend') {
-                  roleLabel = item.settled ? `Paid to ${name}` : `You owe ${name}`;
-                  statusText = item.settled ? 'Settled ✓' : 'You Owe Vendor';
+                  roleLabel = item.settled ? `Paid to ${name}` : `Unpaid to ${name}`;
+                  statusText = item.settled ? 'Settled ✓' : 'Unpaid';
                 }
 
                 const isSubDebit = item.type === 'by_friend' || item.type === 'personal';

@@ -18,7 +18,7 @@ export default function Recurring({ onNavigate }: Props) {
   const today = todayISO();
 
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'subscriptions' | 'logs'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'subscriptions' | 'custom'>('all');
   const [showModal, setShowModal] = useState(false);
   const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
   const [modalDefaultKind, setModalDefaultKind] = useState<RecurringKind>('autopay');
@@ -32,7 +32,7 @@ export default function Recurring({ onNavigate }: Props) {
   const filteredRules = useMemo(() => {
     let list = rules;
     if (activeTab === 'subscriptions') list = autopayRules;
-    else if (activeTab === 'logs') list = quickLogRules;
+    else if (activeTab === 'custom') list = quickLogRules;
 
     if (!search.trim()) return list;
     const q = search.toLowerCase().trim();
@@ -76,10 +76,17 @@ export default function Recurring({ onNavigate }: Props) {
     const val = r.intervalValue || 1;
     switch (r.frequency) {
       case 'daily': return 'Daily';
-      case 'weekly': return 'Weekly';
+      case 'weekly': return val === 1 ? 'Weekly' : `Every ${val}w`;
       case 'monthly': return 'Monthly';
-      case 'custom_days': return `Every ${val}d`;
-      case 'custom_months': return `Every ${val}mo`;
+      case 'custom_days':
+        if (val === 14) return 'Bi-Weekly';
+        return `Every ${val}d`;
+      case 'custom_months':
+        if (val === 1) return 'Monthly';
+        if (val === 3) return 'Quarterly';
+        if (val === 6) return 'Half-Yearly';
+        if (val === 12) return 'Yearly';
+        return `Every ${val}mo`;
       default: return 'Monthly';
     }
   };
@@ -161,7 +168,7 @@ export default function Recurring({ onNavigate }: Props) {
         </div>
       </div>
 
-      {/* Category / Part Tabs: Subscriptions vs Logs vs All */}
+      {/* Category / Part Tabs: Subscriptions vs Custom vs All */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, overflowX: 'auto', paddingBottom: 2 }}>
         <button
           className={`btn btn-sm ${activeTab === 'subscriptions' ? 'btn-primary' : 'btn-ghost'}`}
@@ -171,11 +178,11 @@ export default function Recurring({ onNavigate }: Props) {
           <RefreshCw size={13} /> Subscriptions ({autopayRules.length})
         </button>
         <button
-          className={`btn btn-sm ${activeTab === 'logs' ? 'btn-primary' : 'btn-ghost'}`}
+          className={`btn btn-sm ${activeTab === 'custom' ? 'btn-primary' : 'btn-ghost'}`}
           style={{ fontSize: 12, padding: '0 12px', height: 32, borderRadius: 16, display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
-          onClick={() => setActiveTab('logs')}
+          onClick={() => setActiveTab('custom')}
         >
-          <Zap size={13} /> Logs ({quickLogRules.length})
+          <Zap size={13} /> Custom ({quickLogRules.length})
         </button>
         <button
           className={`btn btn-sm ${activeTab === 'all' ? 'btn-primary' : 'btn-ghost'}`}
@@ -192,7 +199,7 @@ export default function Recurring({ onNavigate }: Props) {
         <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--text-3)' }}>
           <p style={{ fontSize: 14, fontWeight: 500, margin: '0 0 6px 0' }}>No items found</p>
           <button className="btn btn-primary btn-sm" style={{ margin: '8px auto 0 auto' }} onClick={() => setShowModal(true)}>
-            <Plus size={14} /> Create Subscription or Quick Log
+            <Plus size={14} /> Create Subscription or Custom
           </button>
         </div>
       ) : (
@@ -202,7 +209,6 @@ export default function Recurring({ onNavigate }: Props) {
             const isLoggedToday = r.lastLoggedDate === today;
             const isDueToday = isAutopay && r.nextDueDate === today;
             const isOverdue = isAutopay && r.nextDueDate && r.nextDueDate < today;
-            const isDue = isDueToday || isOverdue;
 
             const cat = db.settings?.categories?.find(c => c.name.toLowerCase() === r.category.toLowerCase());
             const catColor = cat?.color || '#f87171';
@@ -249,7 +255,6 @@ export default function Recurring({ onNavigate }: Props) {
                   background: 'var(--surface)',
                   borderRadius: '14px',
                   border: '1px solid var(--border)',
-                  borderLeft: isDue ? '4px solid #f87171' : (isAutopay ? '4px solid #38bdf8' : '4px solid var(--border)'),
                   opacity: r.status === 'paused' ? 0.65 : 1,
                 }}
               >
@@ -296,11 +301,8 @@ export default function Recurring({ onNavigate }: Props) {
                   </div>
                 </div>
 
-                {/* Horizontal Divider */}
-                <div style={{ height: 1, background: 'var(--border)', width: '100%' }} />
-
                 {/* Bottom Row: Badge on Left, Action Buttons on Right */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: -2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <span style={{
                       fontSize: 11.5,
@@ -311,7 +313,7 @@ export default function Recurring({ onNavigate }: Props) {
                       color: isAutopay ? 'var(--info)' : '#d97706',
                       border: isAutopay ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(245, 158, 11, 0.25)',
                     }}>
-                      {isAutopay ? 'Subscription' : 'Log'}
+                      {isAutopay ? 'Subscription' : 'Custom'}
                     </span>
 
                     {linkedFriend && (

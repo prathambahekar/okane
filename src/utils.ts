@@ -703,8 +703,8 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
       };
     }
     return {
-      statusKey: 'unsettled',
-      statusLabel: singleItem.type === 'by_friend' ? 'You Owe' : 'Unsettled',
+      statusKey: 'unpaid',
+      statusLabel: singleItem.type === 'by_friend' ? 'Unpaid' : 'Unsettled',
       isAllSettled: false,
       isPartiallySettled: false,
     };

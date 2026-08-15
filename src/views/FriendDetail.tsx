@@ -516,7 +516,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           color: r.kind === 'autopay' ? 'var(--info)' : '#d97706',
                           textTransform: 'uppercase'
                         }}>
-                          {r.kind === 'autopay' ? 'Autopay' : 'Quick Log'}
+                          {r.kind === 'autopay' ? 'Autopay' : 'Custom'}
                         </span>
                       </div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>

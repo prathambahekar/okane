@@ -45,13 +45,13 @@ import Expenses from './views/Expenses';
 import Wallets from './views/Wallets';
 import Friends from './views/Friends';
 import FriendDetail from './views/FriendDetail';
+import Recurring from './views/Recurring';
 import ViewSkeleton from './components/ViewSkeleton';
 
 // Lazy loaded views for route-based splitting
 const Settlements = lazy(() => import('./views/Settlements'));
 const Analytics = lazy(() => import('./views/Analytics'));
 const Settings = lazy(() => import('./views/Settings'));
-const Recurring = lazy(() => import('./views/Recurring'));
 const DevSQLConsole = lazy(() => import('./views/DevSQLConsole'));
 const SplitTrips = lazy(() => import('./views/SplitTrips'));
 
@@ -280,11 +280,7 @@ function AppInner() {
       case 'friends': return <Friends onNavigate={navigate} />;
       case 'friend-detail': return <FriendDetail friendId={friendDetailId} onNavigate={navigate} />;
       case 'recurring':
-        return (
-          <Suspense fallback={<ViewSkeleton type="recurring" />}>
-            <Recurring onNavigate={navigate} />
-          </Suspense>
-        );
+        return <Recurring onNavigate={navigate} />;
       case 'settlements':
         return (
           <Suspense fallback={<ViewSkeleton type="settlements" />}>
