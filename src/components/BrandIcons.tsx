@@ -18,7 +18,6 @@ export const POPULAR_SUBSCRIPTIONS: SubscriptionPreset[] = [
   { id: 'youtube', name: 'YouTube Premium', color: '#FF0000', category: 'Entertainment', defaultAmount: 149, billingCycle: 'monthly', logoKey: 'youtube' },
   { id: 'apple', name: 'Apple Music / TV+', color: '#1D1D1F', category: 'Entertainment', defaultAmount: 99, billingCycle: 'monthly', logoKey: 'apple' },
   { id: 'chatgpt', name: 'ChatGPT Plus', color: '#10A37F', category: 'Utilities', defaultAmount: 1999, billingCycle: 'monthly', logoKey: 'chatgpt' },
-  { id: 'canva', name: 'Canva Pro', color: '#00C4CC', category: 'Work', defaultAmount: 499, billingCycle: 'monthly', logoKey: 'canva' },
   { id: 'notion', name: 'Notion Plus', color: '#111111', category: 'Work', defaultAmount: 800, billingCycle: 'monthly', logoKey: 'notion' },
   { id: 'playstation', name: 'PlayStation Plus', color: '#00439C', category: 'Gaming', defaultAmount: 499, billingCycle: 'monthly', logoKey: 'playstation' },
   { id: 'xbox', name: 'Xbox Game Pass', color: '#107C41', category: 'Gaming', defaultAmount: 549, billingCycle: 'monthly', logoKey: 'xbox' },

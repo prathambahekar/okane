@@ -22,7 +22,17 @@ export interface Friend {
   createdAt: number;
   type?: ContactType;
   category?: string;
-  billingCycle?: 'monthly' | 'yearly' | 'custom' | 'one_time';
+  billingCycle?:
+    | 'monthly'
+    | 'yearly'
+    | 'quarterly'
+    | 'half_yearly'
+    | 'weekly'
+    | 'biweekly'
+    | 'daily'
+    | 'one_time'
+    | 'custom'
+    | string;
   defaultAmount?: number;
   website?: string;
   avatarNumber?: string;

@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Calendar } from 'lucide-react';
-import CategoryIcon from './CategoryIcon';
+import { X, Calendar, ReceiptText, FileText, Check, Wallet } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend } from '../types';
 import { expenseFlow, unsettledExpensesForFriend, todayISO } from '../db';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, cleanExpenseDescription } from '../utils';
+import { fmtMoney, friendInitial, getAvatarStyle } from '../utils';
+import SettleExpensePickerModal from './SettleExpensePickerModal';
 
 interface Props {
   friend: Friend;
@@ -18,11 +18,14 @@ export default function SettleModal({ friend, onClose }: Props) {
 
   const unsettled = useMemo(() => unsettledExpensesForFriend(db, friend.id), [db, friend.id]);
   const [selected, setSelected] = useState<Set<string>>(new Set(unsettled.map(e => e.id)));
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [selectedWalletId, setSelectedWalletId] = useState<string>(
     db.settings.defaultWalletId || wallets[0]?.id || ''
   );
   const [settleDate, setSettleDate] = useState<string>(todayISO());
   const [note, setNote] = useState('');
+  const [tempNote, setTempNote] = useState('');
 
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [customAmountStr, setCustomAmountStr] = useState('');
@@ -56,6 +59,24 @@ export default function SettleModal({ friend, onClose }: Props) {
     });
   };
 
+  const selectAll = () => {
+    setSelected(new Set(unsettled.map(e => e.id)));
+  };
+
+  const deselectAll = () => {
+    setSelected(new Set());
+  };
+
+  const openNoteModal = () => {
+    setTempNote(note);
+    setIsNoteModalOpen(true);
+  };
+
+  const saveNoteModal = () => {
+    setNote(tempNote.trim());
+    setIsNoteModalOpen(false);
+  };
+
   const handleSettle = () => {
     if (!selected.size) return;
     const customVal = isCustomMode && !isNaN(parsedCustom) && parsedCustom > 0 ? parsedCustom : undefined;
@@ -68,86 +89,204 @@ export default function SettleModal({ friend, onClose }: Props) {
     onClose();
   };
 
+  const activeWallet = wallets.find(w => w.id === selectedWalletId);
+
   return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal modal-lg">
-        <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="avatar" style={getAvatarStyle(friend.color)}>{friendInitial(friend.name, friend.avatarNumber)}</div>
+      <div className="modal modal-lg" style={{ maxWidth: 500 }}>
+        {/* Drag Handle Indicator for Mobile Drawer Sheet */}
+        <div className="modal-handle-bar">
+          <div className="modal-handle" />
+        </div>
+
+        {/* Modal Header */}
+        <div className="modal-header" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="avatar" style={{ ...getAvatarStyle(friend.color), borderRadius: 'var(--radius)' }}>
+              {friendInitial(friend.name, friend.avatarNumber)}
+            </div>
             <div>
-              <div className="modal-title">Settle with {friend.name}</div>
+              <div className="modal-title" style={{ fontSize: 16, fontWeight: 700 }}>Settle with {friend.name}</div>
               <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>{unsettled.length} unsettled expense{unsettled.length !== 1 ? 's' : ''}</div>
             </div>
           </div>
-          <button className="btn-icon" onClick={onClose}><X size={18} /></button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Note Icon Button in Header */}
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={openNoteModal}
+              title={note ? `Note: "${note}"` : 'Add note'}
+              style={{
+                position: 'relative',
+                color: note ? 'var(--accent)' : 'var(--text-3)',
+                background: note ? 'var(--accent-soft)' : 'transparent',
+                border: note ? '1px solid var(--accent-border-soft)' : '1px solid transparent',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              <FileText size={17} />
+              {note && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 5,
+                    right: 5,
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: 'var(--accent)',
+                  }}
+                />
+              )}
+            </button>
+            <button type="button" className="btn-icon" onClick={onClose} title="Close" style={{ borderRadius: 'var(--radius-sm)' }}>
+              <X size={18} />
+            </button>
+          </div>
         </div>
-        <div className="modal-body">
+
+        {/* Modal Body */}
+        <div className="modal-body" style={{ padding: '16px 20px 20px' }}>
           {unsettled.length === 0 ? (
             <div className="empty-state" style={{ padding: '32px 16px' }}>
               <p>No unsettled expenses with {friend.name}.</p>
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 12, color: 'var(--text-3)' }}>
-                <span>Select expenses to settle</span>
-                <button className="btn-ghost btn-sm" style={{ fontSize: 11.5, padding: '3px 8px' }}
-                  onClick={() => setSelected(selected.size === unsettled.length ? new Set() : new Set(unsettled.map(e => e.id)))}>
-                  {selected.size === unsettled.length ? 'Deselect all' : 'Select all'}
-                </button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto', marginBottom: 14 }}>
-                {unsettled.map(e => {
-                  const cat = db.settings.categories.find(c => c.name === e.category);
-                  const isOwedToMe = e.friendId === friend.id && e.type === 'for_friend';
-                  const origAmt = e.originalAmount;
-                  return (
-                    <label key={e.id} className="settle-check-row" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--surface2)', borderRadius: 8 }}>
-                      <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggle(e.id)} />
-                      <CategoryIcon category={e.category} size={15} style={{ color: cat?.color ?? 'var(--accent)', flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {cleanExpenseDescription(e.description)}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
-                          {fmtDate(e.originalDate || e.date)} {origAmt && Math.abs(origAmt - e.amount) > 0.01 ? `• Original ${fmtMoney(origAmt, currency)}` : ''}
-                        </div>
+              {/* Tap to Select Expenses Banner */}
+              <div style={{ marginBottom: 14 }}>
+                <div
+                  onClick={() => setIsPickerOpen(true)}
+                  style={{
+                    padding: '12px 16px',
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--accent-soft)',
+                        color: 'var(--accent)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        fontWeight: 700,
+                        fontSize: 14,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <ReceiptText size={18} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {selected.size === 0
+                          ? 'Tap to Select Expenses'
+                          : selected.size === unsettled.length
+                          ? `All ${unsettled.length} Expenses Selected`
+                          : `${selected.size} of ${unsettled.length} Expenses Selected`}
                       </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: isOwedToMe ? 'var(--credit)' : 'var(--debit)' }}>
-                          {isOwedToMe ? '+' : '-'}{fmtMoney(e.amount, currency)}
-                        </div>
-                        {origAmt && Math.abs(origAmt - e.amount) > 0.01 ? (
-                          <div style={{ fontSize: 10, color: 'var(--text-3)' }}>
-                            og {fmtMoney(origAmt, currency)}
-                          </div>
-                        ) : null}
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {selected.size > 0 ? (
+                          <>
+                            Net Total: <strong style={{ color: net >= 0 ? 'var(--credit)' : 'var(--debit)' }}>{fmtMoney(absNet, currency)}</strong>
+                            {' • '}
+                            <span>{unsettled.length} available</span>
+                          </>
+                        ) : (
+                          `Choose from ${unsettled.length} unsettled transaction${unsettled.length !== 1 ? 's' : ''}`
+                        )}
                       </div>
-                    </label>
-                  );
-                })}
-              </div>
+                    </div>
+                  </div>
 
-              {/* Settlement Type Segment Control (Full vs Custom Amount) */}
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 6 }}>
-                  Settlement Amount Mode
-                </div>
-                <div className="segment-control" style={{ display: 'flex', gap: 6 }}>
                   <button
                     type="button"
-                    className={`segment-btn ${!isCustomMode ? 'active' : ''}`}
-                    style={{ flex: 1, textAlign: 'center', justifyContent: 'center' }}
+                    style={{
+                      background: 'var(--accent)',
+                      color: 'var(--accent-contrast, #ffffff)',
+                      border: 'none',
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {selected.size > 0 ? 'Edit' : '+ Select'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Settlement Amount Mode Segment Toggle */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 5 }}>
+                  Settlement Amount Mode
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    padding: 3,
+                    gap: 3,
+                  }}
+                >
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      textAlign: 'center',
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      fontWeight: !isCustomMode ? 600 : 500,
+                      borderRadius: 6,
+                      border: !isCustomMode ? '1px solid var(--border)' : '1px solid transparent',
+                      background: !isCustomMode ? 'var(--surface)' : 'transparent',
+                      color: !isCustomMode ? 'var(--text)' : 'var(--text-3)',
+                      boxShadow: !isCustomMode ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
                     onClick={() => {
                       setIsCustomMode(false);
                       setCustomAmountStr('');
                     }}
                   >
-                    Full Settlement ({fmtMoney(absNet, currency)})
+                    Full ({fmtMoney(absNet, currency)})
                   </button>
                   <button
                     type="button"
-                    className={`segment-btn ${isCustomMode ? 'active' : ''}`}
-                    style={{ flex: 1, textAlign: 'center', justifyContent: 'center' }}
+                    style={{
+                      flex: 1,
+                      textAlign: 'center',
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      fontWeight: isCustomMode ? 600 : 500,
+                      borderRadius: 6,
+                      border: isCustomMode ? '1px solid var(--border)' : '1px solid transparent',
+                      background: isCustomMode ? 'var(--surface)' : 'transparent',
+                      color: isCustomMode ? 'var(--text)' : 'var(--text-3)',
+                      boxShadow: isCustomMode ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
                     onClick={() => {
                       setIsCustomMode(true);
                       if (!customAmountStr) setCustomAmountStr(String(absNet));
@@ -158,63 +297,60 @@ export default function SettleModal({ friend, onClose }: Props) {
                 </div>
               </div>
 
-              {/* Custom Amount Input Field with Quick Preset Chips */}
+              {/* Compact Custom Amount Input Field */}
               {isCustomMode && (
-                <div className="form-group" style={{ marginBottom: 12 }}>
-                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Amount Paid / Received ({currency})</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Total debt: {fmtMoney(absNet, currency)}</span>
-                  </label>
+                <div style={{ marginBottom: 12, padding: '10px 12px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
+                      Custom Amount ({currency})
+                    </span>
+                    <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                      Total due: {fmtMoney(absNet, currency)}
+                    </span>
+                  </div>
                   <input
                     type="number"
                     step="any"
                     className="form-input"
-                    placeholder={`e.g. 30 (Full is ${absNet})`}
+                    placeholder={`Enter amount (e.g. ${Math.round(absNet / 2)})`}
                     value={customAmountStr}
                     onChange={e => setCustomAmountStr(e.target.value)}
-                    style={{ fontWeight: 700, fontSize: 16 }}
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 14,
+                      height: 36,
+                      background: 'var(--surface)',
+                      borderRadius: 6,
+                      border: '1px solid var(--border)',
+                    }}
+                    autoFocus
                   />
-                  {/* Preset Chips */}
-                  <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                    {[0.25, 0.5, 0.75].map(ratio => {
-                      const val = Math.round(absNet * ratio);
-                      return (
-                        <button
-                          key={ratio}
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6 }}
-                          onClick={() => setCustomAmountStr(String(val))}
-                        >
-                          {ratio * 100}% ({fmtMoney(val, currency)})
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
               )}
 
-              {/* Summary Card */}
-              <div style={{
-                background: net >= 0 ? 'rgba(46, 125, 50, 0.12)' : 'rgba(211, 47, 47, 0.12)',
-                borderRadius: 'var(--radius)',
-                padding: '12px 14px',
-                marginBottom: 14,
-                border: net >= 0 ? '1px solid rgba(46, 125, 50, 0.25)' : '1px solid rgba(211, 47, 47, 0.25)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                  <span style={{ color: 'var(--text-2)' }}>Total Debt Selected</span>
-                  <span style={{ fontWeight: 600 }}>{fmtMoney(absNet, currency)}</span>
+              {/* Clean Summary Card */}
+              <div
+                style={{
+                  background: 'var(--surface2)',
+                  borderRadius: 'var(--radius)',
+                  padding: '10px 14px',
+                  marginBottom: 14,
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, marginBottom: 5 }}>
+                  <span style={{ color: 'var(--text-3)' }}>Total Debt Selected</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>{fmtMoney(absNet, currency)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                  <span style={{ color: 'var(--text-2)' }}>Amount Being Settled</span>
-                  <span className={net >= 0 ? 'credit' : 'debit'} style={{ fontWeight: 700 }}>
-                    {fmtMoney(effectiveSettleAmt, currency)}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, marginBottom: remainingBalance > 0 ? 5 : 0 }}>
+                  <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>Amount Settling Now</span>
+                  <span style={{ fontWeight: 700, color: net >= 0 ? 'var(--credit)' : 'var(--debit)', fontSize: 13.5 }}>
+                    {net >= 0 ? '+' : '-'}{fmtMoney(effectiveSettleAmt, currency)}
                   </span>
                 </div>
                 {isCustomMode && remainingBalance > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--text-2)', borderTop: '1px dashed var(--border)', paddingTop: 6, marginTop: 4 }}>
-                    <span>Remaining Debt Owed</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-3)', borderTop: '1px dashed var(--border)', paddingTop: 6, marginTop: 5 }}>
+                    <span>Remaining Balance</span>
                     <span style={{ fontWeight: 600, color: 'var(--accent)' }}>
                       {fmtMoney(remainingBalance, currency)}
                     </span>
@@ -222,68 +358,208 @@ export default function SettleModal({ friend, onClose }: Props) {
                 )}
               </div>
 
-              <div className="form-group" style={{ marginBottom: 14 }}>
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                  <Calendar size={14} style={{ color: 'var(--accent)' }} />
-                  <span>Settlement Date</span>
-                </label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={settleDate}
-                  onChange={e => setSettleDate(e.target.value)}
-                  style={{ fontWeight: 600 }}
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 10 }}>
-                <label className="form-label">Payment Method (Wallet)</label>
-                <div className="segment-control" style={{ flexWrap: 'wrap' }}>
-                  {wallets.map(w => {
-                    const isSelected = selectedWalletId === w.id;
-                    return (
-                      <button
-                        key={w.id}
-                        type="button"
-                        className={`segment-btn ${isSelected ? 'active' : ''}`}
-                        onClick={() => {
-                          setSelectedWalletId(w.id);
-                          if (!note || note.startsWith('Paid via ') || note.startsWith('Settled via ')) {
-                            setNote(`Paid via ${w.name}`);
-                          }
-                        }}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                      >
-                        <span className="cat-dot" style={{ background: w.color || 'var(--accent)' }} />
-                        {w.name}
-                      </button>
-                    );
-                  })}
+              {/* Date & Payment Method in One Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 6 }}>
+                {/* Settlement Date */}
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                    <Calendar size={13} style={{ color: 'var(--accent)' }} />
+                    <span>Settlement Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={settleDate}
+                    onChange={e => setSettleDate(e.target.value)}
+                    style={{
+                      fontWeight: 600,
+                      height: 40,
+                      fontSize: 12.5,
+                      borderRadius: 'var(--radius)',
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface)',
+                    }}
+                  />
                 </div>
-              </div>
 
-              <div className="form-group">
-                <label className="form-label">Note (optional)</label>
-                <input
-                  className="form-input"
-                  value={note}
-                  onChange={e => setNote(e.target.value)}
-                  placeholder={`e.g. Paid via ${wallets.find(w => w.id === selectedWalletId)?.name || 'Cash'}`}
-                />
+                {/* Payment Method (Wallet) Dropdown */}
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                    <Wallet size={13} style={{ color: 'var(--accent)' }} />
+                    <span>Payment Method</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      className="form-select"
+                      value={selectedWalletId}
+                      onChange={e => {
+                        const wId = e.target.value;
+                        setSelectedWalletId(wId);
+                        const selW = wallets.find(w => w.id === wId);
+                        if (selW && (!note || note.startsWith('Paid via ') || note.startsWith('Settled via '))) {
+                          setNote(`Paid via ${selW.name}`);
+                        }
+                      }}
+                      style={{
+                        height: 40,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        borderRadius: 'var(--radius)',
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface)',
+                        paddingLeft: 28,
+                        width: '100%',
+                      }}
+                    >
+                      {wallets.map(w => (
+                        <option key={w.id} value={w.id}>
+                          {w.name}
+                        </option>
+                      ))}
+                    </select>
+                    {/* Wallet Color Indicator Dot */}
+                    <span
+                      style={{
+                        position: 'absolute',
+                        left: 12,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: activeWallet?.color || 'var(--accent)',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             </>
           )}
         </div>
-        <div className="modal-footer">
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
+
+        {/* Modal Footer */}
+        <div className="modal-footer" style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose} style={{ borderRadius: 'var(--radius)', fontSize: 12.5 }}>
+            Cancel
+          </button>
           {unsettled.length > 0 && (
-            <button className="btn btn-primary btn-sm" disabled={!selected.size || (isCustomMode && (!customAmountStr || effectiveSettleAmt <= 0))} onClick={handleSettle}
-              style={{ background: net >= 0 ? 'linear-gradient(135deg, #34D399, #10B981)' : undefined }}>
+            <button
+              className="btn btn-primary"
+              disabled={!selected.size || (isCustomMode && (!customAmountStr || effectiveSettleAmt <= 0))}
+              onClick={handleSettle}
+              style={{
+                padding: '9px 20px',
+                fontSize: 13,
+                fontWeight: 600,
+                borderRadius: 'var(--radius)',
+                background: net >= 0 ? 'linear-gradient(135deg, #34D399, #10B981)' : undefined,
+              }}
+            >
               Confirm Settlement ({fmtMoney(effectiveSettleAmt, currency)})
             </button>
           )}
         </div>
       </div>
+
+      {/* Separate Dedicated Note Modal */}
+      {isNoteModalOpen && (
+        <div
+          className="modal-backdrop"
+          style={{ zIndex: 10005, background: 'rgba(0,0,0,0.65)' }}
+          onClick={e => { if (e.target === e.currentTarget) setIsNoteModalOpen(false); }}
+        >
+          <div className="modal" style={{ maxWidth: 380, animation: 'slidein 0.15s ease' }}>
+            <div className="modal-handle-bar">
+              <div className="modal-handle" />
+            </div>
+            <div className="modal-header" style={{ padding: '14px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', background: 'var(--accent-soft)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
+                  <FileText size={15} />
+                </div>
+                <div className="modal-title" style={{ fontSize: 14, fontWeight: 700 }}>Settlement Note</div>
+              </div>
+              <button className="btn-icon" onClick={() => setIsNoteModalOpen(false)} style={{ borderRadius: 'var(--radius-sm)' }}><X size={16} /></button>
+            </div>
+            <div className="modal-body" style={{ padding: '14px 18px' }}>
+              <textarea
+                className="form-textarea"
+                rows={3}
+                placeholder="Add optional settlement remarks or note..."
+                value={tempNote}
+                onChange={e => setTempNote(e.target.value)}
+                style={{ fontSize: 13, width: '100%', marginBottom: 12, resize: 'none', borderRadius: 'var(--radius)' }}
+                autoFocus
+              />
+              {/* Quick suggestion tags */}
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>Quick tags:</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[
+                  activeWallet ? `Paid via ${activeWallet.name}` : 'Paid via Google Pay',
+                  'Cash repayment',
+                  'Settled in full',
+                  'Bill share',
+                ].map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 'var(--radius-sm)' }}
+                    onClick={() => setTempNote(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="modal-footer" style={{ padding: '12px 18px', display: 'flex', justifyContent: 'space-between' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ borderRadius: 'var(--radius-sm)', fontSize: 12 }}
+                onClick={() => {
+                  setTempNote('');
+                  setNote('');
+                  setIsNoteModalOpen(false);
+                }}
+              >
+                Clear
+              </button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button type="button" className="btn btn-secondary btn-sm" style={{ borderRadius: 'var(--radius-sm)', fontSize: 12 }} onClick={() => setIsNoteModalOpen(false)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={saveNoteModal}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 'var(--radius-sm)', fontSize: 12 }}
+                >
+                  <Check size={14} /> Save Note
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settle Expense Picker Drawer Modal */}
+      {isPickerOpen && (
+        <SettleExpensePickerModal
+          isOpen={isPickerOpen}
+          onClose={() => setIsPickerOpen(false)}
+          friend={friend}
+          expenses={unsettled}
+          selectedIds={selected}
+          onToggle={toggle}
+          onSelectAll={selectAll}
+          onDeselectAll={deselectAll}
+          currency={currency}
+          db={db}
+          title="Select Expenses to Settle"
+        />
+      )}
     </div>,
     document.body
   );

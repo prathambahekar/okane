@@ -8,7 +8,7 @@ import ListItemText from '@mui/material/ListItemText';
 import { useStore } from '../store';
 import type { Friend, ContactType, ViewName } from '../types';
 import { friendBalance, contactTotalSpent, contactTransactionCount, contactLastTransaction, unsettledExpensesForFriend } from '../db';
-import { fmtMoney, friendInitial, getAvatarStyle } from '../utils';
+import { fmtMoney, friendInitial, getAvatarStyle, formatBillingCycleShort } from '../utils';
 import { renderBrandLogo } from '../components/BrandIcons';
 import FriendModal from '../components/FriendModal';
 import SettleModal from '../components/SettleModal';
@@ -522,7 +522,7 @@ export default function Friends({ onNavigate }: Props) {
                         {f.name}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
-                        {fType === 'friend' ? `${contactExpenses.length} expenses` : fType === 'vendor' ? `${txCount} orders` : (f.defaultAmount ? `${fmtMoney(f.defaultAmount, currency)}/${f.billingCycle || 'mo'}` : `${txCount} payments`)}
+                        {fType === 'friend' ? `${contactExpenses.length} expenses` : fType === 'vendor' ? `${txCount} orders` : (f.defaultAmount ? `${fmtMoney(f.defaultAmount, currency)}/${formatBillingCycleShort(f.billingCycle)}` : `${txCount} payments`)}
                       </div>
                     </div>
                   </div>
@@ -653,7 +653,7 @@ export default function Friends({ onNavigate }: Props) {
                         ) : fType === 'vendor' ? (
                           <>{f.category ? `${f.category} · ` : ''}{txCount} order{txCount !== 1 ? 's' : ''}</>
                         ) : (
-                          <>{f.defaultAmount ? `${fmtMoney(f.defaultAmount, currency)}/${f.billingCycle || 'mo'}` : `${txCount} payments`}</>
+                          <>{f.defaultAmount ? `${fmtMoney(f.defaultAmount, currency)}/${formatBillingCycleShort(f.billingCycle)}` : `${txCount} payments`}</>
                         )}
                       </div>
                     )}

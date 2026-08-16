@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { ArrowLeft, Handshake, Plus, ChevronDown, ChevronUp, Edit2, Trash2, Store, Tv, ExternalLink, RefreshCw, Zap, Play } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, expenseFlow, contactTotalSpent } from '../db';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, cleanExpenseDescription } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, cleanExpenseDescription, formatBillingCycleShort } from '../utils';
 import type { ViewName, Expense } from '../types';
 import FriendModal from '../components/FriendModal';
 import { renderBrandLogo } from '../components/BrandIcons';
@@ -360,7 +360,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             <div>
               <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Plan Cost</span>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', marginTop: 1 }}>
-                {friend.defaultAmount ? fmtMoney(friend.defaultAmount, currency) : 'Flexible'} <span style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--text-3)' }}>/ {friend.billingCycle || 'mo'}</span>
+                {friend.defaultAmount ? fmtMoney(friend.defaultAmount, currency) : 'Flexible'} <span style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--text-3)' }}>/ {formatBillingCycleShort(friend.billingCycle)}</span>
               </div>
             </div>
 

@@ -1,6 +1,8 @@
-import { CheckSquare, Square } from 'lucide-react';
+import { useState } from 'react';
+import { ReceiptText } from 'lucide-react';
 import type { Friend, Expense, AppDB } from '../../types';
 import { fmtMoney, getAvatarStyle } from '../../utils';
+import SettleExpensePickerModal from '../SettleExpensePickerModal';
 
 interface DebtSettlementWidgetProps {
   friend: Friend | undefined;
@@ -8,7 +10,7 @@ interface DebtSettlementWidgetProps {
   unsettledList: Expense[];
   selectedExpenseIds: string[];
   toggleSelectExpense: (id: string) => void;
-  handleSettleAllDebts: () => void;
+  handleSettleAllDebts?: () => void;
   amount: string;
   setAmount: (val: string) => void;
   autoSettle: boolean;
@@ -23,7 +25,6 @@ export function DebtSettlementWidget({
   unsettledList,
   selectedExpenseIds,
   toggleSelectExpense,
-  handleSettleAllDebts,
   amount,
   setAmount,
   autoSettle,
@@ -31,10 +32,25 @@ export function DebtSettlementWidget({
   db,
   mode,
 }: DebtSettlementWidgetProps) {
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const s = db.settings;
   if (!friend) return null;
 
-  const totalOwedInThisDirection = mode === 'receive_from_friend' ? friendBal.owedToMe : friendBal.owedByMe;
+  const handleSelectAll = () => {
+    unsettledList.forEach(e => {
+      if (!selectedExpenseIds.includes(e.id)) {
+        toggleSelectExpense(e.id);
+      }
+    });
+  };
+
+  const handleDeselectAll = () => {
+    unsettledList.forEach(e => {
+      if (selectedExpenseIds.includes(e.id)) {
+        toggleSelectExpense(e.id);
+      }
+    });
+  };
 
   return (
     <div
@@ -111,64 +127,88 @@ export function DebtSettlementWidget({
         </div>
       </div>
 
-      {/* Unsettled Debts Selector */}
+      {/* Unsettled Debts Tap-to-Select Selector */}
       {unsettledList.length > 0 ? (
         <div style={{ marginTop: 8, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
-              {mode === 'receive_from_friend' ? 'Select Debt Being Repaid:' : 'Select Invoice/Debt to Settle:'}
-            </span>
+          {/* Tap-to-Select Card */}
+          <div
+            onClick={() => setIsPickerOpen(true)}
+            style={{
+              padding: '9px 11px',
+              background: 'var(--surface)',
+              border: '1.5px solid var(--accent-border-soft, var(--border))',
+              borderRadius: 'var(--radius)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+              transition: 'all 0.15s ease',
+              marginBottom: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background: 'var(--accent)',
+                  color: 'var(--accent-contrast, #ffffff)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  flexShrink: 0,
+                }}
+              >
+                <ReceiptText size={16} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {selectedExpenseIds.length === 0
+                    ? 'Tap to Select Debts'
+                    : selectedExpenseIds.length === unsettledList.length
+                    ? `All ${unsettledList.length} Debts Selected`
+                    : `${selectedExpenseIds.length} of ${unsettledList.length} Debts Selected`}
+                </div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {selectedExpenseIds.length > 0 ? (
+                    <>
+                      <span>Total: {fmtMoney(selectedExpenseIds.reduce((acc, id) => {
+                        const item = db.expenses.find(ex => ex.id === id);
+                        return acc + (item ? Number(item.amount) || 0 : 0);
+                      }, 0), s.currency)}</span>
+                      {' • '}
+                      <span>{unsettledList.length} available</span>
+                    </>
+                  ) : (
+                    `Choose from ${unsettledList.length} pending transaction${unsettledList.length !== 1 ? 's' : ''}`
+                  )}
+                </div>
+              </div>
+            </div>
+
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
-              style={{ fontSize: 11, padding: '2px 8px', height: 24, borderRadius: 'var(--radius)' }}
-              onClick={handleSettleAllDebts}
+              style={{
+                background: 'var(--accent)',
+                color: 'var(--accent-contrast, #ffffff)',
+                border: 'none',
+                padding: '4px 10px',
+                borderRadius: 99,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                flexShrink: 0,
+              }}
             >
-              {unsettledList.every(e => selectedExpenseIds.includes(e.id)) ? 'Deselect All' : `Settle All (${fmtMoney(totalOwedInThisDirection, s.currency)})`}
+              {selectedExpenseIds.length > 0 ? 'Edit' : '+ Select'}
             </button>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', paddingRight: 2 }}>
-            {unsettledList.map(item => {
-              const isSel = selectedExpenseIds.includes(item.id);
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => toggleSelectExpense(item.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '7px 10px',
-                    borderRadius: 'var(--radius)',
-                    border: isSel ? '1px solid var(--accent)' : '1px solid var(--border)',
-                    background: isSel ? 'var(--surface)' : 'rgba(255,255,255,0.02)',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    {isSel ? (
-                      <CheckSquare size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                    ) : (
-                      <Square size={16} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-                    )}
-                    <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      <div style={{ fontSize: 12.5, fontWeight: isSel ? 600 : 500, color: 'var(--text)' }}>
-                        {item.description}
-                      </div>
-                      <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
-                        {item.date} • {item.category}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: isSel ? 'var(--accent)' : 'var(--text)', flexShrink: 0, marginLeft: 8 }}>
-                    {fmtMoney(item.amount, s.currency)}
-                  </div>
-                </div>
-              );
-            })}
           </div>
 
           {selectedExpenseIds.length > 0 ? (() => {
@@ -181,7 +221,7 @@ export function DebtSettlementWidget({
             const isPartial = currentAmt > 0 && diff > 0.01;
 
             return (
-              <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+              <div style={{ padding: '12px 14px', background: 'var(--surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                 {/* Segment Toggle for Full vs Partial */}
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
@@ -257,6 +297,23 @@ export function DebtSettlementWidget({
               </div>
             );
           })() : null}
+
+          {/* Settle Expense Drawer Picker for Debt Widget */}
+          {isPickerOpen && (
+            <SettleExpensePickerModal
+              isOpen={isPickerOpen}
+              onClose={() => setIsPickerOpen(false)}
+              friend={friend}
+              expenses={unsettledList}
+              selectedIds={new Set(selectedExpenseIds)}
+              onToggle={toggleSelectExpense}
+              onSelectAll={handleSelectAll}
+              onDeselectAll={handleDeselectAll}
+              currency={s.currency}
+              db={db}
+              title={mode === 'receive_from_friend' ? 'Select Debts to Settle' : 'Select Invoices to Settle'}
+            />
+          )}
         </div>
       ) : (
         <div style={{ fontSize: 11.5, color: 'var(--text-3)', fontStyle: 'italic', marginTop: 4 }}>

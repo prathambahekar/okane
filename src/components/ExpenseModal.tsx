@@ -298,10 +298,28 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
         counts[d] = (counts[d] || 0) + 1;
       }
     });
-    return Object.entries(counts)
+
+    const sorted = Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
       .map(([d]) => d);
+
+    // Dynamically adjust item count based on description lengths to fit cleanly without overflowing
+    const selected: string[] = [];
+    let accumulatedChars = 0;
+    const MAX_TOTAL_CHARS = 28; // budget for clean single-line fit on mobile
+
+    for (const desc of sorted) {
+      if (selected.length >= 5) break;
+      const effectiveLength = Math.min(desc.length, 14) + 3; // text length + padding/gap allowance
+      // Stop adding more if we already have at least 2 items and would exceed visual budget
+      if (selected.length >= 2 && accumulatedChars + effectiveLength > MAX_TOTAL_CHARS) {
+        break;
+      }
+      selected.push(desc);
+      accumulatedChars += effectiveLength;
+    }
+
+    return selected;
   }, [db.expenses]);
 
   const toggleSelectExpense = (expId: string) => {
@@ -957,14 +975,20 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                             key={suggestion}
                             type="button"
                             className="btn btn-secondary btn-sm"
+                            title={suggestion}
                             style={{
                               fontSize: 10.5,
-                              padding: '1px 7px',
+                              padding: '1px 8px',
                               borderRadius: 'var(--radius-lg)',
                               borderColor: desc === suggestion ? 'var(--accent)' : undefined,
                               background: desc === suggestion ? 'var(--surface2)' : undefined,
                               color: desc === suggestion ? 'var(--accent)' : 'var(--text-2)',
                               flexShrink: 0,
+                              maxWidth: 120,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-block',
                             }}
                             onClick={() => handleDescriptionChange(suggestion)}
                           >

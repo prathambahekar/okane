@@ -27,6 +27,17 @@ export function fmtMonth(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 }
 
+export function formatBillingCycleShort(cycle?: string): string {
+  if (!cycle) return 'mo';
+  if (cycle === 'monthly') return 'mo';
+  if (cycle === 'yearly') return 'yr';
+  if (cycle === 'quarterly') return '3mo';
+  if (cycle === 'half_yearly') return '6mo';
+  const match = cycle.match(/(\d+)\s*month/i);
+  if (match) return `${match[1]}mo`;
+  return cycle;
+}
+
 export function monthKey(iso: string): string {
   return iso.slice(0, 7);
 }

@@ -1621,6 +1621,14 @@ input[type="number"] {
   box-shadow: 0 3px 10px var(--accent-soft);
 }
 
+.segment-btn.active-accent {
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 600;
+  border-color: transparent;
+  box-shadow: 0 2px 6px var(--accent-soft);
+}
+
 .segment-btn.active-subtle {
   background: var(--surface);
   color: var(--accent);

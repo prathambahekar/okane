@@ -1,6 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, User, Store, Tv, Pipette } from 'lucide-react';
+import {
+  X,
+  User,
+  Store,
+  Tv,
+  Pipette,
+  FileText,
+  Calendar,
+  Sparkles,
+  Repeat,
+  Check,
+} from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend, ContactType } from '../types';
 import { FRIEND_PALETTE } from '../db';
@@ -13,20 +24,130 @@ interface Props {
   onClose: () => void;
 }
 
+interface CycleChoice {
+  id: string;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  badgeType?: 'accent' | 'success' | 'neutral';
+  icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
+}
+
+const BILLING_CYCLE_CHOICES: CycleChoice[] = [
+  {
+    id: 'monthly',
+    title: 'Monthly',
+    subtitle: 'Billed once every month (30 days)',
+    badge: 'Popular',
+    badgeType: 'accent',
+    icon: Calendar,
+  },
+  {
+    id: 'yearly',
+    title: 'Yearly / Annual',
+    subtitle: 'Billed once every 12 months (annual plan)',
+    badge: 'Save ~15%',
+    badgeType: 'success',
+    icon: Sparkles,
+  },
+  {
+    id: 'custom',
+    title: 'Custom Months',
+    subtitle: 'Custom recurring period (e.g., 3 months, 6 months)',
+    badge: 'Flexible',
+    badgeType: 'neutral',
+    icon: Repeat,
+  },
+];
+
+const getCycleDisplayInfo = (cycle: string, amountStr?: string, currency = '₹') => {
+  const amount = parseFloat(amountStr || '0') || 0;
+  if (cycle === 'monthly') {
+    return {
+      title: 'Monthly Billing',
+      sub: amount > 0 ? `Renews every month • ≈ ${currency} ${(amount * 12).toLocaleString()}/yr` : 'Renews every month (30 days)',
+      badge: 'Monthly',
+    };
+  }
+  if (cycle === 'yearly') {
+    return {
+      title: 'Yearly / Annual Billing',
+      sub: amount > 0 ? `Renews annually • ≈ ${currency} ${(amount / 12).toFixed(1)}/mo` : 'Billed once a year (12 months)',
+      badge: 'Yearly',
+    };
+  }
+  // Custom months format (e.g., "every 3 months" or "3 months" or "custom")
+  const match = cycle.match(/(\d+)/);
+  const months = match ? parseInt(match[1]) : 3;
+  return {
+    title: `Every ${months} Month${months > 1 ? 's' : ''}`,
+    sub: amount > 0 ? `Renews every ${months} mo • ≈ ${currency} ${(amount / months).toFixed(1)}/mo` : `Custom cycle: billed every ${months} months`,
+    badge: `${months} Months`,
+  };
+};
+
 export default function FriendModal({ friend, defaultType = 'friend', onClose }: Props) {
   const { db, addFriend, updateFriend, showToast } = useStore();
   const [type, setType] = useState<ContactType>(friend?.type ?? defaultType);
   const [name, setName] = useState(friend?.name ?? '');
   const [category, setCategory] = useState(friend?.category ?? (db.settings.categories[0]?.name || 'Food'));
   const [defaultAmount, setDefaultAmount] = useState(friend?.defaultAmount ? String(friend.defaultAmount) : '');
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly' | 'custom' | 'one_time'>(friend?.billingCycle ?? 'monthly');
-  const [website, setWebsite] = useState(friend?.website ?? '');
+  const [billingCycle, setBillingCycle] = useState<string>(friend?.billingCycle ?? 'monthly');
+  const [website] = useState(friend?.website ?? '');
   const [notes, setNotes] = useState(friend?.notes ?? '');
+  const [tempNote, setTempNote] = useState('');
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+
+  // Billing Cycle Drawer State
+  const [isCycleModalOpen, setIsCycleModalOpen] = useState(false);
+  const [tempCycle, setTempCycle] = useState<string>(() => {
+    if (!friend?.billingCycle) return 'monthly';
+    if (friend.billingCycle === 'monthly' || friend.billingCycle === 'yearly') return friend.billingCycle;
+    return 'custom';
+  });
+  const [customMonths, setCustomMonths] = useState<number>(() => {
+    if (friend?.billingCycle) {
+      const match = friend.billingCycle.match(/(\d+)/);
+      if (match) return parseInt(match[1]);
+    }
+    return 3;
+  });
+
   const [color, setColor] = useState(() => friend?.color ?? FRIEND_PALETTE[Math.floor(Math.random() * FRIEND_PALETTE.length)]);
   const [avatarNumber, setAvatarNumber] = useState(friend?.avatarNumber ?? '');
   const [showNumberPicker, setShowNumberPicker] = useState(() => Boolean(friend?.avatarNumber));
   const [error, setError] = useState('');
   const friendColorInputRef = useRef<HTMLInputElement>(null);
+
+  const openNoteModal = () => {
+    setTempNote(notes);
+    setIsNoteModalOpen(true);
+  };
+
+  const saveNoteFromModal = () => {
+    setNotes(tempNote.trim());
+    setIsNoteModalOpen(false);
+  };
+
+  const openCycleModal = () => {
+    if (billingCycle === 'monthly' || billingCycle === 'yearly') {
+      setTempCycle(billingCycle);
+    } else {
+      setTempCycle('custom');
+      const match = billingCycle.match(/(\d+)/);
+      if (match) setCustomMonths(parseInt(match[1]) || 3);
+    }
+    setIsCycleModalOpen(true);
+  };
+
+  const saveCycleFromModal = () => {
+    if (tempCycle === 'custom') {
+      setBillingCycle(`every ${customMonths} months`);
+    } else {
+      setBillingCycle(tempCycle);
+    }
+    setIsCycleModalOpen(false);
+  };
 
   const handleNameChange = (val: string) => {
     setName(val);
@@ -92,11 +213,41 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
           <div className="modal-handle" />
         </div>
 
-        <div className="modal-header" style={{ padding: '12px 16px' }}>
+        <div className="modal-header" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span className="modal-title" style={{ fontSize: 15 }}>
             {friend ? 'Edit Contact' : type === 'subscription' ? 'Add Subscription' : type === 'vendor' ? 'Add Vendor' : 'Add Friend'}
           </span>
-          <button type="button" className="btn-icon" onClick={onClose} aria-label="Close modal"><X size={18} /></button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={openNoteModal}
+              title={notes ? `Note: "${notes}"` : 'Add note'}
+              style={{
+                position: 'relative',
+                color: notes ? 'var(--accent)' : 'var(--text-3)',
+                background: notes ? 'var(--accent-soft)' : 'transparent',
+                border: notes ? '1px solid var(--accent-border-soft)' : '1px solid transparent',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              <FileText size={17} />
+              {notes && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 4,
+                    right: 4,
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: 'var(--accent)',
+                  }}
+                />
+              )}
+            </button>
+            <button type="button" className="btn-icon" onClick={onClose} aria-label="Close modal"><X size={18} /></button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -190,7 +341,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                 </div>
               </div>
 
-              {/* Popular Subscription Presets Bar */}
+              {/* Popular Subscription Presets - Clean, no icons, wrapped */}
               {type === 'subscription' && (
                 <div className="form-group">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -202,15 +353,12 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                   <div
                     style={{
                       display: 'flex',
+                      flexWrap: 'wrap',
                       gap: 6,
-                      overflowX: 'auto',
-                      paddingBottom: 4,
-                      WebkitOverflowScrolling: 'touch',
                       width: '100%',
                     }}
                   >
-                    {POPULAR_SUBSCRIPTIONS.map(sub => {
-                      const logo = renderBrandLogo(sub.logoKey, 14);
+                    {POPULAR_SUBSCRIPTIONS.slice(0, 4).map(sub => {
                       const isSelected = name.toLowerCase() === sub.name.toLowerCase();
                       return (
                         <button
@@ -218,37 +366,18 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                           type="button"
                           onClick={() => applyPreset(sub)}
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            padding: '4px 10px',
-                            borderRadius: 16,
-                            border: `1px solid ${isSelected ? sub.color : 'var(--border)'}`,
-                            background: isSelected ? `${sub.color}22` : 'var(--surface2)',
-                            color: isSelected ? 'var(--text-1)' : 'var(--text-2)',
+                            padding: '3px 9px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                            background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                            color: isSelected ? 'var(--accent)' : 'var(--text-2)',
                             fontSize: 11.5,
-                            fontWeight: isSelected ? 700 : 500,
-                            whiteSpace: 'nowrap',
+                            fontWeight: isSelected ? 600 : 500,
                             cursor: 'pointer',
-                            flexShrink: 0,
-                            height: 28,
+                            transition: 'all 0.15s ease',
                           }}
                         >
-                          <span
-                            style={{
-                              width: 16,
-                              height: 16,
-                              borderRadius: '50%',
-                              background: sub.color,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {logo || <Tv size={10} color="#fff" />}
-                          </span>
-                          <span>{sub.name}</span>
+                          {sub.name}
                         </button>
                       );
                     })}
@@ -273,12 +402,12 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
               {/* Category & Cost Grid Row */}
               {type === 'subscription' ? (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <div className="form-group">
                       <label className="form-label" style={{ fontSize: 11, fontWeight: 600, marginBottom: 3 }}>Category</label>
                       <select
                         className="form-select"
-                        style={{ height: 38, minHeight: 38, padding: '6px 10px', fontSize: 13 }}
+                        style={{ height: 38, minHeight: 38, padding: '6px 8px', fontSize: 12.5 }}
                         value={category}
                         onChange={e => setCategory(e.target.value)}
                       >
@@ -294,7 +423,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                       </label>
                       <input
                         className="form-input"
-                        style={{ height: 38, minHeight: 38, padding: '6px 12px', fontSize: 13 }}
+                        style={{ height: 38, minHeight: 38, padding: '6px 8px', fontSize: 12.5 }}
                         type="number"
                         step="any"
                         value={defaultAmount}
@@ -304,32 +433,72 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <div className="form-group">
-                      <label className="form-label" style={{ fontSize: 11, fontWeight: 600, marginBottom: 3 }}>Billing Cycle</label>
-                      <select
-                        className="form-select"
-                        style={{ height: 38, minHeight: 38, padding: '6px 10px', fontSize: 13 }}
-                        value={billingCycle}
-                        onChange={e => setBillingCycle(e.target.value as unknown as typeof billingCycle)}
-                      >
-                        <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
-                        <option value="custom">Custom</option>
-                        <option value="one_time">One Time</option>
-                      </select>
-                    </div>
+                  {/* Interactive Billing Cycle Banner Card */}
+                  <div className="form-group" style={{ marginBottom: 4 }}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={openCycleModal}
+                      style={{
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius)',
+                        padding: '8px 10px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 10,
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            background: 'var(--accent)',
+                            color: 'var(--accent-contrast)',
+                            display: 'grid',
+                            placeItems: 'center',
+                            fontWeight: 700,
+                            fontSize: 13,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Repeat size={16} />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {getCycleDisplayInfo(billingCycle, defaultAmount, db.settings.currency).title}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {getCycleDisplayInfo(billingCycle, defaultAmount, db.settings.currency).sub}
+                          </div>
+                        </div>
+                      </div>
 
-                    <div className="form-group">
-                      <label className="form-label" style={{ fontSize: 11, fontWeight: 600, marginBottom: 3 }}>App / Web URL</label>
-                      <input
-                        className="form-input"
-                        style={{ height: 38, minHeight: 38, padding: '6px 12px', fontSize: 13 }}
-                        type="text"
-                        value={website}
-                        onChange={e => setWebsite(e.target.value)}
-                        placeholder="https://netflix.com"
-                      />
+                      <div
+                        style={{
+                          background: 'var(--accent)',
+                          color: 'var(--accent-contrast)',
+                          border: 'none',
+                          padding: '4px 10px',
+                          borderRadius: 99,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span>+ {getCycleDisplayInfo(billingCycle, defaultAmount, db.settings.currency).badge}</span>
+                      </div>
                     </div>
                   </div>
                 </>
@@ -349,9 +518,9 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                 </div>
               ) : null}
 
-              {/* Avatar Theme Color */}
+              {/* Minimized Avatar Theme Color Row */}
               <div className="form-group">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                   <label className="form-label" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', margin: 0 }}>
                     Avatar Color
                   </label>
@@ -365,8 +534,8 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                         color: showNumberPicker || avatarNumber ? 'var(--accent)' : 'var(--text-3)',
                         background: showNumberPicker || avatarNumber ? 'var(--accent-soft)' : 'transparent',
                         border: '1px solid ' + (showNumberPicker || avatarNumber ? 'var(--accent)' : 'var(--border)'),
-                        padding: '2px 8px',
-                        borderRadius: 12,
+                        padding: '1px 7px',
+                        borderRadius: 10,
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -377,195 +546,199 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                     >
                       <span># Number Badge</span>
                       {avatarNumber ? (
-                        <span style={{ background: 'var(--accent)', color: '#fff', padding: '0 5px', borderRadius: 8, fontSize: 9, fontWeight: 700 }}>
+                        <span style={{ background: 'var(--accent)', color: '#fff', padding: '0 4px', borderRadius: 6, fontSize: 8.5, fontWeight: 700 }}>
                           {avatarNumber}
                         </span>
                       ) : null}
                     </button>
                   )}
                 </div>
+
                 <div
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '5px 8px',
                     background: 'var(--surface2)',
-                    padding: '8px 10px',
-                    borderRadius: 10,
+                    borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {/* Live Avatar Preview */}
-                    <div
+                  {/* Mini Avatar Preview */}
+                  <div
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      ...getAvatarStyle(color),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: avatarNumber && avatarNumber.length > 2 ? 9 : 11,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {type === 'subscription' && renderBrandLogo(name, 14)
+                      ? renderBrandLogo(name, 14)
+                      : type === 'vendor'
+                      ? <Store size={13} />
+                      : type === 'subscription'
+                      ? <Tv size={13} />
+                      : (avatarNumber.trim() || (name ? name.slice(0, 1).toUpperCase() : <User size={13} />))}
+                  </div>
+
+                  {/* Compact Swatches */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, flex: 1, flexWrap: 'wrap' }}>
+                    {FRIEND_PALETTE.map(c => {
+                      const isSelected = color === c;
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setColor(c)}
+                          style={{
+                            width: 17,
+                            height: 17,
+                            borderRadius: '50%',
+                            background: c,
+                            border: isSelected ? '2px solid var(--text)' : '1px solid rgba(0,0,0,0.15)',
+                            outline: isSelected ? '1.5px solid var(--accent)' : 'none',
+                            outlineOffset: 1,
+                            cursor: 'pointer',
+                            padding: 0,
+                            flexShrink: 0,
+                            transition: 'transform 0.1s ease',
+                            transform: isSelected ? 'scale(1.15)' : 'scale(1)',
+                          }}
+                          aria-label={`Select color ${c}`}
+                        />
+                      );
+                    })}
+
+                    {/* Custom Color Picker Swatch */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (friendColorInputRef.current) {
+                          try {
+                            if ('showPicker' in friendColorInputRef.current && typeof friendColorInputRef.current.showPicker === 'function') {
+                              friendColorInputRef.current.showPicker();
+                              return;
+                            }
+                          } catch {
+                            // Fallback
+                          }
+                          friendColorInputRef.current.click();
+                        }
+                      }}
                       style={{
-                        width: 36,
-                        height: 36,
+                        width: 17,
+                        height: 17,
                         borderRadius: '50%',
-                        ...getAvatarStyle(color),
+                        background: !FRIEND_PALETTE.includes(color)
+                          ? color
+                          : 'conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
+                        border: !FRIEND_PALETTE.includes(color) ? '2px solid var(--text)' : '1px solid var(--border)',
+                        cursor: 'pointer',
+                        padding: 0,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: avatarNumber && avatarNumber.length > 2 ? 11 : 14,
-                        fontWeight: 700,
                         flexShrink: 0,
                       }}
+                      title="Pick custom color"
                     >
-                      {type === 'subscription' && renderBrandLogo(name, 20)
-                        ? renderBrandLogo(name, 20)
-                        : type === 'vendor'
-                        ? <Store size={18} />
-                        : type === 'subscription'
-                        ? <Tv size={18} />
-                        : (avatarNumber.trim() || (name ? name.slice(0, 1).toUpperCase() : <User size={18} />))}
-                    </div>
+                      <Pipette size={9} color="#FFFFFF" style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.8))' }} />
+                    </button>
 
-                    {/* Swatches Grid */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="color-swatch-grid">
-                        {FRIEND_PALETTE.map(c => {
-                          const isSelected = color === c;
-                          return (
-                            <button
-                              key={c}
-                              type="button"
-                              className={`color-swatch ${isSelected ? 'selected' : ''}`}
-                              onClick={() => setColor(c)}
-                              style={{ background: c }}
-                              aria-label={`Select color ${c}`}
-                            />
-                          );
-                        })}
+                    <input
+                      ref={friendColorInputRef}
+                      type="color"
+                      value={color.startsWith('#') && color.length === 7 ? color : '#3B82F6'}
+                      onChange={e => setColor(e.target.value)}
+                      style={{
+                        position: 'absolute',
+                        opacity: 0,
+                        width: 1,
+                        height: 1,
+                        pointerEvents: 'none',
+                        visibility: 'hidden',
+                      }}
+                    />
+                  </div>
+                </div>
 
-                        {/* Custom Color Picker Swatch */}
+                {/* Secret Number Option Box */}
+                {type === 'friend' && showNumberPicker && (
+                  <div
+                    style={{
+                      marginTop: 6,
+                      paddingTop: 6,
+                      borderTop: '1px dashed var(--border)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-2)' }}>
+                        Secret Number Badge (0 to 99)
+                      </span>
+                      {avatarNumber ? (
                         <button
                           type="button"
-                          className={`color-swatch ${!FRIEND_PALETTE.includes(color) ? 'selected' : ''}`}
-                          onClick={() => {
-                            if (friendColorInputRef.current) {
-                              try {
-                                if ('showPicker' in friendColorInputRef.current && typeof friendColorInputRef.current.showPicker === 'function') {
-                                  friendColorInputRef.current.showPicker();
-                                  return;
-                                }
-                              } catch {
-                                // Fallback
-                              }
-                              friendColorInputRef.current.click();
-                            }
-                          }}
-                          style={{
-                            background: !FRIEND_PALETTE.includes(color)
-                              ? color
-                              : 'conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                          title="Pick custom color"
+                          onClick={() => setAvatarNumber('')}
+                          style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                         >
-                          <Pipette size={12} color="#FFFFFF" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />
+                          Reset to Initial ({name ? name.slice(0, 1).toUpperCase() : 'A'})
                         </button>
-
-                        <input
-                          ref={friendColorInputRef}
-                          type="color"
-                          value={color.startsWith('#') && color.length === 7 ? color : '#3B82F6'}
-                          onChange={e => setColor(e.target.value)}
-                          style={{
-                            position: 'absolute',
-                            opacity: 0,
-                            width: 1,
-                            height: 1,
-                            pointerEvents: 'none',
-                            visibility: 'hidden',
-                          }}
-                        />
+                      ) : null}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <input
+                        type="text"
+                        maxLength={2}
+                        placeholder="0-99"
+                        value={avatarNumber}
+                        onChange={e => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+                          setAvatarNumber(val);
+                        }}
+                        style={{
+                          width: 58,
+                          padding: '3px 6px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          borderRadius: 5,
+                          border: '1px solid var(--border)',
+                          background: 'var(--surface)',
+                          color: 'var(--text)',
+                          textAlign: 'center',
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {['00', '07', '10', '23', '35', '69', '99'].map(num => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => setAvatarNumber(num)}
+                            style={{
+                              padding: '1px 6px',
+                              fontSize: 10,
+                              fontWeight: 600,
+                              borderRadius: 4,
+                              border: avatarNumber === num ? '1px solid var(--accent)' : '1px solid var(--border)',
+                              background: avatarNumber === num ? 'var(--accent-soft)' : 'var(--surface)',
+                              color: avatarNumber === num ? 'var(--accent)' : 'var(--text-2)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {num}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
-
-                  {/* Secret Number Option Box */}
-                  {type === 'friend' && showNumberPicker && (
-                    <div
-                      style={{
-                        marginTop: 8,
-                        paddingTop: 8,
-                        borderTop: '1px dashed var(--border)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <span>Secret Number Badge (0 to 99)</span>
-                        </span>
-                        {avatarNumber ? (
-                          <button
-                            type="button"
-                            onClick={() => setAvatarNumber('')}
-                            style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                          >
-                            Reset to Initial ({name ? name.slice(0, 1).toUpperCase() : 'A'})
-                          </button>
-                        ) : null}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <input
-                          type="text"
-                          maxLength={2}
-                          placeholder="0-99"
-                          value={avatarNumber}
-                          onChange={e => {
-                            const val = e.target.value.replace(/\D/g, '').slice(0, 2);
-                            setAvatarNumber(val);
-                          }}
-                          style={{
-                            width: 68,
-                            padding: '4px 8px',
-                            fontSize: 12.5,
-                            fontWeight: 700,
-                            borderRadius: 6,
-                            border: '1px solid var(--border)',
-                            background: 'var(--surface)',
-                            color: 'var(--text)',
-                            textAlign: 'center',
-                          }}
-                        />
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-                          {['00', '07', '10', '23', '35', '69', '99'].map(num => (
-                            <button
-                              key={num}
-                              type="button"
-                              onClick={() => setAvatarNumber(num)}
-                              style={{
-                                padding: '2px 7px',
-                                fontSize: 10.5,
-                                fontWeight: 600,
-                                borderRadius: 5,
-                                border: avatarNumber === num ? '1px solid var(--accent)' : '1px solid var(--border)',
-                                background: avatarNumber === num ? 'var(--accent-soft)' : 'var(--surface)',
-                                color: avatarNumber === num ? 'var(--accent)' : 'var(--text-2)',
-                                cursor: 'pointer',
-                                transition: 'all 0.1s ease',
-                              }}
-                            >
-                              {num}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="form-group">
-                <label className="form-label" style={{ fontSize: 11, fontWeight: 600, marginBottom: 3 }}>Notes</label>
-                <textarea
-                  className="form-textarea"
-                  style={{ minHeight: 46, height: 46, padding: '6px 12px', fontSize: 12.5 }}
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  placeholder="Optional notes..."
-                  rows={2}
-                />
+                )}
               </div>
 
               {error && <p className="form-error">{error}</p>}
@@ -581,6 +754,343 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
             </button>
           </div>
         </form>
+
+        {/* Separate Dedicated Note Drawer Modal */}
+        {isNoteModalOpen && (
+          <div
+            className="modal-backdrop"
+            style={{ zIndex: 10005, background: 'rgba(0,0,0,0.65)' }}
+            onClick={e => { if (e.target === e.currentTarget) setIsNoteModalOpen(false); }}
+          >
+            <div className="modal" style={{ maxWidth: 380, animation: 'slidein 0.15s ease' }}>
+              <div className="modal-handle-bar">
+                <div className="modal-handle" />
+              </div>
+              <div className="modal-header" style={{ padding: '14px 18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', background: 'var(--accent-soft)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
+                    <FileText size={15} />
+                  </div>
+                  <div className="modal-title" style={{ fontSize: 14, fontWeight: 700 }}>
+                    {type === 'subscription' ? 'Subscription Note' : type === 'vendor' ? 'Vendor Note' : 'Contact Note'}
+                  </div>
+                </div>
+                <button className="btn-icon" onClick={() => setIsNoteModalOpen(false)} style={{ borderRadius: 'var(--radius-sm)' }}><X size={16} /></button>
+              </div>
+              <div className="modal-body" style={{ padding: '14px 18px' }}>
+                <textarea
+                  className="form-textarea"
+                  rows={3}
+                  placeholder="Add optional notes or remarks..."
+                  value={tempNote}
+                  onChange={e => setTempNote(e.target.value)}
+                  style={{ fontSize: 13, width: '100%', marginBottom: 12, resize: 'none', borderRadius: 'var(--radius)' }}
+                  autoFocus
+                />
+                {/* Quick suggestion tags */}
+                <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>Quick tags:</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {(type === 'subscription'
+                    ? ['Family plan share', 'Annual renewal', 'Card auto-debit', 'Shared with roomies', 'Free trial active']
+                    : type === 'vendor'
+                    ? ['Daily tiffin', 'UPI payment preferred', 'Monthly billing', 'Shop contact']
+                    : ['Roommate', 'Family', 'Office colleague', 'Splitwise friend', 'UPI ID']
+                  ).map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 'var(--radius-sm)' }}
+                      onClick={() => setTempNote(tag)}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="modal-footer" style={{ padding: '12px 18px', display: 'flex', justifyContent: 'space-between' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ borderRadius: 'var(--radius-sm)', fontSize: 12 }}
+                  onClick={() => {
+                    setTempNote('');
+                    setNotes('');
+                    setIsNoteModalOpen(false);
+                  }}
+                >
+                  Clear
+                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button type="button" className="btn btn-secondary btn-sm" style={{ borderRadius: 'var(--radius-sm)', fontSize: 12 }} onClick={() => setIsNoteModalOpen(false)}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    style={{ borderRadius: 'var(--radius-sm)', fontSize: 12, padding: '0 14px' }}
+                    onClick={saveNoteFromModal}
+                  >
+                    ✓ Save Note
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dedicated Billing Cycle Drawer Modal */}
+        {isCycleModalOpen && (
+          <div
+            className="modal-backdrop"
+            style={{ zIndex: 10005, background: 'rgba(0,0,0,0.65)' }}
+            onClick={e => { if (e.target === e.currentTarget) setIsCycleModalOpen(false); }}
+          >
+            <div className="modal" style={{ maxWidth: 420, maxHeight: '88vh', display: 'flex', flexDirection: 'column', animation: 'slidein 0.15s ease' }}>
+              <div className="modal-handle-bar">
+                <div className="modal-handle" />
+              </div>
+              <div className="modal-header" style={{ padding: '14px 18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', background: 'var(--accent-soft)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
+                    <Repeat size={15} />
+                  </div>
+                  <div>
+                    <div className="modal-title" style={{ fontSize: 14, fontWeight: 700 }}>
+                      Select Billing Cycle
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                      Choose how frequently this subscription recurs
+                    </div>
+                  </div>
+                </div>
+                <button className="btn-icon" onClick={() => setIsCycleModalOpen(false)} style={{ borderRadius: 'var(--radius-sm)' }}><X size={16} /></button>
+              </div>
+
+              <div className="modal-body" style={{ padding: '12px 18px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {BILLING_CYCLE_CHOICES.map(choice => {
+                  const isSelected = tempCycle === choice.id;
+                  const ChoiceIcon = choice.icon;
+                  return (
+                    <div
+                      key={choice.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setTempCycle(choice.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '11px 13px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                        background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                        cursor: 'pointer',
+                        transition: 'all 0.12s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: 6,
+                            background: isSelected ? 'var(--accent)' : 'var(--surface)',
+                            color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
+                            display: 'grid',
+                            placeItems: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <ChoiceIcon size={15} />
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 13, fontWeight: isSelected ? 700 : 600, color: isSelected ? 'var(--accent)' : 'var(--text-1)' }}>
+                              {choice.title}
+                            </span>
+                            {choice.badge && (
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  padding: '1px 6px',
+                                  borderRadius: 99,
+                                  background: choice.badgeType === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'var(--accent-soft)',
+                                  color: choice.badgeType === 'success' ? 'var(--credit)' : 'var(--accent)',
+                                  border: choice.badgeType === 'success' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--accent-border-soft)',
+                                }}
+                              >
+                                {choice.badge}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
+                            {choice.subtitle}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: '50%',
+                          border: isSelected ? 'none' : '1.5px solid var(--border2)',
+                          background: isSelected ? 'var(--accent)' : 'transparent',
+                          color: 'var(--accent-contrast)',
+                          display: 'grid',
+                          placeItems: 'center',
+                          flexShrink: 0,
+                          marginLeft: 8,
+                        }}
+                      >
+                        {isSelected && <Check size={11} strokeWidth={3} />}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* If Custom Months is selected, show streamlined month presets & input */}
+                {tempCycle === 'custom' && (
+                  <div
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--surface3, var(--surface))',
+                      border: '1px solid var(--accent-border-soft, var(--border))',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
+                        Select number of months:
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>
+                        Every {customMonths} Month{customMonths > 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    {/* Quick Month Chips */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
+                      {[2, 3, 6, 9].map(m => {
+                        const isChipSelected = customMonths === m;
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setCustomMonths(m)}
+                            style={{
+                              padding: '5px 0',
+                              fontSize: 11.5,
+                              fontWeight: isChipSelected ? 700 : 500,
+                              borderRadius: 'var(--radius-sm)',
+                              border: isChipSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                              background: isChipSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                              color: isChipSelected ? 'var(--accent)' : 'var(--text-2)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {m} Mo
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Stepper / Direct Input */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                      <span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Or custom value:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                        <button
+                          type="button"
+                          className="btn-icon"
+                          style={{ width: 28, height: 28, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface2)' }}
+                          onClick={() => setCustomMonths(prev => Math.max(1, prev - 1))}
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          className="form-input"
+                          style={{ height: 28, textAlign: 'center', fontSize: 12.5, fontWeight: 700, padding: '2px 6px', width: 60 }}
+                          value={customMonths}
+                          onChange={e => setCustomMonths(Math.max(1, parseInt(e.target.value) || 1))}
+                        />
+                        <button
+                          type="button"
+                          className="btn-icon"
+                          style={{ width: 28, height: 28, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface2)' }}
+                          onClick={() => setCustomMonths(prev => Math.min(60, prev + 1))}
+                        >
+                          +
+                        </button>
+                        <span style={{ fontSize: 11.5, color: 'var(--text-2)', marginLeft: 4 }}>months</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Live calculated equivalent preview if amount is entered */}
+                {defaultAmount && parseFloat(defaultAmount) > 0 && (
+                  <div
+                    style={{
+                      marginTop: 2,
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--surface3, var(--surface))',
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      justifyContent: 'space-around',
+                      alignItems: 'center',
+                      fontSize: 11,
+                      color: 'var(--text-2)',
+                    }}
+                  >
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: 'var(--text-3)', fontSize: 10 }}>Monthly Equivalent</div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
+                        {db.settings.currency} {tempCycle === 'yearly'
+                          ? (parseFloat(defaultAmount) / 12).toFixed(1)
+                          : tempCycle === 'custom'
+                          ? (parseFloat(defaultAmount) / customMonths).toFixed(1)
+                          : parseFloat(defaultAmount).toLocaleString()}
+                      </div>
+                    </div>
+                    <div style={{ width: 1, height: 20, background: 'var(--border)' }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: 'var(--text-3)', fontSize: 10 }}>Annualized Cost</div>
+                      <div style={{ fontWeight: 700, color: 'var(--accent)', marginTop: 1 }}>
+                        {db.settings.currency} {tempCycle === 'yearly'
+                          ? parseFloat(defaultAmount).toLocaleString()
+                          : tempCycle === 'monthly'
+                          ? (parseFloat(defaultAmount) * 12).toLocaleString()
+                          : ((parseFloat(defaultAmount) / customMonths) * 12).toFixed(0)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer" style={{ padding: '12px 18px', display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                <button type="button" className="btn btn-secondary btn-sm" style={{ borderRadius: 'var(--radius-sm)', fontSize: 12 }} onClick={() => setIsCycleModalOpen(false)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ borderRadius: 'var(--radius-sm)', fontSize: 12, padding: '0 16px' }}
+                  onClick={saveCycleFromModal}
+                >
+                  ✓ Apply Cycle
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>,
     document.body
