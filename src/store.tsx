@@ -20,6 +20,7 @@ import {
   compareVersions,
   getStoredInstalledVersion,
   setStoredInstalledVersion,
+  CURRENT_APP_VERSION,
   type UpdateInfo,
   type ReleaseItem,
 } from './utils/updateManager';
@@ -195,18 +196,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setReleaseHistory(history);
 
       let currentVer = db.settings.installedVersion || getStoredInstalledVersion();
-
-      if (history.length > 0) {
-        const existsInHistory = history.some(h => h.version === currentVer);
-        if (!existsInHistory && history[0] && compareVersions(currentVer, history[0].version) > 0) {
-          currentVer = history[0].version;
-          setStoredInstalledVersion(currentVer);
-          setDB(current => {
-            const next = { ...current, settings: { ...current.settings, installedVersion: currentVer } };
-            saveDB(next);
-            return next;
-          });
-        }
+      if (compareVersions(CURRENT_APP_VERSION, currentVer) > 0) {
+        currentVer = CURRENT_APP_VERSION;
+        setStoredInstalledVersion(currentVer);
+        setDB(current => {
+          const next = { ...current, settings: { ...current.settings, installedVersion: currentVer } };
+          saveDB(next);
+          return next;
+        });
       }
 
       if (latest && compareVersions(latest.version, currentVer) > 0) {
@@ -252,17 +249,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           setReleaseHistory(history);
 
           let currentVer = db.settings.installedVersion || getStoredInstalledVersion();
-          if (history.length > 0) {
-            const existsInHistory = history.some(h => h.version === currentVer);
-            if (!existsInHistory && history[0] && compareVersions(currentVer, history[0].version) > 0) {
-              currentVer = history[0].version;
-              setStoredInstalledVersion(currentVer);
-              setDB(current => {
-                const next = { ...current, settings: { ...current.settings, installedVersion: currentVer } };
-                saveDB(next);
-                return next;
-              });
-            }
+          if (compareVersions(CURRENT_APP_VERSION, currentVer) > 0) {
+            currentVer = CURRENT_APP_VERSION;
+            setStoredInstalledVersion(currentVer);
+            setDB(current => {
+              const next = { ...current, settings: { ...current.settings, installedVersion: currentVer } };
+              saveDB(next);
+              return next;
+            });
           }
 
           if (latest && compareVersions(latest.version, currentVer) > 0) {

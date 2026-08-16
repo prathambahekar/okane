@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
@@ -12,6 +12,7 @@ import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 
 import CategoryIcon, { AVAILABLE_ICONS } from '../components/CategoryIcon';
+import { CURRENT_APP_VERSION } from '../utils/updateManager';
 
 function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeColor: (c: string) => void }) {
   const isCustom = !FRIEND_PALETTE.includes(color);
@@ -276,6 +277,10 @@ export default function Settings({
   };
   const [showAddCategory, setShowAddCategory] = useState(false);
   const isDevMode = settings.devMode ?? false;
+  const displayReleaseHistory = useMemo(() => {
+    if (isDevMode) return releaseHistory;
+    return releaseHistory.filter(item => !item.isPrerelease);
+  }, [releaseHistory, isDevMode]);
   const [showDevSheet, setShowDevSheet] = useState(false);
   const [showAppearanceSheet, setShowAppearanceSheet] = useState(false);
   const [showPerformanceSheet, setShowPerformanceSheet] = useState(false);
@@ -290,7 +295,7 @@ export default function Settings({
 
   const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
     appName: "Okane",
-    appVersion: "0.8.2",
+    appVersion: CURRENT_APP_VERSION,
     buildNumber: "108",
     updateChannel: "release",
     autoCheckUpdates: true,
@@ -331,7 +336,7 @@ export default function Settings({
     setErrorMessage('');
     setCreatedIssueInfo(null);
 
-    const appVersion = String(settings.installedVersion || jsonSettings.appVersion || '0.8.2');
+    const appVersion = String(settings.installedVersion || jsonSettings.appVersion || CURRENT_APP_VERSION);
     const platformName = Capacitor.isNativePlatform() ? Capacitor.getPlatform() : 'Web Browser';
     const token = githubTokenInput.trim() || localStorage.getItem('okane_github_token')?.trim() || '';
 
@@ -2249,7 +2254,7 @@ export default function Settings({
                     style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }}
                   />
                   <label htmlFor="includeVersionInfo" style={{ fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', flex: 1, userSelect: 'none' }}>
-                    Include current app version (<strong style={{ color: 'var(--text)' }}>v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}</strong>) & device details
+                    Include current app version (<strong style={{ color: 'var(--text)' }}>v{String(settings.installedVersion || jsonSettings.appVersion || CURRENT_APP_VERSION)}</strong>) & device details
                   </label>
                 </div>
 
@@ -2349,7 +2354,7 @@ export default function Settings({
                     </div>
                     {feedbackTitle.trim() && (
                       <a
-                        href={`https://github.com/prathambahekar/okane/issues/new?title=${encodeURIComponent(`[${feedbackType.toUpperCase()}] ${feedbackTitle.trim()}`)}&body=${encodeURIComponent(`${feedbackDescription.trim()}\n\n---\n**Metadata:**\n- Type: ${feedbackType}\n- Version: ${settings.installedVersion || jsonSettings.appVersion || '0.8.2'}`)}`}
+                        href={`https://github.com/prathambahekar/okane/issues/new?title=${encodeURIComponent(`[${feedbackType.toUpperCase()}] ${feedbackTitle.trim()}`)}&body=${encodeURIComponent(`${feedbackDescription.trim()}\n\n---\n**Metadata:**\n- Type: ${feedbackType}\n- Version: ${settings.installedVersion || jsonSettings.appVersion || CURRENT_APP_VERSION}`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn btn-secondary btn-sm"
@@ -3045,7 +3050,7 @@ export default function Settings({
 
             <div className="settings-card-right">
               <span className="badge settings-card-badge">
-                v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}
+                v{String(settings.installedVersion || jsonSettings.appVersion || CURRENT_APP_VERSION)}
               </span>
               <ChevronRight className="settings-card-arrow" size={18} />
             </div>
@@ -3073,7 +3078,7 @@ export default function Settings({
                       App Version & Info
                     </h3>
                     <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
-                      v{String(settings.installedVersion || jsonSettings.appVersion || '0.8.2')}
+                      v{String(settings.installedVersion || jsonSettings.appVersion || CURRENT_APP_VERSION)}
                     </p>
                   </div>
                 </div>
@@ -3209,9 +3214,9 @@ export default function Settings({
                 >
                   <History size={14} style={{ color: 'var(--text-2)' }} />
                   <span>Version History</span>
-                  {releaseHistory.length > 0 && (
+                  {displayReleaseHistory.length > 0 && (
                     <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, background: 'var(--surface3)', color: 'var(--text-2)', fontWeight: 600 }}>
-                      {releaseHistory.length}
+                      {displayReleaseHistory.length}
                     </span>
                   )}
                 </button>
@@ -3551,7 +3556,7 @@ export default function Settings({
               maxHeight: '55vh',
               paddingRight: '2px'
             }}>
-              {releaseHistory.length === 0 ? (
+              {displayReleaseHistory.length === 0 ? (
                 <div style={{
                   padding: '24px 16px',
                   textAlign: 'center',
@@ -3562,8 +3567,8 @@ export default function Settings({
                   No release history loaded yet. Click "Check Updates" in settings to fetch releases.
                 </div>
               ) : (
-                releaseHistory.map((item, idx) => {
-                  const currentVer = settings.installedVersion || jsonSettings.appVersion || '0.8.2';
+                displayReleaseHistory.map((item, idx) => {
+                  const currentVer = settings.installedVersion || jsonSettings.appVersion || CURRENT_APP_VERSION;
                   const normalizedItemVer = item.version.replace(/^v/, '').trim();
                   const normalizedCurrentVer = String(currentVer).replace(/^v/, '').trim();
                   const isCurrent = normalizedItemVer === normalizedCurrentVer;

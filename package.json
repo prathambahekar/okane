@@ -1,13 +1,15 @@
 {
   "name": "okane",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.9.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "set-version": "node scripts/set-version.js",
+    "bump": "node scripts/set-version.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

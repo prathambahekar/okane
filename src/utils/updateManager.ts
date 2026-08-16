@@ -74,7 +74,7 @@ export async function fetchGitHubReleases(): Promise<{ latest: UpdateInfo | null
         history.sort((a, b) => compareVersions(b.version, a.version));
 
         const topRelease = history[0];
-        const latestVersionStr = topRelease ? topRelease.version : '0.8.2';
+        const latestVersionStr = topRelease ? topRelease.version : CURRENT_APP_VERSION;
 
         const latest: UpdateInfo = {
           version: latestVersionStr,
@@ -103,6 +103,13 @@ export async function fetchGitHubReleases(): Promise<{ latest: UpdateInfo | null
       htmlUrl: 'https://github.com/prathambahekar/okane/releases',
       downloadUrl: localLatest.downloadUrl,
     }] : []),
+    {
+      version: '0.9.0',
+      name: 'Okane v0.9.0',
+      releaseDate: '2026-08-16',
+      releaseNotes: 'App version 0.9.0 release.',
+      htmlUrl: 'https://github.com/prathambahekar/okane/releases/tag/v0.9.0',
+    },
     {
       version: '0.8.2',
       name: 'Okane v0.8.2',
@@ -147,8 +154,15 @@ export async function fetchRemoteVersion(): Promise<UpdateInfo | null> {
   return null;
 }
 
+export const CURRENT_APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.0';
+
 export function getStoredInstalledVersion(): string {
-  return localStorage.getItem('installed_app_version') || '0.8.2';
+  const stored = localStorage.getItem('installed_app_version');
+  if (!stored || compareVersions(CURRENT_APP_VERSION, stored) > 0) {
+    localStorage.setItem('installed_app_version', CURRENT_APP_VERSION);
+    return CURRENT_APP_VERSION;
+  }
+  return stored;
 }
 
 export function setStoredInstalledVersion(version: string): void {
