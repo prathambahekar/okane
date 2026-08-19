@@ -7,7 +7,6 @@ import {
   TrendingDown,
   TrendingUp,
   ReceiptText,
-  Search,
   X,
   RotateCcw,
   Handshake,
@@ -24,8 +23,6 @@ import Drawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
 import { useStore } from '../store';
 import type { Wallet, Envelope } from '../types';
 import { walletBalance, walletEnvelopeAllocated, walletUnallocatedBalance, expenseFlow, monthKey } from '../db';
@@ -857,39 +854,17 @@ export default function Wallets() {
                 </Box>
               </Box>
 
-              {/* Search & Action Bar */}
-              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  placeholder="Search wallet transactions..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search size={18} style={{ color: 'var(--text-3)' }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      fontSize: '0.85rem',
-                      color: 'var(--text)',
-                      bgcolor: 'var(--surface2)',
-                      '& fieldset': { borderColor: 'var(--border)' },
-                      '&:hover fieldset': { borderColor: 'var(--border2)' },
-                      '&.Mui-focused fieldset': { borderColor: 'var(--accent)' },
-                    }
-                  }}
-                />
+              {/* Action Bar */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                <Typography variant="caption" sx={{ color: 'var(--text-3)', fontWeight: 600 }}>
+                  {filteredTx.length} transaction{filteredTx.length === 1 ? '' : 's'} recorded
+                </Typography>
                 <button
                   className="btn btn-primary"
-                  style={{ fontSize: 12, padding: '0 14px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                  style={{ fontSize: 12, padding: '0 14px', flexShrink: 0, whiteSpace: 'nowrap', height: 32 }}
                   onClick={() => setShowAddExp(true)}
                 >
-                  <Plus size={16} /> Add
+                  <Plus size={16} /> Add Transaction
                 </button>
               </Box>
             </Box>

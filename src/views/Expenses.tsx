@@ -1,13 +1,28 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, Layers, ArrowUpRight, ArrowDownLeft, ReceiptText } from 'lucide-react';
+import { Plus, Layers, ArrowUpRight, ArrowDownLeft, ReceiptText, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense } from '../types';
-import { cleanExpenseDescription, getGroupSettlementStatus, groupExpenses } from '../utils';
+import { cleanExpenseDescription, getGroupSettlementStatus, groupExpenses, fmtMoney, fmtDate } from '../utils';
 import ExpenseModal from '../components/ExpenseModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { ExpenseFilterBar } from '../components/expense/ExpenseFilterBar';
 import { ExpenseTableRow } from '../components/expenses/ExpenseTableRow';
 import { ExpenseMobileCard } from '../components/expenses/ExpenseMobileCard';
+
+function getRelativeDateLabel(dateStr: string): string | null {
+  const today = new Date().toISOString().slice(0, 10);
+  if (dateStr === today) return 'Today';
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (dateStr === yesterday) return 'Yesterday';
+  return null;
+}
+
+function fmtDateWithDay(iso: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d.getTime())) return fmtDate(iso);
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 export default function Expenses() {
   const { db, deleteExpense, unsettleExpense, showToast } = useStore();
@@ -162,25 +177,53 @@ export default function Expenses() {
     return arr;
   }, [grouped, search, catFilter, typeFilter, statusFilter, flowFilter, walletFilter, sort, walletsMap, friendsMap, settlementsMap]);
 
-  const dateGroupInfo = useMemo(() => {
-    const groupMap: Record<string, number> = {};
-    const isFirstMap: Record<string, boolean> = {};
-    let currentGroup = 0;
-    let prevDate: string | null = null;
+  // Group displayed items by date into distinct date cards
+  const dateGroups = useMemo(() => {
+    const displayed = filtered.slice(0, displayLimit);
+    const groups: {
+      date: string;
+      items: typeof filtered;
+      totalOut: number;
+      totalIn: number;
+    }[] = [];
+    const map = new Map<string, typeof groups[0]>();
 
-    filtered.forEach((ge) => {
-      if (prevDate !== null && ge.date !== prevDate) {
-        currentGroup++;
-        isFirstMap[ge.id] = true;
-      } else {
-        isFirstMap[ge.id] = prevDate === null;
+    for (const ge of displayed) {
+      let group = map.get(ge.date);
+      if (!group) {
+        group = {
+          date: ge.date,
+          items: [],
+          totalOut: 0,
+          totalIn: 0,
+        };
+        map.set(ge.date, group);
+        groups.push(group);
       }
-      groupMap[ge.id] = currentGroup % 2;
-      prevDate = ge.date;
-    });
+      group.items.push(ge);
+      if (ge.flow === 'out' && ge.category !== 'Transfer') {
+        group.totalOut += ge.totalAmount;
+      } else if (ge.flow === 'in' && ge.category !== 'Transfer') {
+        group.totalIn += ge.totalAmount;
+      }
+    }
 
-    return { groupMap, isFirstMap };
-  }, [filtered]);
+    return groups;
+  }, [filtered, displayLimit]);
+
+  const allCollapsed = useMemo(() => {
+    return dateGroups.length > 0 && dateGroups.every(g => !!collapsedDates[g.date]);
+  }, [dateGroups, collapsedDates]);
+
+  const toggleAllDateCollapse = useCallback(() => {
+    if (allCollapsed) {
+      setCollapsedDates({});
+    } else {
+      const next: Record<string, boolean> = {};
+      dateGroups.forEach(g => { next[g.date] = true; });
+      setCollapsedDates(next);
+    }
+  }, [allCollapsed, dateGroups]);
 
   return (
     <div className="view-container">
@@ -230,147 +273,198 @@ export default function Expenses() {
         onClearAll={handleClearAllFilters}
       />
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        {filtered.length === 0 ? (
+      {filtered.length === 0 ? (
+        <div className="card">
           <div className="empty-state">
             <div className="empty-state-icon"><ReceiptText size={36} /></div>
             <div className="empty-state-title">No expenses found</div>
             <p>Try adjusting your filters or add a new expense.</p>
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}><Plus size={16} /> Add Expense</button>
           </div>
-        ) : (
-          <>
-            {/* Desktop Table View */}
-            <div className="table-wrapper desktop-only">
-              <table className="modern-tx-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '22%', textAlign: 'left' }}>Transaction</th>
-                    <th style={{ width: '13%', textAlign: 'left' }}>Amount</th>
-                    <th style={{ width: '16%', textAlign: 'left' }}>Type</th>
-                    <th style={{ width: '18%', textAlign: 'left' }}>Wallet</th>
-                    <th style={{ width: '19%', textAlign: 'left' }}>Status</th>
-                    <th style={{ textAlign: 'right', width: '12%', minWidth: '100px' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    let prevDateStr = '';
-                    const displayed = filtered.slice(0, displayLimit);
-                    return displayed.map(ge => {
-                      const cat = categoriesMap.get(ge.category);
-                      const stl = ge.items.reduce<typeof db.settlements[0] | null | undefined>((found, item) => {
-                        if (found) return found;
-                        if (item.settlementId) return settlementsMap.get(item.settlementId);
-                        return undefined;
-                      }, null) || (ge.settlementId ? settlementsMap.get(ge.settlementId) : null);
-                      const stlWallet = stl?.walletId ? walletsMap.get(stl.walletId) : undefined;
-                      const wallet = ge.items.reduce<typeof db.wallets[0] | null | undefined>((found, item) => {
-                        if (found) return found;
-                        return item.walletId ? walletsMap.get(item.walletId) : null;
-                      }, null) || walletsMap.get(ge.walletId) || stlWallet;
+        </div>
+      ) : (
+        <>
+          {/* Quick Date Cards Toolbar */}
+          <div className="expense-date-toolbar">
+            <div className="expense-date-toolbar-summary">
+              <span>{filtered.length} transaction{filtered.length === 1 ? '' : 's'} across {dateGroups.length} date{dateGroups.length === 1 ? '' : 's'}</span>
+            </div>
+            <div className="expense-date-toolbar-actions">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: 11.5, padding: '4px 10px', height: 28 }}
+                onClick={toggleAllDateCollapse}
+                title={allCollapsed ? 'Expand all date groups' : 'Collapse all date groups'}
+              >
+                <ChevronsUpDown size={13} />
+                <span>{allCollapsed ? 'Expand All' : 'Collapse All'}</span>
+              </button>
+            </div>
+          </div>
 
-                      const isExpanded = !!expandedIds[ge.id];
-                      const groupStatus = getGroupSettlementStatus(ge);
+          {/* List of distinct date cards separated with gap */}
+          <div className="expense-date-cards-container">
+            {dateGroups.map(group => {
+              const isCollapsed = !!collapsedDates[group.date];
+              const relativeLabel = getRelativeDateLabel(group.date);
 
-                      const isNewDateHeader = sort.startsWith('date') && ge.date !== prevDateStr;
-                      if (isNewDateHeader) {
-                        prevDateStr = ge.date;
+              return (
+                <div key={group.date} className="expense-date-card">
+                  {/* Collapsible Date Card Header */}
+                  <div
+                    className={`expense-date-card-header ${isCollapsed ? 'is-collapsed' : 'is-expanded'}`}
+                    onClick={() => toggleDateCollapse(group.date)}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={!isCollapsed}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleDateCollapse(group.date);
                       }
+                    }}
+                  >
+                    <div className="expense-date-header-left">
+                      <div className="expense-date-chevron">
+                        <ChevronDown size={15} className={`chevron-icon ${isCollapsed ? 'rotated' : ''}`} />
+                      </div>
+                      <div className="expense-date-label-wrap">
+                        <span className="expense-date-title">{fmtDateWithDay(group.date)}</span>
+                        {relativeLabel && <span className="badge-relative-date">{relativeLabel}</span>}
+                      </div>
+                      <span className="expense-date-count">
+                        ({group.items.length})
+                      </span>
+                    </div>
 
-                      const dateExpenses = isNewDateHeader ? filtered.filter(x => x.date === ge.date) : [];
-                      const dateOutSum = isNewDateHeader ? dateExpenses.reduce((sum, x) => (x.flow === 'out' && x.category !== 'Transfer') ? sum + x.totalAmount : sum, 0) : 0;
-                      const dateInSum = isNewDateHeader ? dateExpenses.reduce((sum, x) => (x.flow === 'in' && x.category !== 'Transfer') ? sum + x.totalAmount : sum, 0) : 0;
-                      const isDateCollapsed = sort.startsWith('date') && !!collapsedDates[ge.date];
+                    <div className="expense-date-header-right">
+                      {group.totalOut > 0 && (
+                        <span className="expense-date-stat debit">-{fmtMoney(group.totalOut, currency)}</span>
+                      )}
+                      {group.totalIn > 0 && (
+                        <span className="expense-date-stat credit">+{fmtMoney(group.totalIn, currency)}</span>
+                      )}
+                    </div>
+                  </div>
 
-                      return (
-                        <ExpenseTableRow
-                          key={ge.id}
-                          ge={ge}
-                          currency={currency}
-                          isExpanded={isExpanded}
-                          onToggleExpand={toggleExpand}
-                          onEdit={setEditExp}
-                          onDelete={setDelId}
-                          onUndo={setUndoExpId}
-                          groupStatus={groupStatus}
-                          isNewDateHeader={isNewDateHeader}
-                          isDateCollapsed={isDateCollapsed}
-                          onToggleDateCollapse={toggleDateCollapse}
-                          dateExpensesCount={dateExpenses.length}
-                          dateOutSum={dateOutSum}
-                          dateInSum={dateInSum}
-                          categoryObj={cat}
-                          walletObj={wallet}
-                          friendsMap={friendsMap}
-                          walletsMap={walletsMap}
-                          settlementObj={stl}
-                        />
-                      );
-                    });
-                  })()}
-                </tbody>
-              </table>
+                  {/* Card Content when extended */}
+                  {!isCollapsed && (
+                    <div className="expense-date-card-body">
+                      {/* Desktop Table View */}
+                      <div className="table-wrapper desktop-only">
+                        <table className="modern-tx-table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: '22%', textAlign: 'left' }}>Transaction</th>
+                              <th style={{ width: '13%', textAlign: 'left' }}>Amount</th>
+                              <th style={{ width: '16%', textAlign: 'left' }}>Type</th>
+                              <th style={{ width: '18%', textAlign: 'left' }}>Wallet</th>
+                              <th style={{ width: '19%', textAlign: 'left' }}>Status</th>
+                              <th style={{ textAlign: 'right', width: '12%', minWidth: '100px' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.items.map(ge => {
+                              const cat = categoriesMap.get(ge.category);
+                              const stl = ge.items.reduce<typeof db.settlements[0] | null | undefined>((found, item) => {
+                                if (found) return found;
+                                if (item.settlementId) return settlementsMap.get(item.settlementId);
+                                return undefined;
+                              }, null) || (ge.settlementId ? settlementsMap.get(ge.settlementId) : null);
+                              const stlWallet = stl?.walletId ? walletsMap.get(stl.walletId) : undefined;
+                              const wallet = ge.items.reduce<typeof db.wallets[0] | null | undefined>((found, item) => {
+                                if (found) return found;
+                                return item.walletId ? walletsMap.get(item.walletId) : null;
+                              }, null) || walletsMap.get(ge.walletId) || stlWallet;
+
+                              const isExpanded = !!expandedIds[ge.id];
+                              const groupStatus = getGroupSettlementStatus(ge);
+
+                              return (
+                                <ExpenseTableRow
+                                  key={ge.id}
+                                  ge={ge}
+                                  currency={currency}
+                                  isExpanded={isExpanded}
+                                  onToggleExpand={toggleExpand}
+                                  onEdit={setEditExp}
+                                  onDelete={setDelId}
+                                  onUndo={setUndoExpId}
+                                  groupStatus={groupStatus}
+                                  categoryObj={cat}
+                                  walletObj={wallet}
+                                  friendsMap={friendsMap}
+                                  walletsMap={walletsMap}
+                                  settlementObj={stl}
+                                />
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Mobile Expandable Cards View */}
+                      <div className="mobile-expense-list mobile-only">
+                        {group.items.map((ge, idx) => {
+                          const cat = categoriesMap.get(ge.category);
+                          const stl = ge.items.reduce<typeof db.settlements[0] | null | undefined>((found, item) => {
+                            if (found) return found;
+                            if (item.settlementId) return settlementsMap.get(item.settlementId);
+                            return undefined;
+                          }, null) || (ge.settlementId ? settlementsMap.get(ge.settlementId) : null);
+                          const stlWallet = stl?.walletId ? walletsMap.get(stl.walletId) : undefined;
+                          const wallet = ge.items.reduce<typeof db.wallets[0] | null | undefined>((found, item) => {
+                            if (found) return found;
+                            return item.walletId ? walletsMap.get(item.walletId) : null;
+                          }, null) || walletsMap.get(ge.walletId) || stlWallet;
+
+                          const isExpanded = !!expandedIds[ge.id];
+                          const groupStatus = getGroupSettlementStatus(ge);
+
+                          return (
+                            <ExpenseMobileCard
+                              key={ge.id}
+                              ge={ge}
+                              currency={currency}
+                              isExpanded={isExpanded}
+                              onToggleExpand={toggleExpand}
+                              onEdit={setEditExp}
+                              onDelete={setDelId}
+                              onUndo={setUndoExpId}
+                              groupStatus={groupStatus}
+                              isEvenGroup={idx % 2 === 0}
+                              isFirstOfDate={idx === 0}
+                              categoryObj={cat}
+                              walletObj={wallet}
+                              friendsMap={friendsMap}
+                              walletsMap={walletsMap}
+                              settlementObj={stl}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {filtered.length > displayLimit && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: 12.5, padding: '8px 20px' }}
+                onClick={() => setDisplayLimit(prev => prev + 60)}
+              >
+                Showing {displayLimit} of {filtered.length} transactions — Load More
+              </button>
             </div>
-
-            {/* Mobile Expandable Cards View */}
-            <div className="mobile-expense-list mobile-only">
-              {filtered.slice(0, displayLimit).map(ge => {
-                const cat = categoriesMap.get(ge.category);
-                const stl = ge.items.reduce<typeof db.settlements[0] | null | undefined>((found, item) => {
-                  if (found) return found;
-                  if (item.settlementId) return settlementsMap.get(item.settlementId);
-                  return undefined;
-                }, null) || (ge.settlementId ? settlementsMap.get(ge.settlementId) : null);
-                const stlWallet = stl?.walletId ? walletsMap.get(stl.walletId) : undefined;
-                const wallet = ge.items.reduce<typeof db.wallets[0] | null | undefined>((found, item) => {
-                  if (found) return found;
-                  return item.walletId ? walletsMap.get(item.walletId) : null;
-                }, null) || walletsMap.get(ge.walletId) || stlWallet;
-
-                const isExpanded = !!expandedIds[ge.id];
-                const isEvenGroup = dateGroupInfo.groupMap[ge.id] === 0;
-                const isFirstOfDate = dateGroupInfo.isFirstMap[ge.id];
-                const groupStatus = getGroupSettlementStatus(ge);
-
-                return (
-                  <ExpenseMobileCard
-                    key={ge.id}
-                    ge={ge}
-                    currency={currency}
-                    isExpanded={isExpanded}
-                    onToggleExpand={toggleExpand}
-                    onEdit={setEditExp}
-                    onDelete={setDelId}
-                    onUndo={setUndoExpId}
-                    groupStatus={groupStatus}
-                    isEvenGroup={isEvenGroup}
-                    isFirstOfDate={isFirstOfDate}
-                    categoryObj={cat}
-                    walletObj={wallet}
-                    friendsMap={friendsMap}
-                    walletsMap={walletsMap}
-                    settlementObj={stl}
-                  />
-                );
-              })}
-            </div>
-
-            {filtered.length > displayLimit && (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '16px', borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ fontSize: 12.5, padding: '6px 18px' }}
-                  onClick={() => setDisplayLimit(prev => prev + 60)}
-                >
-                  Showing {displayLimit} of {filtered.length} transactions — Load More
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+          )}
+        </>
+      )}
 
       {showAdd && <ExpenseModal onClose={() => setShowAdd(false)} />}
       {editExp && <ExpenseModal expense={editExp} onClose={() => setEditExp(null)} />}

@@ -113,46 +113,14 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
             )}
             {groupStatus.statusKey !== 'none' && groupStatus.statusLabel && (
               ge.isSettlementGroup ? (
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '2px 7px',
-                  borderRadius: 10,
-                  fontSize: 10,
-                  fontWeight: 600,
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#10b981',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                  whiteSpace: 'nowrap'
-                }}>
-                  Settled ✓
+                <span className="tx-status-pill status-settled" style={{ padding: '2px 7px', fontSize: 10 }}>
+                  <span className="status-dot" />
+                  <span>Settled ✓</span>
                 </span>
               ) : (
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '2px 7px',
-                  borderRadius: 10,
-                  fontSize: 10,
-                  fontWeight: 600,
-                  background: groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed' || groupStatus.statusKey === 'paid'
-                    ? 'rgba(16, 185, 129, 0.15)'
-                    : groupStatus.statusKey === 'partial'
-                    ? 'rgba(245, 158, 11, 0.18)'
-                    : 'rgba(239, 68, 68, 0.12)',
-                  color: groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed' || groupStatus.statusKey === 'paid'
-                    ? '#10b981'
-                    : groupStatus.statusKey === 'partial'
-                    ? '#f59e0b'
-                    : '#ef4444',
-                  border: `1px solid ${groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed' || groupStatus.statusKey === 'paid'
-                    ? 'rgba(16, 185, 129, 0.3)'
-                    : groupStatus.statusKey === 'partial'
-                    ? 'rgba(245, 158, 11, 0.35)'
-                    : 'rgba(239, 68, 68, 0.25)'}`,
-                  whiteSpace: 'nowrap'
-                }}>
-                  {groupStatus.statusLabel}
+                <span className={`tx-status-pill status-${groupStatus.statusKey}`} style={{ padding: '2px 7px', fontSize: 10 }}>
+                  <span className="status-dot" />
+                  <span>{groupStatus.statusLabel}</span>
                 </span>
               )
             )}
@@ -188,8 +156,6 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
 
         <div className="mobile-expense-meta">
           <div className="mobile-expense-meta-left">
-            <span>{fmtDate(ge.date)}</span>
-            <span>·</span>
             <span>{ge.category}</span>
             {ge.isSettlementGroup && (
               <>
@@ -327,29 +293,14 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                 <span className="mobile-expense-detail-label">Status</span>
                 <span className="mobile-expense-detail-val">
                   {ge.isSettlementGroup ? (
-                    <span className="badge badge-settled" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600 }}>
-                      Settled ✓
+                    <span className="tx-status-pill status-settled">
+                      <span className="status-dot" />
+                      <span>Settled ✓</span>
                     </span>
                   ) : (
-                    <span className={`badge badge-${groupStatus.statusKey}`} style={{
-                      background: groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed' || groupStatus.statusKey === 'paid'
-                        ? 'rgba(16, 185, 129, 0.15)'
-                        : groupStatus.statusKey === 'partial'
-                        ? 'rgba(245, 158, 11, 0.18)'
-                        : 'rgba(239, 68, 68, 0.12)',
-                      color: groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed' || groupStatus.statusKey === 'paid'
-                        ? '#10b981'
-                        : groupStatus.statusKey === 'partial'
-                        ? '#f59e0b'
-                        : '#ef4444',
-                      border: `1px solid ${groupStatus.statusKey === 'settled' || groupStatus.statusKey === 'completed' || groupStatus.statusKey === 'paid'
-                        ? 'rgba(16, 185, 129, 0.3)'
-                        : groupStatus.statusKey === 'partial'
-                        ? 'rgba(245, 158, 11, 0.35)'
-                        : 'rgba(239, 68, 68, 0.25)'}`,
-                      fontWeight: 600
-                    }}>
-                      {groupStatus.statusLabel}
+                    <span className={`tx-status-pill status-${groupStatus.statusKey}`}>
+                      <span className="status-dot" />
+                      <span>{groupStatus.statusLabel}</span>
                     </span>
                   )}
                 </span>

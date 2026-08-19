@@ -213,8 +213,49 @@ export function buildTheme(mode: 'light' | 'dark', accent: AccentPreset = 'blue'
         dark: safeDark,
         contrastText: colors.contrast || '#ffffff',
       },
+      background: mode === 'dark' ? {
+        default: '#09090b', // bg-zinc-950
+        paper: '#18181b',   // bg-zinc-900
+      } : {
+        default: '#fafafa',
+        paper: '#ffffff',
+      },
+      text: mode === 'dark' ? {
+        primary: '#f4f4f5',   // text-zinc-100
+        secondary: '#a1a1aa', // text-zinc-400
+      } : {
+        primary: '#111111',
+        secondary: '#6b7280',
+      },
+      divider: mode === 'dark' ? '#27272a' : '#e2e4e9', // border-zinc-800
+    },
+    shape: {
+      borderRadius: 8,
     },
     components: {
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            backgroundImage: 'none',
+            ...(mode === 'dark' && {
+              backgroundColor: '#18181b',
+              borderColor: '#27272a',
+            }),
+          },
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            borderRadius: 14,
+            ...(mode === 'dark' && {
+              backgroundColor: '#18181b',
+              border: '1px solid #27272a',
+              boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.7)',
+            }),
+          },
+        },
+      },
       MuiButton: {
         styleOverrides: {
           containedPrimary: {
@@ -222,6 +263,7 @@ export function buildTheme(mode: 'light' | 'dark', accent: AccentPreset = 'blue'
             color: colors.contrast || '#ffffff',
             boxShadow: `0 3px 10px ${colors.soft}`,
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            borderRadius: 8,
             '&:hover': {
               background: colors.gradient,
               filter: 'brightness(1.08)',
@@ -235,6 +277,7 @@ export function buildTheme(mode: 'light' | 'dark', accent: AccentPreset = 'blue'
           outlinedPrimary: {
             borderColor: safeMain,
             color: safeMain,
+            borderRadius: 8,
             '&:hover': {
               borderColor: safeDark,
               backgroundColor: colors.soft,

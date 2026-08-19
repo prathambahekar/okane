@@ -526,7 +526,7 @@ export function defaultDB(): AppDB {
       enableSplitTrips: false,
       enableSampleData: false,
       enableUserGuide: false,
-      colorMode: (localStorage.getItem('color-mode') as 'light' | 'dark') || 'light',
+      colorMode: (localStorage.getItem('color-mode') as 'light' | 'dark') || 'dark',
       accent: localStorage.getItem('accent-color') || 'blue',
       customAccentColor: localStorage.getItem('custom-accent-color') || '#6366f1',
       sidebarCollapsed: localStorage.getItem('sidebar_collapsed') === 'true',

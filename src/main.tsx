@@ -14,7 +14,7 @@ import '@fontsource/roboto/700.css';
 function getInitialMode(): 'light' | 'dark' {
   const saved = localStorage.getItem('color-mode') as 'light' | 'dark' | null;
   if (saved === 'light' || saved === 'dark') return saved;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return 'dark';
 }
 
 function getInitialAccent(): AccentPreset {

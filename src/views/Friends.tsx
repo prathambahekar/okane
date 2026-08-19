@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Handshake, Search, ChevronDown, ChevronUp, MoreVertical, User, Users, Store, Tv, ArrowUpDown, LayoutGrid, List, SlidersHorizontal, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Handshake, ChevronDown, ChevronUp, MoreVertical, User, Users, Store, Tv, ArrowUpDown, LayoutGrid, List, SlidersHorizontal } from 'lucide-react';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -145,97 +145,65 @@ export default function Friends({ onNavigate }: Props) {
 
   return (
     <div className="view-container">
-      {/* Header Title */}
-      <div className="page-header" style={{ marginBottom: 10 }}>
+      {/* Header Title with quick actions */}
+      <div className="page-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 className="page-title" style={{ fontSize: 20 }}>Contacts</h1>
           <p className="page-subtitle desktop-only" style={{ fontSize: 12.5, color: 'var(--text-3)', margin: 0 }}>
             Track shared expenses with friends, spending at vendors, and active subscriptions.
           </p>
         </div>
-      </div>
 
-      {/* Unified Search Bar with clear button & merged Stat Pill & + Add button row */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-        <div className="search-input-wrap" style={{ flex: '1 1 auto', minWidth: 0, position: 'relative' }}>
-          <Search size={15} className="search-icon" />
-          <input
-            className="form-input"
-            style={{ height: 36, fontSize: 13, paddingRight: search ? 28 : 10 }}
-            placeholder="Search contacts..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              style={{
-                position: 'absolute',
-                right: 8,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-3)',
-                cursor: 'pointer',
-                display: 'grid',
-                placeItems: 'center'
-              }}
-            >
-              <X size={14} />
-            </button>
-          )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Merged Stat Summary Button */}
+          <button
+            type="button"
+            onClick={() => setStatsExpanded(!statsExpanded)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              height: 36,
+              padding: '0 10px',
+              background: statsExpanded ? 'var(--surface2)' : 'var(--surface)',
+              border: statsExpanded ? '1px solid var(--accent)' : '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text-2)',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              transition: 'all 0.15s ease',
+            }}
+            title="Click to toggle full breakdown stats"
+          >
+            <User size={15} className="text-accent" style={{ flexShrink: 0 }} />
+            <span className="hide-on-mobile" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ color: 'var(--credit)' }}>+{fmtMoney(friendStats.credit, currency)}</span>
+              <span style={{ color: 'var(--text-3)', fontSize: 10 }}>/</span>
+              <span style={{ color: 'var(--debit)' }}>-{fmtMoney(friendStats.debit, currency)}</span>
+            </span>
+            {statsExpanded ? (
+              <ChevronUp size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+            ) : (
+              <ChevronDown size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+            )}
+          </button>
+
+          <button
+            className="btn btn-primary"
+            style={{ whiteSpace: 'nowrap', flexShrink: 0, height: 36, padding: '0 12px', gap: 5, fontSize: 13, fontWeight: 600 }}
+            onClick={() => {
+              setAddDefaultType(typeFilter);
+              setShowAdd(true);
+            }}
+            title="Add Contact / Vendor / Subscription"
+          >
+            <Plus size={16} style={{ flexShrink: 0 }} />
+            <span>Add Contact</span>
+          </button>
         </div>
-
-        {/* Merged Stat Summary Button */}
-        <button
-          type="button"
-          onClick={() => setStatsExpanded(!statsExpanded)}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
-            height: 36,
-            padding: '0 10px',
-            background: statsExpanded ? 'var(--surface2)' : 'var(--surface)',
-            border: statsExpanded ? '1px solid var(--accent)' : '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            cursor: 'pointer',
-            fontSize: 12,
-            fontWeight: 600,
-            color: 'var(--text-2)',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-            transition: 'all 0.15s ease',
-          }}
-          title="Click to toggle full breakdown stats"
-        >
-          <User size={15} className="text-accent" style={{ flexShrink: 0 }} />
-          <span className="hide-on-mobile" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ color: 'var(--credit)' }}>+{fmtMoney(friendStats.credit, currency)}</span>
-            <span style={{ color: 'var(--text-3)', fontSize: 10 }}>/</span>
-            <span style={{ color: 'var(--debit)' }}>-{fmtMoney(friendStats.debit, currency)}</span>
-          </span>
-          {statsExpanded ? (
-            <ChevronUp size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-          ) : (
-            <ChevronDown size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-          )}
-        </button>
-
-        <button
-          className="btn btn-primary"
-          style={{ whiteSpace: 'nowrap', flexShrink: 0, height: 36, padding: '0 10px', gap: 5, fontSize: 13, fontWeight: 600 }}
-          onClick={() => {
-            setAddDefaultType(typeFilter);
-            setShowAdd(true);
-          }}
-          title="Add Contact / Vendor / Subscription"
-        >
-          <Plus size={16} style={{ flexShrink: 0 }} />
-          <span className="hide-on-mobile">Add</span>
-        </button>
       </div>
 
       {/* Full Stat Banners when expanded */}

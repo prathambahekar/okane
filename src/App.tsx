@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import AppBar from '@mui/material/AppBar';
@@ -34,6 +34,7 @@ import {
   ArrowLeft,
   X,
   HelpCircle,
+  Search,
 } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import { useColorMode, type AccentPreset } from './theme';
@@ -46,14 +47,11 @@ import Wallets from './views/Wallets';
 import Friends from './views/Friends';
 import FriendDetail from './views/FriendDetail';
 import Recurring from './views/Recurring';
-import ViewSkeleton from './components/ViewSkeleton';
-
-// Lazy loaded views for route-based splitting
-const Settlements = lazy(() => import('./views/Settlements'));
-const Analytics = lazy(() => import('./views/Analytics'));
-const Settings = lazy(() => import('./views/Settings'));
-const DevSQLConsole = lazy(() => import('./views/DevSQLConsole'));
-const SplitTrips = lazy(() => import('./views/SplitTrips'));
+import Settlements from './views/Settlements';
+import Analytics from './views/Analytics';
+import Settings from './views/Settings';
+import DevSQLConsole from './views/DevSQLConsole';
+import SplitTrips from './views/SplitTrips';
 
 import ExpenseModal from './components/ExpenseModal';
 import type { ExpenseInitialData } from './components/ExpenseModal';
@@ -61,6 +59,8 @@ import AIAssistantModal from './components/AIAssistantModal';
 import UserGuideModal from './components/UserGuideModal';
 import Toast from './components/Toast';
 import NotificationBell from './components/NotificationBell';
+import FloatingSearchButton from './components/FloatingSearchButton';
+import ContextualSearchModal from './components/ContextualSearchModal';
 import './styles.css';
 
 const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'split-trips', 'recurring', 'analytics', 'settings', 'dev-sql'];
@@ -72,9 +72,22 @@ function AppInner() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [addExpenseInitialData, setAddExpenseInitialData] = useState<ExpenseInitialData | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [isExpenseTutorial, setIsExpenseTutorial] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // Global Ctrl+K / Cmd+K shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setShowSearchModal(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleStartExpenseTutorial = () => {
     setShowGuideModal(false);
@@ -281,36 +294,14 @@ function AppInner() {
       case 'friend-detail': return <FriendDetail friendId={friendDetailId} onNavigate={navigate} />;
       case 'recurring':
         return <Recurring onNavigate={navigate} />;
-      case 'settlements':
-        return (
-          <Suspense fallback={<ViewSkeleton type="settlements" />}>
-            <Settlements />
-          </Suspense>
-        );
-      case 'split-trips':
-        return (
-          <Suspense fallback={<ViewSkeleton type="split-trips" />}>
-            <SplitTrips />
-          </Suspense>
-        );
-      case 'analytics':
-        return (
-          <Suspense fallback={<ViewSkeleton type="analytics" />}>
-            <Analytics />
-          </Suspense>
-        );
+      case 'settlements': return <Settlements />;
+      case 'split-trips': return <SplitTrips />;
+      case 'analytics': return <Analytics />;
       case 'settings':
         return (
-          <Suspense fallback={<ViewSkeleton type="settings" />}>
-            <Settings onNavigate={navigate} onOpenGuide={() => setShowGuideModal(true)} onStartExpenseTutorial={handleStartExpenseTutorial} />
-          </Suspense>
+          <Settings onNavigate={navigate} onOpenGuide={() => setShowGuideModal(true)} onStartExpenseTutorial={handleStartExpenseTutorial} />
         );
-      case 'dev-sql':
-        return (
-          <Suspense fallback={<ViewSkeleton type="dev-sql" />}>
-            <DevSQLConsole onNavigate={navigate} />
-          </Suspense>
-        );
+      case 'dev-sql': return <DevSQLConsole onNavigate={navigate} />;
       default: return <Dashboard onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
     }
   };
@@ -619,6 +610,24 @@ function AppInner() {
                 </Box>
               )}
 
+              <IconButton
+                size="small"
+                onClick={() => setShowSearchModal(true)}
+                sx={{
+                  color: 'text.primary',
+                  bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                  p: 0.8,
+                  borderRadius: '10px',
+                  border: '1px solid var(--border)',
+                  '&:hover': { bgcolor: 'action.hover', borderColor: 'var(--accent)' },
+                  '&:active': { transform: 'scale(0.92)' }
+                }}
+                title="Search (Ctrl + K)"
+                aria-label="Search"
+              >
+                <Search size={17} />
+              </IconButton>
+
               <NotificationBell onNavigate={navigate} />
             </Box>
           </Toolbar>
@@ -794,17 +803,18 @@ function AppInner() {
         disableRestoreFocus
         PaperProps={{
           sx: {
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
             bgcolor: 'background.paper',
             backgroundImage: 'none',
             p: 2.5,
             pb: 'calc(24px + env(safe-area-inset-bottom, 0px))',
             maxHeight: '85vh',
+            borderTop: '1px solid var(--border)',
           }
         }}
       >
-        <Box sx={{ width: 40, height: 4, bgcolor: 'divider', borderRadius: 99, mx: 'auto', mb: 2 }} />
+        <Box sx={{ width: 36, height: 4, bgcolor: 'divider', borderRadius: '2px', mx: 'auto', mb: 2 }} />
 
         {/* Header close button: hidden on mobile drawer, shown on desktop */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
@@ -819,9 +829,9 @@ function AppInner() {
             elevation={0}
             onClick={() => { setMoreOpen(false); setShowAIAssistant(true); }}
             sx={{
-              p: 1.8,
+              p: 1.5,
               mb: 2,
-              borderRadius: 3,
+              borderRadius: '10px',
               bgcolor: 'var(--accent-soft)',
               border: '1px solid var(--border)',
               display: 'flex',
@@ -834,12 +844,12 @@ function AppInner() {
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Box sx={{
-                width: 38, height: 38, borderRadius: '50%',
+                width: 36, height: 36, borderRadius: '8px',
                 bgcolor: 'primary.main', color: 'primary.contrastText',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 12px var(--accent-soft)'
+                boxShadow: '0 3px 10px var(--accent-soft)'
               }}>
-                <Sparkles size={20} />
+                <Sparkles size={18} />
               </Box>
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
@@ -851,7 +861,7 @@ function AppInner() {
               </Box>
             </Box>
             <Box sx={{
-              px: 1.2, py: 0.4, borderRadius: 99,
+              px: 1.2, py: 0.4, borderRadius: '6px',
               bgcolor: 'primary.main', color: 'primary.contrastText',
               fontSize: '0.7rem', fontWeight: 700
             }}>
@@ -875,7 +885,7 @@ function AppInner() {
                 onClick={() => navigate(item.id)}
                 sx={{
                   p: 1.5,
-                  borderRadius: 3,
+                  borderRadius: '10px',
                   bgcolor: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
                   border: '1px solid',
                   borderColor: isSelected ? 'var(--accent)' : 'var(--border)',
@@ -902,7 +912,7 @@ function AppInner() {
                   <Box sx={{
                     position: 'absolute', top: 6, right: 6,
                     fontSize: 10, fontWeight: 700, px: 0.6, py: 0.1,
-                    bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: 99,
+                    bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: '4px',
                   }}>
                     {pendingSettlements}
                   </Box>
@@ -912,7 +922,7 @@ function AppInner() {
                   <Box sx={{
                     position: 'absolute', top: 6, right: 6,
                     fontSize: 10, fontWeight: 700, px: 0.6, py: 0.1,
-                    bgcolor: 'error.main', color: '#ffffff', borderRadius: 99,
+                    bgcolor: 'error.main', color: '#ffffff', borderRadius: '4px',
                   }}>
                     {dueAutopaysCount}
                   </Box>
@@ -928,7 +938,7 @@ function AppInner() {
               onClick={() => { setMoreOpen(false); setShowGuideModal(true); }}
               sx={{
                 p: 1.5,
-                borderRadius: 3,
+                borderRadius: '10px',
                 bgcolor: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 display: 'flex',
@@ -993,6 +1003,20 @@ function AppInner() {
           <Sparkles size={22} />
         </IconButton>
       )}
+
+      {/* Floating Search Button */}
+      <FloatingSearchButton
+        onClick={() => setShowSearchModal(true)}
+        hasAIAssistant={enableAIAssistant}
+      />
+
+      {/* Contextual & Universal Search Modal */}
+      <ContextualSearchModal
+        open={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        activeView={view}
+        onNavigate={navigate}
+      />
 
       {showAddExpense && (
         <ExpenseModal

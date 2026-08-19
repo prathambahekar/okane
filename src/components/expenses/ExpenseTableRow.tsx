@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Users, User, CheckCircle2, RotateCcw, Edit2, Trash2,
-  ChevronDown, ChevronUp, ChevronRight, Store, Wallet as WalletIcon
+  ChevronDown, ChevronUp, Store, Wallet as WalletIcon
 } from 'lucide-react';
 import CategoryIcon from '../CategoryIcon';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, cleanExpenseDescription, type GroupedExpense } from '../../utils';
@@ -16,12 +16,6 @@ interface Props {
   onDelete: (id: string) => void;
   onUndo: (id: string) => void;
   groupStatus: { statusKey: string; statusLabel: string };
-  isNewDateHeader: boolean;
-  isDateCollapsed: boolean;
-  onToggleDateCollapse: (date: string) => void;
-  dateExpensesCount: number;
-  dateOutSum: number;
-  dateInSum: number;
   categoryObj?: Category;
   walletObj?: Wallet;
   friendsMap: Map<string, Friend>;
@@ -38,12 +32,6 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
   onDelete,
   onUndo,
   groupStatus,
-  isNewDateHeader,
-  isDateCollapsed,
-  onToggleDateCollapse,
-  dateExpensesCount,
-  dateOutSum,
-  dateInSum,
   categoryObj,
   walletObj,
   friendsMap,
@@ -72,57 +60,8 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
   const vendorId = ge.vendorId || ge.items.find((i: Expense) => i.vendorId)?.vendorId;
   const vendor = vendorId ? friendsMap.get(vendorId) : null;
 
-  if (isDateCollapsed) {
-    if (!isNewDateHeader) return null;
-    return (
-      <tr className="tx-date-header-row">
-        <td colSpan={6}>
-          <div
-            className="tx-date-header-content"
-            onClick={() => onToggleDateCollapse(ge.date)}
-            title="Click to expand date group"
-          >
-            <div className="tx-date-header-left">
-              <ChevronRight size={14} style={{ color: 'var(--accent)' }} />
-              <span>{fmtDate(ge.date)}</span>
-              <span style={{ fontSize: 11, background: 'var(--accent-soft)', color: 'var(--accent)', padding: '1px 8px', borderRadius: 10, fontWeight: 600 }}>
-                Collapsed ({dateExpensesCount})
-              </span>
-            </div>
-            <div className="tx-date-header-right">
-              <span>{dateExpensesCount} transaction{dateExpensesCount > 1 ? 's' : ''}</span>
-              {dateOutSum > 0 && <span className="tx-date-stat debit">-{fmtMoney(dateOutSum, currency)}</span>}
-              {dateInSum > 0 && <span className="tx-date-stat credit">+{fmtMoney(dateInSum, currency)}</span>}
-            </div>
-          </div>
-        </td>
-      </tr>
-    );
-  }
-
   return (
     <React.Fragment>
-      {isNewDateHeader && (
-        <tr className="tx-date-header-row">
-          <td colSpan={6}>
-            <div
-              className="tx-date-header-content"
-              onClick={() => onToggleDateCollapse(ge.date)}
-              title="Click to collapse date group"
-            >
-              <div className="tx-date-header-left">
-                <ChevronDown size={14} style={{ color: 'var(--accent)' }} />
-                <span>{fmtDate(ge.date)}</span>
-              </div>
-              <div className="tx-date-header-right">
-                <span>{dateExpensesCount} transaction{dateExpensesCount > 1 ? 's' : ''}</span>
-                {dateOutSum > 0 && <span className="tx-date-stat debit">-{fmtMoney(dateOutSum, currency)}</span>}
-                {dateInSum > 0 && <span className="tx-date-stat credit">+{fmtMoney(dateInSum, currency)}</span>}
-              </div>
-            </div>
-          </td>
-        </tr>
-      )}
       <tr className="modern-tx-row">
         <td>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -325,7 +264,7 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                   <div key={item.id || idx} style={{
                     background: 'var(--surface)',
                     border: '1px solid var(--border)',
-                    borderRadius: 6,
+                    borderRadius: 'var(--radius, 8px)',
                     padding: '8px 12px',
                     display: 'flex',
                     alignItems: 'center',
@@ -347,7 +286,7 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                         </div>
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 12 }}>{roleLabel}</div>
-                          <div style={{ fontSize: 10.5, color: item.settled ? '#10b981' : 'var(--text-3)' }}>{statusText}</div>
+                          <div style={{ fontSize: 10.5, color: item.settled ? 'var(--credit)' : 'var(--text-3)' }}>{statusText}</div>
                         </div>
                       </div>
                     )}

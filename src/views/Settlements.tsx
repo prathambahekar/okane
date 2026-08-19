@@ -7,13 +7,11 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  Search,
   Eye,
   Receipt,
   TrendingUp,
   TrendingDown,
   CheckCircle2,
-  X,
   Calendar,
   Users,
   Filter,
@@ -504,38 +502,8 @@ export default function Settlements() {
               </div>
             </div>
 
-            {/* Filter & Search Toolbar - ALL IN 1 ROW */}
+            {/* Filter Toolbar - ALL IN 1 ROW */}
             <div className="settlement-toolbar-row">
-              {/* Search Bar */}
-              <div className="settlement-search-wrap">
-                <Search size={14} className="settlement-search-icon" />
-                <input
-                  type="text"
-                  className="settlement-search-input"
-                  placeholder="Search settlements..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    className="btn-icon"
-                    onClick={() => setSearchQuery('')}
-                    style={{
-                      position: 'absolute',
-                      right: 6,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: 18,
-                      height: 18,
-                      padding: 0,
-                    }}
-                  >
-                    <X size={11} />
-                  </button>
-                )}
-              </div>
-
               {/* View Mode Toggle: Compact vs Detailed */}
               <div className="settlement-view-toggle" title="Switch View Mode">
                 <button
