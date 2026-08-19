@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import {
   Search,
   X,
@@ -26,10 +28,29 @@ interface Props {
   onNavigate: (view: ViewName, arg?: string) => void;
 }
 
-type SearchTab = 'context' | 'all' | 'expenses' | 'contacts' | 'wallets' | 'settlements' | 'trips' | 'recurring';
+type SearchTab = 'all' | 'expenses' | 'contacts' | 'wallets' | 'settlements' | 'trips' | 'recurring';
+
+interface TabItem {
+  id: SearchTab;
+  label: string;
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+}
+
+const TABS: TabItem[] = [
+  { id: 'all', label: 'All', icon: Sparkles },
+  { id: 'expenses', label: 'Expenses', icon: ReceiptText },
+  { id: 'contacts', label: 'Contacts', icon: Users },
+  { id: 'wallets', label: 'Wallets', icon: WalletIcon },
+  { id: 'settlements', label: 'Settlements', icon: Handshake },
+  { id: 'trips', label: 'Trips', icon: Compass },
+  { id: 'recurring', label: 'Subscriptions', icon: RefreshCw },
+];
 
 export default function ContextualSearchModal({ open, onClose, activeView, onNavigate }: Props) {
   const { db } = useStore();
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+
   const { expenses = [], friends = [], wallets = [], settlements = [], recurringRules = [], settings } = db;
   const trips: Trip[] = useMemo(() => {
     if (db.tripHistory && db.tripHistory.length > 0) return db.tripHistory;
@@ -38,25 +59,26 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
   }, [db.tripHistory, db.activeTrip]);
   const currency = settings?.currency || 'INR';
 
+  const defaultTab: SearchTab = useMemo(() => {
+    if (activeView === 'expenses') return 'expenses';
+    if (activeView === 'friends' || activeView === 'friend-detail') return 'contacts';
+    if (activeView === 'wallets') return 'wallets';
+    if (activeView === 'settlements') return 'settlements';
+    if (activeView === 'split-trips') return 'trips';
+    if (activeView === 'recurring') return 'recurring';
+    return 'all';
+  }, [activeView]);
+
   const [query, setQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<SearchTab>('context');
+  const [selectedTab, setSelectedTab] = useState<SearchTab | null>(null);
+  const activeTab = selectedTab ?? defaultTab;
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleClose = React.useCallback(() => {
     setQuery('');
-    setActiveTab('context');
+    setSelectedTab(null);
     onClose();
   }, [onClose]);
-
-  // Auto focus input on open
-  useEffect(() => {
-    if (open) {
-      const timer = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 60);
-      return () => clearTimeout(timer);
-    }
-  }, [open]);
 
   // Handle escape key
   useEffect(() => {
@@ -69,35 +91,12 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, handleClose]);
 
-  // Determine what "context" means based on activeView
-  const contextMeta = useMemo(() => {
-    switch (activeView) {
-      case 'expenses':
-        return { name: 'Expenses', tab: 'expenses' as SearchTab, icon: <ReceiptText size={14} /> };
-      case 'friends':
-      case 'friend-detail':
-        return { name: 'Contacts', tab: 'contacts' as SearchTab, icon: <Users size={14} /> };
-      case 'wallets':
-        return { name: 'Wallets', tab: 'wallets' as SearchTab, icon: <WalletIcon size={14} /> };
-      case 'settlements':
-        return { name: 'Settlements', tab: 'settlements' as SearchTab, icon: <Handshake size={14} /> };
-      case 'split-trips':
-        return { name: 'Trips', tab: 'trips' as SearchTab, icon: <Compass size={14} /> };
-      case 'recurring':
-        return { name: 'Subscriptions', tab: 'recurring' as SearchTab, icon: <RefreshCw size={14} /> };
-      default:
-        return { name: 'All Data', tab: 'all' as SearchTab, icon: <Sparkles size={14} /> };
-    }
-  }, [activeView]);
-
-  const resolvedTab: SearchTab = activeTab === 'context' ? contextMeta.tab : activeTab;
   const q = query.trim().toLowerCase();
 
   // Search Expenses
   const matchingExpenses = useMemo(() => {
-    if (resolvedTab !== 'all' && resolvedTab !== 'expenses') return [];
+    if (activeTab !== 'all' && activeTab !== 'expenses') return [];
     if (!q) {
-      // Return 8 most recent expenses for context
       return expenses.slice(0, 8);
     }
     return expenses.filter(e => {
@@ -109,14 +108,13 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
       const friendMatch = e.friendId ? (friends.find(f => f.id === e.friendId)?.name || '').toLowerCase().includes(q) : false;
       const vendorMatch = e.vendorId ? (friends.find(f => f.id === e.vendorId)?.name || '').toLowerCase().includes(q) : false;
       return descMatch || catMatch || notesMatch || amtMatch || dateMatch || friendMatch || vendorMatch;
-    }).slice(0, 25);
-  }, [expenses, friends, q, resolvedTab]);
+    }).slice(0, 30);
+  }, [expenses, friends, q, activeTab]);
 
   // Search Contacts (Friends, Vendors, Subscriptions)
   const matchingContacts = useMemo(() => {
-    if (resolvedTab !== 'all' && resolvedTab !== 'contacts') return [];
+    if (activeTab !== 'all' && activeTab !== 'contacts') return [];
     if (!q) {
-      // Return 8 contacts
       return friends.slice(0, 8);
     }
     return friends.filter(f => {
@@ -125,21 +123,21 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
       const notesMatch = (f.notes || '').toLowerCase().includes(q);
       const webMatch = (f.website || '').toLowerCase().includes(q);
       return nameMatch || catMatch || notesMatch || webMatch;
-    }).slice(0, 20);
-  }, [friends, q, resolvedTab]);
+    }).slice(0, 25);
+  }, [friends, q, activeTab]);
 
   // Search Wallets
   const matchingWallets = useMemo(() => {
-    if (resolvedTab !== 'all' && resolvedTab !== 'wallets') return [];
+    if (activeTab !== 'all' && activeTab !== 'wallets') return [];
     if (!q) return wallets;
     return wallets.filter(w => {
       return w.name.toLowerCase().includes(q);
     });
-  }, [wallets, q, resolvedTab]);
+  }, [wallets, q, activeTab]);
 
   // Search Settlements
   const matchingSettlements = useMemo(() => {
-    if (resolvedTab !== 'all' && resolvedTab !== 'settlements') return [];
+    if (activeTab !== 'all' && activeTab !== 'settlements') return [];
     if (!q) return settlements.slice(0, 8);
     return settlements.filter(s => {
       const friend = friends.find(f => f.id === s.friendId);
@@ -149,32 +147,32 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
       const amtMatch = String(s.amount).includes(q);
       const dateMatch = (s.date || '').toLowerCase().includes(q);
       return friendMatch || notesMatch || amtMatch || dateMatch;
-    }).slice(0, 20);
-  }, [settlements, friends, q, resolvedTab]);
+    }).slice(0, 25);
+  }, [settlements, friends, q, activeTab]);
 
   // Search Trips
   const matchingTrips = useMemo(() => {
-    if (resolvedTab !== 'all' && resolvedTab !== 'trips') return [];
+    if (activeTab !== 'all' && activeTab !== 'trips') return [];
     if (!q) return trips.slice(0, 6);
     return trips.filter((t: Trip) => {
       const nameMatch = (t.name || '').toLowerCase().includes(q);
       const groupMatch = (t.groupName || '').toLowerCase().includes(q);
       const memberMatch = t.members ? t.members.some(m => m.name.toLowerCase().includes(q)) : false;
       return nameMatch || groupMatch || memberMatch;
-    }).slice(0, 10);
-  }, [trips, q, resolvedTab]);
+    }).slice(0, 15);
+  }, [trips, q, activeTab]);
 
   // Search Recurring Rules
   const matchingRecurring = useMemo(() => {
-    if (resolvedTab !== 'all' && resolvedTab !== 'recurring') return [];
+    if (activeTab !== 'all' && activeTab !== 'recurring') return [];
     if (!q) return recurringRules.slice(0, 6);
     return recurringRules.filter(r => {
       const titleMatch = r.title.toLowerCase().includes(q);
       const catMatch = (r.category || '').toLowerCase().includes(q);
       const freqMatch = (r.frequency || '').toLowerCase().includes(q);
       return titleMatch || catMatch || freqMatch;
-    }).slice(0, 10);
-  }, [recurringRules, q, resolvedTab]);
+    }).slice(0, 15);
+  }, [recurringRules, q, activeTab]);
 
   const totalResultsCount =
     matchingExpenses.length +
@@ -186,6 +184,21 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
 
   if (!open) return null;
 
+  const placeholderText =
+    activeTab === 'expenses'
+      ? 'Search expenses by title, category, amount...'
+      : activeTab === 'contacts'
+      ? 'Search friends, vendors, contacts...'
+      : activeTab === 'wallets'
+      ? 'Search wallet accounts...'
+      : activeTab === 'settlements'
+      ? 'Search settlements & notes...'
+      : activeTab === 'trips'
+      ? 'Search trips & split groups...'
+      : activeTab === 'recurring'
+      ? 'Search subscriptions & autopays...'
+      : 'Search across expenses, contacts, wallets...';
+
   return (
     <div
       style={{
@@ -193,267 +206,206 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
         inset: 0,
         zIndex: 9999,
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: isMobile ? 'flex-end' : 'flex-start',
         justifyContent: 'center',
-        padding: '16px',
-        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)',
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        padding: isMobile ? '0px' : '20px 16px',
+        paddingTop: isMobile ? '0px' : 'calc(env(safe-area-inset-top, 0px) + 24px)',
+        backgroundColor: 'rgba(0, 0, 0, 0.72)',
         backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         animation: 'fadein 0.15s ease',
       }}
       onClick={e => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleClose();
       }}
     >
       <div
         style={{
           width: '100%',
-          maxWidth: '640px',
-          maxHeight: '88vh',
+          maxWidth: isMobile ? '100%' : '620px',
+          height: isMobile ? '70vh' : 'auto',
+          maxHeight: isMobile ? '72vh' : '82vh',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: '14px',
-          boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+          border: isMobile ? 'none' : '1px solid var(--border)',
+          borderTop: isMobile ? '1px solid var(--border)' : undefined,
+          borderTopLeftRadius: isMobile ? '20px' : '16px',
+          borderTopRightRadius: isMobile ? '20px' : '16px',
+          borderBottomLeftRadius: isMobile ? '0px' : '16px',
+          borderBottomRightRadius: isMobile ? '0px' : '16px',
+          boxShadow: isMobile
+            ? '0 -8px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+            : '0 24px 48px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--border)',
           overflow: 'hidden',
+          animation: isMobile ? 'slideup 0.25s cubic-bezier(0.16, 1, 0.3, 1)' : undefined,
         }}
       >
+        {/* Mobile Drawer Grab Handle */}
+        {isMobile && (
+          <div
+            style={{
+              paddingTop: '10px',
+              paddingBottom: '2px',
+              display: 'flex',
+              justifyContent: 'center',
+              backgroundColor: 'var(--surface)',
+              cursor: 'grab',
+            }}
+          >
+            <div
+              style={{
+                width: '36px',
+                height: '4px',
+                borderRadius: '2px',
+                backgroundColor: 'var(--text-3)',
+                opacity: 0.35,
+              }}
+            />
+          </div>
+        )}
+
         {/* Search Input Header */}
         <div
           style={{
-            padding: '14px 16px',
-            borderBottom: '1px solid var(--border)',
+            padding: isMobile ? '8px 16px 6px 16px' : '14px 18px 8px 18px',
+            borderBottom: 'none',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
-            backgroundColor: 'var(--surface2)',
+            gap: '10px',
+            backgroundColor: 'var(--surface)',
           }}
         >
-          <Search size={20} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder={
-              resolvedTab === 'expenses'
-                ? 'Search expenses by name, category, amount...'
-                : resolvedTab === 'contacts'
-                ? 'Search contacts, friends, vendors, subscriptions...'
-                : resolvedTab === 'wallets'
-                ? 'Search wallets and accounts...'
-                : resolvedTab === 'settlements'
-                ? 'Search settlement records...'
-                : resolvedTab === 'trips'
-                ? 'Search trips and split groups...'
-                : resolvedTab === 'recurring'
-                ? 'Search subscriptions & autopays...'
-                : 'Search across expenses, contacts, wallets...'
-            }
-            value={query}
-            onChange={e => setQuery(e.target.value)}
+          {/* Inner Search Box */}
+          <div
             style={{
               flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              fontSize: '15px',
-              fontWeight: 500,
-              color: 'var(--text)',
-            }}
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery('');
-                inputRef.current?.focus();
-              }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-3)',
-                cursor: 'pointer',
-                padding: '4px',
-                display: 'grid',
-                placeItems: 'center',
-                borderRadius: '4px',
-              }}
-            >
-              <X size={16} />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              background: 'var(--surface3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              backgroundColor: 'var(--surface2)',
               border: '1px solid var(--border)',
-              borderRadius: '6px',
-              padding: '4px 8px',
-              fontSize: '11.5px',
-              fontWeight: 600,
-              color: 'var(--text-2)',
-              cursor: 'pointer',
+              borderRadius: '12px',
+              padding: '8px 12px',
+              minWidth: 0,
             }}
           >
-            Esc
+            <Search size={18} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder={placeholderText}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                fontSize: '14.5px',
+                fontWeight: 450,
+                color: 'var(--text)',
+                minWidth: 0,
+              }}
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('');
+                  if (!isMobile) {
+                    inputRef.current?.focus();
+                  }
+                }}
+                style={{
+                  background: 'var(--surface3)',
+                  border: 'none',
+                  color: 'var(--text-2)',
+                  cursor: 'pointer',
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  display: 'grid',
+                  placeItems: 'center',
+                  padding: 0,
+                  flexShrink: 0,
+                }}
+                aria-label="Clear query"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={handleClose}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              backgroundColor: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-2)',
+              cursor: 'pointer',
+              display: 'grid',
+              placeItems: 'center',
+              padding: 0,
+              flexShrink: 0,
+              transition: 'all 0.15s ease',
+            }}
+            aria-label="Close search"
+          >
+            <X size={18} />
           </button>
         </div>
 
         {/* Dynamic Context Tabs */}
         <div
+          className="search-tabs-scroll"
           style={{
-            padding: '8px 12px',
-            borderBottom: '1px solid var(--border)',
+            padding: '4px 16px 10px 16px',
+            borderBottom: 'none',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '8px',
             overflowX: 'auto',
             backgroundColor: 'var(--surface)',
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
-          <button
-            type="button"
-            onClick={() => setActiveTab('context')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: activeTab === 'context' ? 700 : 500,
-              background: activeTab === 'context' ? 'var(--accent)' : 'var(--surface2)',
-              color: activeTab === 'context' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-              border: '1px solid',
-              borderColor: activeTab === 'context' ? 'var(--accent)' : 'var(--border)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {contextMeta.icon}
-            <span>Current: {contextMeta.name}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('all')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: activeTab === 'all' ? 700 : 500,
-              background: activeTab === 'all' ? 'var(--accent)' : 'var(--surface2)',
-              color: activeTab === 'all' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-              border: '1px solid',
-              borderColor: activeTab === 'all' ? 'var(--accent)' : 'var(--border)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            All
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('expenses')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: activeTab === 'expenses' ? 700 : 500,
-              background: activeTab === 'expenses' ? 'var(--accent)' : 'var(--surface2)',
-              color: activeTab === 'expenses' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-              border: '1px solid',
-              borderColor: activeTab === 'expenses' ? 'var(--accent)' : 'var(--border)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <ReceiptText size={13} />
-            <span>Expenses</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('contacts')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: activeTab === 'contacts' ? 700 : 500,
-              background: activeTab === 'contacts' ? 'var(--accent)' : 'var(--surface2)',
-              color: activeTab === 'contacts' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-              border: '1px solid',
-              borderColor: activeTab === 'contacts' ? 'var(--accent)' : 'var(--border)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Users size={13} />
-            <span>Contacts</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('wallets')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: activeTab === 'wallets' ? 700 : 500,
-              background: activeTab === 'wallets' ? 'var(--accent)' : 'var(--surface2)',
-              color: activeTab === 'wallets' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-              border: '1px solid',
-              borderColor: activeTab === 'wallets' ? 'var(--accent)' : 'var(--border)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <WalletIcon size={13} />
-            <span>Wallets</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('settlements')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: activeTab === 'settlements' ? 700 : 500,
-              background: activeTab === 'settlements' ? 'var(--accent)' : 'var(--surface2)',
-              color: activeTab === 'settlements' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-              border: '1px solid',
-              borderColor: activeTab === 'settlements' ? 'var(--accent)' : 'var(--border)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Handshake size={13} />
-            <span>Settlements</span>
-          </button>
+          {TABS.map(tab => {
+            const Icon = tab.icon;
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setSelectedTab(tab.id)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12.5px',
+                  fontWeight: isSelected ? 600 : 500,
+                  backgroundColor: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                  color: isSelected ? 'var(--accent)' : 'var(--text-2)',
+                  border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Icon size={14} style={{ color: isSelected ? 'var(--accent)' : 'var(--text-3)' }} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Results List */}
@@ -461,18 +413,38 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '12px',
+            WebkitOverflowScrolling: 'touch',
+            padding: '14px 16px',
+            paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 20px)' : '16px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '14px',
+            gap: '16px',
           }}
         >
           {totalResultsCount === 0 ? (
-            <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-3)' }}>
-              <Search size={32} style={{ margin: '0 auto 10px auto', opacity: 0.4 }} />
-              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-2)' }}>No results found</div>
-              <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                No matches for &ldquo;{query}&rdquo; in {resolvedTab}
+            <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-3)' }}>
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  margin: '0 auto 12px auto',
+                  color: 'var(--text-3)',
+                }}
+              >
+                <Search size={22} />
+              </div>
+              <div style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text)' }}>No results found</div>
+              <div style={{ fontSize: '12.5px', color: 'var(--text-3)', marginTop: '4px' }}>
+                {query ? (
+                  <span>No matches found for &ldquo;{query}&rdquo;</span>
+                ) : (
+                  <span>No records available in this category</span>
+                )}
               </div>
             </div>
           ) : (
@@ -487,17 +459,17 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
                       color: 'var(--text-3)',
-                      marginBottom: '6px',
-                      paddingLeft: '4px',
+                      marginBottom: '8px',
+                      paddingLeft: '2px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                     }}
                   >
                     <span>Expenses ({matchingExpenses.length})</span>
-                    {!q && <span style={{ fontSize: '10px', fontWeight: 500 }}>Recent</span>}
+                    {!q && <span style={{ fontSize: '10px', fontWeight: 500, opacity: 0.8 }}>Recent</span>}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {matchingExpenses.map(e => {
                       const isOut = expenseFlow(e) === 'out';
                       const friend = e.friendId ? friends.find(f => f.id === e.friendId) : null;
@@ -505,35 +477,45 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                         <div
                           key={e.id}
                           onClick={() => {
-                            onClose();
+                            handleClose();
                             onNavigate('expenses');
                           }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '10px 12px',
+                            padding: '11px 13px',
                             background: 'var(--surface2)',
                             border: '1px solid var(--border)',
-                            borderRadius: '8px',
+                            borderRadius: '12px',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
                           onMouseEnter={ev => {
                             ev.currentTarget.style.borderColor = 'var(--accent)';
-                            ev.currentTarget.style.transform = 'translateY(-1px)';
                           }}
                           onMouseLeave={ev => {
                             ev.currentTarget.style.borderColor = 'var(--border)';
-                            ev.currentTarget.style.transform = 'none';
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                            <CategoryIcon category={e.category} size={15} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
+                            <div
+                              style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '10px',
+                                backgroundColor: 'var(--surface3)',
+                                display: 'grid',
+                                placeItems: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <CategoryIcon category={e.category} size={17} />
+                            </div>
                             <div style={{ minWidth: 0 }}>
                               <div
                                 style={{
-                                  fontSize: '13px',
+                                  fontSize: '13.5px',
                                   fontWeight: 600,
                                   color: 'var(--text)',
                                   overflow: 'hidden',
@@ -543,26 +525,35 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               >
                                 {e.description}
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  fontSize: '11.5px',
+                                  color: 'var(--text-3)',
+                                  marginTop: '2px',
+                                }}
+                              >
                                 <span>{e.category}</span>
                                 <span>•</span>
                                 <span>{fmtDate(e.date)}</span>
                                 {friend && (
                                   <>
                                     <span>•</span>
-                                    <span style={{ color: 'var(--accent)' }}>{friend.name}</span>
+                                    <span style={{ color: 'var(--accent)', fontWeight: 500 }}>{friend.name}</span>
                                   </>
                                 )}
                               </div>
                             </div>
                           </div>
 
-                          <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: '8px' }}>
+                          <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: '10px' }}>
                             <div
                               style={{
-                                fontSize: '13.5px',
+                                fontSize: '14px',
                                 fontWeight: 700,
-                                color: isOut ? 'var(--debit)' : 'var(--credit)',
+                                color: isOut ? 'var(--debit, #ef4444)' : 'var(--credit, #22c55e)',
                               }}
                             >
                               {isOut ? '-' : '+'}{fmtMoney(Number(e.amount), currency)}
@@ -585,8 +576,8 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
                       color: 'var(--text-3)',
-                      marginBottom: '6px',
-                      paddingLeft: '4px',
+                      marginBottom: '8px',
+                      paddingLeft: '2px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -594,7 +585,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                   >
                     <span>Contacts & Vendors ({matchingContacts.length})</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {matchingContacts.map(f => {
                       const bal = friendBalance(db, f.id);
                       const fType = f.type || 'friend';
@@ -604,49 +595,47 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                         <div
                           key={f.id}
                           onClick={() => {
-                            onClose();
+                            handleClose();
                             onNavigate('friend-detail', f.id);
                           }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '10px 12px',
+                            padding: '11px 13px',
                             background: 'var(--surface2)',
                             border: '1px solid var(--border)',
-                            borderRadius: '8px',
+                            borderRadius: '12px',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
                           onMouseEnter={ev => {
                             ev.currentTarget.style.borderColor = 'var(--accent)';
-                            ev.currentTarget.style.transform = 'translateY(-1px)';
                           }}
                           onMouseLeave={ev => {
                             ev.currentTarget.style.borderColor = 'var(--border)';
-                            ev.currentTarget.style.transform = 'none';
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
                             <div
                               style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '10px',
                                 display: 'grid',
                                 placeItems: 'center',
-                                fontSize: '12px',
+                                fontSize: '13px',
                                 fontWeight: 700,
                                 flexShrink: 0,
                                 ...avatarStyle,
                               }}
                             >
-                              {fType === 'vendor' ? <Store size={14} /> : fType === 'subscription' ? <Tv size={14} /> : friendInitial(f.name)}
+                              {fType === 'vendor' ? <Store size={16} /> : fType === 'subscription' ? <Tv size={16} /> : friendInitial(f.name)}
                             </div>
                             <div style={{ minWidth: 0 }}>
                               <div
                                 style={{
-                                  fontSize: '13px',
+                                  fontSize: '13.5px',
                                   fontWeight: 600,
                                   color: 'var(--text)',
                                   overflow: 'hidden',
@@ -656,23 +645,23 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               >
                                 {f.name}
                               </div>
-                              <div style={{ fontSize: '11px', color: 'var(--text-3)', textTransform: 'capitalize', marginTop: '2px' }}>
+                              <div style={{ fontSize: '11.5px', color: 'var(--text-3)', textTransform: 'capitalize', marginTop: '2px' }}>
                                 {fType} {f.category ? `• ${f.category}` : ''}
                               </div>
                             </div>
                           </div>
 
-                          <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: '8px' }}>
+                          <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: '10px' }}>
                             {bal.net > 0.004 ? (
-                              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--credit)' }}>
+                              <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--credit, #22c55e)' }}>
                                 Owes {fmtMoney(bal.owedToMe, currency)}
                               </span>
                             ) : bal.net < -0.004 ? (
-                              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--debit)' }}>
+                              <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--debit, #ef4444)' }}>
                                 You owe {fmtMoney(bal.owedByMe, currency)}
                               </span>
                             ) : (
-                              <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-3)' }}>
+                              <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--text-3)' }}>
                                 Settled
                               </span>
                             )}
@@ -694,64 +683,63 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
                       color: 'var(--text-3)',
-                      marginBottom: '6px',
-                      paddingLeft: '4px',
+                      marginBottom: '8px',
+                      paddingLeft: '2px',
                     }}
                   >
                     <span>Wallets ({matchingWallets.length})</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {matchingWallets.map(w => {
                       const bal = walletBalance(db, w.id);
                       return (
                         <div
                           key={w.id}
                           onClick={() => {
-                            onClose();
+                            handleClose();
                             onNavigate('wallets');
                           }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '10px 12px',
+                            padding: '11px 13px',
                             background: 'var(--surface2)',
                             border: '1px solid var(--border)',
-                            borderRadius: '8px',
+                            borderRadius: '12px',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
                           onMouseEnter={ev => {
                             ev.currentTarget.style.borderColor = 'var(--accent)';
-                            ev.currentTarget.style.transform = 'translateY(-1px)';
                           }}
                           onMouseLeave={ev => {
                             ev.currentTarget.style.borderColor = 'var(--border)';
-                            ev.currentTarget.style.transform = 'none';
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
                             <div
                               style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '8px',
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '10px',
                                 backgroundColor: 'var(--surface3)',
                                 border: '1px solid var(--border)',
                                 color: 'var(--accent)',
                                 display: 'grid',
                                 placeItems: 'center',
+                                flexShrink: 0,
                               }}
                             >
-                              <WalletIcon size={16} />
+                              <WalletIcon size={17} />
                             </div>
                             <div>
-                              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{w.name}</div>
-                              <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>Wallet Account</div>
+                              <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{w.name}</div>
+                              <div style={{ fontSize: '11.5px', color: 'var(--text-3)' }}>Wallet Account</div>
                             </div>
                           </div>
 
-                          <div style={{ fontSize: '13.5px', fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: bal < 0 ? 'var(--debit, #ef4444)' : 'var(--text)' }}>
                             {fmtMoney(bal, currency)}
                           </div>
                         </div>
@@ -771,66 +759,65 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
                       color: 'var(--text-3)',
-                      marginBottom: '6px',
-                      paddingLeft: '4px',
+                      marginBottom: '8px',
+                      paddingLeft: '2px',
                     }}
                   >
                     <span>Settlements ({matchingSettlements.length})</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {matchingSettlements.map(s => {
                       const friend = friends.find(f => f.id === s.friendId);
                       return (
                         <div
                           key={s.id}
                           onClick={() => {
-                            onClose();
+                            handleClose();
                             onNavigate('settlements');
                           }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '10px 12px',
+                            padding: '11px 13px',
                             background: 'var(--surface2)',
                             border: '1px solid var(--border)',
-                            borderRadius: '8px',
+                            borderRadius: '12px',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
                           onMouseEnter={ev => {
                             ev.currentTarget.style.borderColor = 'var(--accent)';
-                            ev.currentTarget.style.transform = 'translateY(-1px)';
                           }}
                           onMouseLeave={ev => {
                             ev.currentTarget.style.borderColor = 'var(--border)';
-                            ev.currentTarget.style.transform = 'none';
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
                             <div
                               style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '10px',
                                 backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                                border: '1px solid var(--credit)',
-                                color: 'var(--credit)',
+                                border: '1px solid var(--credit, #22c55e)',
+                                color: 'var(--credit, #22c55e)',
                                 display: 'grid',
                                 placeItems: 'center',
+                                flexShrink: 0,
                               }}
                             >
-                              <Handshake size={15} />
+                              <Handshake size={17} />
                             </div>
                             <div>
-                              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>
+                              <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>
                                 Settled with {friend?.name || 'Contact'}
                               </div>
-                              <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{fmtDate(s.date)}</div>
+                              <div style={{ fontSize: '11.5px', color: 'var(--text-3)' }}>{fmtDate(s.date)}</div>
                             </div>
                           </div>
 
-                          <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--credit)' }}>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--credit, #22c55e)' }}>
                             +{fmtMoney(Number(s.amount), currency)}
                           </div>
                         </div>
@@ -850,48 +837,60 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
                       color: 'var(--text-3)',
-                      marginBottom: '6px',
-                      paddingLeft: '4px',
+                      marginBottom: '8px',
+                      paddingLeft: '2px',
                     }}
                   >
                     <span>Trips ({matchingTrips.length})</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {matchingTrips.map((t: Trip) => (
                       <div
                         key={t.id}
                         onClick={() => {
-                          onClose();
+                          handleClose();
                           onNavigate('split-trips');
                         }}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          padding: '10px 12px',
+                          padding: '11px 13px',
                           background: 'var(--surface2)',
                           border: '1px solid var(--border)',
-                          borderRadius: '8px',
+                          borderRadius: '12px',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                         }}
                         onMouseEnter={ev => {
                           ev.currentTarget.style.borderColor = 'var(--accent)';
-                          ev.currentTarget.style.transform = 'translateY(-1px)';
                         }}
                         onMouseLeave={ev => {
                           ev.currentTarget.style.borderColor = 'var(--border)';
-                          ev.currentTarget.style.transform = 'none';
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <Compass size={18} style={{ color: 'var(--accent)' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '10px',
+                              backgroundColor: 'var(--surface3)',
+                              border: '1px solid var(--border)',
+                              color: 'var(--accent)',
+                              display: 'grid',
+                              placeItems: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Compass size={18} />
+                          </div>
                           <div>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{t.name}</div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{t.groupName || 'Trip Group'}</div>
+                            <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{t.name}</div>
+                            <div style={{ fontSize: '11.5px', color: 'var(--text-3)' }}>{t.groupName || 'Trip Group'}</div>
                           </div>
                         </div>
-                        <ChevronRight size={14} style={{ color: 'var(--text-3)' }} />
+                        <ChevronRight size={16} style={{ color: 'var(--text-3)' }} />
                       </div>
                     ))}
                   </div>
@@ -908,50 +907,62 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
                       color: 'var(--text-3)',
-                      marginBottom: '6px',
-                      paddingLeft: '4px',
+                      marginBottom: '8px',
+                      paddingLeft: '2px',
                     }}
                   >
                     <span>Recurring & Subscriptions ({matchingRecurring.length})</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {matchingRecurring.map(r => (
                       <div
                         key={r.id}
                         onClick={() => {
-                          onClose();
+                          handleClose();
                           onNavigate('recurring');
                         }}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          padding: '10px 12px',
+                          padding: '11px 13px',
                           background: 'var(--surface2)',
                           border: '1px solid var(--border)',
-                          borderRadius: '8px',
+                          borderRadius: '12px',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                         }}
                         onMouseEnter={ev => {
                           ev.currentTarget.style.borderColor = 'var(--accent)';
-                          ev.currentTarget.style.transform = 'translateY(-1px)';
                         }}
                         onMouseLeave={ev => {
                           ev.currentTarget.style.borderColor = 'var(--border)';
-                          ev.currentTarget.style.transform = 'none';
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <RefreshCw size={16} style={{ color: 'var(--accent)' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '10px',
+                              backgroundColor: 'var(--surface3)',
+                              border: '1px solid var(--border)',
+                              color: 'var(--accent)',
+                              display: 'grid',
+                              placeItems: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <RefreshCw size={17} />
+                          </div>
                           <div>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{r.title}</div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-3)', textTransform: 'capitalize' }}>
+                            <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>{r.title}</div>
+                            <div style={{ fontSize: '11.5px', color: 'var(--text-3)', textTransform: 'capitalize' }}>
                               {r.frequency} • {r.category}
                             </div>
                           </div>
                         </div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
                           {fmtMoney(Number(r.amount), currency)}
                         </div>
                       </div>
@@ -961,23 +972,6 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
               )}
             </>
           )}
-        </div>
-
-        {/* Footer Hint */}
-        <div
-          style={{
-            padding: '8px 16px',
-            borderTop: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '11px',
-            color: 'var(--text-3)',
-            backgroundColor: 'var(--surface2)',
-          }}
-        >
-          <span>Context-aware search for <strong>{contextMeta.name}</strong></span>
-          <span>Shortcut: <strong>Ctrl + K</strong></span>
         </div>
       </div>
     </div>

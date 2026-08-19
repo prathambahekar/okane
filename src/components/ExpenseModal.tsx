@@ -1339,14 +1339,32 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={onClose}
+              style={{
+                borderRadius: 10,
+                padding: '9px 16px',
+                fontWeight: 500,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-2)',
+              }}
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               className="btn btn-primary btn-sm"
               style={{
-                background: flow === 'in'
-                  ? 'linear-gradient(135deg, #2e7d32, #1b5e20)'
-                  : undefined
+                borderRadius: 10,
+                padding: '9px 18px',
+                fontWeight: 600,
+                background: flow === 'in' ? 'var(--credit)' : 'var(--accent)',
+                color: '#ffffff',
+                border: 'none',
+                boxShadow: flow === 'in' ? '0 2px 8px var(--credit-bg)' : '0 2px 8px var(--accent-soft)',
               }}
             >
               {expense ? 'Save Changes' : flow === 'out' ? 'Record Expense' : 'Record Income'}

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, Layers, ArrowUpRight, ArrowDownLeft, ReceiptText, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Plus, Layers, ArrowUpRight, ArrowDownLeft, ReceiptText, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense } from '../types';
 import { cleanExpenseDescription, getGroupSettlementStatus, groupExpenses, fmtMoney, fmtDate } from '../utils';
@@ -236,20 +236,227 @@ export default function Expenses() {
         </button>
       </div>
 
-      {/* Spent / Received Main Tabs */}
-      <div className="tab-list" style={{ marginBottom: 14 }}>
-        <button className={`tab-btn ${flowFilter === '' ? 'active' : ''}`} onClick={() => setFlowFilter('')}>
-          <Layers size={14} /> All
-        </button>
-        <button className={`tab-btn ${flowFilter === 'out' ? 'active' : ''}`} onClick={() => setFlowFilter('out')}>
-          <ArrowUpRight size={14} /> Spent
-        </button>
-        <button className={`tab-btn ${flowFilter === 'in' ? 'active' : ''}`} onClick={() => setFlowFilter('in')}>
-          <ArrowDownLeft size={14} /> Received
-        </button>
+      {/* Merged Clean Filter & Actions Bar */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+        {/* Unified Top Control Bar - Strictly Single Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
+          {/* Flow Filter Segmented Switch - Takes remaining horizontal space on mobile */}
+          <div className="expense-flow-switch">
+            <button
+              type="button"
+              className={`flow-btn ${flowFilter === '' ? 'active' : ''}`}
+              onClick={() => setFlowFilter('')}
+            >
+              <Layers size={13} style={{ opacity: flowFilter === '' ? 1 : 0.7 }} />
+              <span>All</span>
+            </button>
+
+            <button
+              type="button"
+              className={`flow-btn flow-spent ${flowFilter === 'out' ? 'active' : ''}`}
+              onClick={() => setFlowFilter('out')}
+            >
+              <ArrowUpRight size={13} style={{ color: 'var(--debit, #ef4444)' }} />
+              <span>Spent</span>
+            </button>
+
+            <button
+              type="button"
+              className={`flow-btn flow-received ${flowFilter === 'in' ? 'active' : ''}`}
+              onClick={() => setFlowFilter('in')}
+            >
+              <ArrowDownLeft size={13} style={{ color: 'var(--credit, #22c55e)' }} />
+              <span>Received</span>
+            </button>
+          </div>
+
+          {/* Right Action: Filter Button (Icon-only on Mobile) */}
+          <button
+            type="button"
+            onClick={() => setShowFilters(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              height: 36,
+              padding: '0 10px',
+              borderRadius: '10px',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              backgroundColor: activeFilterCount > 0 ? 'var(--accent-soft)' : 'var(--surface2)',
+              color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-2)',
+              border: activeFilterCount > 0 ? '1px solid var(--accent)' : '1px solid var(--border)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              flexShrink: 0,
+            }}
+            title="Filters & Sorting"
+            aria-label="Open Filters"
+          >
+            <SlidersHorizontal size={15} style={{ color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-2)' }} />
+            <span className="desktop-only">Filters</span>
+            {activeFilterCount > 0 && (
+              <span
+                style={{
+                  backgroundColor: 'var(--accent)',
+                  color: 'var(--accent-contrast, #ffffff)',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  borderRadius: '10px',
+                  padding: '1px 5px',
+                  lineHeight: 1.2,
+                }}
+              >
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Active Filter Chips Only (Summary text removed) */}
+        {activeFilterCount > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', padding: '0 2px' }}>
+            {catFilter && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  backgroundColor: 'var(--surface3)',
+                  color: 'var(--text-2)',
+                }}
+              >
+                Category: {catFilter}
+                <button
+                  type="button"
+                  onClick={() => setCatFilter('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-3)',
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                >
+                  ✕
+                </button>
+              </span>
+            )}
+            {typeFilter && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  backgroundColor: 'var(--surface3)',
+                  color: 'var(--text-2)',
+                }}
+              >
+                Type: {typeFilter.replace('_', ' ')}
+                <button
+                  type="button"
+                  onClick={() => setTypeFilter('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-3)',
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                >
+                  ✕
+                </button>
+              </span>
+            )}
+            {walletFilter && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  backgroundColor: 'var(--surface3)',
+                  color: 'var(--text-2)',
+                }}
+              >
+                Wallet: {walletsMap.get(walletFilter)?.name || walletFilter}
+                <button
+                  type="button"
+                  onClick={() => setWalletFilter('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-3)',
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                >
+                  ✕
+                </button>
+              </span>
+            )}
+            {sort !== 'date-desc' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  backgroundColor: 'var(--surface3)',
+                  color: 'var(--text-2)',
+                }}
+              >
+                Sort: {sort.replace('-', ' ')}
+                <button
+                  type="button"
+                  onClick={() => setSort('date-desc')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-3)',
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                >
+                  ✕
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleClearAllFilters}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--accent)',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: '2px 4px',
+              }}
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Filter & Search Toolbar Sub-component */}
+      {/* Mini Filter Drawer */}
       <ExpenseFilterBar
         search={search}
         setSearch={setSearch}
@@ -271,6 +478,9 @@ export default function Expenses() {
         categories={db.settings.categories}
         wallets={db.wallets}
         onClearAll={handleClearAllFilters}
+        filteredCount={filtered.length}
+        allCollapsed={allCollapsed}
+        toggleAllDateCollapse={toggleAllDateCollapse}
       />
 
       {filtered.length === 0 ? (
@@ -284,25 +494,6 @@ export default function Expenses() {
         </div>
       ) : (
         <>
-          {/* Quick Date Cards Toolbar */}
-          <div className="expense-date-toolbar">
-            <div className="expense-date-toolbar-summary">
-              <span>{filtered.length} transaction{filtered.length === 1 ? '' : 's'} across {dateGroups.length} date{dateGroups.length === 1 ? '' : 's'}</span>
-            </div>
-            <div className="expense-date-toolbar-actions">
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                style={{ fontSize: 11.5, padding: '4px 10px', height: 28 }}
-                onClick={toggleAllDateCollapse}
-                title={allCollapsed ? 'Expand all date groups' : 'Collapse all date groups'}
-              >
-                <ChevronsUpDown size={13} />
-                <span>{allCollapsed ? 'Expand All' : 'Collapse All'}</span>
-              </button>
-            </div>
-          </div>
-
           {/* List of distinct date cards separated with gap */}
           <div className="expense-date-cards-container">
             {dateGroups.map(group => {
@@ -334,7 +525,7 @@ export default function Expenses() {
                         {relativeLabel && <span className="badge-relative-date">{relativeLabel}</span>}
                       </div>
                       <span className="expense-date-count">
-                        ({group.items.length})
+                        {group.items.length}
                       </span>
                     </div>
 
@@ -406,7 +597,7 @@ export default function Expenses() {
 
                       {/* Mobile Expandable Cards View */}
                       <div className="mobile-expense-list mobile-only">
-                        {group.items.map((ge, idx) => {
+                        {group.items.map(ge => {
                           const cat = categoriesMap.get(ge.category);
                           const stl = ge.items.reduce<typeof db.settlements[0] | null | undefined>((found, item) => {
                             if (found) return found;
@@ -433,8 +624,6 @@ export default function Expenses() {
                               onDelete={setDelId}
                               onUndo={setUndoExpId}
                               groupStatus={groupStatus}
-                              isEvenGroup={idx % 2 === 0}
-                              isFirstOfDate={idx === 0}
                               categoryObj={cat}
                               walletObj={wallet}
                               friendsMap={friendsMap}

@@ -34,7 +34,6 @@ import {
   ArrowLeft,
   X,
   HelpCircle,
-  Search,
 } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import { useColorMode, type AccentPreset } from './theme';
@@ -609,24 +608,6 @@ function AppInner() {
                   {fmtMoney(totalBal, currency)}
                 </Box>
               )}
-
-              <IconButton
-                size="small"
-                onClick={() => setShowSearchModal(true)}
-                sx={{
-                  color: 'text.primary',
-                  bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                  p: 0.8,
-                  borderRadius: '10px',
-                  border: '1px solid var(--border)',
-                  '&:hover': { bgcolor: 'action.hover', borderColor: 'var(--accent)' },
-                  '&:active': { transform: 'scale(0.92)' }
-                }}
-                title="Search (Ctrl + K)"
-                aria-label="Search"
-              >
-                <Search size={17} />
-              </IconButton>
 
               <NotificationBell onNavigate={navigate} />
             </Box>

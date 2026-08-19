@@ -55,7 +55,8 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
     }
   }
 
-  const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
+  const isTransfer = ge.category === 'Transfer' || ge.items.some((i: Expense) => i.category === 'Transfer');
+  const isIn = ge.flow === 'in' && !isTransfer;
   const friendsInGroup = ge.friendIds.map((fid: string) => friendsMap.get(fid)).filter(Boolean);
   const vendorId = ge.vendorId || ge.items.find((i: Expense) => i.vendorId)?.vendorId;
   const vendor = vendorId ? friendsMap.get(vendorId) : null;
@@ -192,12 +193,10 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
           {groupStatus.statusKey !== 'none' && groupStatus.statusLabel ? (
             ge.isSettlementGroup ? (
               <span className="tx-status-pill status-settled">
-                <span className="status-dot" />
                 <span>Settled ✓</span>
               </span>
             ) : (
               <span className={`tx-status-pill status-${groupStatus.statusKey}`}>
-                <span className="status-dot" />
                 <span>{groupStatus.statusLabel}</span>
               </span>
             )
@@ -229,7 +228,7 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
           </div>
         </td>
       </tr>
-      {isExpanded && (ge.isSplit || ge.items.length > 1 || ge.isSettlementGroup) && (
+      {isExpanded && !isTransfer && (ge.isSplit || (ge.items.length > 1 && ge.friendIds.length > 0) || ge.isSettlementGroup) && (
         <tr style={{ background: 'var(--surface2)' }}>
           <td colSpan={6} style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
