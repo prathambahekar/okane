@@ -20,6 +20,7 @@ import { useStore } from '../store';
 import type { RecurringRule, RecurringKind, FrequencyType, ExpenseType } from '../types';
 import { todayISO, computeNextDueDate } from '../db';
 import { currencySymbol, getAvatarStyle, friendInitial } from '../utils';
+import { NoteEditorModal } from './common/NoteEditorModal';
 
 interface Props {
   rule?: RecurringRule | null;
@@ -91,7 +92,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
   const [userEditedDueDate, setUserEditedDueDate] = useState(Boolean(rule?.nextDueDate));
   const [autoDeduct, setAutoDeduct] = useState(rule?.autoDeduct ?? true);
   const [notes, setNotes] = useState(rule?.notes || '');
-  const [showNoteInput, setShowNoteInput] = useState(Boolean(rule?.notes));
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [error, setError] = useState('');
 
   const isSubscription = kind === 'autopay';
@@ -429,20 +430,21 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 </label>
                 <button
                   type="button"
-                  onClick={() => setShowNoteInput(!showNoteInput)}
-                  title={showNoteInput ? 'Hide note' : 'Add a note'}
+                  onClick={() => setIsNoteModalOpen(true)}
+                  title={notes ? `Note: "${notes}"` : 'Add a note'}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 3.5,
-                    background: notes || showNoteInput ? 'var(--accent-soft)' : 'transparent',
-                    border: 'none',
-                    borderRadius: 4,
-                    padding: '1px 5px',
+                    background: notes ? 'var(--accent-soft)' : 'transparent',
+                    border: notes ? '1px solid var(--accent-border-soft, rgba(236,72,153,0.25))' : 'none',
+                    borderRadius: 6,
+                    padding: notes ? '2px 7px' : '2px 0',
                     fontSize: 10.5,
-                    fontWeight: 600,
-                    color: notes || showNoteInput ? 'var(--accent)' : 'var(--text-3)',
-                    cursor: 'pointer'
+                    fontWeight: 650,
+                    color: notes ? 'var(--accent)' : 'var(--text-3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <FileText size={11.5} />
@@ -467,42 +469,48 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 />
               </div>
 
-              {/* Inline expandable Note input if triggered */}
-              {showNoteInput && (
-                <div style={{ marginTop: 2, display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    autoFocus={!notes}
-                    placeholder="Add brief note or plan detail (optional)..."
-                    value={notes}
-                    onChange={e => setNotes(e.target.value)}
-                    className="form-control"
-                    style={{
-                      fontSize: 11.5,
-                      height: 30,
-                      padding: '4px 8px',
-                      borderRadius: 'var(--radius-sm, 6px)',
-                      background: 'var(--surface2)',
-                      border: '1px dashed var(--border)'
+              {notes && (
+                <div
+                  onClick={() => setIsNoteModalOpen(true)}
+                  style={{
+                    marginTop: 3,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    padding: '3px 9px',
+                    fontSize: 11,
+                    color: 'var(--text-2)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, overflow: 'hidden' }}>
+                    <FileText size={11} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {notes}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNotes('');
                     }}
-                  />
-                  {notes && (
-                    <button
-                      type="button"
-                      onClick={() => setNotes('')}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--text-3)',
-                        fontSize: 11,
-                        cursor: 'pointer',
-                        padding: '0 4px'
-                      }}
-                      title="Clear note"
-                    >
-                      Clear
-                    </button>
-                  )}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-3)',
+                      cursor: 'pointer',
+                      padding: 2,
+                      display: 'grid',
+                      placeItems: 'center',
+                    }}
+                    title="Remove note"
+                  >
+                    <X size={11} />
+                  </button>
                 </div>
               )}
             </div>
@@ -1250,6 +1258,20 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
           </div>
         )}
       </div>
+
+      {/* Note Editor Modal Dialog */}
+      <NoteEditorModal
+        isOpen={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        title={isSubscription ? 'Subscription Note' : 'Recurring Note'}
+        initialNote={notes}
+        onSave={setNotes}
+        quickTags={
+          isSubscription
+            ? ['Family plan share', 'Annual renewal', 'Auto-debit active', 'Shared with roomies', 'Free trial active']
+            : ['Monthly salary', 'House rent', 'Daily milk / dairy', 'Gym membership', 'Internet / Broadband']
+        }
+      />
     </div>,
     document.body
   );

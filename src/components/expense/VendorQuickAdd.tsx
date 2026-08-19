@@ -32,8 +32,8 @@ export function VendorQuickAdd({
 
   return (
     <div className="form-group">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <label className="form-label" style={{ margin: 0, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 18, height: 18, marginBottom: 2 }}>
+        <label className="form-label" style={{ margin: 0, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           <Store size={12} style={{ color: 'var(--text-3)' }} /> Vendor (Optional)
         </label>
         {!isAddingVendor && (
@@ -42,7 +42,7 @@ export function VendorQuickAdd({
             style={{
               background: 'none',
               border: 'none',
-              fontSize: 10.5,
+              fontSize: 10,
               fontWeight: 600,
               color: 'var(--accent)',
               cursor: 'pointer',
@@ -56,10 +56,10 @@ export function VendorQuickAdd({
       </div>
 
       {isAddingVendor ? (
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center', animation: 'fadein 0.15s ease' }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', height: 36, minHeight: 36, animation: 'fadein 0.15s ease' }}>
           <input
             className="form-input"
-            style={{ fontSize: 11.5, height: 34, flex: 1, padding: '0 8px' }}
+            style={{ fontSize: 12, height: 36, minHeight: 36, flex: 1, padding: '0 10px' }}
             placeholder="Store name..."
             value={newVendorName}
             onChange={e => setNewVendorName(e.target.value)}
@@ -73,7 +73,7 @@ export function VendorQuickAdd({
           <button
             type="button"
             className="btn btn-primary btn-sm"
-            style={{ height: 34, padding: '0 8px', fontSize: 10.5 }}
+            style={{ height: 36, padding: '0 10px', fontSize: 11.5 }}
             onClick={handleCreateVendor}
           >
             Add
@@ -81,13 +81,13 @@ export function VendorQuickAdd({
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            style={{ height: 34, padding: '0 6px', fontSize: 10.5 }}
+            style={{ height: 36, padding: '0 8px', fontSize: 11.5 }}
             onClick={() => {
               setIsAddingVendor(false);
               setNewVendorName('');
             }}
           >
-            <X size={12} />
+            <X size={14} />
           </button>
         </div>
       ) : (

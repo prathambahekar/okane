@@ -12,6 +12,7 @@ import {
   DebtSettlementWidget,
   VendorQuickAdd,
 } from './expense';
+import { NoteEditorModal } from './common/NoteEditorModal';
 
 export interface ExpenseInitialData {
   description?: string;
@@ -109,7 +110,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
 
   const vendorsList = useMemo(() => db.friends.filter(f => f.type === 'vendor'), [db.friends]);
   const [notes, setNotes] = useState(initialData?.notes ?? expense?.notes ?? '');
-  const [showNotes, setShowNotes] = useState(() => Boolean(initialData?.notes || expense?.notes));
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [error, setError] = useState('');
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
   const [autoSettle, setAutoSettle] = useState(true);
@@ -755,12 +756,12 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
               {flow === 'out' ? (
                 <>
                   {/* Ultra-Compact Unified Scope Selector */}
-                  <div className="form-group" style={{ marginBottom: 8 }}>
-                    <label className="form-label" style={{ fontSize: 11.5, marginBottom: 4 }}>Expense Type</label>
+                  <div className="form-group" style={{ marginBottom: 4 }}>
+                    <label className="form-label" style={{ fontSize: 11, marginBottom: 2 }}>Expense Type</label>
                     <div className="segment-control">
                       <button
                         type="button"
-                        className={`segment-btn ${whoPaid === 'me' && splitMode === 'just_me' ? 'active' : ''}`}
+                        className={`segment-btn ${whoPaid === 'me' && splitMode === 'just_me' ? 'active-accent' : ''}`}
                         onClick={() => {
                           setWhoPaid('me');
                           setSplitMode('just_me');
@@ -768,11 +769,11 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                           setError('');
                         }}
                       >
-                        <User size={15} /> Just Me
+                        <User size={14} /> Just Me
                       </button>
                       <button
                         type="button"
-                        className={`segment-btn ${whoPaid === 'me' && splitMode === 'for_friend' ? 'active' : ''}`}
+                        className={`segment-btn ${whoPaid === 'me' && splitMode === 'for_friend' ? 'active-accent' : ''}`}
                         onClick={() => {
                           setWhoPaid('me');
                           setSplitMode('for_friend');
@@ -781,59 +782,61 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                           setError('');
                         }}
                       >
-                        <Users size={15} /> With Friends
+                        <Users size={14} /> With Friends
                       </button>
                       <button
                         type="button"
-                        className={`segment-btn ${whoPaid === 'other' ? 'active' : ''}`}
+                        className={`segment-btn ${whoPaid === 'other' ? 'active-accent' : ''}`}
                         onClick={() => {
                           setWhoPaid('other');
                           setSplitMode('just_me');
                           setError('');
                         }}
                       >
-                        <HeartHandshake size={15} /> Someone Paid
+                        <HeartHandshake size={14} /> Someone Paid
                       </button>
                     </div>
                   </div>
 
                   {/* Friend Selection & Split Summary: If With Friends */}
                   {whoPaid === 'me' && splitMode === 'for_friend' && (
-                    <div style={{ marginBottom: 10, animation: 'fadein 0.15s ease' }}>
+                    <div style={{ marginBottom: 4, animation: 'fadein 0.15s ease' }}>
                       <div
                         onClick={() => setIsFriendPickerOpen(true)}
                         style={{
-                          padding: '10px 12px',
+                          padding: '7px 11px',
                           background: 'var(--accent-soft)',
-                          border: '1.5px solid var(--accent-border-soft)',
-                          borderRadius: 'var(--radius)',
+                          border: '1.5px solid var(--accent-border-soft, var(--accent))',
+                          borderRadius: 11,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: 10,
                           transition: 'all 0.15s ease',
+                          boxShadow: '0 2px 6px var(--accent-soft)',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                           <div
                             style={{
-                              width: 32,
-                              height: 32,
+                              width: 30,
+                              height: 30,
                               borderRadius: '50%',
-                              background: 'var(--accent)',
-                              color: 'var(--accent-contrast)',
+                              background: 'var(--accent-gradient, var(--accent))',
+                              color: 'var(--accent-contrast, #ffffff)',
                               display: 'grid',
                               placeItems: 'center',
                               fontWeight: 700,
                               fontSize: 13,
                               flexShrink: 0,
+                              boxShadow: '0 2px 5px var(--accent-soft)',
                             }}
                           >
-                            <Users size={16} />
+                            <Users size={15} />
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {selectedFriendIds.length > 0
                                 ? `Splitting with ${selectedFriendIds.length} Friend${selectedFriendIds.length > 1 ? 's' : ''}`
                                 : 'Tap to Select Friends & Split'}
@@ -859,19 +862,20 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                         <button
                           type="button"
                           style={{
-                            background: 'var(--accent)',
-                            color: 'var(--accent-contrast)',
+                            background: 'var(--accent-gradient, var(--accent))',
+                            color: 'var(--accent-contrast, #ffffff)',
                             border: 'none',
-                            padding: '5px 12px',
+                            padding: '4px 11px',
                             borderRadius: 99,
-                            fontSize: 11.5,
-                            fontWeight: 600,
+                            fontSize: 11,
+                            fontWeight: 700,
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 4,
+                            gap: 3,
                             flexShrink: 0,
+                            boxShadow: '0 2px 6px var(--accent-soft)',
                           }}
                         >
                           {selectedFriendIds.length > 0 ? 'Edit' : '+ Add'}
@@ -882,8 +886,8 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
 
                   {/* If Someone Else Paid: Friend Selector */}
                   {whoPaid === 'other' && (
-                    <div className="form-group" style={{ marginBottom: 8, animation: 'fadein 0.15s ease' }}>
-                      <label className="form-label" style={{ fontSize: 11.5, marginBottom: 4 }}>Who Paid For You? *</label>
+                    <div className="form-group" style={{ marginBottom: 4, animation: 'fadein 0.15s ease' }}>
+                      <label className="form-label" style={{ fontSize: 11, marginBottom: 2 }}>Who Paid For You? *</label>
                       <select className="form-select" value={friendId} onChange={e => setFriendId(e.target.value)}>
                         <option value="">— select friend who paid —</option>
                         {db.friends.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -892,45 +896,29 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                   )}
 
                   {/* Description & Note Button Merged */}
-                  <div className="form-group" style={{ marginBottom: 8 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <label className="form-label" style={{ margin: 0, fontSize: 11.5 }}>Description / Item *</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        {showNotes && notes && (
-                          <button
-                            type="button"
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              fontSize: 10.5,
-                              color: 'var(--text-3)',
-                              cursor: 'pointer',
-                              padding: 0,
-                            }}
-                            onClick={() => setNotes('')}
-                          >
-                            Clear
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: showNotes ? 'var(--accent)' : 'var(--text-3)',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 3,
-                            padding: 0,
-                          }}
-                          onClick={() => setShowNotes(!showNotes)}
-                        >
-                          <FileText size={12} /> {showNotes ? 'Hide Note' : '+ Note'}
-                        </button>
-                      </div>
+                  <div className="form-group" style={{ marginBottom: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                      <label className="form-label" style={{ margin: 0, fontSize: 11, fontWeight: 600 }}>Description / Item *</label>
+                      <button
+                        type="button"
+                        style={{
+                          background: notes ? 'var(--accent-soft)' : 'transparent',
+                          border: notes ? '1px solid var(--accent-border-soft, rgba(236,72,153,0.25))' : 'none',
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 650,
+                          color: notes ? 'var(--accent)' : 'var(--text-3)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: notes ? '2px 7px' : '2px 0',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onClick={() => setIsNoteModalOpen(true)}
+                      >
+                        <FileText size={12} /> {notes ? 'Note Added' : '+ Note'}
+                      </button>
                     </div>
                     <input
                       className="form-input"
@@ -938,87 +926,134 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                       onChange={e => handleDescriptionChange(e.target.value)}
                       placeholder={splitMode === 'pay_debt' ? "e.g. Settling dinner debt" : "What did you spend on?"}
                     />
-                    {showNotes && (
-                      <div style={{ marginTop: 4, position: 'relative', animation: 'fadein 0.15s ease' }}>
-                        <textarea
-                          className="form-textarea"
-                          value={notes}
-                          onChange={e => setNotes(e.target.value)}
-                          placeholder="Add optional notes or remarks..."
-                          rows={2}
-                          style={{ fontSize: 12, padding: '6px 10px', paddingRight: 24 }}
-                        />
+                    {notes && (
+                      <div
+                        onClick={() => setIsNoteModalOpen(true)}
+                        style={{
+                          marginTop: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 8,
+                          padding: '4px 10px',
+                          fontSize: 11.5,
+                          color: 'var(--text-2)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+                          <FileText size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {notes}
+                          </span>
+                        </div>
                         <button
                           type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNotes('');
+                          }}
                           style={{
-                            position: 'absolute',
-                            right: 6,
-                            top: 6,
                             background: 'none',
                             border: 'none',
                             color: 'var(--text-3)',
                             cursor: 'pointer',
                             padding: 2,
+                            display: 'grid',
+                            placeItems: 'center',
                           }}
-                          onClick={() => setShowNotes(false)}
-                          title="Close note"
+                          title="Remove note"
                         >
                           <X size={12} />
                         </button>
                       </div>
                     )}
                     {mostUsedDescriptions.length > 0 && (
-                      <div style={{ display: 'flex', gap: 5, overflowX: 'auto', whiteSpace: 'nowrap', marginTop: 5, alignItems: 'center', scrollbarWidth: 'none' }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-3)', flexShrink: 0 }}>Frequent:</span>
-                        {mostUsedDescriptions.map(suggestion => (
-                          <button
-                            key={suggestion}
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            title={suggestion}
-                            style={{
-                              fontSize: 10.5,
-                              padding: '1px 8px',
-                              borderRadius: 'var(--radius-lg)',
-                              borderColor: desc === suggestion ? 'var(--accent)' : undefined,
-                              background: desc === suggestion ? 'var(--surface2)' : undefined,
-                              color: desc === suggestion ? 'var(--accent)' : 'var(--text-2)',
-                              flexShrink: 0,
-                              maxWidth: 120,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              display: 'inline-block',
-                            }}
-                            onClick={() => handleDescriptionChange(suggestion)}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 5,
+                          overflowX: 'auto',
+                          whiteSpace: 'nowrap',
+                          marginTop: 4,
+                          alignItems: 'center',
+                          scrollbarWidth: 'none',
+                          paddingBottom: 1,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                            color: 'var(--text-3)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            flexShrink: 0,
+                            letterSpacing: '0.2px',
+                          }}
+                        >
+                          <Sparkles size={10} style={{ color: 'var(--accent)' }} /> Frequent:
+                        </span>
+                        {mostUsedDescriptions.map(suggestion => {
+                          const isSelected = desc.trim().toLowerCase() === suggestion.trim().toLowerCase();
+                          return (
+                            <button
+                              key={suggestion}
+                              type="button"
+                              title={suggestion}
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: isSelected ? 650 : 500,
+                                padding: '2px 8px',
+                                borderRadius: 999,
+                                border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border2)',
+                                background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                                color: isSelected ? 'var(--accent)' : 'var(--text-2)',
+                                boxShadow: isSelected ? '0 1px 4px var(--accent-soft)' : 'none',
+                                flexShrink: 0,
+                                maxWidth: 120,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                lineHeight: 1.35,
+                              }}
+                              onClick={() => handleDescriptionChange(suggestion)}
+                            >
+                              {suggestion}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
 
                   <div className="form-row">
                     <div className="form-group">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <label className="form-label" style={{ margin: 0 }}>Category</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 18, height: 18, marginBottom: 2 }}>
+                        <label className="form-label" style={{ margin: 0, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          Category
+                        </label>
                         {autoDetectedCategory && autoDetectedCategory === category && (
                           <span
                             style={{
-                              fontSize: 10,
+                              fontSize: 9.5,
                               fontWeight: 600,
                               color: 'var(--accent)',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 3,
+                              gap: 2.5,
                               background: 'var(--accent-soft)',
-                              padding: '1px 6px',
+                              padding: '1px 5px',
                               borderRadius: 99,
                             }}
                             title="Category suggested automatically based on your description"
                           >
-                            <Sparkles size={10} /> Auto
+                            <Sparkles size={9} /> Auto
                           </span>
                         )}
                       </div>
@@ -1035,7 +1070,11 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                       </select>
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Date Spent</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 18, height: 18, marginBottom: 2 }}>
+                        <label className="form-label" style={{ margin: 0, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          Date Spent
+                        </label>
+                      </div>
                       <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
                     </div>
                   </div>
@@ -1044,19 +1083,19 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                   {whoPaid === 'me' && (
                     <div className="form-row">
                       <div className="form-group">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <label className="form-label" style={{ margin: 0, fontSize: 11.5 }}>
-                            {status === 'unpaid' ? 'Wallet (For Settlement)' : 'Paid From'}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 18, height: 18, marginBottom: 2 }}>
+                          <label className="form-label" style={{ margin: 0, fontSize: 11, fontWeight: 600 }}>
+                            {status === 'unpaid' ? 'Wallet (Debt)' : 'Paid From'}
                           </label>
                           <div
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
                               background: 'var(--surface2)',
-                              padding: '2px',
-                              borderRadius: 6,
+                              padding: '1.5px',
+                              borderRadius: 5,
                               border: '1px solid var(--border)',
-                              gap: 2,
+                              gap: 1.5,
                             }}
                           >
                             <button
@@ -1065,11 +1104,11 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 3,
-                                padding: '2px 7px',
-                                borderRadius: 4,
+                                gap: 2.5,
+                                padding: '1.5px 5.5px',
+                                borderRadius: 3.5,
                                 border: 'none',
-                                fontSize: 10.5,
+                                fontSize: 9.5,
                                 fontWeight: status === 'paid' ? 700 : 500,
                                 cursor: 'pointer',
                                 background: status === 'paid' ? 'var(--surface)' : 'transparent',
@@ -1079,7 +1118,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                               }}
                               onClick={() => setStatus('paid')}
                             >
-                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--credit, #22c55e)' }} />
+                              <span style={{ width: 4.5, height: 4.5, borderRadius: '50%', background: 'var(--credit, #22c55e)' }} />
                               Paid
                             </button>
                             <button
@@ -1088,11 +1127,11 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 3,
-                                padding: '2px 7px',
-                                borderRadius: 4,
+                                gap: 2.5,
+                                padding: '1.5px 5.5px',
+                                borderRadius: 3.5,
                                 border: 'none',
-                                fontSize: 10.5,
+                                fontSize: 9.5,
                                 fontWeight: status === 'unpaid' ? 700 : 500,
                                 cursor: 'pointer',
                                 background: status === 'unpaid' ? 'var(--surface)' : 'transparent',
@@ -1102,7 +1141,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                               }}
                               onClick={() => setStatus('unpaid')}
                             >
-                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--debit, #ef4444)' }} />
+                              <span style={{ width: 4.5, height: 4.5, borderRadius: '50%', background: 'var(--debit, #ef4444)' }} />
                               Debt
                             </button>
                           </div>
@@ -1127,11 +1166,11 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                 <>
                   {/* Income Type Switcher */}
                   <div className="form-group">
-                    <label className="form-label">Income Type</label>
+                    <label className="form-label" style={{ fontSize: 11.5, marginBottom: 4 }}>Income Type</label>
                     <div className="segment-control">
                       <button
                         type="button"
-                        className={`segment-btn ${incomeMode === 'direct' ? 'active' : ''}`}
+                        className={`segment-btn ${incomeMode === 'direct' ? 'active-accent' : ''}`}
                         onClick={() => {
                           setIncomeMode('direct');
                           setFriendId('');
@@ -1142,7 +1181,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                       </button>
                       <button
                         type="button"
-                        className={`segment-btn ${incomeMode === 'friend' ? 'active' : ''}`}
+                        className={`segment-btn ${incomeMode === 'friend' ? 'active-accent' : ''}`}
                         onClick={() => {
                           setIncomeMode('friend');
                           setError('');
@@ -1157,43 +1196,27 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                     <>
                       <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <label className="form-label" style={{ margin: 0 }}>Income Source / Name *</label>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {showNotes && notes && (
-                              <button
-                                type="button"
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  fontSize: 10.5,
-                                  color: 'var(--text-3)',
-                                  cursor: 'pointer',
-                                  padding: 0,
-                                }}
-                                onClick={() => setNotes('')}
-                              >
-                                Clear
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                fontSize: 11.5,
-                                fontWeight: 600,
-                                color: showNotes ? 'var(--accent)' : 'var(--text-3)',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 3,
-                                padding: 0,
-                              }}
-                              onClick={() => setShowNotes(!showNotes)}
-                            >
-                              <FileText size={12} /> {showNotes ? 'Hide Note' : '+ Note'}
-                            </button>
-                          </div>
+                          <label className="form-label" style={{ margin: 0, fontSize: 11.5, fontWeight: 600 }}>Income Source / Name *</label>
+                          <button
+                            type="button"
+                            style={{
+                              background: notes ? 'var(--accent-soft)' : 'transparent',
+                              border: notes ? '1px solid var(--accent-border-soft, rgba(236,72,153,0.25))' : 'none',
+                              borderRadius: 6,
+                              fontSize: 11,
+                              fontWeight: 650,
+                              color: notes ? 'var(--accent)' : 'var(--text-3)',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: notes ? '2px 7px' : '2px 0',
+                              transition: 'all 0.15s ease',
+                            }}
+                            onClick={() => setIsNoteModalOpen(true)}
+                          >
+                            <FileText size={12} /> {notes ? 'Note Added' : '+ Note'}
+                          </button>
                         </div>
                         <input
                           className="form-input"
@@ -1201,16 +1224,48 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                           onChange={e => setDesc(e.target.value)}
                           placeholder="e.g. Monthly Salary, Pocket Money from Parents"
                         />
-                        {showNotes && (
-                          <div style={{ marginTop: 6, animation: 'fadein 0.15s ease' }}>
-                            <textarea
-                              className="form-textarea"
-                              value={notes}
-                              onChange={e => setNotes(e.target.value)}
-                              placeholder="Add optional notes or remarks..."
-                              rows={2}
-                              style={{ fontSize: 12.5 }}
-                            />
+                        {notes && (
+                          <div
+                            onClick={() => setIsNoteModalOpen(true)}
+                            style={{
+                              marginTop: 4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              background: 'var(--surface2)',
+                              border: '1px solid var(--border)',
+                              borderRadius: 8,
+                              padding: '4px 10px',
+                              fontSize: 11.5,
+                              color: 'var(--text-2)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+                              <FileText size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {notes}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setNotes('');
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-3)',
+                                cursor: 'pointer',
+                                padding: 2,
+                                display: 'grid',
+                                placeItems: 'center',
+                              }}
+                              title="Remove note"
+                            >
+                              <X size={12} />
+                            </button>
                           </div>
                         )}
                         {/* Quick Presets for Speed */}
@@ -1220,36 +1275,46 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                             { label: 'Parents / Pocket Money', value: 'Pocket Money from Parents' },
                             { label: 'Freelance', value: 'Freelance Income' },
                             { label: 'Gift / Bonus', value: 'Gift / Bonus' },
-                          ].map(preset => (
-                            <button
-                              key={preset.value}
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{
-                                fontSize: 11,
-                                padding: '3px 9px',
-                                borderRadius: 'var(--radius-lg)',
-                                borderColor: desc === preset.value ? 'var(--accent)' : undefined,
-                                background: desc === preset.value ? 'var(--surface2)' : undefined,
-                                color: desc === preset.value ? 'var(--accent)' : 'var(--text-2)',
-                              }}
-                              onClick={() => setDesc(preset.value)}
-                            >
-                              {preset.label}
-                            </button>
-                          ))}
+                          ].map(preset => {
+                            const isSelected = desc === preset.value;
+                            return (
+                              <button
+                                key={preset.value}
+                                type="button"
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: isSelected ? 650 : 500,
+                                  padding: '3px 10px',
+                                  borderRadius: 999,
+                                  border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border2)',
+                                  background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                                  color: isSelected ? 'var(--accent)' : 'var(--text-2)',
+                                  boxShadow: isSelected ? '0 1px 6px var(--accent-soft)' : 'none',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                }}
+                                onClick={() => setDesc(preset.value)}
+                              >
+                                {preset.label}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 
                       <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div className="form-group">
-                          <label className="form-label">Deposited To (Wallet)</label>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 22, height: 22, marginBottom: 5 }}>
+                            <label className="form-label" style={{ margin: 0, fontSize: 11.5, fontWeight: 600 }}>Deposited To (Wallet)</label>
+                          </div>
                           <select className="form-select" value={walletId} onChange={e => setWalletId(e.target.value)}>
                             {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                           </select>
                         </div>
                         <div className="form-group">
-                          <label className="form-label">Date Received</label>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 22, height: 22, marginBottom: 5 }}>
+                            <label className="form-label" style={{ margin: 0, fontSize: 11.5, fontWeight: 600 }}>Date Received</label>
+                          </div>
                           <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
                         </div>
                       </div>
@@ -1392,6 +1457,20 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
         db={db}
         addFriend={addFriend}
         showToast={showToast}
+      />
+
+      {/* Note Editor Modal Dialog */}
+      <NoteEditorModal
+        isOpen={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        title={flow === 'in' ? 'Income Note' : 'Expense Note'}
+        initialNote={notes}
+        onSave={setNotes}
+        quickTags={
+          flow === 'in'
+            ? ['Salary', 'Bonus', 'Freelance payment', 'Gift', 'Reimbursement from friend', 'Interest / Returns']
+            : ['Reimbursable', 'Office bill', 'Cash payment', 'Personal', 'Tax deductible', 'Shared bill', 'Group trip']
+        }
       />
     </div>,
     document.body

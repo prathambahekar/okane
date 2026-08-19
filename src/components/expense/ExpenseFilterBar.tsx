@@ -89,10 +89,11 @@ export const ExpenseFilterBar: React.FC<Props> = ({
       <div className="filter-drawer-panel">
         {/* Mobile Grab Handle */}
         <div
+          className="mobile-only"
           style={{
             width: '100%',
-            paddingTop: '12px',
-            paddingBottom: '4px',
+            paddingTop: '10px',
+            paddingBottom: '2px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -101,7 +102,7 @@ export const ExpenseFilterBar: React.FC<Props> = ({
         >
           <div
             style={{
-              width: '40px',
+              width: '36px',
               height: '4px',
               borderRadius: '999px',
               backgroundColor: 'var(--text-3)',
@@ -119,6 +120,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             backgroundColor: 'var(--surface)',
+            borderBottom: '1px solid var(--border)',
+            flexShrink: 0,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -221,14 +224,18 @@ export const ExpenseFilterBar: React.FC<Props> = ({
 
         {/* Scrollable Filter Options */}
         <div
+          className="filter-drawer-content no-scrollbar"
           style={{
-            flex: 1,
+            flex: '1 1 auto',
+            minHeight: 0,
             overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
-            padding: '16px 18px',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            padding: '14px 18px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 20,
+            gap: 16,
           }}
         >
           {/* Section 1: Money Flow */}
@@ -366,7 +373,7 @@ export const ExpenseFilterBar: React.FC<Props> = ({
                 </button>
               )}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, maxHeight: 180, overflowY: 'auto', padding: '1px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '1px' }}>
               <button
                 type="button"
                 onClick={() => setCatFilter('')}
@@ -564,6 +571,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
             justifyContent: 'space-between',
             gap: 10,
             backgroundColor: 'var(--surface)',
+            borderTop: '1px solid var(--border)',
+            flexShrink: 0,
             paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 14px)' : '12px',
           }}
         >

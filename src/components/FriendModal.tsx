@@ -17,6 +17,7 @@ import type { Friend, ContactType } from '../types';
 import { FRIEND_PALETTE } from '../db';
 import { getAvatarStyle } from '../utils';
 import { POPULAR_SUBSCRIPTIONS, renderBrandLogo, detectBrandPreset } from './BrandIcons';
+import { NoteEditorModal } from './common/NoteEditorModal';
 
 interface Props {
   friend?: Friend | null;
@@ -95,7 +96,6 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
   const [billingCycle, setBillingCycle] = useState<string>(friend?.billingCycle ?? 'monthly');
   const [website] = useState(friend?.website ?? '');
   const [notes, setNotes] = useState(friend?.notes ?? '');
-  const [tempNote, setTempNote] = useState('');
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
 
   // Billing Cycle Drawer State
@@ -120,13 +120,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
   const friendColorInputRef = useRef<HTMLInputElement>(null);
 
   const openNoteModal = () => {
-    setTempNote(notes);
     setIsNoteModalOpen(true);
-  };
-
-  const saveNoteFromModal = () => {
-    setNotes(tempNote.trim());
-    setIsNoteModalOpen(false);
   };
 
   const openCycleModal = () => {
@@ -756,88 +750,22 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
         </form>
 
         {/* Separate Dedicated Note Drawer Modal */}
-        {isNoteModalOpen && (
-          <div
-            className="modal-backdrop"
-            style={{ zIndex: 10005, background: 'rgba(0,0,0,0.65)' }}
-            onClick={e => { if (e.target === e.currentTarget) setIsNoteModalOpen(false); }}
-          >
-            <div className="modal" style={{ maxWidth: 380, animation: 'slidein 0.15s ease' }}>
-              <div className="modal-handle-bar">
-                <div className="modal-handle" />
-              </div>
-              <div className="modal-header" style={{ padding: '14px 18px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', background: 'var(--accent-soft)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
-                    <FileText size={15} />
-                  </div>
-                  <div className="modal-title" style={{ fontSize: 14, fontWeight: 700 }}>
-                    {type === 'subscription' ? 'Subscription Note' : type === 'vendor' ? 'Vendor Note' : 'Contact Note'}
-                  </div>
-                </div>
-                <button className="btn-icon" onClick={() => setIsNoteModalOpen(false)} style={{ borderRadius: 'var(--radius-sm)' }}><X size={16} /></button>
-              </div>
-              <div className="modal-body" style={{ padding: '14px 18px' }}>
-                <textarea
-                  className="form-textarea"
-                  rows={3}
-                  placeholder="Add optional notes or remarks..."
-                  value={tempNote}
-                  onChange={e => setTempNote(e.target.value)}
-                  style={{ fontSize: 13, width: '100%', marginBottom: 12, resize: 'none', borderRadius: 'var(--radius)' }}
-                  autoFocus
-                />
-                {/* Quick suggestion tags */}
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>Quick tags:</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {(type === 'subscription'
-                    ? ['Family plan share', 'Annual renewal', 'Card auto-debit', 'Shared with roomies', 'Free trial active']
-                    : type === 'vendor'
-                    ? ['Daily tiffin', 'UPI payment preferred', 'Monthly billing', 'Shop contact']
-                    : ['Roommate', 'Family', 'Office colleague', 'Splitwise friend', 'UPI ID']
-                  ).map(tag => (
-                    <button
-                      key={tag}
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 'var(--radius-sm)' }}
-                      onClick={() => setTempNote(tag)}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="modal-footer" style={{ padding: '12px 18px', display: 'flex', justifyContent: 'space-between' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  style={{ borderRadius: 'var(--radius-sm)', fontSize: 12 }}
-                  onClick={() => {
-                    setTempNote('');
-                    setNotes('');
-                    setIsNoteModalOpen(false);
-                  }}
-                >
-                  Clear
-                </button>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button type="button" className="btn btn-secondary btn-sm" style={{ borderRadius: 'var(--radius-sm)', fontSize: 12 }} onClick={() => setIsNoteModalOpen(false)}>
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    style={{ borderRadius: 'var(--radius-sm)', fontSize: 12, padding: '0 14px' }}
-                    onClick={saveNoteFromModal}
-                  >
-                    ✓ Save Note
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <NoteEditorModal
+          isOpen={isNoteModalOpen}
+          onClose={() => setIsNoteModalOpen(false)}
+          title={type === 'subscription' ? 'Subscription Note' : type === 'vendor' ? 'Vendor Note' : 'Contact Note'}
+          initialNote={notes}
+          onSave={(newNote) => {
+            setNotes(newNote);
+          }}
+          quickTags={
+            type === 'subscription'
+              ? ['Family plan share', 'Annual renewal', 'Card auto-debit', 'Shared with roomies', 'Free trial active']
+              : type === 'vendor'
+              ? ['Daily tiffin', 'UPI payment preferred', 'Monthly billing', 'Shop contact']
+              : ['Roommate', 'Family', 'Office colleague', 'Splitwise friend', 'UPI ID']
+          }
+        />
 
         {/* Dedicated Billing Cycle Drawer Modal */}
         {isCycleModalOpen && (

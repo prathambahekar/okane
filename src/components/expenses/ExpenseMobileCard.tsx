@@ -277,6 +277,105 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
       {/* Expanded Details Tray */}
       {isExpanded && (
         <div className="mobile-expense-details">
+          {/* Quick Metrics Grid (Full Description, Category, Wallet, Type, Status, Notes) */}
+          <div className="mobile-expense-detail-grid">
+            {/* Full Transaction Name / Description */}
+            <div
+              className="mobile-expense-detail-item"
+              style={{
+                gridColumn: '1 / -1',
+                borderBottom: '1px solid var(--border)',
+                paddingBottom: 8,
+                marginBottom: 2,
+              }}
+            >
+              <span className="mobile-expense-detail-label">Full Description</span>
+              <span
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 650,
+                  color: 'var(--text)',
+                  wordBreak: 'break-word',
+                  lineHeight: 1.4,
+                }}
+              >
+                {ge.description}
+              </span>
+            </div>
+
+            <div className="mobile-expense-detail-item">
+              <span className="mobile-expense-detail-label">Category</span>
+              <span className="mobile-expense-detail-val">
+                <CategoryBadge category={ge.category} color={categoryObj?.color} icon={categoryObj?.icon} size={12} />
+              </span>
+            </div>
+
+            <div className="mobile-expense-detail-item">
+              <span className="mobile-expense-detail-label">Wallet</span>
+              <span className="mobile-expense-detail-val">{effectiveWalletName}</span>
+            </div>
+
+            {vendor && (
+              <div className="mobile-expense-detail-item">
+                <span className="mobile-expense-detail-label">Vendor / Store</span>
+                <span className="mobile-expense-detail-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Store size={12} style={{ color: 'var(--accent)' }} />
+                  <span>{vendor.name}</span>
+                </span>
+              </div>
+            )}
+
+            <div className="mobile-expense-detail-item">
+              <span className="mobile-expense-detail-label">Type</span>
+              <span className="mobile-expense-detail-val">{ge.isSplit ? 'Split Expense' : typeLabel(primaryItem.type, undefined, primaryItem.category)}</span>
+            </div>
+
+            {groupStatus.statusKey !== 'none' && groupStatus.statusLabel && (
+              <div className="mobile-expense-detail-item">
+                <span className="mobile-expense-detail-label">Status</span>
+                <span className="mobile-expense-detail-val">
+                  {ge.isSettlementGroup ? (
+                    <span className="tx-status-pill status-settled" style={{ padding: '2px 7px', fontSize: 10 }}>
+                      <span>Settled ✓</span>
+                    </span>
+                  ) : (
+                    <span className={`tx-status-pill status-${groupStatus.statusKey}`} style={{ padding: '2px 7px', fontSize: 10 }}>
+                      <span>{groupStatus.statusLabel}</span>
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
+
+            {primaryItem.notes && (
+              <div
+                className="mobile-expense-detail-item"
+                style={{
+                  gridColumn: '1 / -1',
+                  borderTop: '1px solid var(--border)',
+                  paddingTop: 8,
+                  marginTop: 2,
+                }}
+              >
+                <span className="mobile-expense-detail-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <FileText size={11} style={{ color: 'var(--text-3)' }} />
+                  <span>Notes</span>
+                </span>
+                <span
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--text)',
+                    lineHeight: 1.45,
+                    wordBreak: 'break-word',
+                    fontWeight: 500,
+                  }}
+                >
+                  {primaryItem.notes}
+                </span>
+              </div>
+            )}
+          </div>
+
           {/* Split / Settlement Breakdown Table (Only for split or settlement transactions, not transfers) */}
           {!isTransfer && (ge.isSplit || ge.isSettlementGroup || (ge.items.length > 1 && ge.friendIds.length > 0)) && (
             <div
@@ -470,105 +569,6 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
               </div>
             </div>
           )}
-
-          {/* Quick Metrics Grid */}
-          <div className="mobile-expense-detail-grid">
-            {/* Full Transaction Name / Description */}
-            <div
-              className="mobile-expense-detail-item"
-              style={{
-                gridColumn: '1 / -1',
-                borderBottom: '1px solid var(--border)',
-                paddingBottom: 8,
-                marginBottom: 2,
-              }}
-            >
-              <span className="mobile-expense-detail-label">Full Description</span>
-              <span
-                style={{
-                  fontSize: 13.5,
-                  fontWeight: 650,
-                  color: 'var(--text)',
-                  wordBreak: 'break-word',
-                  lineHeight: 1.4,
-                }}
-              >
-                {ge.description}
-              </span>
-            </div>
-
-            <div className="mobile-expense-detail-item">
-              <span className="mobile-expense-detail-label">Category</span>
-              <span className="mobile-expense-detail-val">
-                <CategoryBadge category={ge.category} color={categoryObj?.color} icon={categoryObj?.icon} size={12} />
-              </span>
-            </div>
-
-            <div className="mobile-expense-detail-item">
-              <span className="mobile-expense-detail-label">Wallet</span>
-              <span className="mobile-expense-detail-val">{effectiveWalletName}</span>
-            </div>
-
-            {vendor && (
-              <div className="mobile-expense-detail-item">
-                <span className="mobile-expense-detail-label">Vendor / Store</span>
-                <span className="mobile-expense-detail-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <Store size={12} style={{ color: 'var(--accent)' }} />
-                  <span>{vendor.name}</span>
-                </span>
-              </div>
-            )}
-
-            <div className="mobile-expense-detail-item">
-              <span className="mobile-expense-detail-label">Type</span>
-              <span className="mobile-expense-detail-val">{ge.isSplit ? 'Split Expense' : typeLabel(primaryItem.type, undefined, primaryItem.category)}</span>
-            </div>
-
-            {groupStatus.statusKey !== 'none' && groupStatus.statusLabel && (
-              <div className="mobile-expense-detail-item">
-                <span className="mobile-expense-detail-label">Status</span>
-                <span className="mobile-expense-detail-val">
-                  {ge.isSettlementGroup ? (
-                    <span className="tx-status-pill status-settled" style={{ padding: '2px 7px', fontSize: 10 }}>
-                      <span>Settled ✓</span>
-                    </span>
-                  ) : (
-                    <span className={`tx-status-pill status-${groupStatus.statusKey}`} style={{ padding: '2px 7px', fontSize: 10 }}>
-                      <span>{groupStatus.statusLabel}</span>
-                    </span>
-                  )}
-                </span>
-              </div>
-            )}
-
-            {primaryItem.notes && (
-              <div
-                className="mobile-expense-detail-item"
-                style={{
-                  gridColumn: '1 / -1',
-                  borderTop: '1px solid var(--border)',
-                  paddingTop: 8,
-                  marginTop: 2,
-                }}
-              >
-                <span className="mobile-expense-detail-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <FileText size={11} style={{ color: 'var(--text-3)' }} />
-                  <span>Notes</span>
-                </span>
-                <span
-                  style={{
-                    fontSize: 12.5,
-                    color: 'var(--text)',
-                    lineHeight: 1.45,
-                    wordBreak: 'break-word',
-                    fontWeight: 500,
-                  }}
-                >
-                  {primaryItem.notes}
-                </span>
-              </div>
-            )}
-          </div>
 
           {/* Action Buttons Row */}
           <div className="mobile-expense-actions">

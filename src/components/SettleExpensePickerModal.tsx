@@ -112,7 +112,7 @@ export default function SettleExpensePickerModal({
         {/* Modal Header */}
         <div
           style={{
-            padding: '16px 20px 12px',
+            padding: '16px 20px 10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -125,62 +125,83 @@ export default function SettleExpensePickerModal({
               className="avatar"
               style={{
                 ...getAvatarStyle(friend.color),
-                width: 36,
-                height: 36,
-                fontSize: 14,
+                width: 32,
+                height: 32,
+                fontSize: 13,
                 flexShrink: 0,
               }}
             >
               {friendInitial(friend.name, friend.avatarNumber)}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: 15, fontWeight: 650, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
                 {title}
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
                 {friend.name} • {expenses.length} pending expense{expenses.length !== 1 ? 's' : ''}
               </div>
             </div>
           </div>
           <button
             type="button"
-            className="btn-icon"
             onClick={onClose}
-            style={{ width: 32, height: 32, flexShrink: 0 }}
+            style={{
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-2)',
+              cursor: 'pointer',
+              width: 30,
+              height: 30,
+              borderRadius: 8,
+              display: 'grid',
+              placeItems: 'center',
+              padding: 0,
+              flexShrink: 0,
+              transition: 'all 0.15s ease',
+            }}
+            aria-label="Close modal"
           >
-            <X size={18} />
+            <X size={15} />
           </button>
         </div>
 
         {/* Search & Filter Toolbar */}
-        <div style={{ padding: '4px 20px 10px', background: 'var(--surface)', flexShrink: 0 }}>
+        <div style={{ padding: '12px 18px 8px', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
           {/* Search Box */}
-          <div style={{ position: 'relative', marginBottom: hasMixedFlows ? 8 : 6 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              position: 'relative',
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '0 10px',
+              height: 38,
+              transition: 'border-color 0.15s ease',
+            }}
+          >
             <Search
-              size={14}
+              size={15}
               style={{
-                position: 'absolute',
-                left: 12,
-                top: '50%',
-                transform: 'translateY(-50%)',
                 color: 'var(--text-3)',
-                pointerEvents: 'none',
+                marginRight: 8,
+                flexShrink: 0,
               }}
             />
             <input
               type="text"
-              className="form-input"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search expenses by name or category..."
               style={{
-                paddingLeft: 32,
-                paddingRight: search ? 28 : 12,
-                height: 36,
-                fontSize: 12.5,
-                borderRadius: 'var(--radius)',
-                border: '1px solid var(--border)',
-                background: 'var(--surface2)',
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                fontSize: 13,
+                color: 'var(--text)',
+                padding: '6px 0',
               }}
             />
             {search && (
@@ -188,16 +209,13 @@ export default function SettleExpensePickerModal({
                 type="button"
                 onClick={() => setSearch('')}
                 style={{
-                  position: 'absolute',
-                  right: 10,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
                   background: 'none',
                   border: 'none',
                   color: 'var(--text-3)',
                   cursor: 'pointer',
-                  padding: 2,
-                  display: 'flex',
+                  padding: 4,
+                  display: 'grid',
+                  placeItems: 'center',
                 }}
               >
                 <X size={14} />
@@ -206,30 +224,66 @@ export default function SettleExpensePickerModal({
           </div>
 
           {/* Filter Pills + Select All Row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             {hasMixedFlows ? (
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  padding: 2,
+                  gap: 2,
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => setFilterType('all')}
-                  className={`pill-btn ${filterType === 'all' ? 'active' : ''}`}
-                  style={{ fontSize: 11, padding: '4px 10px' }}
+                  style={{
+                    border: 'none',
+                    background: filterType === 'all' ? 'var(--accent)' : 'transparent',
+                    color: filterType === 'all' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                    fontSize: 11.5,
+                    fontWeight: filterType === 'all' ? 650 : 500,
+                    padding: '3px 10px',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
                 >
                   All ({expenses.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setFilterType('owed_to_me')}
-                  className={`pill-btn ${filterType === 'owed_to_me' ? 'active' : ''}`}
-                  style={{ fontSize: 11, padding: '4px 10px' }}
+                  style={{
+                    border: 'none',
+                    background: filterType === 'owed_to_me' ? 'var(--accent)' : 'transparent',
+                    color: filterType === 'owed_to_me' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                    fontSize: 11.5,
+                    fontWeight: filterType === 'owed_to_me' ? 650 : 500,
+                    padding: '3px 10px',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
                 >
                   Owed to you
                 </button>
                 <button
                   type="button"
                   onClick={() => setFilterType('owed_by_me')}
-                  className={`pill-btn ${filterType === 'owed_by_me' ? 'active' : ''}`}
-                  style={{ fontSize: 11, padding: '4px 10px' }}
+                  style={{
+                    border: 'none',
+                    background: filterType === 'owed_by_me' ? 'var(--accent)' : 'transparent',
+                    color: filterType === 'owed_by_me' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                    fontSize: 11.5,
+                    fontWeight: filterType === 'owed_by_me' ? 650 : 500,
+                    padding: '3px 10px',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
                 >
                   You owe
                 </button>
@@ -242,19 +296,18 @@ export default function SettleExpensePickerModal({
 
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
               onClick={allSelected ? onDeselectAll : onSelectAll}
               style={{
+                border: 'none',
+                background: 'none',
+                color: 'var(--accent)',
                 fontSize: 11.5,
-                fontWeight: 600,
-                color: allSelected ? 'var(--text-2)' : 'var(--accent)',
-                background: allSelected ? 'var(--surface2)' : 'var(--accent-soft)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '3px 10px',
-                height: 28,
-                marginLeft: 'auto',
+                fontWeight: 650,
+                padding: '4px 6px',
                 cursor: 'pointer',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+                marginLeft: 'auto',
               }}
             >
               {allSelected ? 'Deselect all' : 'Select all'}
@@ -263,7 +316,19 @@ export default function SettleExpensePickerModal({
         </div>
 
         {/* Scrollable Expense List */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '6px 18px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div
+          className="no-scrollbar"
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            padding: '6px 18px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
           {filteredExpenses.length === 0 ? (
             <div style={{ padding: '36px 16px', textAlign: 'center', color: 'var(--text-3)' }}>
               <ReceiptText size={28} style={{ opacity: 0.4, margin: '0 auto 8px' }} />
@@ -289,9 +354,9 @@ export default function SettleExpensePickerModal({
                     alignItems: 'center',
                     gap: 12,
                     padding: '10px 14px',
-                    background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
-                    border: isSelected ? '1px solid var(--accent-border-soft)' : '1px solid transparent',
-                    borderRadius: 10,
+                    background: isSelected ? 'var(--surface)' : 'var(--surface2)',
+                    border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    borderRadius: 12,
                     cursor: 'pointer',
                     userSelect: 'none',
                     transition: 'all 0.12s ease',
@@ -300,10 +365,10 @@ export default function SettleExpensePickerModal({
                   {/* Custom Checkbox */}
                   <div
                     style={{
-                      width: 19,
-                      height: 19,
-                      borderRadius: 5,
-                      border: isSelected ? '1.5px solid var(--accent)' : '1.5px solid var(--border2)',
+                      width: 18,
+                      height: 18,
+                      borderRadius: 4,
+                      border: isSelected ? 'none' : '1.5px solid var(--border2, var(--text-3))',
                       background: isSelected ? 'var(--accent)' : 'transparent',
                       color: 'var(--accent-contrast, #ffffff)',
                       display: 'grid',
@@ -312,7 +377,7 @@ export default function SettleExpensePickerModal({
                       transition: 'all 0.12s ease',
                     }}
                   >
-                    {isSelected && <Check size={13} strokeWidth={3} />}
+                    {isSelected && <Check size={12} strokeWidth={3} />}
                   </div>
 
                   {/* Category Icon */}
@@ -379,8 +444,9 @@ export default function SettleExpensePickerModal({
         {/* Modal Sticky Footer with Summary & Confirm Action */}
         <div
           style={{
-            padding: '14px 20px calc(14px + env(safe-area-inset-bottom, 0px))',
+            padding: '12px 18px calc(12px + env(safe-area-inset-bottom, 0px))',
             background: 'var(--surface)',
+            borderTop: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -389,7 +455,7 @@ export default function SettleExpensePickerModal({
           }}
         >
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+            <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--text)' }}>
               {selectedSet.size} of {expenses.length} selected
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1 }}>
@@ -402,14 +468,18 @@ export default function SettleExpensePickerModal({
 
           <button
             type="button"
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary active-accent"
             onClick={onClose}
             style={{
               padding: '8px 22px',
               fontSize: 13,
-              fontWeight: 600,
+              fontWeight: 650,
               borderRadius: 8,
               minWidth: 100,
+              backgroundColor: 'var(--accent)',
+              color: 'var(--accent-contrast, #ffffff)',
+              border: 'none',
+              cursor: 'pointer',
             }}
           >
             Done

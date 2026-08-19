@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, RefreshCw, ArrowLeftRight, Store } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, ArrowLeftRight, Store } from 'lucide-react';
 import { useStore } from '../store';
 import { walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey, allFriendBalances } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses } from '../utils';
@@ -76,10 +76,6 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
           <h1 className="page-title">Dashboard</h1>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button className="btn btn-ghost desktop-only" onClick={() => onNavigate('recurring')}>
-            <RefreshCw size={15} />
-            <span>Subscriptions & Autopay</span>
-          </button>
           <button className="btn btn-primary desktop-only" onClick={onAddExpense}>
             <Plus size={16} />
             <span>Add Expense</span>
