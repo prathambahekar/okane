@@ -14,12 +14,21 @@ import {
   Tv,
   ChevronRight,
   Sparkles,
+  Sliders,
+  Palette,
+  Database,
+  Tag,
+  Zap,
+  HelpCircle,
+  FlaskConical,
+  MessageSquarePlus,
 } from 'lucide-react';
 import { useStore } from '../store';
 import type { ViewName, Trip } from '../types';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle } from '../utils';
 import { friendBalance, walletBalance, expenseFlow } from '../db';
 import CategoryIcon from './CategoryIcon';
+import { CURRENT_APP_VERSION } from '../utils/updateManager';
 
 interface Props {
   open: boolean;
@@ -28,7 +37,7 @@ interface Props {
   onNavigate: (view: ViewName, arg?: string) => void;
 }
 
-type SearchTab = 'all' | 'expenses' | 'contacts' | 'wallets' | 'settlements' | 'trips' | 'recurring';
+type SearchTab = 'all' | 'expenses' | 'contacts' | 'wallets' | 'settlements' | 'trips' | 'recurring' | 'settings';
 
 interface TabItem {
   id: SearchTab;
@@ -44,6 +53,99 @@ const TABS: TabItem[] = [
   { id: 'settlements', label: 'Settlements', icon: Handshake },
   { id: 'trips', label: 'Trips', icon: Compass },
   { id: 'recurring', label: 'Subscriptions', icon: RefreshCw },
+  { id: 'settings', label: 'Settings', icon: Sliders },
+];
+
+interface SettingsSearchItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  category: string;
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  tags: string[];
+}
+
+const SETTINGS_SEARCH_ITEMS: SettingsSearchItem[] = [
+  {
+    id: 'appearance',
+    title: 'Appearance & Theme',
+    subtitle: 'Dark / Light mode, custom accent color, theme presets & palette',
+    category: 'General',
+    icon: Palette,
+    tags: ['theme', 'dark', 'light', 'mode', 'color', 'accent', 'palette', 'neon violet', 'classic blue', 'emerald', 'coral', 'amber', 'rose', 'monochrome', 'appearance', 'look', 'style']
+  },
+  {
+    id: 'preferences',
+    title: 'Preferences & Currency',
+    subtitle: 'Default currency (INR, USD, EUR, GBP, JPY...), default wallet & expense status',
+    category: 'Preferences',
+    icon: Sliders,
+    tags: ['currency', 'money', 'inr', 'usd', 'eur', 'gbp', 'jpy', 'cad', 'aud', 'wallet', 'default', 'status', 'paid', 'unpaid', 'preferences', 'defaults', 'symbol', 'format']
+  },
+  {
+    id: 'categories',
+    title: 'Category & Tag Management',
+    subtitle: 'Manage expense categories, tags, custom color icons & labels',
+    category: 'General',
+    icon: Tag,
+    tags: ['categories', 'category', 'tags', 'tag', 'labels', 'label', 'color', 'icon', 'food', 'shopping', 'fuel', 'bills', 'groceries', 'travel', 'rent', 'entertainment']
+  },
+  {
+    id: 'data-backup',
+    title: 'Data Management & Backup',
+    subtitle: 'Export backup, export CSV / JSON, restore data, SQL dump, or reset storage',
+    category: 'Data',
+    icon: Database,
+    tags: ['data', 'export', 'import', 'backup', 'restore', 'reset', 'sql', 'dump', 'download', 'csv', 'json', 'clear', 'wipe', 'storage', 'database', 'sync']
+  },
+  {
+    id: 'advanced-features',
+    title: 'Advanced Features',
+    subtitle: 'Category envelopes budget, Autopay smart rules, Trips & split expenses',
+    category: 'Features',
+    icon: Sparkles,
+    tags: ['advanced', 'envelopes', 'envelope', 'budget', 'budgeting', 'autopay', 'rules', 'trips', 'split', 'splits', 'group', 'travel', 'features']
+  },
+  {
+    id: 'performance',
+    title: 'Performance & Animations',
+    subtitle: 'Smooth UI animations toggle, ultra fast mode & FPS boost',
+    category: 'Features',
+    icon: Zap,
+    tags: ['performance', 'animations', 'animation', 'fps', 'speed', 'fast', 'smooth', 'ultra', 'render', 'transitions']
+  },
+  {
+    id: 'user-guide',
+    title: 'Okane User Guide & Tour',
+    subtitle: 'Interactive tutorial, feature walkthroughs & getting started FAQ',
+    category: 'Support',
+    icon: Compass,
+    tags: ['guide', 'tour', 'help', 'tutorial', 'walkthrough', 'faq', 'support', 'how to', 'docs', 'manual', 'learn']
+  },
+  {
+    id: 'dev-mode',
+    title: 'Developer Mode & SQL Console',
+    subtitle: 'Experimental tools, SQL query console, Max AI assistant & engine settings',
+    category: 'System',
+    icon: FlaskConical,
+    tags: ['dev', 'developer', 'sql', 'console', 'query', 'ai', 'assistant', 'gemini', 'engine', 'experimental', 'database', 'tools', 'debug', 'terminal']
+  },
+  {
+    id: 'app-info',
+    title: 'App Info & Updates',
+    subtitle: `Okane v${CURRENT_APP_VERSION} • Check for updates, build notes & changelog`,
+    category: 'System',
+    icon: HelpCircle,
+    tags: ['version', 'update', 'updates', 'build', 'github', 'info', 'release', 'changelog', 'about', 'app info']
+  },
+  {
+    id: 'feedback',
+    title: 'Report Bug / Feature Request',
+    subtitle: 'Submit feedback, report a bug, or suggest new feature ideas on GitHub',
+    category: 'Support',
+    icon: MessageSquarePlus,
+    tags: ['bug', 'feature', 'issue', 'feedback', 'github', 'report', 'request', 'suggest', 'support', 'contact']
+  }
 ];
 
 export default function ContextualSearchModal({ open, onClose, activeView, onNavigate }: Props) {
@@ -66,6 +168,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
     if (activeView === 'settlements') return 'settlements';
     if (activeView === 'split-trips') return 'trips';
     if (activeView === 'recurring') return 'recurring';
+    if (activeView === 'settings') return 'settings';
     return 'all';
   }, [activeView]);
 
@@ -174,13 +277,29 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
     }).slice(0, 15);
   }, [recurringRules, q, activeTab]);
 
+  // Search Settings & Preferences
+  const matchingSettings = useMemo(() => {
+    if (activeTab !== 'all' && activeTab !== 'settings') return [];
+    if (!q) {
+      return activeTab === 'settings' ? SETTINGS_SEARCH_ITEMS : SETTINGS_SEARCH_ITEMS.slice(0, 4);
+    }
+    return SETTINGS_SEARCH_ITEMS.filter(s => {
+      const titleMatch = s.title.toLowerCase().includes(q);
+      const subMatch = s.subtitle.toLowerCase().includes(q);
+      const catMatch = s.category.toLowerCase().includes(q);
+      const tagMatch = s.tags.some(t => t.toLowerCase().includes(q));
+      return titleMatch || subMatch || catMatch || tagMatch;
+    });
+  }, [q, activeTab]);
+
   const totalResultsCount =
     matchingExpenses.length +
     matchingContacts.length +
     matchingWallets.length +
     matchingSettlements.length +
     matchingTrips.length +
-    matchingRecurring.length;
+    matchingRecurring.length +
+    matchingSettings.length;
 
   if (!open) return null;
 
@@ -197,7 +316,9 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
       ? 'Search trips & split groups...'
       : activeTab === 'recurring'
       ? 'Search subscriptions & autopays...'
-      : 'Search across expenses, contacts, wallets...';
+      : activeTab === 'settings'
+      ? 'Search settings, themes, currency, backups, features...'
+      : 'Search across expenses, contacts, settings...';
 
   return (
     <div
@@ -967,6 +1088,110 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Settings & Preferences */}
+              {matchingSettings.length > 0 && (
+                <div>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.6px',
+                      color: 'var(--text-3)',
+                      marginBottom: '8px',
+                      paddingLeft: '2px',
+                    }}
+                  >
+                    <span>Settings & Preferences ({matchingSettings.length})</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {matchingSettings.map(s => {
+                      const IconComponent = s.icon;
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() => {
+                            handleClose();
+                            onNavigate('settings');
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '11px 13px',
+                            background: 'var(--surface2)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '12px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={ev => {
+                            ev.currentTarget.style.borderColor = 'var(--accent)';
+                          }}
+                          onMouseLeave={ev => {
+                            ev.currentTarget.style.borderColor = 'var(--border)';
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '10px',
+                                backgroundColor: 'var(--surface3)',
+                                border: '1px solid var(--border)',
+                                color: 'var(--accent)',
+                                display: 'grid',
+                                placeItems: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <IconComponent size={18} />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text)' }}>
+                                  {s.title}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '10px',
+                                    fontWeight: 600,
+                                    padding: '2px 6px',
+                                    borderRadius: '6px',
+                                    background: 'var(--surface3)',
+                                    color: 'var(--text-3)',
+                                    border: '1px solid var(--border)',
+                                  }}
+                                >
+                                  {s.category}
+                                </span>
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '11.5px',
+                                  color: 'var(--text-3)',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  marginTop: '2px',
+                                }}
+                              >
+                                {s.subtitle}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-3)', flexShrink: 0, marginLeft: '8px' }}>
+                            <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 500 }}>Open</span>
+                            <ChevronRight size={15} style={{ color: 'var(--accent)' }} />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

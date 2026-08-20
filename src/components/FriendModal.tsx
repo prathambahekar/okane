@@ -201,14 +201,14 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
 
   return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ width: '100%', maxWidth: 440, borderRadius: 'var(--radius-lg)' }}>
+      <div className="modal friend-drawer-modal">
         {/* Drag Handle Indicator for Mobile Bottom Sheet */}
         <div className="modal-handle-bar">
           <div className="modal-handle" />
         </div>
 
         <div className="modal-header" style={{ padding: '14px 18px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 'none' }}>
-          <span className="modal-title" style={{ fontSize: 16, fontWeight: 650, color: 'var(--text)' }}>
+          <span className="modal-title" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
             {friend ? (type === 'subscription' ? 'Edit Subscription' : type === 'vendor' ? 'Edit Vendor' : 'Edit Friend') : type === 'subscription' ? 'Add Subscription' : type === 'vendor' ? 'Add Vendor' : 'Add Friend'}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -221,11 +221,11 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                 width: 32,
                 height: 32,
                 position: 'relative',
-                color: notes ? 'var(--accent)' : 'var(--text-3)',
+                color: notes ? 'var(--accent)' : 'var(--text-2)',
                 background: notes ? 'var(--accent-soft)' : 'var(--surface2)',
                 border: notes ? '1px solid var(--accent-border-soft)' : '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                transition: 'all var(--transition)',
+                borderRadius: 8,
+                transition: 'all 0.15s ease',
               }}
             >
               <FileText size={16} />
@@ -248,7 +248,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
               className="btn-icon compact-close-btn"
               onClick={onClose}
               aria-label="Close modal"
-              style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)' }}
+              style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text-2)' }}
             >
               <X size={16} />
             </button>
@@ -271,85 +271,85 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                     gap: 4,
                     background: 'var(--surface2)',
                     padding: 3,
-                    borderRadius: 11,
+                    borderRadius: 12,
                     border: '1px solid var(--border)',
                   }}
                 >
                   <button
                     type="button"
-                    className={`segment-btn ${type === 'friend' ? 'active' : ''}`}
+                    className={`segment-btn ${type === 'friend' ? 'active-accent' : ''}`}
                     onClick={() => setType('friend')}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 6,
-                      padding: '7px 6px',
-                      borderRadius: 8,
+                      padding: '8px 6px',
+                      borderRadius: 9,
                       border: type === 'friend' ? '1px solid var(--accent-border-soft, var(--accent))' : '1px solid transparent',
                       background: type === 'friend' ? 'var(--accent-soft)' : 'transparent',
-                      color: type === 'friend' ? 'var(--accent)' : 'var(--text-3)',
+                      color: type === 'friend' ? 'var(--accent)' : 'var(--text-2)',
                       fontWeight: type === 'friend' ? 650 : 500,
                       fontSize: 12.5,
                       cursor: 'pointer',
                       boxShadow: type === 'friend' ? '0 1px 3px var(--accent-soft)' : 'none',
-                      minHeight: 36,
-                      transition: 'all var(--transition)',
+                      minHeight: 38,
+                      transition: 'all 0.15s ease',
                     }}
                   >
-                    <User size={15} />
+                    <User size={15} style={{ color: type === 'friend' ? 'var(--accent)' : 'inherit' }} />
                     <span>Friend</span>
                   </button>
 
                   <button
                     type="button"
-                    className={`segment-btn ${type === 'vendor' ? 'active' : ''}`}
+                    className={`segment-btn ${type === 'vendor' ? 'active-accent' : ''}`}
                     onClick={() => setType('vendor')}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 6,
-                      padding: '7px 6px',
-                      borderRadius: 8,
+                      padding: '8px 6px',
+                      borderRadius: 9,
                       border: type === 'vendor' ? '1px solid var(--accent-border-soft, var(--accent))' : '1px solid transparent',
                       background: type === 'vendor' ? 'var(--accent-soft)' : 'transparent',
-                      color: type === 'vendor' ? 'var(--accent)' : 'var(--text-3)',
+                      color: type === 'vendor' ? 'var(--accent)' : 'var(--text-2)',
                       fontWeight: type === 'vendor' ? 650 : 500,
                       fontSize: 12.5,
                       cursor: 'pointer',
                       boxShadow: type === 'vendor' ? '0 1px 3px var(--accent-soft)' : 'none',
-                      minHeight: 36,
-                      transition: 'all var(--transition)',
+                      minHeight: 38,
+                      transition: 'all 0.15s ease',
                     }}
                   >
-                    <Store size={15} />
+                    <Store size={15} style={{ color: type === 'vendor' ? 'var(--accent)' : 'inherit' }} />
                     <span>Vendor</span>
                   </button>
 
                   <button
                     type="button"
-                    className={`segment-btn ${type === 'subscription' ? 'active' : ''}`}
+                    className={`segment-btn ${type === 'subscription' ? 'active-accent' : ''}`}
                     onClick={() => setType('subscription')}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 6,
-                      padding: '7px 6px',
-                      borderRadius: 8,
+                      padding: '8px 6px',
+                      borderRadius: 9,
                       border: type === 'subscription' ? '1px solid var(--accent-border-soft, var(--accent))' : '1px solid transparent',
                       background: type === 'subscription' ? 'var(--accent-soft)' : 'transparent',
-                      color: type === 'subscription' ? 'var(--accent)' : 'var(--text-3)',
+                      color: type === 'subscription' ? 'var(--accent)' : 'var(--text-2)',
                       fontWeight: type === 'subscription' ? 650 : 500,
                       fontSize: 12.5,
                       cursor: 'pointer',
                       boxShadow: type === 'subscription' ? '0 1px 3px var(--accent-soft)' : 'none',
-                      minHeight: 36,
-                      transition: 'all var(--transition)',
+                      minHeight: 38,
+                      transition: 'all 0.15s ease',
                     }}
                   >
-                    <Tv size={15} />
+                    <Tv size={15} style={{ color: type === 'subscription' ? 'var(--accent)' : 'inherit' }} />
                     <span>Subscription</span>
                   </button>
                 </div>
@@ -380,12 +380,12 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                           type="button"
                           onClick={() => applyPreset(sub)}
                           style={{
-                            padding: '4px 10px',
-                            borderRadius: 'var(--radius-sm)',
-                            border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                            padding: '5px 11px',
+                            borderRadius: 8,
+                            border: `1px solid ${isSelected ? 'var(--accent-border-soft, var(--accent))' : 'var(--border)'}`,
                             background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
                             color: isSelected ? 'var(--accent)' : 'var(--text-2)',
-                            fontSize: 11.5,
+                            fontSize: 12,
                             fontWeight: isSelected ? 650 : 500,
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
@@ -406,11 +406,10 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                 </label>
                 <input
                   className="form-input"
-                  style={{ height: 38, minHeight: 38, padding: '8px 12px', fontSize: 13, borderRadius: 'var(--radius)' }}
+                  style={{ height: 40, minHeight: 40, padding: '8px 12px', fontSize: 13, borderRadius: 10, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }}
                   value={name}
                   onChange={e => handleNameChange(e.target.value)}
                   placeholder={namePlaceholder}
-                  autoFocus
                 />
               </div>
 
@@ -424,7 +423,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                       </label>
                       <select
                         className="form-select"
-                        style={{ height: 38, minHeight: 38, padding: '6px 10px', fontSize: 12.5, borderRadius: 'var(--radius)' }}
+                        style={{ height: 40, minHeight: 40, padding: '6px 10px', fontSize: 12.5, borderRadius: 10, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }}
                         value={category}
                         onChange={e => setCategory(e.target.value)}
                       >
@@ -440,7 +439,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                       </label>
                       <input
                         className="form-input"
-                        style={{ height: 38, minHeight: 38, padding: '6px 10px', fontSize: 12.5, borderRadius: 'var(--radius)' }}
+                        style={{ height: 40, minHeight: 40, padding: '6px 10px', fontSize: 12.5, borderRadius: 10, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }}
                         type="number"
                         step="any"
                         value={defaultAmount}
@@ -459,7 +458,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                       style={{
                         background: 'var(--surface2)',
                         border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius)',
+                        borderRadius: 10,
                         padding: '9px 12px',
                         cursor: 'pointer',
                         display: 'flex',
@@ -468,7 +467,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                         gap: 10,
                         transition: 'all 0.15s ease',
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent-border-soft)')}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent-border-soft, var(--accent))')}
                       onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
@@ -500,7 +499,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
 
                       <div
                         style={{
-                          background: 'var(--accent)',
+                          background: 'var(--accent-gradient, var(--accent))',
                           color: 'var(--accent-contrast, #ffffff)',
                           border: 'none',
                           padding: '4px 10px',
@@ -512,6 +511,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                           alignItems: 'center',
                           gap: 3,
                           flexShrink: 0,
+                          boxShadow: '0 1px 3px var(--accent-soft)',
                         }}
                       >
                         <span>+ {getCycleDisplayInfo(billingCycle, defaultAmount, db.settings.currency).badge}</span>
@@ -526,7 +526,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                   </label>
                   <select
                     className="form-select"
-                    style={{ height: 38, minHeight: 38, padding: '6px 12px', fontSize: 13, borderRadius: 'var(--radius)' }}
+                    style={{ height: 40, minHeight: 40, padding: '6px 12px', fontSize: 12.5, borderRadius: 10, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }}
                     value={category}
                     onChange={e => setCategory(e.target.value)}
                   >
@@ -550,8 +550,8 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                       style={{
                         fontSize: 10.5,
                         fontWeight: 600,
-                        color: showNumberPicker || avatarNumber ? 'var(--accent)' : 'var(--text-3)',
-                        background: showNumberPicker || avatarNumber ? 'var(--accent-soft)' : 'transparent',
+                        color: showNumberPicker || avatarNumber ? 'var(--accent)' : 'var(--text-2)',
+                        background: showNumberPicker || avatarNumber ? 'var(--accent-soft)' : 'var(--surface2)',
                         border: '1px solid ' + (showNumberPicker || avatarNumber ? 'var(--accent-border-soft)' : 'var(--border)'),
                         padding: '2px 8px',
                         borderRadius: 10,
@@ -578,17 +578,17 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
-                    padding: '6px 10px',
+                    padding: '8px 12px',
                     background: 'var(--surface2)',
-                    borderRadius: 'var(--radius)',
+                    borderRadius: 10,
                     border: '1px solid var(--border)',
                   }}
                 >
                   {/* Mini Avatar Preview */}
                   <div
                     style={{
-                      width: 26,
-                      height: 26,
+                      width: 28,
+                      height: 28,
                       borderRadius: '50%',
                       ...getAvatarStyle(color),
                       display: 'flex',
@@ -730,7 +730,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                           padding: '4px 6px',
                           fontSize: 12,
                           fontWeight: 700,
-                          borderRadius: 'var(--radius-sm)',
+                          borderRadius: 8,
                           border: '1px solid var(--border)',
                           background: 'var(--surface)',
                           color: 'var(--text)',
@@ -747,7 +747,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                               padding: '2px 7px',
                               fontSize: 10.5,
                               fontWeight: 600,
-                              borderRadius: 'var(--radius-sm)',
+                              borderRadius: 6,
                               border: avatarNumber === num ? '1px solid var(--accent)' : '1px solid var(--border)',
                               background: avatarNumber === num ? 'var(--accent-soft)' : 'var(--surface)',
                               color: avatarNumber === num ? 'var(--accent)' : 'var(--text-2)',
@@ -772,7 +772,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ flex: 1, height: 38, fontSize: 13, borderRadius: 'var(--radius)' }}
+              style={{ flex: 1, height: 40, fontSize: 13, fontWeight: 600, borderRadius: 10, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }}
               onClick={onClose}
             >
               Cancel
@@ -780,7 +780,17 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
             <button
               type="submit"
               className="btn btn-primary"
-              style={{ flex: 1, height: 38, fontSize: 13, borderRadius: 'var(--radius)', fontWeight: 650 }}
+              style={{
+                flex: 1,
+                height: 40,
+                fontSize: 13,
+                fontWeight: 650,
+                borderRadius: 10,
+                background: 'var(--accent-gradient, var(--accent))',
+                color: 'var(--accent-contrast, #ffffff)',
+                border: '1px solid var(--accent-dark, var(--accent))',
+                boxShadow: '0 2px 8px var(--accent-soft)',
+              }}
             >
               {friend ? 'Save' : 'Add'}
             </button>
@@ -809,20 +819,20 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
         {isCycleModalOpen && (
           <div
             className="modal-backdrop"
-            style={{ zIndex: 10005, background: 'rgba(0,0,0,0.65)' }}
+            style={{ zIndex: 10005, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
             onClick={e => { if (e.target === e.currentTarget) setIsCycleModalOpen(false); }}
           >
-            <div className="modal" style={{ maxWidth: 420, maxHeight: '88vh', display: 'flex', flexDirection: 'column', animation: 'slidein 0.15s ease' }}>
+            <div className="modal friend-drawer-modal" style={{ maxWidth: 420, maxHeight: '88vh', display: 'flex', flexDirection: 'column', border: '1px solid var(--border)', borderRadius: 20, background: 'var(--surface)', animation: 'slidein 0.15s ease' }}>
               <div className="modal-handle-bar">
                 <div className="modal-handle" />
               </div>
-              <div className="modal-header" style={{ padding: '14px 18px' }}>
+              <div className="modal-header" style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', background: 'var(--accent-soft)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent-soft)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
                     <Repeat size={15} />
                   </div>
                   <div>
-                    <div className="modal-title" style={{ fontSize: 14, fontWeight: 700 }}>
+                    <div className="modal-title" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
                       Select Billing Cycle
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
@@ -830,7 +840,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                     </div>
                   </div>
                 </div>
-                <button className="btn-icon" onClick={() => setIsCycleModalOpen(false)} style={{ borderRadius: 'var(--radius-sm)' }}><X size={16} /></button>
+                <button className="btn-icon" onClick={() => setIsCycleModalOpen(false)} style={{ borderRadius: 8, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text-2)' }}><X size={16} /></button>
               </div>
 
               <div className="modal-body" style={{ padding: '12px 18px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -848,7 +858,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '11px 13px',
-                        borderRadius: 'var(--radius-sm)',
+                        borderRadius: 10,
                         border: isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
                         background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
                         cursor: 'pointer',
@@ -860,9 +870,9 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                           style={{
                             width: 30,
                             height: 30,
-                            borderRadius: 6,
-                            background: isSelected ? 'var(--accent)' : 'var(--surface)',
-                            color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
+                            borderRadius: 8,
+                            background: isSelected ? 'var(--accent-gradient, var(--accent))' : 'var(--surface)',
+                            color: isSelected ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
                             display: 'grid',
                             placeItems: 'center',
                             flexShrink: 0,
@@ -904,7 +914,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                           borderRadius: '50%',
                           border: isSelected ? 'none' : '1.5px solid var(--border2)',
                           background: isSelected ? 'var(--accent)' : 'transparent',
-                          color: 'var(--accent-contrast)',
+                          color: 'var(--accent-contrast, #ffffff)',
                           display: 'grid',
                           placeItems: 'center',
                           flexShrink: 0,
@@ -922,7 +932,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                   <div
                     style={{
                       padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
+                      borderRadius: 10,
                       background: 'var(--surface3, var(--surface))',
                       border: '1px solid var(--accent-border-soft, var(--border))',
                       display: 'flex',
@@ -952,7 +962,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                               padding: '5px 0',
                               fontSize: 11.5,
                               fontWeight: isChipSelected ? 700 : 500,
-                              borderRadius: 'var(--radius-sm)',
+                              borderRadius: 8,
                               border: isChipSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
                               background: isChipSelected ? 'var(--accent-soft)' : 'var(--surface2)',
                               color: isChipSelected ? 'var(--accent)' : 'var(--text-2)',
@@ -972,7 +982,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                         <button
                           type="button"
                           className="btn-icon"
-                          style={{ width: 28, height: 28, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface2)' }}
+                          style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface2)' }}
                           onClick={() => setCustomMonths(prev => Math.max(1, prev - 1))}
                         >
                           -
@@ -982,14 +992,14 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                           min="1"
                           max="60"
                           className="form-input"
-                          style={{ height: 28, textAlign: 'center', fontSize: 12.5, fontWeight: 700, padding: '2px 6px', width: 60 }}
+                          style={{ height: 28, textAlign: 'center', fontSize: 12.5, fontWeight: 700, padding: '2px 6px', width: 60, borderRadius: 6, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)' }}
                           value={customMonths}
                           onChange={e => setCustomMonths(Math.max(1, parseInt(e.target.value) || 1))}
                         />
                         <button
                           type="button"
                           className="btn-icon"
-                          style={{ width: 28, height: 28, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface2)' }}
+                          style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface2)' }}
                           onClick={() => setCustomMonths(prev => Math.min(60, prev + 1))}
                         >
                           +
@@ -1006,7 +1016,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                     style={{
                       marginTop: 2,
                       padding: '8px 12px',
-                      borderRadius: 'var(--radius-sm)',
+                      borderRadius: 10,
                       background: 'var(--surface3, var(--surface))',
                       border: '1px solid var(--border)',
                       display: 'flex',
@@ -1041,14 +1051,14 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                 )}
               </div>
 
-              <div className="modal-footer" style={{ padding: '12px 18px', display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                <button type="button" className="btn btn-secondary btn-sm" style={{ borderRadius: 'var(--radius-sm)', fontSize: 12 }} onClick={() => setIsCycleModalOpen(false)}>
+              <div className="modal-footer" style={{ padding: '12px 18px', display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
+                <button type="button" className="btn btn-secondary btn-sm" style={{ borderRadius: 8, fontSize: 12, height: 34, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }} onClick={() => setIsCycleModalOpen(false)}>
                   Cancel
                 </button>
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  style={{ borderRadius: 'var(--radius-sm)', fontSize: 12, padding: '0 16px' }}
+                  style={{ borderRadius: 8, fontSize: 12, padding: '0 16px', height: 34, background: 'var(--accent-gradient, var(--accent))', color: 'var(--accent-contrast, #ffffff)', border: '1px solid var(--accent-dark, var(--accent))' }}
                   onClick={saveCycleFromModal}
                 >
                   ✓ Apply Cycle

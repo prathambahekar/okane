@@ -520,7 +520,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setDB(current => {
-      const next = { ...current, settings: { ...current.settings, ...data } };
+      let updatedWallets = current.wallets;
+      if (data.defaultWalletId) {
+        updatedWallets = current.wallets.map(w => ({
+          ...w,
+          isDefault: w.id === data.defaultWalletId,
+        }));
+      }
+      const next = {
+        ...current,
+        wallets: updatedWallets,
+        settings: { ...current.settings, ...data },
+      };
       saveDB(next);
       return next;
     });

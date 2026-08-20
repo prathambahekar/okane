@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Wallet as WalletIcon, Plus, Check } from 'lucide-react';
+import { X, Wallet as WalletIcon, Plus, Check, Star } from 'lucide-react';
 import { useStore } from '../store';
 import type { Wallet } from '../types';
 import { WALLET_PRESETS, renderWalletIcon } from './WalletIconRenderer';
@@ -14,10 +14,14 @@ interface Props {
 export default function WalletModal({ wallet, onClose }: Props) {
   const { addWallet, updateWallet, showToast, db } = useStore();
   const currency = db.settings?.currency || 'INR';
+  const isCurrentlyDefault = wallet
+    ? (wallet.isDefault ?? (db.settings.defaultWalletId === wallet.id))
+    : db.wallets.length === 0;
 
   const [selectedPresetId, setSelectedPresetId] = useState<string>(() => wallet?.icon ?? 'gpay');
   const [name, setName] = useState(wallet?.name ?? 'Google Pay');
   const [openingBalance, setOpeningBalance] = useState(wallet ? String(wallet.openingBalance) : '0');
+  const [isDefault, setIsDefault] = useState<boolean>(isCurrentlyDefault);
   const [error, setError] = useState('');
 
   const handleSelectPreset = (presetId: string) => {
@@ -45,6 +49,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
       openingBalance: Number(openingBalance) || 0,
       color: autoColor,
       icon: selectedPresetId,
+      isDefault,
     };
 
     if (wallet) {
@@ -312,7 +317,74 @@ export default function WalletModal({ wallet, onClose }: Props) {
               </div>
             </div>
 
-            {/* 4. ACTION BUTTONS: Cancel on Left, Confirm/Add on Right */}
+            {/* 4. SET AS DEFAULT WALLET TOGGLE */}
+            <div
+              onClick={() => setIsDefault(!isDefault)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px',
+                borderRadius: 10,
+                background: isDefault ? 'var(--accent-soft)' : 'var(--surface2)',
+                border: isDefault ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                userSelect: 'none',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 7,
+                    background: isDefault ? 'var(--accent)' : 'var(--surface3, rgba(128, 128, 128, 0.1))',
+                    color: isDefault ? '#ffffff' : 'var(--text-3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Star size={14} fill={isDefault ? 'currentColor' : 'none'} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 650,
+                      color: isDefault ? 'var(--accent)' : 'var(--text)',
+                    }}
+                  >
+                    Set as Default Wallet
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
+                    Auto-selected for new transactions and settlements
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 6,
+                  border: isDefault ? '1.5px solid var(--accent)' : '1.5px solid var(--border)',
+                  background: isDefault ? 'var(--accent)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+              >
+                {isDefault && <Check size={13} strokeWidth={3} />}
+              </div>
+            </div>
+
+            {/* 5. ACTION BUTTONS: Cancel on Left, Confirm/Add on Right */}
             <div
               style={{
                 display: 'flex',

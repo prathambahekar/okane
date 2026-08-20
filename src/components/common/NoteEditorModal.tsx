@@ -167,7 +167,6 @@ function NoteEditorContent({
                 boxSizing: 'border-box',
                 boxShadow: '0 0 0 1px var(--accent-border-soft, rgba(236,72,153,0.15))',
               }}
-              autoFocus
             />
           </div>
 

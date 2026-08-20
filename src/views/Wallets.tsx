@@ -164,7 +164,9 @@ export default function Wallets() {
   }, [walletExpenses, walletSettlements, thisKey]);
 
   const walletCardsData = useMemo(() => {
-    return wallets.map(w => {
+    const defaultWalId = settings?.defaultWalletId || wallets[0]?.id;
+    const mapped = wallets.map(w => {
+      const isDefault = w.id === defaultWalId || Boolean(w.isDefault);
       const bal = walletBalance(db, w.id);
       const allocated = walletEnvelopeAllocated(db, w.id);
       const unallocated = walletUnallocatedBalance(db, w.id);
@@ -182,6 +184,7 @@ export default function Wallets() {
 
       return {
         wallet: w,
+        isDefault,
         bal,
         allocated,
         unallocated,
@@ -190,7 +193,14 @@ export default function Wallets() {
         wSpend,
       };
     });
-  }, [wallets, db, envelopes, expenses, thisKey]);
+
+    // Default wallet always shown on top / first
+    return mapped.sort((a, b) => {
+      if (a.isDefault && !b.isDefault) return -1;
+      if (!a.isDefault && b.isDefault) return 1;
+      return 0;
+    });
+  }, [wallets, db, envelopes, expenses, thisKey, settings?.defaultWalletId]);
 
   // Envelopes statistics
   const filteredEnvelopes = useMemo(() => {
@@ -270,7 +280,7 @@ export default function Wallets() {
 
       {/* Wallet Cards Grid Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20, marginBottom: 32 }}>
-        {walletCardsData.map(({ wallet: w, bal, allocated, unallocated, wEnvelopes, wExpCount, wSpend }) => {
+        {walletCardsData.map(({ wallet: w, isDefault, bal, allocated, unallocated, wEnvelopes, wExpCount, wSpend }) => {
           return (
             <div
               key={w.id}
@@ -306,7 +316,27 @@ export default function Wallets() {
                       {renderWalletIcon(w.icon || 'wallet', 24, w.color || '#d97706')}
                     </div>
                     <div>
-                      <span style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)' }}>{w.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)' }}>{w.name}</span>
+                        {isDefault && (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '2px 8px',
+                              borderRadius: 999,
+                              background: 'var(--accent-soft)',
+                              color: 'var(--accent)',
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              border: '1px solid var(--accent-border-soft, var(--accent))',
+                              letterSpacing: '0.2px',
+                            }}
+                          >
+                            Default
+                          </span>
+                        )}
+                      </div>
                       {enableEnvelopes && (
                         <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
                           {wEnvelopes.length} {wEnvelopes.length === 1 ? 'Goal Envelope' : 'Goal Envelopes'}

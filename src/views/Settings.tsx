@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Search, Compass } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -292,7 +292,6 @@ export default function Settings({
   const [showFeedbackSheet, setShowFeedbackSheet] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
     appName: "Okane",
@@ -800,29 +799,6 @@ export default function Settings({
     showToast('Sample data loaded');
   };
 
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  const matchesSearch = (title: string, desc: string, tags: string[] = []) => {
-    if (!normalizedQuery) return true;
-    return (
-      title.toLowerCase().includes(normalizedQuery) ||
-      desc.toLowerCase().includes(normalizedQuery) ||
-      tags.some(t => t.toLowerCase().includes(normalizedQuery))
-    );
-  };
-
-  const showAppearanceCard = matchesSearch('Appearance & Theme', 'Dark Mode Light Mode Theme Accent Color Custom', ['theme', 'dark', 'light', 'color', 'palette', 'accent']);
-  const showPreferencesCard = matchesSearch('Preferences', 'Currency default category wallet expense status', ['currency', 'inr', 'usd', 'wallet', 'category', 'status', 'paid', 'unpaid']);
-  const showCategoriesCard = matchesSearch('Categories', 'Manage category tags & color labels', ['category', 'categories', 'tag', 'tags', 'label', 'icon']);
-  const showDataCard = matchesSearch('Data Management', 'Export backup, import data, reset storage', ['data', 'export', 'import', 'backup', 'restore', 'reset', 'sql', 'dump', 'download']);
-  const showAdvancedCard = matchesSearch('Advanced Features', 'Envelopes Autopay Trips & Splits', ['envelopes', 'autopay', 'split', 'trips', 'advanced', 'budget']);
-  const showPerformanceCard = isDevMode && (settings.enablePerformanceCard ?? true) && matchesSearch('Performance & Animations', 'Animations Performance Mode Ultra Fast', ['performance', 'animation', 'animations', 'fps', 'speed', 'fast']);
-  const showUserGuideCard = isDevMode && (settings.enableUserGuide ?? false) && matchesSearch('Okane User Guide & Tour', 'Interactive tutorial expense guide tour', ['guide', 'help', 'tutorial', 'tour', 'walkthrough']);
-  const showDevCard = matchesSearch('Developer Mode', 'Experimental tools SQL dev console Max AI assistant Gemini offline', ['dev', 'developer', 'sql', 'console', 'query', 'ai', 'assistant', 'gemini', 'engine']);
-  const showVersionCard = matchesSearch('App Info & Version', 'Check for updates release notes build changelog', ['version', 'update', 'updates', 'build', 'github', 'info', 'release', 'changelog']);
-  const showFeedbackCard = isDevMode && (settings.enableReportBugCard ?? true) && matchesSearch('Report Bug / Feature Request', 'Submit feedback bug report feature idea GitHub issue', ['bug', 'feature', 'issue', 'feedback', 'github', 'report', 'request']);
-
-  const hasAnyResults = showAppearanceCard || showPreferencesCard || showCategoriesCard || showDataCard || showAdvancedCard || showPerformanceCard || showUserGuideCard || showDevCard || showVersionCard || showFeedbackCard;
-
   return (
     <div className="view-container">
       <div className="page-header">
@@ -831,77 +807,16 @@ export default function Settings({
         </div>
       </div>
 
-      {/* Settings Search Bar */}
-      <div className="settings-search-container">
-        <div className="settings-search-input-wrap">
-          <Search size={16} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-          <input
-            type="text"
-            className="settings-search-input"
-            placeholder="Search settings (theme, currency, backup, features...)"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 2,
-                color: 'var(--text-3)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              aria-label="Clear search"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Empty Search Result State */}
-      {normalizedQuery && !hasAnyResults && (
-        <div style={{
-          padding: '36px 20px',
-          textAlign: 'center',
-          background: 'var(--surface)',
-          borderRadius: 14,
-          border: '1px solid var(--border)',
-          marginTop: 8
-        }}>
-          <Search size={28} style={{ color: 'var(--text-3)', margin: '0 auto 10px', display: 'block' }} />
-          <div style={{ fontSize: 15, fontWeight: 650, color: 'var(--text)', marginBottom: 4 }}>No settings found</div>
-          <div style={{ fontSize: 12.5, color: 'var(--text-3)', marginBottom: 14 }}>
-            No results matching "{searchQuery}". Try a different keyword.
-          </div>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => setSearchQuery('')}
-            style={{ borderRadius: 8, padding: '6px 14px', fontSize: 12 }}
-          >
-            Clear Search
-          </button>
-        </div>
-      )}
-
       <div className="settings-cards-list">
         {/* Section 1: General & Customization */}
-        {(!normalizedQuery || showAppearanceCard || showPreferencesCard || showCategoriesCard) && (
-          <div className="settings-section-group">
-            {!normalizedQuery && <div className="settings-section-label">General & Customization</div>}
+        <div className="settings-section-group">
+          <div className="settings-section-label">General & Customization</div>
 
-            {/* Appearance Summary Card */}
-            {showAppearanceCard && (
-              <div className="card settings-summary-card" onClick={() => setShowAppearanceSheet(true)}>
+          {/* Appearance Summary Card */}
+          <div className="card settings-summary-card" onClick={() => setShowAppearanceSheet(true)}>
                 <div className="settings-card-inner">
                   <div className="settings-card-left">
-                    <div className="settings-card-icon icon-tint-appearance">
+                    <div className="settings-card-icon">
                       <Palette size={19} />
                     </div>
                     <div className="settings-card-text">
@@ -930,61 +845,55 @@ export default function Settings({
                   </div>
                 </div>
               </div>
-            )}
 
             {/* Preferences Summary Card */}
-            {showPreferencesCard && (
-              <div className="card settings-summary-card" onClick={() => setShowPreferencesSheet(true)}>
-                <div className="settings-card-inner">
-                  <div className="settings-card-left">
-                    <div className="settings-card-icon icon-tint-preferences">
-                      <Sliders size={19} />
-                    </div>
-                    <div className="settings-card-text">
-                      <h2 className="settings-card-title">Preferences</h2>
-                      <p className="settings-card-sub">
-                        Currency ({settings.currency}), default category & wallet
-                      </p>
-                    </div>
+            <div className="card settings-summary-card" onClick={() => setShowPreferencesSheet(true)}>
+              <div className="settings-card-inner">
+                <div className="settings-card-left">
+                  <div className="settings-card-icon">
+                    <Sliders size={19} />
                   </div>
-
-                  <div className="settings-card-right">
-                    <span className="badge settings-card-badge">
-                      {settings.currency}
-                    </span>
-                    <ChevronRight className="settings-card-arrow" size={18} />
+                  <div className="settings-card-text">
+                    <h2 className="settings-card-title">Preferences</h2>
+                    <p className="settings-card-sub">
+                      Currency ({settings.currency}), default category & wallet
+                    </p>
                   </div>
                 </div>
+
+                <div className="settings-card-right">
+                  <span className="badge settings-card-badge">
+                    {settings.currency}
+                  </span>
+                  <ChevronRight className="settings-card-arrow" size={18} />
+                </div>
               </div>
-            )}
+            </div>
 
             {/* Categories Summary Card */}
-            {showCategoriesCard && (
-              <div className="card settings-summary-card" onClick={() => setShowCategoriesSheet(true)}>
-                <div className="settings-card-inner">
-                  <div className="settings-card-left">
-                    <div className="settings-card-icon icon-tint-categories">
-                      <Tag size={19} />
-                    </div>
-                    <div className="settings-card-text">
-                      <h2 className="settings-card-title">Categories</h2>
-                      <p className="settings-card-sub">
-                        Manage category tags & color labels ({settings.categories.length} configured)
-                      </p>
-                    </div>
+            <div className="card settings-summary-card" onClick={() => setShowCategoriesSheet(true)}>
+              <div className="settings-card-inner">
+                <div className="settings-card-left">
+                  <div className="settings-card-icon">
+                    <Tag size={19} />
                   </div>
-
-                  <div className="settings-card-right">
-                    <span className="badge settings-card-badge">
-                      {settings.categories.length} Tags
-                    </span>
-                    <ChevronRight className="settings-card-arrow" size={18} />
+                  <div className="settings-card-text">
+                    <h2 className="settings-card-title">Categories</h2>
+                    <p className="settings-card-sub">
+                      Manage category tags & color labels ({settings.categories.length} configured)
+                    </p>
                   </div>
                 </div>
+
+                <div className="settings-card-right">
+                  <span className="badge settings-card-badge">
+                    {settings.categories.length} Tags
+                  </span>
+                  <ChevronRight className="settings-card-arrow" size={18} />
+                </div>
               </div>
-            )}
+            </div>
           </div>
-        )}
 
         {/* Bottom Sheet Drawer Modal for Appearance & Theme */}
         {showAppearanceSheet && createPortal(
@@ -2008,37 +1917,33 @@ export default function Settings({
         )}
 
         {/* Section 2: Data & Storage */}
-        {(!normalizedQuery || showDataCard) && (
-          <div className="settings-section-group">
-            {!normalizedQuery && <div className="settings-section-label">Data & Storage</div>}
+        <div className="settings-section-group">
+          <div className="settings-section-label">Data & Storage</div>
 
-            {/* Data Summary Card */}
-            {showDataCard && (
-              <div className="card settings-summary-card" onClick={() => setShowDataSheet(true)}>
-                <div className="settings-card-inner">
-                  <div className="settings-card-left">
-                    <div className="settings-card-icon icon-tint-data">
-                      <Database size={19} />
-                    </div>
-                    <div className="settings-card-text">
-                      <h2 className="settings-card-title">Data Management</h2>
-                      <p className="settings-card-sub">
-                        Export backup, import data, or reset storage
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="settings-card-right">
-                    <span className="badge settings-card-badge">
-                      Backup & Restore
-                    </span>
-                    <ChevronRight className="settings-card-arrow" size={18} />
-                  </div>
+          {/* Data Summary Card */}
+          <div className="card settings-summary-card" onClick={() => setShowDataSheet(true)}>
+            <div className="settings-card-inner">
+              <div className="settings-card-left">
+                <div className="settings-card-icon">
+                  <Database size={19} />
+                </div>
+                <div className="settings-card-text">
+                  <h2 className="settings-card-title">Data Management</h2>
+                  <p className="settings-card-sub">
+                    Export backup, import data, or reset storage
+                  </p>
                 </div>
               </div>
-            )}
+
+              <div className="settings-card-right">
+                <span className="badge settings-card-badge">
+                  Backup & Restore
+                </span>
+                <ChevronRight className="settings-card-arrow" size={18} />
+              </div>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* Bottom Sheet Drawer Modal for Data */}
         {showDataSheet && createPortal(
@@ -2382,93 +2287,89 @@ export default function Settings({
         )}
 
         {/* Section 3: Features & Performance */}
-        {(!normalizedQuery || showAdvancedCard || (showPerformanceCard && isDevMode && (settings.enablePerformanceCard ?? true)) || (showUserGuideCard && isDevMode && (settings.enableUserGuide ?? false))) && (
-          <div className="settings-section-group">
-            {!normalizedQuery && <div className="settings-section-label">Features & Performance</div>}
+        <div className="settings-section-group">
+          <div className="settings-section-label">Features & Performance</div>
 
-            {/* Advanced Features Card */}
-            {showAdvancedCard && (
-              <div className="card settings-summary-card" onClick={() => setShowAdvancedSheet(true)}>
-                <div className="settings-card-inner">
-                  <div className="settings-card-left">
-                    <div className="settings-card-icon icon-tint-advanced">
-                      <Sparkles size={19} />
-                    </div>
-                    <div className="settings-card-text">
-                      <h2 className="settings-card-title">Advanced Features</h2>
-                      <p className="settings-card-sub">
-                        {(settings.enableEnvelopes ?? false) ? 'Envelopes On' : 'Envelopes Off'} • {(settings.enableAutopay ?? false) ? 'Autopay On' : 'Autopay Off'} • {(settings.enableSplitTrips ?? false) ? 'Trips & Splits On' : 'Trips & Splits Off'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="settings-card-right">
-                    <span className="badge settings-card-badge">
-                      {
-                        [settings.enableEnvelopes ?? false, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length === 0
-                          ? 'Disabled'
-                          : `${[settings.enableEnvelopes ?? false, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length} Active`
-                      }
-                    </span>
-                    <ChevronRight className="settings-card-arrow" size={18} />
-                  </div>
+          {/* Advanced Features Card */}
+          <div className="card settings-summary-card" onClick={() => setShowAdvancedSheet(true)}>
+            <div className="settings-card-inner">
+              <div className="settings-card-left">
+                <div className="settings-card-icon">
+                  <Sparkles size={19} />
+                </div>
+                <div className="settings-card-text">
+                  <h2 className="settings-card-title">Advanced Features</h2>
+                  <p className="settings-card-sub">
+                    {(settings.enableEnvelopes ?? false) ? 'Envelopes On' : 'Envelopes Off'} • {(settings.enableAutopay ?? false) ? 'Autopay On' : 'Autopay Off'} • {(settings.enableSplitTrips ?? false) ? 'Trips & Splits On' : 'Trips & Splits Off'}
+                  </p>
                 </div>
               </div>
-            )}
 
-            {/* Performance & Animations Card (Developer Mode) */}
-            {isDevMode && (settings.enablePerformanceCard ?? true) && showPerformanceCard && (
-              <div className="card settings-summary-card" onClick={() => setShowPerformanceSheet(true)}>
-                <div className="settings-card-inner">
-                  <div className="settings-card-left">
-                    <div className="settings-card-icon icon-tint-performance">
-                      <Zap size={19} />
-                    </div>
-                    <div className="settings-card-text">
-                      <h2 className="settings-card-title">Performance & Animations</h2>
-                      <p className="settings-card-sub">
-                        {(settings.enableAnimations ?? true) ? 'Animations On' : 'Animations Off (Fast)'} • {(settings.performanceMode ?? false) ? 'Ultra Performance On' : 'Standard Visuals'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="settings-card-right">
-                    <span className="badge settings-card-badge">
-                      {(settings.performanceMode ?? false) ? 'Ultra' : ((settings.enableAnimations ?? true) ? 'Smooth' : 'Instant')}
-                    </span>
-                    <ChevronRight className="settings-card-arrow" size={18} />
-                  </div>
-                </div>
+              <div className="settings-card-right">
+                <span className="badge settings-card-badge">
+                  {
+                    [settings.enableEnvelopes ?? false, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length === 0
+                      ? 'Disabled'
+                      : `${[settings.enableEnvelopes ?? false, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length} Active`
+                  }
+                </span>
+                <ChevronRight className="settings-card-arrow" size={18} />
               </div>
-            )}
-
-            {/* Okane User Guide & Tour Card (Developer Mode) */}
-            {isDevMode && (settings.enableUserGuide ?? false) && showUserGuideCard && (
-              <div className="card settings-summary-card" onClick={() => onStartExpenseTutorial ? onStartExpenseTutorial() : onOpenGuide?.()}>
-                <div className="settings-card-inner">
-                  <div className="settings-card-left">
-                    <div className="settings-card-icon icon-tint-guide">
-                      <Compass size={19} />
-                    </div>
-                    <div className="settings-card-text">
-                      <h2 className="settings-card-title">Okane User Guide & Tour</h2>
-                      <p className="settings-card-sub">
-                        Interactive walkthrough & feature guide
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="settings-card-right">
-                    <span className="badge settings-card-badge">
-                      Guide
-                    </span>
-                    <ChevronRight className="settings-card-arrow" size={18} />
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
-        )}
+
+          {/* Performance & Animations Card (Developer Mode) */}
+          {isDevMode && (settings.enablePerformanceCard ?? true) && (
+            <div className="card settings-summary-card" onClick={() => setShowPerformanceSheet(true)}>
+              <div className="settings-card-inner">
+                <div className="settings-card-left">
+                  <div className="settings-card-icon">
+                    <Zap size={19} />
+                  </div>
+                  <div className="settings-card-text">
+                    <h2 className="settings-card-title">Performance & Animations</h2>
+                    <p className="settings-card-sub">
+                      {(settings.enableAnimations ?? true) ? 'Animations On' : 'Animations Off (Fast)'} • {(settings.performanceMode ?? false) ? 'Ultra Performance On' : 'Standard Visuals'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="settings-card-right">
+                  <span className="badge settings-card-badge">
+                    {(settings.performanceMode ?? false) ? 'Ultra' : ((settings.enableAnimations ?? true) ? 'Smooth' : 'Instant')}
+                  </span>
+                  <ChevronRight className="settings-card-arrow" size={18} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Okane User Guide & Tour Card (Developer Mode) */}
+          {isDevMode && (settings.enableUserGuide ?? false) && (
+            <div className="card settings-summary-card" onClick={() => onStartExpenseTutorial ? onStartExpenseTutorial() : onOpenGuide?.()}>
+              <div className="settings-card-inner">
+                <div className="settings-card-left">
+                  <div className="settings-card-icon">
+                    <Compass size={19} />
+                  </div>
+                  <div className="settings-card-text">
+                    <h2 className="settings-card-title">Okane User Guide & Tour</h2>
+                    <p className="settings-card-sub">
+                      Interactive walkthrough & feature guide
+                    </p>
+                  </div>
+                </div>
+
+                <div className="settings-card-right">
+                  <span className="badge settings-card-badge">
+                    Guide
+                  </span>
+                  <ChevronRight className="settings-card-arrow" size={18} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Bottom Sheet Drawer Modal for Advanced Features */}
         {showAdvancedSheet && createPortal(
@@ -2658,88 +2559,82 @@ export default function Settings({
         )}
 
         {/* Section 4: System & Info */}
-        {(!normalizedQuery || showDevCard || showVersionCard || (showFeedbackCard && isDevMode && (settings.enableReportBugCard ?? true))) && (
-          <div className="settings-section-group">
-            {!normalizedQuery && <div className="settings-section-label">System & Info</div>}
+        <div className="settings-section-group">
+          <div className="settings-section-label">System & Info</div>
 
-            {/* Developer Mode Card */}
-            {showDevCard && (
-              <div className="card settings-summary-card" onClick={() => setShowDevSheet(true)}>
-                <div className="settings-card-inner">
-                  <div className="settings-card-left">
-                    <div className="settings-card-icon icon-tint-dev">
-                      <FlaskConical size={19} />
-                    </div>
-                    <div className="settings-card-text">
-                      <h2 className="settings-card-title">Developer Mode</h2>
-                      <p className="settings-card-sub">
-                        {isDevMode ? 'Experimental tools & developer features active' : 'Enable experimental tools & developer features'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="settings-card-right">
-                    <span className="badge settings-card-badge">
-                      {isDevMode ? 'Enabled' : 'Disabled'}
-                    </span>
-                    <ChevronRight className="settings-card-arrow" size={18} />
-                  </div>
+          {/* Developer Mode Card */}
+          <div className="card settings-summary-card" onClick={() => setShowDevSheet(true)}>
+            <div className="settings-card-inner">
+              <div className="settings-card-left">
+                <div className="settings-card-icon">
+                  <FlaskConical size={19} />
+                </div>
+                <div className="settings-card-text">
+                  <h2 className="settings-card-title">Developer Mode</h2>
+                  <p className="settings-card-sub">
+                    {isDevMode ? 'Experimental tools & developer features active' : 'Enable experimental tools & developer features'}
+                  </p>
                 </div>
               </div>
-            )}
 
-            {/* App Version Summary Card */}
-            {showVersionCard && (
-              <div className="card settings-summary-card" onClick={() => setShowVersionSheet(true)}>
-                <div className="settings-card-inner">
-                  <div className="settings-card-left">
-                    <div className="settings-card-icon icon-tint-version">
-                      <HelpCircle size={19} />
-                    </div>
-                    <div className="settings-card-text">
-                      <h2 className="settings-card-title">App Info & Version</h2>
-                      <p className="settings-card-sub">
-                        Check for updates, release notes & app info
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="settings-card-right">
-                    <span className="badge settings-card-badge">
-                      v{String(settings.installedVersion || jsonSettings.appVersion || CURRENT_APP_VERSION)}
-                    </span>
-                    <ChevronRight className="settings-card-arrow" size={18} />
-                  </div>
-                </div>
+              <div className="settings-card-right">
+                <span className="badge settings-card-badge">
+                  {isDevMode ? 'Enabled' : 'Disabled'}
+                </span>
+                <ChevronRight className="settings-card-arrow" size={18} />
               </div>
-            )}
-
-            {/* Report Bug / Suggest a Feature Card (Developer Mode) */}
-            {isDevMode && (settings.enableReportBugCard ?? true) && showFeedbackCard && (
-              <div className="card settings-summary-card" onClick={() => setShowFeedbackSheet(true)}>
-                <div className="settings-card-inner">
-                  <div className="settings-card-left">
-                    <div className="settings-card-icon icon-tint-feedback">
-                      <MessageSquarePlus size={19} />
-                    </div>
-                    <div className="settings-card-text">
-                      <h2 className="settings-card-title">
-                        Report Bug / Feature Request
-                      </h2>
-                      <p className="settings-card-sub">
-                        Submit feedback, bug report, or feature request
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="settings-card-right">
-                    <ChevronRight className="settings-card-arrow" size={18} />
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
-        )}
+
+          {/* App Version Summary Card */}
+          <div className="card settings-summary-card" onClick={() => setShowVersionSheet(true)}>
+            <div className="settings-card-inner">
+              <div className="settings-card-left">
+                <div className="settings-card-icon">
+                  <HelpCircle size={19} />
+                </div>
+                <div className="settings-card-text">
+                  <h2 className="settings-card-title">App Info & Version</h2>
+                  <p className="settings-card-sub">
+                    Check for updates, release notes & app info
+                  </p>
+                </div>
+              </div>
+
+              <div className="settings-card-right">
+                <span className="badge settings-card-badge">
+                  v{String(settings.installedVersion || jsonSettings.appVersion || CURRENT_APP_VERSION)}
+                </span>
+                <ChevronRight className="settings-card-arrow" size={18} />
+              </div>
+            </div>
+          </div>
+
+          {/* Report Bug / Suggest a Feature Card (Developer Mode) */}
+          {isDevMode && (settings.enableReportBugCard ?? true) && (
+            <div className="card settings-summary-card" onClick={() => setShowFeedbackSheet(true)}>
+              <div className="settings-card-inner">
+                <div className="settings-card-left">
+                  <div className="settings-card-icon">
+                    <MessageSquarePlus size={19} />
+                  </div>
+                  <div className="settings-card-text">
+                    <h2 className="settings-card-title">
+                      Report Bug / Feature Request
+                    </h2>
+                    <p className="settings-card-sub">
+                      Submit feedback, bug report, or feature request
+                    </p>
+                  </div>
+                </div>
+
+                <div className="settings-card-right">
+                  <ChevronRight className="settings-card-arrow" size={18} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Bottom Sheet Drawer Modal for Experimental Features */}
         {showDevSheet && createPortal(

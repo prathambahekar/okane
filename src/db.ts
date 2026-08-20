@@ -1760,6 +1760,7 @@ export function deleteFriend(db: AppDB, id: string): AppDB {
 }
 
 export function addWallet(db: AppDB, data: Partial<Wallet>): { db: AppDB; wallet: Wallet } {
+  const isDefault = data.isDefault !== undefined ? Boolean(data.isDefault) : (db.wallets.length === 0);
   const wallet: Wallet = {
     id: uid('wal'),
     name: data.name || 'Wallet',
@@ -1768,16 +1769,52 @@ export function addWallet(db: AppDB, data: Partial<Wallet>): { db: AppDB; wallet
     icon: data.icon || 'wallet',
     minBalanceAlert: data.minBalanceAlert !== undefined ? Number(data.minBalanceAlert) : undefined,
     monthlySpendLimit: data.monthlySpendLimit !== undefined ? Number(data.monthlySpendLimit) : undefined,
-    isDefault: data.isDefault !== undefined ? Boolean(data.isDefault) : false,
+    isDefault,
     rulesNotes: data.rulesNotes || '',
   };
-  return { db: { ...db, wallets: [...db.wallets, wallet] }, wallet };
+  
+  let nextWallets = [...db.wallets];
+  const nextSettings = { ...db.settings };
+
+  if (isDefault) {
+    nextWallets = nextWallets.map(w => ({ ...w, isDefault: false }));
+    nextSettings.defaultWalletId = wallet.id;
+  }
+  nextWallets.push(wallet);
+
+  return { db: { ...db, wallets: nextWallets, settings: nextSettings }, wallet };
 }
 
 export function updateWallet(db: AppDB, id: string, data: Partial<Wallet>): AppDB {
+  const isSettingDefault = data.isDefault === true;
+  const nextSettings = { ...db.settings };
+  if (isSettingDefault) {
+    nextSettings.defaultWalletId = id;
+  } else if (data.isDefault === false && db.settings.defaultWalletId === id) {
+    // If unsetting default and it was default, ensure a fallback exists
+    const fallback = db.wallets.find(w => w.id !== id);
+    if (fallback) {
+      nextSettings.defaultWalletId = fallback.id;
+    }
+  }
+
   return {
     ...db,
-    wallets: db.wallets.map(w => w.id === id ? { ...w, ...data, openingBalance: data.openingBalance !== undefined ? Number(data.openingBalance) : w.openingBalance } : w),
+    settings: nextSettings,
+    wallets: db.wallets.map(w => {
+      if (w.id === id) {
+        return {
+          ...w,
+          ...data,
+          isDefault: data.isDefault !== undefined ? Boolean(data.isDefault) : (w.isDefault ?? (nextSettings.defaultWalletId === id)),
+          openingBalance: data.openingBalance !== undefined ? Number(data.openingBalance) : w.openingBalance,
+        };
+      }
+      if (isSettingDefault) {
+        return { ...w, isDefault: false };
+      }
+      return w;
+    }),
   };
 }
 

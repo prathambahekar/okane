@@ -235,8 +235,8 @@ export default function Friends({ onNavigate }: Props) {
               title="Friends"
               aria-label="Friends"
             >
-              <User size={15} style={{ flexShrink: 0, color: typeFilter === 'friend' ? 'var(--accent)' : 'inherit' }} />
-              <span className="type-label desktop-only">Friends</span>
+              <User size={14} style={{ flexShrink: 0, color: typeFilter === 'friend' ? 'var(--accent)' : 'inherit' }} />
+              <span className="type-label">Friends</span>
               <span className="type-badge">{counts.friend}</span>
             </button>
 
@@ -247,8 +247,8 @@ export default function Friends({ onNavigate }: Props) {
               title="Vendors"
               aria-label="Vendors"
             >
-              <Store size={15} style={{ flexShrink: 0, color: typeFilter === 'vendor' ? 'var(--accent)' : 'inherit' }} />
-              <span className="type-label desktop-only">Vendors</span>
+              <Store size={14} style={{ flexShrink: 0, color: typeFilter === 'vendor' ? 'var(--accent)' : 'inherit' }} />
+              <span className="type-label">Vendors</span>
               <span className="type-badge">{counts.vendor}</span>
             </button>
 
@@ -259,8 +259,8 @@ export default function Friends({ onNavigate }: Props) {
               title="Subscriptions"
               aria-label="Subscriptions"
             >
-              <Tv size={15} style={{ flexShrink: 0, color: typeFilter === 'subscription' ? 'var(--accent)' : 'inherit' }} />
-              <span className="type-label desktop-only">Subscriptions</span>
+              <Tv size={14} style={{ flexShrink: 0, color: typeFilter === 'subscription' ? 'var(--accent)' : 'inherit' }} />
+              <span className="type-label">Subscriptions</span>
               <span className="type-badge">{counts.subscription}</span>
             </button>
           </div>

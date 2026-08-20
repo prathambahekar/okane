@@ -323,7 +323,6 @@ export default function SettleModal({ friend, onClose }: Props) {
                       borderRadius: 6,
                       border: '1px solid var(--border)',
                     }}
-                    autoFocus
                   />
                 </div>
               )}
@@ -490,7 +489,6 @@ export default function SettleModal({ friend, onClose }: Props) {
                 value={tempNote}
                 onChange={e => setTempNote(e.target.value)}
                 style={{ fontSize: 13, width: '100%', marginBottom: 12, resize: 'none', borderRadius: 'var(--radius)' }}
-                autoFocus
               />
               {/* Quick suggestion tags */}
               <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>Quick tags:</div>

@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   Calendar,
   Users,
-  Filter,
   LayoutList,
   List,
   Store,
@@ -145,7 +144,7 @@ export default function Settlements() {
       if (amt >= 0) received += amt;
       else paid += Math.abs(amt);
     });
-    return { received, paid, totalCount: timeframeFiltered.length };
+    return { received, paid, net: received - paid, totalCount: timeframeFiltered.length };
   }, [timeframeFiltered]);
 
   // Filtered settlements list
@@ -223,11 +222,12 @@ export default function Settlements() {
         <div
           className="card"
           style={{
-            marginBottom: 20,
-            padding: '14px 16px',
-            borderRadius: 12,
+            marginBottom: 18,
+            padding: '12px 14px',
+            borderRadius: 14,
             background: 'var(--surface)',
             border: '1px solid var(--border)',
+            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.03)',
           }}
         >
           <div
@@ -236,7 +236,7 @@ export default function Settlements() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: isPendingExpanded ? 12 : 0,
+              marginBottom: isPendingExpanded ? 10 : 0,
               cursor: 'pointer',
               userSelect: 'none',
             }}
@@ -244,28 +244,32 @@ export default function Settlements() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div
                 style={{
-                  width: 28,
-                  height: 28,
+                  width: 30,
+                  height: 30,
                   borderRadius: 8,
                   background: 'var(--accent-soft)',
                   color: 'var(--accent)',
                   display: 'grid',
                   placeItems: 'center',
+                  flexShrink: 0,
                 }}
               >
-                <Handshake size={16} />
+                <Handshake size={16} strokeWidth={2.2} />
               </div>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0, letterSpacing: '-0.1px' }}>
                 Pending Settlements
               </h2>
               <span
                 style={{
                   fontSize: 11,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   color: 'var(--accent)',
                   background: 'var(--accent-soft)',
-                  padding: '2px 8px',
-                  borderRadius: 12,
+                  padding: '1px 7px',
+                  borderRadius: 999,
+                  minWidth: 18,
+                  textAlign: 'center',
+                  lineHeight: 1.4,
                 }}
               >
                 {friendsWithUnsettled.length}
@@ -275,7 +279,7 @@ export default function Settlements() {
             <button
               type="button"
               className="btn btn-ghost btn-sm"
-              style={{ padding: 4, width: 28, height: 28, borderRadius: 6, color: 'var(--text-3)' }}
+              style={{ padding: 2, width: 26, height: 26, borderRadius: 6, color: 'var(--text-3)' }}
               onClick={(e) => {
                 e.stopPropagation();
                 setIsPendingExpanded(prev => !prev);
@@ -287,7 +291,7 @@ export default function Settlements() {
           </div>
 
           {isPendingExpanded && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {friendsWithUnsettled.map(f => {
               if (!f) return null;
               const unsettledCount = unsettledExpensesForFriend(db, f.id).length;
@@ -303,11 +307,12 @@ export default function Settlements() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: 8,
-                    padding: '10px 12px',
+                    gap: 10,
+                    padding: '8px 12px',
                     background: 'var(--surface2)',
-                    borderRadius: 10,
+                    borderRadius: 11,
                     border: '1px solid var(--border)',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
@@ -317,7 +322,7 @@ export default function Settlements() {
                         ...getAvatarStyle(f.color),
                         width: 34,
                         height: 34,
-                        fontSize: 12,
+                        fontSize: 12.5,
                         fontWeight: 700,
                         borderRadius: '50%',
                         flexShrink: 0,
@@ -326,13 +331,13 @@ export default function Settlements() {
                         justifyContent: 'center',
                       }}
                     >
-                      {f.type === 'vendor' ? <Store size={16} /> : f.type === 'subscription' ? <Tv size={16} /> : friendInitial(f.name, f.avatarNumber)}
+                      {f.type === 'vendor' ? <Store size={15} /> : f.type === 'subscription' ? <Tv size={15} /> : friendInitial(f.name, f.avatarNumber)}
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div
                         style={{
-                          fontWeight: 600,
-                          fontSize: 13,
+                          fontWeight: 700,
+                          fontSize: 13.5,
                           color: 'var(--text)',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
@@ -346,27 +351,13 @@ export default function Settlements() {
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 4,
+                          gap: 4.5,
                           flexWrap: 'nowrap',
                           overflow: 'hidden',
-                          marginTop: 3,
+                          marginTop: 2,
                         }}
                       >
-                        {owesYou ? (
-                          <span
-                            style={{
-                              fontSize: 11.5,
-                              fontWeight: 700,
-                              color: 'var(--credit)',
-                              whiteSpace: 'nowrap',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 2,
-                            }}
-                          >
-                            <ArrowDownLeft size={12} /> {fmtMoney(netVal, currency)}
-                          </span>
-                        ) : youOwe ? (
+                        {youOwe ? (
                           <span
                             style={{
                               fontSize: 11.5,
@@ -375,18 +366,32 @@ export default function Settlements() {
                               whiteSpace: 'nowrap',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 2,
+                              gap: 2.5,
                             }}
                           >
-                            <ArrowUpRight size={12} /> {fmtMoney(Math.abs(netVal), currency)}
+                            <ArrowUpRight size={11.5} strokeWidth={2.6} /> {fmtMoney(Math.abs(netVal), currency)}
+                          </span>
+                        ) : owesYou ? (
+                          <span
+                            style={{
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              color: 'var(--credit)',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 2.5,
+                            }}
+                          >
+                            <ArrowDownLeft size={11.5} strokeWidth={2.6} /> {fmtMoney(netVal, currency)}
                           </span>
                         ) : (
                           <span style={{ fontSize: 11.5, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>
                             Net 0
                           </span>
                         )}
-                        <span style={{ fontSize: 11, color: 'var(--text-3)', opacity: 0.6 }}>•</span>
-                        <span style={{ fontSize: 11, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 10.5, color: 'var(--text-3)', opacity: 0.5 }}>•</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-3)', whiteSpace: 'nowrap', fontWeight: 500 }}>
                           {unsettledCount} unsettled
                         </span>
                       </div>
@@ -396,8 +401,8 @@ export default function Settlements() {
                   <button
                     className="btn btn-primary"
                     style={{
-                      fontSize: 11.5,
-                      fontWeight: 600,
+                      fontSize: 12,
+                      fontWeight: 650,
                       padding: '4px 12px',
                       borderRadius: 8,
                       gap: 4,
@@ -406,46 +411,65 @@ export default function Settlements() {
                       whiteSpace: 'nowrap',
                       flexShrink: 0,
                       height: 28,
+                      boxShadow: '0 1px 4px var(--accent-shadow, rgba(225, 29, 72, 0.2))',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                     onClick={() => setSettleFriend(f)}
                   >
-                    <Handshake size={13} /> Settle
+                    <Handshake size={13} strokeWidth={2.2} /> Settle
                   </button>
                 </div>
               );
             })}
-          </div>
+            </div>
           )}
         </div>
       )}
 
       {/* History Card Container */}
-      <div className="card" style={{ padding: 0, borderRadius: 14, overflow: 'hidden' }}>
+      <div className="card" style={{ padding: 0, borderRadius: 16, overflow: 'hidden' }}>
         {/* Header */}
         <div className="settlement-history-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Clock size={18} style={{ color: 'var(--accent)' }} />
-            <span>Settlement History</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <div
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: '50%',
+                background: 'var(--accent-soft)',
+                color: 'var(--accent)',
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Clock size={16} strokeWidth={2.3} />
+            </div>
+            <h2 style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)', margin: 0, whiteSpace: 'nowrap', letterSpacing: '-0.1px' }}>
+              Settlement History
+            </h2>
             <span className="settlement-count-badge">
-              {filteredSettlements.length} transactions
+              {filteredSettlements.length}
             </span>
           </div>
 
           {/* Timeframe Date Filter Button on Right Side */}
           <div className="settlement-timeframe-btn-wrap" title="Filter timeframe">
-            <Calendar size={13} className="timeframe-icon" />
+            <Calendar size={13.5} strokeWidth={2.2} className="timeframe-icon" />
             <span className="timeframe-label">
               {timeframe === 'this_month'
                 ? 'This Month'
                 : timeframe === 'last_month'
                 ? 'Last Month'
                 : timeframe === 'last_3_months'
-                ? 'Last 3 Months'
+                ? 'Last 3M'
                 : timeframe === 'this_year'
                 ? 'This Year'
                 : 'All Time'}
             </span>
-            <ChevronDown size={12} className="timeframe-chevron" />
+            <ChevronDown size={11} className="timeframe-chevron" />
             <select
               value={timeframe}
               onChange={e => setTimeframe(e.target.value as SettlementTimeframe)}
@@ -463,12 +487,9 @@ export default function Settlements() {
         {/* Summary KPI Cards inside History section */}
         {sorted.length > 0 && (
           <div className="settlement-section-padding">
-            {/* 3 KPI Cards / Mobile Strip in 1 Row */}
+            {/* 3 KPI Columns in 1 Unified Rounded Strip */}
             <div className="settlement-stats-grid">
               <div className="settlement-stat-card">
-                <div className="settlement-stat-icon received">
-                  <TrendingUp size={16} />
-                </div>
                 <div className="settlement-stat-content">
                   <div className="settlement-stat-label">Received</div>
                   <div className="settlement-stat-value credit">
@@ -478,9 +499,6 @@ export default function Settlements() {
               </div>
 
               <div className="settlement-stat-card">
-                <div className="settlement-stat-icon paid">
-                  <TrendingDown size={16} />
-                </div>
                 <div className="settlement-stat-content">
                   <div className="settlement-stat-label">Paid</div>
                   <div className="settlement-stat-value debit">
@@ -490,85 +508,87 @@ export default function Settlements() {
               </div>
 
               <div className="settlement-stat-card">
-                <div className="settlement-stat-icon total">
-                  <Handshake size={16} />
-                </div>
                 <div className="settlement-stat-content">
-                  <div className="settlement-stat-label">Total</div>
-                  <div className="settlement-stat-value">
-                    {kpiSummary.totalCount} items
+                  <div className="settlement-stat-label">Net Flow</div>
+                  <div className={`settlement-stat-value ${kpiSummary.net >= 0 ? 'credit' : 'debit'}`}>
+                    {kpiSummary.net >= 0 ? '+' : '-'}{fmtMoney(Math.abs(kpiSummary.net), currency)}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Filter Toolbar - ALL IN 1 ROW */}
+            {/* Filter Toolbar - Clean, Self-Explanatory & Clutter-Free */}
             <div className="settlement-toolbar-row">
-              {/* View Mode Toggle: Compact vs Detailed */}
-              <div className="settlement-view-toggle" title="Switch View Mode">
+              {/* Type Filter Segmented Tabs */}
+              <div className="settlement-type-tabs">
                 <button
                   type="button"
-                  className={`view-toggle-btn ${viewMode === 'detailed' ? 'active' : ''}`}
-                  onClick={() => setViewMode('detailed')}
-                  title="Detailed View"
+                  className={`settlement-type-tab ${typeFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setTypeFilter('all')}
                 >
-                  <LayoutList size={14} />
-                  <span className="view-toggle-label">Detailed</span>
+                  All
                 </button>
                 <button
                   type="button"
-                  className={`view-toggle-btn ${viewMode === 'compact' ? 'active' : ''}`}
-                  onClick={() => setViewMode('compact')}
-                  title="Compact View"
+                  className={`settlement-type-tab credit ${typeFilter === 'received' ? 'active' : ''}`}
+                  onClick={() => setTypeFilter('received')}
                 >
-                  <List size={14} />
-                  <span className="view-toggle-label">Compact</span>
+                  <TrendingUp size={12} strokeWidth={2.4} /> Received
+                </button>
+                <button
+                  type="button"
+                  className={`settlement-type-tab debit ${typeFilter === 'paid' ? 'active' : ''}`}
+                  onClick={() => setTypeFilter('paid')}
+                >
+                  <TrendingDown size={12} strokeWidth={2.4} /> Paid
                 </button>
               </div>
 
-              {/* Friend Filter */}
-              <div className={`settlement-filter-btn-wrap ${friendFilter !== 'all' ? 'active' : ''}`} title="Filter by Friend">
-                <Users size={15} className="filter-btn-icon" />
-                <span className="filter-btn-label">
-                  {friendFilter === 'all' ? 'All Friends' : (friends.find(f => f?.id === friendFilter)?.name || 'Friend')}
-                </span>
-                <ChevronDown size={12} className="filter-btn-chevron" />
-                <select
-                  className="settlement-select-overlay"
-                  value={friendFilter}
-                  onChange={e => setFriendFilter(e.target.value)}
+              {/* Right Side: Friend Filter Pill + View Switcher */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {/* Friend Filter Pill */}
+                <div
+                  className={`settlement-friend-pill ${friendFilter !== 'all' ? 'active' : ''}`}
+                  title={friendFilter === 'all' ? 'Filter by Friend' : `Friend: ${friends.find(f => f?.id === friendFilter)?.name || 'Friend'}`}
                 >
-                  <option value="all">All Friends</option>
-                  {friends.map(f => f && (
-                    <option key={f.id} value={f.id}>
-                      {f.name || 'Friend'}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <Users size={13} strokeWidth={2.2} />
+                  <span className="settlement-friend-name">
+                    {friendFilter === 'all' ? 'All Friends' : (friends.find(f => f?.id === friendFilter)?.name || 'Friend')}
+                  </span>
+                  <ChevronDown size={11} />
+                  <select
+                    className="settlement-select-overlay"
+                    value={friendFilter}
+                    onChange={e => setFriendFilter(e.target.value)}
+                  >
+                    <option value="all">All Friends</option>
+                    {friends.map(f => f && (
+                      <option key={f.id} value={f.id}>
+                        {f.name || 'Friend'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Type Filter */}
-              <div className={`settlement-filter-btn-wrap ${typeFilter !== 'all' ? 'active' : ''}`} title="Filter by Type">
-                {typeFilter === 'received' ? (
-                  <TrendingUp size={15} className="filter-btn-icon credit" />
-                ) : typeFilter === 'paid' ? (
-                  <TrendingDown size={15} className="filter-btn-icon debit" />
-                ) : (
-                  <Filter size={15} className="filter-btn-icon" />
-                )}
-                <span className="filter-btn-label">
-                  {typeFilter === 'all' ? 'All Types' : typeFilter === 'received' ? 'Received (+)' : 'Paid (-)'}
-                </span>
-                <ChevronDown size={12} className="filter-btn-chevron" />
-                <select
-                  className="settlement-select-overlay"
-                  value={typeFilter}
-                  onChange={e => setTypeFilter(e.target.value as 'all' | 'received' | 'paid')}
-                >
-                  <option value="all">All Types</option>
-                  <option value="received">Received (+)</option>
-                  <option value="paid">Paid (-)</option>
-                </select>
+                {/* View Mode Toggle: Detailed Table vs Compact Cards */}
+                <div className="settlement-view-toggle-mini" title="Switch layout">
+                  <button
+                    type="button"
+                    className={`settlement-view-toggle-btn ${viewMode === 'detailed' ? 'active' : ''}`}
+                    onClick={() => setViewMode('detailed')}
+                    title="Detailed table view"
+                  >
+                    <LayoutList size={13.5} strokeWidth={2.2} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`settlement-view-toggle-btn ${viewMode === 'compact' ? 'active' : ''}`}
+                    onClick={() => setViewMode('compact')}
+                    title="Compact card view"
+                  >
+                    <List size={13.5} strokeWidth={2.2} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -872,42 +892,63 @@ export default function Settlements() {
                       className="settlement-compact-card"
                       onClick={() => setDetailSettlement(s)}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, flex: 1 }}>
                         {friend && (
                           <div
-                            className="avatar avatar-xs"
-                            style={{ ...getAvatarStyle(friend.color), width: 28, height: 28, fontSize: 11, flexShrink: 0 }}
+                            className="avatar avatar-sm"
+                            style={{
+                              ...getAvatarStyle(friend.color),
+                              width: 36,
+                              height: 36,
+                              fontSize: 13,
+                              fontWeight: 700,
+                              flexShrink: 0,
+                              borderRadius: '50%',
+                              display: 'grid',
+                              placeItems: 'center',
+                            }}
                           >
                             {friendInitial(friend.name, friend.avatarNumber)}
                           </div>
                         )}
                         <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: 12.5, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {friend ? friend.name : 'Deleted friend'}
                           </div>
-                          <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 1 }}>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
                             {fmtDate(s.date)}{walletName ? ` · ${walletName}` : ''}
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 800, fontSize: 13, color: isReceived ? 'var(--credit)' : 'var(--debit)' }}>
+                          <div style={{ fontWeight: 750, fontSize: 14, color: isReceived ? 'var(--credit)' : 'var(--debit)' }}>
                             {isReceived ? '+' : '-'}{fmtMoney(Math.abs(amtVal), currency)}
                           </div>
                         </div>
                         <button
                           type="button"
-                          className="btn btn-undo btn-sm"
+                          className="btn btn-undo"
                           onClick={(e) => {
                             e.stopPropagation();
                             setDelId(s.id);
                           }}
                           title="Undo settlement"
-                          style={{ padding: '2px 6px', fontSize: 10.5, height: 24 }}
+                          style={{
+                            width: 30,
+                            height: 30,
+                            padding: 0,
+                            borderRadius: 8,
+                            display: 'grid',
+                            placeItems: 'center',
+                            border: '1px solid rgba(217, 119, 6, 0.35)',
+                            background: 'rgba(217, 119, 6, 0.08)',
+                            color: '#d97706',
+                            cursor: 'pointer',
+                          }}
                         >
-                          <RotateCcw size={10} />
+                          <RotateCcw size={13} strokeWidth={2.2} />
                         </button>
                       </div>
                     </div>
