@@ -28,6 +28,7 @@ import type { Wallet, Envelope } from '../types';
 import { walletBalance, walletEnvelopeAllocated, walletUnallocatedBalance, expenseFlow, monthKey } from '../db';
 import { fmtMoney, fmtDate, typeLabel, statusLabel } from '../utils';
 import WalletModal from '../components/WalletModal';
+import { renderWalletIcon, WALLET_PRESETS } from '../components/WalletIconRenderer';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ExpenseModal from '../components/ExpenseModal';
 import TransferModal from '../components/TransferModal';
@@ -219,7 +220,7 @@ export default function Wallets() {
               : 'Manage your physical wallets and bank accounts.'}
           </p>
         </div>
-        <div className="page-header-actions">
+        <div className="page-header-actions" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           {enableEnvelopes && (
             <button
               className="btn btn-secondary"
@@ -232,34 +233,52 @@ export default function Wallets() {
               <FolderPlus size={16} /> New Goal Envelope
             </button>
           )}
-          {wallets.length >= 2 && (
-            <button
-              className="btn btn-secondary"
-              onClick={() => {
-                setTransferFromId(undefined);
-                setShowTransfer(true);
-              }}
-            >
-              <ArrowLeftRight size={16} /> Transfer Funds
-            </button>
-          )}
-          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+          <button
+            className="btn btn-secondary"
+            style={{
+              borderRadius: 10,
+              padding: '9px 16px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              border: '1.5px solid var(--border)',
+            }}
+            onClick={() => {
+              setTransferFromId(undefined);
+              setShowTransfer(true);
+            }}
+          >
+            <ArrowLeftRight size={16} /> Transfer Funds
+          </button>
+          <button
+            className="btn btn-primary"
+            style={{
+              borderRadius: 10,
+              padding: '9px 20px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+            onClick={() => setShowAdd(true)}
+          >
             <Plus size={16} /> Add Wallet
           </button>
         </div>
       </div>
 
       {/* Wallet Cards Grid Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20, marginBottom: 32 }}>
         {walletCardsData.map(({ wallet: w, bal, allocated, unallocated, wEnvelopes, wExpCount, wSpend }) => {
           return (
             <div
               key={w.id}
               style={{
                 background: 'var(--surface)',
-                border: `1.5px solid var(--border)`,
-                borderRadius: 14,
-                padding: '20px',
+                border: '1.5px solid var(--border)',
+                borderRadius: 16,
+                padding: '24px',
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -269,38 +288,57 @@ export default function Wallets() {
               }}
             >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {/* Top Card Row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div
                       style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 10,
-                        background: `${w.color}22`,
+                        width: 44,
+                        height: 44,
+                        borderRadius: 12,
+                        background: WALLET_PRESETS.find(p => p.id === w.icon)?.bgLight || (w.color ? `${w.color}18` : '#fef3c7'),
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        flexShrink: 0,
                       }}
                     >
-                      <WalletIcon style={{ color: w.color }} size={22} />
+                      {renderWalletIcon(w.icon || 'wallet', 24, w.color || '#d97706')}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 16 }}>{w.name}</div>
+                      <span style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)' }}>{w.name}</span>
                       {enableEnvelopes && (
-                        <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
                           {wEnvelopes.length} {wEnvelopes.length === 1 ? 'Goal Envelope' : 'Goal Envelopes'}
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 2 }}>
-                    <button className="btn-icon" style={{ padding: 5 }} onClick={() => setEditW(w)} title="Edit Wallet">
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      className="btn-icon"
+                      style={{
+                        padding: 7,
+                        borderRadius: 8,
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface2)',
+                        color: 'var(--text-2)',
+                      }}
+                      onClick={() => setEditW(w)}
+                      title="Edit Wallet"
+                    >
                       <Edit2 size={16} />
                     </button>
                     <button
                       className="btn-icon"
-                      style={{ padding: 5, color: 'var(--debit)' }}
+                      style={{
+                        padding: 7,
+                        borderRadius: 8,
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        background: 'var(--surface2)',
+                        color: 'var(--debit)',
+                      }}
                       onClick={() => setDelId(w.id)}
                       disabled={wallets.length <= 1}
                       title="Delete Wallet"
@@ -310,17 +348,54 @@ export default function Wallets() {
                   </div>
                 </div>
 
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
-                    Total Wallet Balance
+                {/* Total Balance Block */}
+                <div style={{ marginBottom: 16 }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-3)',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.6px',
+                      marginBottom: 4,
+                    }}
+                  >
+                    TOTAL WALLET BALANCE
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>
+                  <div
+                    style={{
+                      fontSize: 32,
+                      fontWeight: 800,
+                      color: bal < 0 ? 'var(--debit)' : 'var(--text)',
+                      lineHeight: 1.2,
+                      letterSpacing: '-0.5px',
+                    }}
+                  >
                     {fmtMoney(bal, currency)}
+                  </div>
+
+                  {/* Opening Balance Badge Pill */}
+                  <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                    <span
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 8,
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--text-2)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      Opening Balance: <strong style={{ color: 'var(--text)', marginLeft: 4 }}>{fmtMoney(w.openingBalance, currency)}</strong>
+                    </span>
                   </div>
 
                   {/* Allocated vs Unallocated Breakdown Bar */}
                   {enableEnvelopes && bal > 0 && (
-                    <div style={{ marginTop: 10 }}>
+                    <div style={{ marginTop: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>
                         <span>Available: <strong style={{ color: 'var(--text)' }}>{fmtMoney(unallocated, currency)}</strong></span>
                         <span>Saved Goals: <strong style={{ color: w.color }}>{fmtMoney(allocated, currency)}</strong></span>
@@ -337,26 +412,42 @@ export default function Wallets() {
                       </div>
                     </div>
                   )}
-
-                  <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ padding: '3px 8px', borderRadius: 6, background: 'var(--surface-hover)', border: '1px solid var(--border)', fontSize: 11, fontWeight: 600, color: 'var(--text-2)' }}>
-                      Opening Balance: <strong style={{ color: 'var(--text)' }}>{fmtMoney(w.openingBalance, currency)}</strong>
-                    </span>
-                  </div>
                 </div>
               </div>
 
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-2)', marginBottom: 14, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-                  <span>Monthly Spend</span>
-                  <span style={{ fontWeight: 600, color: 'var(--debit)' }}>-{fmtMoney(wSpend, currency)}</span>
+                {/* Monthly Spend Row - Clean spacing without splitting border lines */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: 13.5,
+                    color: 'var(--text-2)',
+                    marginBottom: 14,
+                    marginTop: 8,
+                  }}
+                >
+                  <span style={{ fontWeight: 500 }}>Monthly Spend</span>
+                  <span style={{ fontWeight: 700, color: 'var(--debit)' }}>-{fmtMoney(wSpend, currency)}</span>
                 </div>
 
-                <div style={{ display: 'flex', gap: 8 }}>
+                {/* Bottom Action Buttons */}
+                <div style={{ display: 'flex', gap: 10 }}>
                   {enableEnvelopes && (
                     <button
                       className="btn btn-secondary"
-                      style={{ flex: 1, justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 600, padding: '7px 8px' }}
+                      style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        gap: 6,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        padding: '9px 10px',
+                        borderRadius: 10,
+                        border: '1.5px solid var(--border)',
+                        background: 'var(--surface2)',
+                      }}
                       onClick={() => {
                         setDefaultEnvelopeWalletId(w.id);
                         setEditingEnvelope(null);
@@ -368,29 +459,49 @@ export default function Wallets() {
                       Goal
                     </button>
                   )}
-                  {wallets.length >= 2 && (
-                    <button
-                      className="btn btn-secondary"
-                      style={{ flex: 1, justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 600, padding: '7px 8px' }}
-                      onClick={() => {
-                        setTransferFromId(w.id);
-                        setShowTransfer(true);
-                      }}
-                      title="Transfer funds from this wallet"
-                    >
-                      <ArrowLeftRight size={14} />
-                      Transfer
-                    </button>
-                  )}
                   <button
                     className="btn btn-secondary"
-                    style={{ flex: 1, justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 600, padding: '7px 8px' }}
+                    style={{
+                      flex: 1,
+                      justifyContent: 'center',
+                      gap: 8,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      padding: '9px 14px',
+                      borderRadius: 10,
+                      border: '1.5px solid var(--border)',
+                      background: 'var(--surface2)',
+                      color: 'var(--text)',
+                    }}
+                    onClick={() => {
+                      setTransferFromId(w.id);
+                      setShowTransfer(true);
+                    }}
+                    title="Transfer funds from this wallet"
+                  >
+                    <ArrowLeftRight size={15} />
+                    Transfer
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    style={{
+                      flex: 1,
+                      justifyContent: 'center',
+                      gap: 8,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      padding: '9px 14px',
+                      borderRadius: 10,
+                      border: '1.5px solid var(--border)',
+                      background: 'var(--surface2)',
+                      color: 'var(--text)',
+                    }}
                     onClick={() => {
                       setSelectedWalletForTx(w);
                       setSearchQuery('');
                     }}
                   >
-                    <ReceiptText size={14} />
+                    <ReceiptText size={15} />
                     Tx ({wExpCount})
                   </button>
                 </div>

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ArrowLeftRight, ArrowRight, AlertCircle } from 'lucide-react';
+import { X, ArrowLeftRight, ArrowRight, AlertCircle, FileText, Calendar, ChevronDown, Wallet as WalletIcon } from 'lucide-react';
 import { useStore } from '../store';
 import { walletBalance, todayISO } from '../db';
-import { fmtMoney } from '../utils';
+import { fmtMoney, currencySymbol } from '../utils';
+import { NoteEditorModal } from './common/NoteEditorModal';
+import { renderWalletIcon } from './WalletIconRenderer';
 
 interface Props {
   isOpen: boolean;
@@ -35,6 +37,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
   const [amount, setAmount] = useState<string>('');
   const [date, setDate] = useState<string>(todayISO());
   const [note, setNote] = useState<string>('');
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
   if (isOpen !== prevIsOpen) {
@@ -45,6 +48,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
       setAmount('');
       setDate(todayISO());
       setNote('');
+      setIsNoteModalOpen(false);
       setError('');
     }
   }
@@ -106,20 +110,28 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
 
   return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ maxWidth: 480 }}>
+      <div className="modal" style={{ maxWidth: 440 }}>
+        {/* Mobile handle indicator */}
+        <div className="modal-handle-bar">
+          <div className="modal-handle" />
+        </div>
+
         {/* Modal Header */}
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 34,
-              height: 34,
-              borderRadius: 8,
-              background: 'var(--accent-soft)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--accent)'
-            }}>
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 8,
+                background: 'var(--accent-soft)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--accent)',
+                flexShrink: 0,
+              }}
+            >
               <ArrowLeftRight size={18} />
             </div>
             <div>
@@ -133,37 +145,205 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ gap: 16 }}>
-            {/* Wallet Selection Controls (From -> To with Swap) */}
-            <div style={{
-              background: 'var(--surface2)',
-              borderRadius: 12,
-              padding: 14,
-              border: '1px solid var(--border)',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12
-            }}>
-              {/* From Wallet */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <label className="form-label" style={{ margin: 0, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    From (Source)
-                  </label>
+          <div className="modal-body" style={{ padding: '8px 20px 18px', gap: 12, display: 'flex', flexDirection: 'column' }}>
+            {/* 1. HERO AMOUNT CARD (MATCHING NEW THEME) */}
+            <div
+              className="hero-amount-card"
+              style={{
+                background: 'var(--surface2)',
+                borderRadius: 12,
+                padding: '12px 16px 10px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.6px',
+                  color: 'var(--text-3)',
+                }}
+              >
+                TRANSFER AMOUNT *
+              </span>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 700,
+                    color: 'var(--text-2)',
+                    lineHeight: 1,
+                  }}
+                >
+                  {currencySymbol(currency)}
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={amount}
+                  onChange={e => { setAmount(e.target.value); setError(''); }}
+                  placeholder="0"
+                  style={{
+                    fontSize: 26,
+                    fontWeight: 750,
+                    color: 'var(--text)',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    padding: 0,
+                    margin: 0,
+                    width: `${Math.max(1, (amount || '0').length) * 16 + 6}px`,
+                    maxWidth: '180px',
+                    textAlign: 'left',
+                    fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+
+              {/* Quick Amount Pills */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 5, marginTop: 4 }}>
+                {[100, 500, 1000, 5000].map(val => (
+                  <button
+                    key={val}
+                    type="button"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text-2)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onClick={() => handleAddAmount(val)}
+                  >
+                    +{val}
+                  </button>
+                ))}
+                {fromBalance > 0 && (
+                  <button
+                    type="button"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      background: 'var(--accent-soft)',
+                      border: '1px solid var(--accent)',
+                      color: 'var(--accent)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onClick={handleMaxAmount}
+                  >
+                    All ({fmtMoney(fromBalance, currency)})
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Insufficient Balance Warning */}
+            {isInsufficient && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 11.5,
+                  color: '#f59e0b',
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                }}
+              >
+                <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                <span>Amount exceeds available source balance ({fmtMoney(fromBalance, currency)}).</span>
+              </div>
+            )}
+
+            {/* 2. BEAUTIFUL UNIFIED WALLET SELECTION (FROM & TO WITH SWAP) */}
+            <div
+              style={{
+                background: 'var(--surface2)',
+                borderRadius: 14,
+                padding: '12px 14px',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              {/* FROM (SOURCE) WALLET CARD */}
+              <div style={{ position: 'relative' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)' }}>
+                    FROM (SOURCE)
+                  </span>
                   {fromWallet && (
-                    <span style={{ fontSize: 11.5, fontWeight: 600, color: fromBalance < 0 ? 'var(--debit)' : 'var(--text-2)' }}>
-                      Available: {fmtMoney(fromBalance, currency)}
+                    <span style={{ fontSize: 11, fontWeight: 600, color: fromBalance < 0 ? 'var(--debit)' : 'var(--text-3)' }}>
+                      Available: <strong style={{ color: fromBalance < 0 ? 'var(--debit)' : 'var(--text-2)' }}>{fmtMoney(fromBalance, currency)}</strong>
                     </span>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {fromWallet && (
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: fromWallet.color, flexShrink: 0 }} />
-                  )}
+
+                <div
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    padding: '8px 12px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                    transition: 'border-color 0.15s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: 'var(--surface2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {fromWallet ? renderWalletIcon(fromWallet.icon || 'wallet', 22, fromWallet.color) : <WalletIcon size={16} />}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {fromWallet?.name || 'Select Wallet'}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                      {fmtMoney(fromBalance, currency)}
+                    </div>
+                  </div>
+
+                  <ChevronDown size={16} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+
+                  {/* Accessible overlay select for native interaction */}
                   <select
-                    className="form-select"
-                    style={{ flex: 1, fontWeight: 600, padding: '8px 10px' }}
                     value={fromWalletId}
                     onChange={e => {
                       setFromWalletId(e.target.value);
@@ -173,6 +353,14 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                       }
                       setError('');
                     }}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer',
+                    }}
                   >
                     {wallets.map(w => (
                       <option key={w.id} value={w.id}>
@@ -183,7 +371,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                 </div>
               </div>
 
-              {/* Swap Button Divider */}
+              {/* SWAP BUTTON DIVIDER */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '-4px 0' }}>
                 <button
                   type="button"
@@ -191,7 +379,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   title="Swap source and destination wallets"
                   style={{
                     background: 'var(--surface)',
-                    border: '1px solid var(--border2)',
+                    border: '1px solid var(--border)',
                     borderRadius: '50%',
                     width: 32,
                     height: 32,
@@ -200,35 +388,71 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                     justifyContent: 'center',
                     color: 'var(--accent)',
                     cursor: 'pointer',
-                    boxShadow: 'var(--shadow-sm)',
-                    transition: 'transform 0.2s ease',
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.06)',
+                    transition: 'transform 0.2s ease, background 0.15s ease',
                   }}
                   onMouseDown={e => e.currentTarget.style.transform = 'rotate(180deg) scale(0.95)'}
                   onMouseUp={e => e.currentTarget.style.transform = 'none'}
                 >
-                  <ArrowLeftRight size={15} />
+                  <ArrowLeftRight size={14} />
                 </button>
               </div>
 
-              {/* To Wallet */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <label className="form-label" style={{ margin: 0, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    To (Destination)
-                  </label>
+              {/* TO (DESTINATION) WALLET CARD */}
+              <div style={{ position: 'relative' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)' }}>
+                    TO (DESTINATION)
+                  </span>
                   {toWallet && (
-                    <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
-                      Current: {fmtMoney(toBalance, currency)}
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)' }}>
+                      Current: <strong style={{ color: 'var(--text-2)' }}>{fmtMoney(toBalance, currency)}</strong>
                     </span>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {toWallet && (
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: toWallet.color, flexShrink: 0 }} />
-                  )}
+
+                <div
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    padding: '8px 12px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                    transition: 'border-color 0.15s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: 'var(--surface2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {toWallet ? renderWalletIcon(toWallet.icon || 'wallet', 22, toWallet.color) : <WalletIcon size={16} />}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {toWallet?.name || 'Select Wallet'}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                      {fmtMoney(toBalance, currency)}
+                    </div>
+                  </div>
+
+                  <ChevronDown size={16} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+
+                  {/* Accessible overlay select for native interaction */}
                   <select
-                    className="form-select"
-                    style={{ flex: 1, fontWeight: 600, padding: '8px 10px' }}
                     value={toWalletId}
                     onChange={e => {
                       setToWalletId(e.target.value);
@@ -237,6 +461,14 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                         if (other) setFromWalletId(other.id);
                       }
                       setError('');
+                    }}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer',
                     }}
                   >
                     {wallets.map(w => (
@@ -249,131 +481,224 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
               </div>
             </div>
 
-            {/* Transfer Amount Input */}
-            <div className="form-group">
-              <label className="form-label">Transfer Amount *</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  className="form-input"
-                  type="number"
-                  step="any"
-                  value={amount}
-                  onChange={e => { setAmount(e.target.value); setError(''); }}
-                  placeholder="0.00"
+            {/* 3. DATE & NOTE CONTROLS */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                {/* Date Picker */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <input
+                      className="form-input"
+                      type="date"
+                      value={date}
+                      onChange={e => setDate(e.target.value)}
+                      style={{
+                        width: '100%',
+                        height: 38,
+                        borderRadius: 10,
+                        fontSize: 12.5,
+                        fontWeight: 500,
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text)',
+                        paddingLeft: 34,
+                      }}
+                    />
+                    <Calendar
+                      size={15}
+                      style={{
+                        position: 'absolute',
+                        left: 11,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: 'var(--text-3)',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Note Drawer Button Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setIsNoteModalOpen(true)}
                   style={{
-                    fontSize: 20,
-                    fontWeight: 700,
-                    paddingLeft: 14,
-                    color: 'var(--text)'
+                    height: 38,
+                    padding: '0 12px',
+                    borderRadius: 10,
+                    background: note ? 'var(--accent-soft)' : 'var(--surface2)',
+                    border: note ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    color: note ? 'var(--accent)' : 'var(--text-2)',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease',
                   }}
-                />
+                  title="Add or edit transfer note"
+                >
+                  <FileText size={14} />
+                  <span>{note ? 'Note Added' : '+ Note'}</span>
+                </button>
               </div>
 
-              {/* Quick Amount Pills */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                {[100, 500, 1000, 5000].map(val => (
+              {/* Note Preview Strip (if note is added) */}
+              {note && (
+                <div
+                  onClick={() => setIsNoteModalOpen(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--accent-border-soft, rgba(13, 148, 136, 0.2))',
+                    borderRadius: 8,
+                    padding: '5px 10px',
+                    fontSize: 11.5,
+                    color: 'var(--text-2)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+                    <FileText size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text)' }}>
+                      {note}
+                    </span>
+                  </div>
                   <button
-                    key={val}
                     type="button"
-                    className="btn btn-secondary btn-xs"
-                    style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6 }}
-                    onClick={() => handleAddAmount(val)}
+                    onClick={e => {
+                      e.stopPropagation();
+                      setNote('');
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-3)',
+                      cursor: 'pointer',
+                      padding: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                    title="Remove note"
                   >
-                    +{val}
+                    <X size={12} />
                   </button>
-                ))}
-                {fromBalance > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-xs"
-                    style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, color: 'var(--accent)', fontWeight: 700 }}
-                    onClick={handleMaxAmount}
-                  >
-                    All ({fmtMoney(fromBalance, currency)})
-                  </button>
-                )}
-              </div>
-
-              {/* Insufficient Balance Warning */}
-              {isInsufficient && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, color: '#f59e0b' }}>
-                  <AlertCircle size={14} />
-                  <span>Amount exceeds available source balance ({fmtMoney(fromBalance, currency)}).</span>
                 </div>
               )}
             </div>
 
-            {/* Date & Note Grid */}
-            <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-              <div className="form-group">
-                <label className="form-label">Transfer Date</label>
-                <input
-                  className="form-input"
-                  type="date"
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Note / Reason (Optional)</label>
-                <input
-                  className="form-input"
-                  value={note}
-                  onChange={e => setNote(e.target.value)}
-                  placeholder="e.g. ATM cash, Savings..."
-                />
-              </div>
-            </div>
-
             {/* Error Message */}
             {error && (
-              <p className="form-error" style={{ margin: 0, fontSize: 12 }}>
+              <p className="form-error" style={{ margin: 0, fontSize: 11.5 }}>
                 {error}
               </p>
             )}
 
-            {/* Transfer Flow Summary Box */}
+            {/* Transfer Summary Badge */}
             {fromWallet && toWallet && Number(amount) > 0 && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 14px',
-                background: 'var(--accent-soft)',
-                border: '1px solid var(--accent)',
-                borderRadius: 8,
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: 'var(--accent)'
-              }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  background: 'var(--accent-soft)',
+                  border: '1px solid var(--accent)',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--accent)',
+                }}
+              >
                 <span>{fromWallet.name}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span>-{fmtMoney(Number(amount), currency)}</span>
-                  <ArrowRight size={14} />
+                  <ArrowRight size={13} />
                   <span>+{fmtMoney(Number(amount), currency)}</span>
                 </div>
                 <span>{toWallet.name}</span>
               </div>
             )}
-          </div>
 
-          {/* Modal Footer */}
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary btn-sm"
-              disabled={wallets.length < 2 || fromWalletId === toWalletId}
-              style={{ gap: 6 }}
+            {/* 4. ACTION BUTTONS: Cancel on Left, Confirm Transfer on Right */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                justifyContent: 'flex-end',
+                marginTop: 2,
+              }}
             >
-              <ArrowLeftRight size={14} />
-              Confirm Transfer
-            </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={onClose}
+                style={{
+                  flex: 1,
+                  height: 36,
+                  borderRadius: 8,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface2)',
+                  color: 'var(--text-2)',
+                  cursor: 'pointer',
+                  padding: '6px 14px',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary btn-sm"
+                disabled={wallets.length < 2 || fromWalletId === toWalletId}
+                style={{
+                  flex: 1.3,
+                  height: 36,
+                  borderRadius: 8,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  background: 'var(--accent)',
+                  color: '#ffffff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                }}
+              >
+                <ArrowLeftRight size={14} />
+                <span>Confirm Transfer</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>
+
+      {/* Note Drawer Modal Dialog */}
+      <NoteEditorModal
+        isOpen={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        title="Transfer Note"
+        initialNote={note}
+        onSave={setNote}
+        placeholder="Add note for this transfer..."
+        quickTags={[
+          'ATM Cash Withdrawal',
+          'Bank to UPI',
+          'Savings Transfer',
+          'Credit Card Bill',
+          'Monthly Allowance',
+          'Emergency Fund',
+        ]}
+      />
     </div>,
     document.body
   );

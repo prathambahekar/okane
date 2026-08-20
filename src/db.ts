@@ -1765,6 +1765,11 @@ export function addWallet(db: AppDB, data: Partial<Wallet>): { db: AppDB; wallet
     name: data.name || 'Wallet',
     openingBalance: Number(data.openingBalance) || 0,
     color: data.color || FRIEND_PALETTE[db.wallets.length % FRIEND_PALETTE.length],
+    icon: data.icon || 'wallet',
+    minBalanceAlert: data.minBalanceAlert !== undefined ? Number(data.minBalanceAlert) : undefined,
+    monthlySpendLimit: data.monthlySpendLimit !== undefined ? Number(data.monthlySpendLimit) : undefined,
+    isDefault: data.isDefault !== undefined ? Boolean(data.isDefault) : false,
+    rulesNotes: data.rulesNotes || '',
   };
   return { db: { ...db, wallets: [...db.wallets, wallet] }, wallet };
 }

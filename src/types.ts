@@ -10,6 +10,11 @@ export interface Wallet {
   openingBalance: number;
   currentBalance?: number;
   color: string;
+  icon?: string;
+  minBalanceAlert?: number;
+  monthlySpendLimit?: number;
+  isDefault?: boolean;
+  rulesNotes?: string;
 }
 
 export type ContactType = 'friend' | 'vendor' | 'subscription';
