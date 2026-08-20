@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, RefreshCw, Zap, CheckCircle2, ArrowRight, ArrowUpCircle, Sparkles, X } from 'lucide-react';
+import { Bell, RefreshCw, Zap, CheckCircle2, ArrowUpCircle, Sparkles, X } from 'lucide-react';
 import { useStore } from '../store';
 import { todayISO } from '../db';
 import { fmtMoney } from '../utils';
@@ -18,6 +18,8 @@ export default function NotificationBell({ onNavigate }: Props) {
   const today = todayISO();
   const currency = db.settings.currency;
   const rules = db.recurringRules || [];
+
+  const autopayEnabled = db.settings.enableAutopay ?? false;
 
   const dueAutopays = rules.filter(
     r => r.kind === 'autopay' && r.status === 'active' && r.nextDueDate && r.nextDueDate <= today
@@ -77,19 +79,27 @@ export default function NotificationBell({ onNavigate }: Props) {
               if (e.target === e.currentTarget) setOpen(false);
             }}
           >
-            <div className="modal" style={{ maxWidth: 460 }}>
+            <div className="modal" style={{ maxWidth: 460, borderRadius: 16 }}>
               {/* Drag Handle Indicator for Mobile Bottom Sheet */}
               <div className="modal-handle-bar">
                 <div className="modal-handle" />
               </div>
 
               {/* Header */}
-              <div className="modal-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  padding: '18px 20px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                   <div
                     style={{
-                      width: 34,
-                      height: 34,
+                      width: 36,
+                      height: 36,
                       borderRadius: '50%',
                       background: 'var(--accent-soft)',
                       color: 'var(--accent)',
@@ -101,38 +111,79 @@ export default function NotificationBell({ onNavigate }: Props) {
                   >
                     <Bell size={18} />
                   </div>
-                  <div>
-                    <div className="modal-title" style={{ fontSize: 16, lineHeight: 1.2 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.2, color: 'var(--text)' }}>
                       Notifications
                     </div>
-                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>
                       {totalCount > 0
-                        ? `${totalCount} pending item${totalCount > 1 ? 's' : ''} require attention`
+                        ? `${totalCount} pending item${totalCount > 1 ? 's' : ''} ${totalCount === 1 ? 'requires' : 'require'} attention`
                         : 'All caught up!'}
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="btn-icon drawer-close-btn"
-                  onClick={() => setOpen(false)}
-                  aria-label="Close dialog"
-                >
-                  <X size={18} />
-                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  {autopayEnabled && (
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      onClick={() => {
+                        setOpen(false);
+                        onNavigate('recurring');
+                      }}
+                      title="Manage Subscriptions"
+                      aria-label="Manage Subscriptions"
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-2)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <RefreshCw size={15} />
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn-icon drawer-close-btn"
+                    onClick={() => setOpen(false)}
+                    title="Close"
+                    aria-label="Close dialog"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: 'var(--surface2)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text-2)',
+                      display: 'grid',
+                      placeItems: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
               </div>
 
               {/* Body */}
-              <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '6px 20px 20px' }}>
                 {totalCount === 0 ? (
-                  <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-3)' }}>
+                  <div style={{ padding: '36px 16px', textAlign: 'center', color: 'var(--text-3)' }}>
                     <div
                       style={{
                         width: 48,
                         height: 48,
                         borderRadius: '50%',
-                        background: 'rgba(102, 187, 106, 0.12)',
-                        color: '#66bb6a',
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        color: 'var(--credit)',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -141,10 +192,10 @@ export default function NotificationBell({ onNavigate }: Props) {
                     >
                       <CheckCircle2 size={26} />
                     </div>
-                    <p style={{ fontSize: 14, margin: 0, fontWeight: 600, color: 'var(--text)' }}>
-                      No pending prompts!
+                    <p style={{ fontSize: 14.5, margin: 0, fontWeight: 650, color: 'var(--text)' }}>
+                      All caught up!
                     </p>
-                    <p style={{ fontSize: 12.5, margin: '6px 0 0 0', opacity: 0.85, color: 'var(--text-2)' }}>
+                    <p style={{ fontSize: 12.5, margin: '6px 0 0 0', color: 'var(--text-2)' }}>
                       All subscriptions and quick logs are up to date.
                     </p>
                   </div>
@@ -156,26 +207,26 @@ export default function NotificationBell({ onNavigate }: Props) {
                         style={{
                           padding: '12px 14px',
                           background: 'var(--accent-soft)',
-                          border: '1px solid var(--accent)',
-                          borderRadius: 'var(--radius-lg)',
-                          boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+                          border: '1px solid var(--accent-border-soft, var(--accent))',
+                          borderRadius: 12,
+                          boxShadow: '0 2px 8px var(--accent-soft)',
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                           <div
                             style={{
-                              width: 30,
-                              height: 30,
+                              width: 32,
+                              height: 32,
                               borderRadius: 8,
-                              background: 'var(--accent)',
-                              color: 'var(--accent-contrast, #fff)',
+                              background: 'var(--accent-gradient, var(--accent))',
+                              color: 'var(--accent-contrast, #ffffff)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               flexShrink: 0,
                             }}
                           >
-                            <Sparkles size={16} />
+                            <Sparkles size={16} style={{ color: 'var(--accent-contrast, #ffffff)' }} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
@@ -194,35 +245,41 @@ export default function NotificationBell({ onNavigate }: Props) {
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <button
                             type="button"
-                            className="btn btn-sm btn-primary"
+                            className="btn btn-sm btn-primary active-accent"
                             style={{
                               fontSize: 12,
-                              padding: '5px 12px',
+                              fontWeight: 650,
+                              padding: '6px 14px',
                               borderRadius: 8,
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 6,
+                              background: 'var(--accent-gradient, var(--accent))',
+                              color: 'var(--accent-contrast, #ffffff)',
+                              border: 'none',
+                              boxShadow: '0 2px 8px var(--accent-soft)',
+                              cursor: 'pointer',
                             }}
                             onClick={() => {
                               setOpen(false);
                               onNavigate('settings');
                             }}
                           >
-                            <ArrowUpCircle size={14} />
+                            <ArrowUpCircle size={14} style={{ color: 'var(--accent-contrast, #ffffff)' }} />
                             <span>Download in Settings</span>
                           </button>
                         </div>
                       </div>
                     )}
 
-                    {/* Due Autopays Section */}
+                    {/* Due Subscriptions Section */}
                     {dueAutopays.length > 0 && (
                       <div>
                         <div
                           style={{
                             fontSize: 11,
                             fontWeight: 700,
-                            color: '#ef5350',
+                            color: 'var(--debit)',
                             textTransform: 'uppercase',
                             letterSpacing: '0.6px',
                             marginBottom: 8,
@@ -231,7 +288,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                             gap: 6,
                           }}
                         >
-                          <RefreshCw size={13} />
+                          <RefreshCw size={13} style={{ color: 'var(--debit)' }} />
                           <span>Due Subscriptions ({dueAutopays.length})</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -239,10 +296,10 @@ export default function NotificationBell({ onNavigate }: Props) {
                             <div
                               key={r.id}
                               style={{
-                                padding: '10px 12px',
-                                background: 'rgba(239, 83, 80, 0.08)',
-                                border: '1px solid rgba(239, 83, 80, 0.25)',
-                                borderRadius: 'var(--radius-lg)',
+                                padding: '12px 14px',
+                                background: 'var(--surface2)',
+                                border: '1px solid var(--border)',
+                                borderRadius: 12,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
@@ -250,25 +307,28 @@ export default function NotificationBell({ onNavigate }: Props) {
                               }}
                             >
                               <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--text)' }}>
                                   {r.title}
                                 </div>
                                 <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>
-                                  <span style={{ fontWeight: 700, color: '#ef5350' }}>{fmtMoney(r.amount, currency)}</span> · Due Today
+                                  <span style={{ fontWeight: 700, color: 'var(--debit)' }}>{fmtMoney(r.amount, currency)}</span> · Due Today
                                 </div>
                               </div>
                               <button
                                 type="button"
                                 className="btn btn-sm"
                                 style={{
-                                  background: '#ef5350',
+                                  background: 'var(--debit)',
                                   color: '#ffffff',
                                   fontSize: 12,
-                                  fontWeight: 600,
+                                  fontWeight: 650,
                                   padding: '6px 14px',
                                   height: 32,
-                                  borderRadius: 16,
+                                  borderRadius: 8,
+                                  border: 'none',
                                   flexShrink: 0,
+                                  cursor: 'pointer',
+                                  boxShadow: '0 2px 6px rgba(224,92,92,0.25)',
                                 }}
                                 onClick={() => {
                                   triggerAutopayDeduct(r.id);
@@ -289,7 +349,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                           style={{
                             fontSize: 11,
                             fontWeight: 700,
-                            color: '#d97706',
+                            color: 'var(--accent)',
                             textTransform: 'uppercase',
                             letterSpacing: '0.6px',
                             marginBottom: 8,
@@ -298,18 +358,18 @@ export default function NotificationBell({ onNavigate }: Props) {
                             gap: 6,
                           }}
                         >
-                          <Zap size={13} />
-                          <span>Due Logs({unloggedQuickLogs.length})</span>
+                          <Zap size={13} style={{ color: 'var(--accent)' }} />
+                          <span>Due Logs ({unloggedQuickLogs.length})</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {unloggedQuickLogs.map(r => (
                             <div
                               key={r.id}
                               style={{
-                                padding: '10px 12px',
+                                padding: '12px 14px',
                                 background: 'var(--surface2)',
                                 border: '1px solid var(--border)',
-                                borderRadius: 'var(--radius-lg)',
+                                borderRadius: 12,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
@@ -317,7 +377,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                               }}
                             >
                               <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--text)' }}>
                                   {r.title}
                                 </div>
                                 <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>
@@ -326,22 +386,29 @@ export default function NotificationBell({ onNavigate }: Props) {
                               </div>
                               <button
                                 type="button"
-                                className="btn btn-sm btn-primary"
+                                className="btn btn-sm btn-primary active-accent"
                                 style={{
                                   fontSize: 12,
+                                  fontWeight: 650,
                                   padding: '6px 14px',
                                   height: 32,
-                                  borderRadius: 16,
+                                  borderRadius: 8,
                                   flexShrink: 0,
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: 4,
+                                  gap: 5,
+                                  background: 'var(--accent-gradient, var(--accent))',
+                                  color: 'var(--accent-contrast, #ffffff)',
+                                  border: 'none',
+                                  boxShadow: '0 2px 8px var(--accent-soft)',
+                                  cursor: 'pointer',
                                 }}
                                 onClick={() => {
                                   quickLogRecurringRule(r.id);
                                 }}
                               >
-                                <Zap size={12} /> Log Expense
+                                <Zap size={12} style={{ color: 'var(--accent-contrast, #ffffff)' }} />
+                                <span>Log Expense</span>
                               </button>
                             </div>
                           ))}
@@ -350,29 +417,6 @@ export default function NotificationBell({ onNavigate }: Props) {
                     )}
                   </div>
                 )}
-              </div>
-
-              {/* Footer */}
-              <div className="modal-footer" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setOpen(false)}
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  onClick={() => {
-                    setOpen(false);
-                    onNavigate('recurring');
-                  }}
-                >
-                  <span>Manage Subscriptions</span>
-                  <ArrowRight size={14} />
-                </button>
               </div>
             </div>
           </div>,

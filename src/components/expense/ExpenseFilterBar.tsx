@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import {
@@ -77,9 +78,20 @@ export const ExpenseFilterBar: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showFilters, setShowFilters]);
 
+  // Lock body scroll when filters drawer is open on mobile/desktop
+  useEffect(() => {
+    if (showFilters) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showFilters]);
+
   if (!showFilters) return null;
 
-  return (
+  return createPortal(
     <div
       className="filter-drawer-overlay"
       onClick={e => {
@@ -115,12 +127,11 @@ export const ExpenseFilterBar: React.FC<Props> = ({
         {/* Drawer Header */}
         <div
           style={{
-            padding: '12px 18px',
+            padding: '14px 18px 10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             backgroundColor: 'var(--surface)',
-            borderBottom: '1px solid var(--border)',
             flexShrink: 0,
           }}
         >
@@ -565,15 +576,14 @@ export const ExpenseFilterBar: React.FC<Props> = ({
         {/* Drawer Sticky Footer */}
         <div
           style={{
-            padding: '12px 18px',
+            padding: '10px 18px 14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 10,
             backgroundColor: 'var(--surface)',
-            borderTop: '1px solid var(--border)',
             flexShrink: 0,
-            paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 14px)' : '12px',
+            paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 14px)' : '14px',
           }}
         >
           <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
@@ -597,7 +607,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 export default ExpenseFilterBar;

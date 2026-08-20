@@ -2025,7 +2025,9 @@ input[type="number"] {
 
 @media (max-width: 640px) {
   .drawer-close-btn {
-    display: none !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
   }
   .modal-handle-bar {
     display: flex;
@@ -4709,9 +4711,14 @@ body.no-animations *::after,
 /* Filter Drawer & Modal Overlay */
 .filter-drawer-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100vw;
+  width: 100dvw;
   height: 100vh;
+  height: 100dvh;
   z-index: 99999;
   background-color: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(6px);
@@ -4721,6 +4728,8 @@ body.no-animations *::after,
   justify-content: center;
   padding: 0;
   animation: fadein 0.18s ease;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .filter-drawer-panel {
@@ -4739,6 +4748,7 @@ body.no-animations *::after,
   flex-direction: column;
   overflow: hidden;
   animation: slideup 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  overscroll-behavior: contain;
 }
 
 .filter-drawer-panel,
@@ -4763,6 +4773,8 @@ body.no-animations *::after,
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 @media (min-width: 641px) {
@@ -4775,12 +4787,13 @@ body.no-animations *::after,
     max-width: 520px;
     width: 100%;
     max-height: calc(100vh - 64px);
+    max-height: calc(100dvh - 64px);
     height: auto;
     border-radius: 20px;
     border: 1px solid var(--border);
     animation: slidein 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--border);
-    margin: auto;
+    margin: 0 auto;
   }
 }
 

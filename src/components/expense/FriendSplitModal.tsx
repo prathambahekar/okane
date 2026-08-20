@@ -43,8 +43,14 @@ export function FriendSplitModal({
   showToast,
 }: FriendSplitModalProps) {
   const s = db.settings;
-  const [pickerTypeFilter, setPickerTypeFilter] = useState<'all' | 'friend' | 'vendor'>('all');
+  const [pickerTypeFilter, setPickerTypeFilter] = useState<'all' | 'friend' | 'vendor'>('friend');
   const [pickerSearch, setPickerSearch] = useState('');
+
+  const handleClose = () => {
+    setPickerTypeFilter('friend');
+    setPickerSearch('');
+    onClose();
+  };
 
   const filteredFriendsList = useMemo(() => {
     let list = db.friends;
@@ -64,7 +70,7 @@ export function FriendSplitModal({
     <div
       className="friend-picker-overlay"
       onClick={e => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleClose();
       }}
     >
       <div className="friend-picker-sheet" onClick={e => e.stopPropagation()}>
@@ -110,7 +116,7 @@ export function FriendSplitModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             style={{
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
@@ -875,7 +881,7 @@ export function FriendSplitModal({
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={onClose}
+              onClick={handleClose}
               style={{
                 borderRadius: 8,
                 fontSize: '13px',
@@ -892,7 +898,7 @@ export function FriendSplitModal({
             <button
               type="button"
               className="btn btn-primary active-accent"
-              onClick={onClose}
+              onClick={handleClose}
               style={{
                 borderRadius: 8,
                 fontSize: '13px',

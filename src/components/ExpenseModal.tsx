@@ -1426,8 +1426,8 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                 borderRadius: 10,
                 padding: '9px 18px',
                 fontWeight: 600,
-                background: flow === 'in' ? 'var(--credit)' : 'var(--accent)',
-                color: '#ffffff',
+                background: flow === 'in' ? 'var(--credit)' : 'var(--accent-gradient, var(--accent))',
+                color: flow === 'in' ? '#ffffff' : 'var(--accent-contrast, #ffffff)',
                 border: 'none',
                 boxShadow: flow === 'in' ? '0 2px 8px var(--credit-bg)' : '0 2px 8px var(--accent-soft)',
               }}
