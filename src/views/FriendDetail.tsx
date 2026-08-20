@@ -105,69 +105,84 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
   return (
     <div className="view-container">
-      {/* Hero Profile & Stats Card */}
+      {/* Top Breadcrumb / Back Button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={() => onNavigate('friends')}
+          style={{ padding: '6px 10px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 8 }}
+        >
+          <ArrowLeft size={16} /> <span>Back to Contacts</span>
+        </button>
+      </div>
+
+      {/* Hero Profile & Balance Overview Card */}
       <div
         className="card"
         style={{
           padding: '16px 18px',
           marginBottom: 16,
-          background: 'var(--accent-gradient-soft), var(--surface)',
+          background: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: 12,
-          boxShadow: '0 4px 16px -4px var(--accent-soft)',
+          borderRadius: 16,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
           position: 'relative',
-          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+        {/* Contact Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
             <div
               className="avatar"
               style={{
                 ...getAvatarStyle(friend.color),
-                width: 44,
-                height: 44,
+                width: 48,
+                height: 48,
                 fontSize: 18,
                 fontWeight: 700,
                 flexShrink: 0,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 10,
+                borderRadius: 12,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
               }}
             >
               {contactType === 'subscription' ? (
-                renderBrandLogo(friend.name, 22) || <Tv size={20} />
+                renderBrandLogo(friend.name, 24) || <Tv size={22} />
               ) : contactType === 'vendor' ? (
-                <Store size={20} />
+                <Store size={22} />
               ) : (
                 friendInitial(friend.name, friend.avatarNumber)
               )}
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{friend.name}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, lineHeight: 1.2, color: 'var(--text)' }}>
+                  {friend.name}
+                </h2>
                 <span
                   style={{
                     fontSize: 10,
-                    fontWeight: 600,
+                    fontWeight: 700,
                     padding: '2px 7px',
-                    borderRadius: 4,
+                    borderRadius: 6,
                     textTransform: 'uppercase',
                     letterSpacing: '0.4px',
                     background:
                       contactType === 'vendor'
-                        ? 'rgba(245, 158, 11, 0.15)'
-                        : contactType === 'subscription'
-                        ? 'var(--accent-soft)'
+                        ? 'rgba(245, 158, 11, 0.12)'
                         : 'var(--accent-soft)',
                     color:
                       contactType === 'vendor'
                         ? '#D97706'
-                        : contactType === 'subscription'
-                        ? 'var(--accent)'
                         : 'var(--accent)',
+                    border: '1px solid var(--accent-border-soft, transparent)',
                   }}
                 >
                   {contactType}
@@ -175,26 +190,26 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
               </div>
 
               {friend.website && (
-                <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   <a
                     href={friend.website.startsWith('http') ? friend.website : `https://${friend.website}`}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: 2 }}
+                    style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 500 }}
                   >
                     <span>Website</span> <ExternalLink size={11} />
                   </a>
                 </div>
               )}
               {friend.notes && (
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, fontStyle: 'italic' }}>
+                <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, fontStyle: 'italic' }}>
                   {friend.notes}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Edit Contact: icon-only inside card */}
+          {/* Edit Contact Icon */}
           <button
             type="button"
             className="btn btn-ghost btn-sm"
@@ -205,7 +220,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
               padding: '7px',
               width: 34,
               height: 34,
-              borderRadius: '9px',
+              borderRadius: '10px',
               border: '1px solid var(--border)',
               background: 'var(--surface2)',
               color: 'var(--text-2)',
@@ -221,9 +236,8 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           </button>
         </div>
 
-        {/* Dynamic Hero Banner for Contact Type */}
+        {/* Dynamic Status / Financial Overview Block */}
         {contactType === 'friend' ? (
-          /* Friend Net Balance Banner Box */
           <div
             style={{
               background: bal.net > 0.004
@@ -237,50 +251,47 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   ? 'var(--debit-border)'
                   : 'var(--border)'
                 }`,
-              borderRadius: 'var(--radius-sm, 8px)',
-              padding: '8px 12px',
-              marginBottom: 12,
+              borderRadius: 12,
+              padding: '12px 14px',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: 8,
+              gap: 12,
             }}
           >
             <div>
-              <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)' }}>
                 Net Balance Status
               </span>
-              <div style={{ fontSize: 18, fontWeight: 700, color: bal.net > 0.004 ? 'var(--credit)' : bal.net < -0.004 ? 'var(--debit)' : 'var(--text-2)', marginTop: 0 }}>
+              <div style={{ fontSize: 20, fontWeight: 750, color: bal.net > 0.004 ? 'var(--credit)' : bal.net < -0.004 ? 'var(--debit)' : 'var(--text-2)', marginTop: 1 }}>
                 {bal.net > 0.004 ? fmtMoney(bal.net, currency) : bal.net < -0.004 ? fmtMoney(Math.abs(bal.net), currency) : 'Settled Up ✓'}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 0 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1 }}>
                 {bal.net > 0.004 ? `${friend.name} owes you in total` : bal.net < -0.004 ? `You owe ${friend.name} in total` : 'All shared bills are settled'}
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 9, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>Owes You</div>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--credit)', marginTop: 1 }}>{fmtMoney(bal.owedToMe, currency)}</div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ padding: '6px 10px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <div style={{ fontSize: 9.5, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 700, letterSpacing: '0.3px' }}>Owes You</div>
+                <div style={{ fontSize: 13, fontWeight: 750, color: 'var(--credit)', marginTop: 1 }}>{fmtMoney(bal.owedToMe, currency)}</div>
               </div>
-              <div style={{ width: 1, background: 'var(--border)', height: 20 }} />
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: 9, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 600 }}>You Owe</div>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--debit)', marginTop: 1 }}>{fmtMoney(bal.owedByMe, currency)}</div>
+              <div style={{ padding: '6px 10px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <div style={{ fontSize: 9.5, textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 700, letterSpacing: '0.3px' }}>You Owe</div>
+                <div style={{ fontSize: 13, fontWeight: 750, color: 'var(--debit)', marginTop: 1 }}>{fmtMoney(bal.owedByMe, currency)}</div>
               </div>
             </div>
           </div>
         ) : contactType === 'vendor' ? (
-          /* Vendor Hero Stats Box */
           <div>
             {Math.abs(bal.net) > 0.004 && (
               <div
                 style={{
                   background: bal.net > 0.004 ? 'var(--credit-bg)' : 'var(--debit-bg)',
                   border: `1px solid ${bal.net > 0.004 ? 'var(--credit-border)' : 'var(--debit-border)'}`,
-                  borderRadius: 'var(--radius-sm, 8px)',
-                  padding: '8px 12px',
+                  borderRadius: 12,
+                  padding: '10px 14px',
                   marginBottom: 10,
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -288,14 +299,14 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 }}
               >
                 <div>
-                  <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>
+                  <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>
                     Outstanding Balance
                   </span>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: bal.net > 0.004 ? 'var(--credit)' : 'var(--debit)', marginTop: 0 }}>
+                  <div style={{ fontSize: 18, fontWeight: 750, color: bal.net > 0.004 ? 'var(--credit)' : 'var(--debit)', marginTop: 1 }}>
                     {bal.net > 0.004 ? fmtMoney(bal.net, currency) : fmtMoney(Math.abs(bal.net), currency)}
                   </div>
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: bal.net > 0.004 ? 'var(--credit)' : 'var(--debit)' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 650, color: bal.net > 0.004 ? 'var(--credit)' : 'var(--debit)' }}>
                   {bal.net > 0.004 ? 'Owes You' : 'You Owe Vendor'}
                 </div>
               </div>
@@ -304,37 +315,36 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
               style={{
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm, 8px)',
+                borderRadius: 12,
                 padding: '10px 14px',
-                marginBottom: 12,
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
                 gap: 10,
               }}
             >
               <div>
-                <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Spent</span>
+                <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Spent</span>
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
                   {fmtMoney(totalSpent, currency)}
                 </div>
               </div>
 
               <div>
-                <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Orders</span>
+                <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Orders</span>
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
                   {allExps.length}
                 </div>
               </div>
 
               <div>
-                <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Avg / Order</span>
+                <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Avg / Order</span>
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
                   {fmtMoney(avgOrderVal, currency)}
                 </div>
               </div>
 
               <div>
-                <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Category</span>
+                <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Category</span>
                 <div style={{ marginTop: 2 }}>
                   <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: 'var(--surface)', border: '1px solid var(--border)' }}>
                     {friend.category || 'General'}
@@ -344,35 +354,33 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             </div>
           </div>
         ) : (
-          /* Subscription Hero Stats Box */
           <div
             style={{
               background: 'var(--accent-soft)',
-              border: '1px solid var(--accent)',
-              borderRadius: 'var(--radius-sm, 8px)',
-              padding: '10px 14px',
-              marginBottom: 12,
+              border: '1px solid var(--accent-border-soft, var(--accent))',
+              borderRadius: 12,
+              padding: '12px 14px',
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
               gap: 10,
             }}
           >
             <div>
-              <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Plan Cost</span>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', marginTop: 1 }}>
-                {friend.defaultAmount ? fmtMoney(friend.defaultAmount, currency) : 'Flexible'} <span style={{ fontSize: 10.5, fontWeight: 500, color: 'var(--text-3)' }}>/ {formatBillingCycleShort(friend.billingCycle)}</span>
+              <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Plan Cost</span>
+              <div style={{ fontSize: 17, fontWeight: 750, color: 'var(--accent)', marginTop: 1 }}>
+                {friend.defaultAmount ? fmtMoney(friend.defaultAmount, currency) : 'Flexible'} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)' }}>/ {formatBillingCycleShort(friend.billingCycle)}</span>
               </div>
             </div>
 
             <div>
-              <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Lifetime Spend</span>
+              <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Lifetime Spend</span>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
                 {fmtMoney(totalSpent, currency)}
               </div>
             </div>
 
             <div>
-              <span style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Payments</span>
+              <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)' }}>Total Payments</span>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)', marginTop: 1 }}>
                 {allExps.length}
               </div>
@@ -380,44 +388,44 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           </div>
         )}
 
-        {/* Primary Action Buttons with Accent Gradient & Compact Design */}
+        {/* Primary Action Buttons */}
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             style={{
               flex: 1,
-              padding: '9px 12px',
-              fontSize: 12.5,
-              fontWeight: 600,
-              gap: 5,
+              padding: '10px 14px',
+              fontSize: 13,
+              fontWeight: 650,
+              gap: 6,
               justifyContent: 'center',
               display: 'inline-flex',
               alignItems: 'center',
-              borderRadius: 'var(--radius, 12px)',
+              borderRadius: 11,
               border: 'none',
               background: 'var(--accent-gradient)',
               color: 'var(--accent-contrast, #ffffff)',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               boxShadow: '0 2px 10px var(--accent-soft)',
-              transition: 'opacity 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             onClick={() => setShowAddExp(true)}
           >
-            <Plus size={15} /> {contactType === 'vendor' ? 'Log Purchase' : contactType === 'subscription' ? 'Log Payment' : 'Add Expense'}
+            <Plus size={16} /> {contactType === 'vendor' ? 'Log Purchase' : contactType === 'subscription' ? 'Log Payment' : 'Add Expense'}
           </button>
 
           {activeExps.length > 0 && (
             <button
               style={{
                 flex: 1,
-                padding: '9px 12px',
-                fontSize: 12.5,
-                fontWeight: 600,
-                gap: 5,
+                padding: '10px 14px',
+                fontSize: 13,
+                fontWeight: 650,
+                gap: 6,
                 justifyContent: 'center',
                 display: 'inline-flex',
                 alignItems: 'center',
-                borderRadius: 'var(--radius, 12px)',
+                borderRadius: 11,
                 border: '1px solid var(--credit-border)',
                 background: 'var(--credit-bg)',
                 color: 'var(--credit)',
@@ -427,26 +435,35 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
               }}
               onClick={() => setShowSettle(true)}
             >
-              <Handshake size={15} /> Settle Up
+              <Handshake size={16} /> Settle Up
             </button>
           )}
         </div>
       </div>
 
-      {/* Connected Autopay & Subscriptions Section - Only show when rules exist or contact is a subscription */}
+      {/* Connected Autopay & Subscriptions Section */}
       {(connectedRules.length > 0 || contactType === 'subscription') && (
-        <div className="card" style={{ padding: '16px 18px', marginBottom: 16 }}>
+        <div
+          className="card"
+          style={{
+            padding: '16px 18px',
+            marginBottom: 16,
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 16,
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: connectedRules.length > 0 ? 12 : 8, flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{
-                width: 32, height: 32, borderRadius: 8,
-                background: 'rgba(56, 189, 248, 0.15)', color: 'var(--info)',
+                width: 34, height: 34, borderRadius: 10,
+                background: 'var(--accent-soft)', color: 'var(--accent)',
                 display: 'grid', placeItems: 'center', flexShrink: 0
               }}>
                 <RefreshCw size={17} />
               </div>
               <div>
-                <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, lineHeight: 1.2, color: 'var(--text)' }}>
                   Autopay & Subscriptions ({connectedRules.length})
                 </h3>
                 <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
@@ -457,7 +474,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
             <button
               className="btn btn-secondary btn-sm"
-              style={{ fontSize: 11.5, gap: 5, padding: '5px 12px' }}
+              style={{ fontSize: 11.5, gap: 5, padding: '5px 12px', borderRadius: 8 }}
               onClick={() => setShowRecurringModal(true)}
             >
               <Plus size={14} /> Add Autopay Rule
@@ -466,7 +483,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
           {connectedRules.length === 0 ? (
             <div style={{
-              background: 'var(--surface2)', borderRadius: 8, padding: '12px 14px',
+              background: 'var(--surface2)', borderRadius: 10, padding: '12px 14px',
               border: '1px dashed var(--border2)', display: 'flex', alignItems: 'center',
               justifyContent: 'space-between', gap: 10, flexWrap: 'wrap'
             }}>
@@ -475,7 +492,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
               </span>
               <button
                 className="btn btn-primary btn-sm"
-                style={{ fontSize: 11.5, padding: '5px 12px', gap: 5 }}
+                style={{ fontSize: 11.5, padding: '5px 12px', gap: 5, borderRadius: 8 }}
                 onClick={() => setShowRecurringModal(true)}
               >
                 <Zap size={13} /> Connect Autopay Rule
@@ -492,7 +509,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     justifyContent: 'space-between',
                     padding: '10px 12px',
                     background: 'var(--surface2)',
-                    borderRadius: 8,
+                    borderRadius: 10,
                     border: '1px solid var(--border)',
                     gap: 10,
                     flexWrap: 'wrap'
@@ -529,7 +546,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
                   <button
                     className="btn btn-primary btn-sm"
-                    style={{ fontSize: 12, padding: '5px 12px', gap: 5 }}
+                    style={{ fontSize: 12, padding: '5px 12px', gap: 5, borderRadius: 8 }}
                     onClick={() => {
                       if (r.kind === 'autopay') {
                         triggerAutopayDeduct(r.id);
@@ -549,225 +566,309 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
         </div>
       )}
 
-      {/* Transactions List */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
-          {(contactType === 'friend' || activeExps.length > 0 || settledExps.length > 0) ? (
-            <div className="tab-list" style={{ marginBottom: 0, padding: 4, background: 'var(--surface2)', borderRadius: 10 }}>
-              <button className={`tab-btn ${tab === 'active' ? 'active' : ''}`} onClick={() => setTab('active')} style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
-                Active ({activeExps.length})
-              </button>
-              <button className={`tab-btn ${tab === 'settled' ? 'active' : ''}`} onClick={() => setTab('settled')} style={{ padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
-                Settled ({settledExps.length})
-              </button>
-            </div>
-          ) : (
-            <div style={{ fontWeight: 600, fontSize: 14, padding: '2px 0' }}>
-              Payment & Order History ({allExps.length})
-            </div>
-          )}
-        </div>
-
-        {shown.length === 0 ? (
-          <div className="empty-state" style={{ padding: '32px' }}>
-            <p>{contactType === 'friend' ? (tab === 'active' ? 'No active expenses with this friend.' : 'No settled expenses yet.') : 'No recorded transactions yet.'}</p>
+      {/* Standalone Filter Tabs: Active vs Settled */}
+      <div style={{ marginBottom: 12 }}>
+        {(contactType === 'friend' || activeExps.length > 0 || settledExps.length > 0) ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              padding: 4,
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setTab('active')}
+              style={{
+                flex: 1,
+                padding: '8px 14px',
+                fontSize: 13,
+                fontWeight: tab === 'active' ? 700 : 500,
+                borderRadius: 9,
+                border: tab === 'active' ? '1px solid var(--accent-border-soft, var(--accent))' : '1px solid transparent',
+                background: tab === 'active' ? 'var(--accent-soft)' : 'transparent',
+                color: tab === 'active' ? 'var(--accent)' : 'var(--text-3)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                boxShadow: tab === 'active' ? '0 1px 3px var(--accent-soft)' : 'none',
+              }}
+            >
+              <span>Active</span>
+              <span style={{
+                fontSize: 11,
+                padding: '1px 6px',
+                borderRadius: 99,
+                background: tab === 'active' ? 'var(--accent)' : 'var(--surface)',
+                color: tab === 'active' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                fontWeight: 700,
+              }}>
+                {activeExps.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('settled')}
+              style={{
+                flex: 1,
+                padding: '8px 14px',
+                fontSize: 13,
+                fontWeight: tab === 'settled' ? 700 : 500,
+                borderRadius: 9,
+                border: tab === 'settled' ? '1px solid var(--accent-border-soft, var(--accent))' : '1px solid transparent',
+                background: tab === 'settled' ? 'var(--accent-soft)' : 'transparent',
+                color: tab === 'settled' ? 'var(--accent)' : 'var(--text-3)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                boxShadow: tab === 'settled' ? '0 1px 3px var(--accent-soft)' : 'none',
+              }}
+            >
+              <span>Settled</span>
+              <span style={{
+                fontSize: 11,
+                padding: '1px 6px',
+                borderRadius: 99,
+                background: tab === 'settled' ? 'var(--accent)' : 'var(--surface)',
+                color: tab === 'settled' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                fontWeight: 700,
+              }}>
+                {settledExps.length}
+              </span>
+            </button>
           </div>
         ) : (
-          <>
-            {/* Desktop Table View */}
-            <div className="table-wrapper desktop-only">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Description</th>
-                    <th>Amount</th>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Category</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shown.map(e => {
-                    const cat = db.settings.categories.find(c => c.name === e.category);
-                    const isIn = expenseFlow(e) === 'in';
-                    const isEvenGroup = dateGroupInfo.groupMap[e.id] === 0;
-                    const isFirstOfDate = dateGroupInfo.isFirstMap[e.id];
-                    const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}`;
+          <div style={{ fontWeight: 650, fontSize: 14, color: 'var(--text)', padding: '4px 0' }}>
+            Payment & Order History ({allExps.length})
+          </div>
+        )}
+      </div>
 
-                    const isVendorView = e.vendorId === friendId;
-                    const isIncome = expenseFlow(e) === 'in' && e.type === 'personal';
-                    const isSettled = isVendorView
-                      ? Boolean(e.vendorSettled || (e.status === 'paid' && e.vendorSettled !== false))
-                      : Boolean(e.settled);
-                    const isPartial = isVendorView
-                      ? Boolean(e.vendorSettledAmount && e.vendorSettledAmount > 0 && !e.vendorSettled)
-                      : Boolean((e.settledAmount && e.settledAmount > 0 && !e.settled) || (e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 && e.settled));
-                    const statusKey = isIncome
-                      ? 'none'
-                      : (isSettled ? (isPartial ? 'partial' : 'settled') : (isPartial ? 'partial' : (e.type === 'personal' && e.status === 'paid' ? 'paid' : (e.status || 'unsettled'))));
-                    const itemStatusLabel = isIncome
-                      ? ''
-                      : (isSettled
-                        ? (isPartial ? 'Partially Settled' : 'Settled')
-                        : (isPartial ? 'Partially Settled' : (e.type === 'personal' && e.status === 'paid' ? 'Paid' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'))));
+      {/* Transactions List (Floating Cards - No Split Lines) */}
+      {shown.length === 0 ? (
+        <div className="card" style={{ padding: '32px 20px', borderRadius: 14, textAlign: 'center', border: '1px solid var(--border)' }}>
+          <div className="empty-state">
+            <p>{contactType === 'friend' ? (tab === 'active' ? 'No active expenses with this friend.' : 'No settled expenses yet.') : 'No recorded transactions yet.'}</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Desktop Table View */}
+          <div className="table-wrapper desktop-only card" style={{ padding: 0, overflow: 'hidden', borderRadius: 14, border: '1px solid var(--border)' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map(e => {
+                  const cat = db.settings.categories.find(c => c.name === e.category);
+                  const isIn = expenseFlow(e) === 'in';
+                  const isEvenGroup = dateGroupInfo.groupMap[e.id] === 0;
+                  const isFirstOfDate = dateGroupInfo.isFirstMap[e.id];
+                  const rowClass = `${isEvenGroup ? 'date-row-even' : 'date-row-odd'}${isFirstOfDate ? ' date-row-first' : ''}`;
 
-                    return (
-                      <tr key={e.id} className={rowClass}>
-                        <td style={{ fontWeight: 500, fontSize: 13 }}>{cleanExpenseDescription(e.description)}</td>
-                        <td style={{ fontWeight: 500, color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
-                          {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
-                          {e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 ? (
-                            <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 1 }}>
-                              og {fmtMoney(e.originalAmount, currency)}
-                            </div>
-                          ) : null}
-                        </td>
-                        <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.originalDate || e.date)}</td>
-                        <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type, contactType)}</td>
-                        <td>
-                          <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} />
-                        </td>
-                        <td>
-                          {statusKey !== 'none' && itemStatusLabel ? (
-                            <span className={`badge badge-${statusKey}`}>
-                              {itemStatusLabel}
-                            </span>
-                          ) : (
-                            <span style={{ color: 'var(--text-3)', fontSize: 12 }}>—</span>
-                          )}
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
-                            <button className="btn-icon" onClick={() => setEditingExpense(e)} title="Edit"><Edit2 size={15} /></button>
-                            <button className="btn-icon" onClick={() => setDeletingExpenseId(e.groupId || e.id)} title="Delete" style={{ color: 'var(--debit)' }}><Trash2 size={15} /></button>
+                  const isVendorView = e.vendorId === friendId;
+                  const isIncome = expenseFlow(e) === 'in' && e.type === 'personal';
+                  const isSettled = isVendorView
+                    ? Boolean(e.vendorSettled || (e.status === 'paid' && e.vendorSettled !== false))
+                    : Boolean(e.settled);
+                  const isPartial = isVendorView
+                    ? Boolean(e.vendorSettledAmount && e.vendorSettledAmount > 0 && !e.vendorSettled)
+                    : Boolean((e.settledAmount && e.settledAmount > 0 && !e.settled) || (e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 && e.settled));
+                  const statusKey = isIncome
+                    ? 'none'
+                    : (isSettled ? (isPartial ? 'partial' : 'settled') : (isPartial ? 'partial' : (e.type === 'personal' && e.status === 'paid' ? 'paid' : (e.status || 'unsettled'))));
+                  const itemStatusLabel = isIncome
+                    ? ''
+                    : (isSettled
+                      ? (isPartial ? 'Partially Settled' : 'Settled')
+                      : (isPartial ? 'Partially Settled' : (e.type === 'personal' && e.status === 'paid' ? 'Paid' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'))));
+
+                  return (
+                    <tr key={e.id} className={rowClass}>
+                      <td style={{ fontWeight: 600, fontSize: 13 }}>{cleanExpenseDescription(e.description)}</td>
+                      <td style={{ fontWeight: 650, color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
+                        {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
+                        {e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 ? (
+                          <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 1 }}>
+                            og {fmtMoney(e.originalAmount, currency)}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile Expandable Cards View */}
-            <div className="mobile-expense-list mobile-only">
-              {shown.map(e => {
-                const cat = db.settings.categories.find(c => c.name === e.category);
-                const wallet = db.wallets.find(w => w.id === e.walletId);
-                const isIn = expenseFlow(e) === 'in';
-                const isExpanded = !!expandedIds[e.id];
-                const isEvenGroup = dateGroupInfo.groupMap[e.id] === 0;
-                const isFirstOfDate = dateGroupInfo.isFirstMap[e.id];
-                const cardClass = `mobile-expense-card ${isEvenGroup ? 'date-card-even' : 'date-card-odd'}${isFirstOfDate ? ' date-card-first' : ''}${isExpanded ? ' is-expanded' : ''}`;
-
-                const isVendorView = e.vendorId === friendId;
-                const isIncome = expenseFlow(e) === 'in' && e.type === 'personal';
-                const isSettled = isVendorView
-                  ? Boolean(e.vendorSettled || (e.status === 'paid' && e.vendorSettled !== false))
-                  : Boolean(e.settled);
-                const isPartial = isVendorView
-                  ? Boolean(e.vendorSettledAmount && e.vendorSettledAmount > 0 && !e.vendorSettled)
-                  : Boolean((e.settledAmount && e.settledAmount > 0 && !e.settled) || (e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 && e.settled));
-                const statusKey = isIncome
-                  ? 'none'
-                  : (isSettled ? (isPartial ? 'partial' : 'settled') : (isPartial ? 'partial' : (e.type === 'personal' && e.status === 'paid' ? 'paid' : (e.status || 'unsettled'))));
-                const itemStatusLabel = isIncome
-                  ? ''
-                  : (isSettled
-                    ? (isPartial ? 'Partially Settled' : 'Settled')
-                    : (isPartial ? 'Partially Settled' : (e.type === 'personal' && e.status === 'paid' ? 'Paid' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'))));
-
-                return (
-                  <div key={e.id} className={cardClass}>
-                    <div className="mobile-expense-header" onClick={() => toggleExpand(e.id)}>
-                      <div className="mobile-expense-top">
-                        <div className="mobile-expense-desc-wrap">
-                          <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={13} showLabel={false} />
-                          <span className="mobile-expense-title">{e.description}</span>
+                        ) : null}
+                      </td>
+                      <td style={{ color: 'var(--text-3)', fontSize: 12 }}>{fmtDate(e.originalDate || e.date)}</td>
+                      <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{typeLabel(e.type, contactType)}</td>
+                      <td>
+                        <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} />
+                      </td>
+                      <td>
+                        {statusKey !== 'none' && itemStatusLabel ? (
+                          <span className={`badge badge-${statusKey}`}>
+                            {itemStatusLabel}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--text-3)', fontSize: 12 }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <button className="btn-icon" onClick={() => setEditingExpense(e)} title="Edit"><Edit2 size={15} /></button>
+                          <button className="btn-icon" onClick={() => setDeletingExpenseId(e.groupId || e.id)} title="Delete" style={{ color: 'var(--debit)' }}><Trash2 size={15} /></button>
                         </div>
-                        <div className="mobile-expense-amount" style={{ color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)', textAlign: 'right' }}>
-                          {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
-                          {e.originalAmount ? (
-                            <div style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 400 }}>
-                              og {fmtMoney(e.originalAmount, currency)}
-                            </div>
-                          ) : null}
-                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Expandable Floating Cards View (No Split Lines) */}
+          <div className="mobile-expense-list mobile-only">
+            {shown.map(e => {
+              const cat = db.settings.categories.find(c => c.name === e.category);
+              const wallet = db.wallets.find(w => w.id === e.walletId);
+              const isIn = expenseFlow(e) === 'in';
+              const isExpanded = !!expandedIds[e.id];
+
+              const isVendorView = e.vendorId === friendId;
+              const isIncome = expenseFlow(e) === 'in' && e.type === 'personal';
+              const isSettled = isVendorView
+                ? Boolean(e.vendorSettled || (e.status === 'paid' && e.vendorSettled !== false))
+                : Boolean(e.settled);
+              const isPartial = isVendorView
+                ? Boolean(e.vendorSettledAmount && e.vendorSettledAmount > 0 && !e.vendorSettled)
+                : Boolean((e.settledAmount && e.settledAmount > 0 && !e.settled) || (e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 && e.settled));
+              const statusKey = isIncome
+                ? 'none'
+                : (isSettled ? (isPartial ? 'partial' : 'settled') : (isPartial ? 'partial' : (e.type === 'personal' && e.status === 'paid' ? 'paid' : (e.status || 'unsettled'))));
+              const itemStatusLabel = isIncome
+                ? ''
+                : (isSettled
+                  ? (isPartial ? 'Partially Settled' : 'Settled')
+                  : (isPartial ? 'Partially Settled' : (e.type === 'personal' && e.status === 'paid' ? 'Paid' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'))));
+
+              return (
+                <div key={e.id} className={`mobile-expense-card ${isExpanded ? 'is-expanded' : ''}`}>
+                  <div className="mobile-expense-header" onClick={() => toggleExpand(e.id)}>
+                    <div className="mobile-expense-top">
+                      <div className="mobile-expense-desc-wrap">
+                        <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={14} showLabel={false} />
+                        <span className="mobile-expense-title">{cleanExpenseDescription(e.description)}</span>
                       </div>
-
-                      <div className="mobile-expense-meta">
-                        <div className="mobile-expense-meta-left" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <span>{fmtDate(e.date)}</span>
-                          <span>·</span>
-                          <span>{e.category}</span>
-                          {statusKey !== 'none' && itemStatusLabel && (
-                            <span className={`badge badge-${statusKey}`} style={{ fontSize: 10, padding: '1px 6px' }}>
-                              {itemStatusLabel}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mobile-expense-expand-btn">
-                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </div>
+                      <div className="mobile-expense-amount" style={{ color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
+                        {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
+                        {e.originalAmount && Math.abs(e.originalAmount - e.amount) > 0.01 ? (
+                          <div style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 400 }}>
+                            og {fmtMoney(e.originalAmount, currency)}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
-                    {isExpanded && (
-                      <div className="mobile-expense-details">
-                        <div className="mobile-expense-detail-grid">
+                    <div className="mobile-expense-meta">
+                      <div className="mobile-expense-meta-left">
+                        <span>{fmtDate(e.date)}</span>
+                        <span>·</span>
+                        <span>{e.category}</span>
+                        {statusKey !== 'none' && itemStatusLabel && (
+                          <span className={`badge badge-${statusKey}`} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6 }}>
+                            {itemStatusLabel}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mobile-expense-expand-btn">
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="mobile-expense-details">
+                      <div className="mobile-expense-detail-grid">
+                        <div className="mobile-expense-detail-item">
+                          <span className="mobile-expense-detail-label">Category</span>
+                          <span className="mobile-expense-detail-val">
+                            <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={13} />
+                          </span>
+                        </div>
+
+                        <div className="mobile-expense-detail-item">
+                          <span className="mobile-expense-detail-label">Wallet</span>
+                          <span className="mobile-expense-detail-val">{wallet?.name ?? '—'}</span>
+                        </div>
+
+                        <div className="mobile-expense-detail-item">
+                          <span className="mobile-expense-detail-label">Type</span>
+                          <span className="mobile-expense-detail-val">{typeLabel(e.type, contactType)}</span>
+                        </div>
+
+                        {statusKey !== 'none' && itemStatusLabel && (
                           <div className="mobile-expense-detail-item">
-                            <span className="mobile-expense-detail-label">Category</span>
+                            <span className="mobile-expense-detail-label">Status</span>
                             <span className="mobile-expense-detail-val">
-                              <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={13} />
+                              <span className={`badge badge-${statusKey}`}>{itemStatusLabel}</span>
                             </span>
                           </div>
+                        )}
 
-                          <div className="mobile-expense-detail-item">
-                            <span className="mobile-expense-detail-label">Wallet</span>
-                            <span className="mobile-expense-detail-val">{wallet?.name ?? '—'}</span>
+                        {e.notes && (
+                          <div className="mobile-expense-detail-item" style={{ gridColumn: '1 / -1' }}>
+                            <span className="mobile-expense-detail-label">Notes</span>
+                            <span className="mobile-expense-detail-val" style={{ fontWeight: 400, fontStyle: 'italic' }}>{e.notes}</span>
                           </div>
-
-                          <div className="mobile-expense-detail-item">
-                            <span className="mobile-expense-detail-label">Type</span>
-                            <span className="mobile-expense-detail-val">{typeLabel(e.type, contactType)}</span>
-                          </div>
-
-                          {statusKey !== 'none' && itemStatusLabel && (
-                            <div className="mobile-expense-detail-item">
-                              <span className="mobile-expense-detail-label">Status</span>
-                              <span className="mobile-expense-detail-val">
-                                <span className={`badge badge-${statusKey}`}>{itemStatusLabel}</span>
-                              </span>
-                            </div>
-                          )}
-
-                          {e.notes && (
-                            <div className="mobile-expense-detail-item" style={{ gridColumn: '1 / -1' }}>
-                              <span className="mobile-expense-detail-label">Notes</span>
-                              <span className="mobile-expense-detail-val" style={{ fontWeight: 400, fontStyle: 'italic' }}>{e.notes}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mobile-expense-actions" style={{ marginTop: 12 }}>
-                          <button className="btn btn-secondary btn-sm" onClick={() => setEditingExpense(e)}>
-                            <Edit2 size={14} /> Edit
-                          </button>
-                          <button className="btn btn-danger btn-sm" onClick={() => setDeletingExpenseId(e.groupId || e.id)}>
-                            <Trash2 size={14} /> Delete
-                          </button>
-                        </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
+
+                      <div className="mobile-expense-actions">
+                        <button
+                          type="button"
+                          className="mobile-action-btn action-edit"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            setEditingExpense(e);
+                          }}
+                        >
+                          <Edit2 size={14} /> Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="mobile-action-btn action-delete"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            setDeletingExpenseId(e.groupId || e.id);
+                          }}
+                        >
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {showEdit && <FriendModal friend={friend} onClose={() => setShowEdit(false)} />}
       {showSettle && <SettleModal friend={friend} onClose={() => setShowSettle(false)} />}

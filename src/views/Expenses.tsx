@@ -334,8 +334,10 @@ export default function Expenses() {
                   padding: '2px 8px',
                   borderRadius: '12px',
                   fontSize: '11px',
-                  backgroundColor: 'var(--surface3)',
-                  color: 'var(--text-2)',
+                  backgroundColor: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--accent-border-soft, var(--accent))',
+                  fontWeight: 500,
                 }}
               >
                 Category: {catFilter}
@@ -346,7 +348,7 @@ export default function Expenses() {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: 'var(--text-3)',
+                    color: 'var(--accent)',
                     padding: 0,
                     lineHeight: 1,
                   }}
@@ -364,8 +366,10 @@ export default function Expenses() {
                   padding: '2px 8px',
                   borderRadius: '12px',
                   fontSize: '11px',
-                  backgroundColor: 'var(--surface3)',
-                  color: 'var(--text-2)',
+                  backgroundColor: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--accent-border-soft, var(--accent))',
+                  fontWeight: 500,
                 }}
               >
                 Type: {typeFilter.replace('_', ' ')}
@@ -376,7 +380,7 @@ export default function Expenses() {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: 'var(--text-3)',
+                    color: 'var(--accent)',
                     padding: 0,
                     lineHeight: 1,
                   }}
@@ -394,8 +398,10 @@ export default function Expenses() {
                   padding: '2px 8px',
                   borderRadius: '12px',
                   fontSize: '11px',
-                  backgroundColor: 'var(--surface3)',
-                  color: 'var(--text-2)',
+                  backgroundColor: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--accent-border-soft, var(--accent))',
+                  fontWeight: 500,
                 }}
               >
                 Wallet: {walletsMap.get(walletFilter)?.name || walletFilter}
@@ -406,7 +412,7 @@ export default function Expenses() {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: 'var(--text-3)',
+                    color: 'var(--accent)',
                     padding: 0,
                     lineHeight: 1,
                   }}
@@ -424,8 +430,10 @@ export default function Expenses() {
                   padding: '2px 8px',
                   borderRadius: '12px',
                   fontSize: '11px',
-                  backgroundColor: 'var(--surface3)',
-                  color: 'var(--text-2)',
+                  backgroundColor: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--accent-border-soft, var(--accent))',
+                  fontWeight: 500,
                 }}
               >
                 Sort: {sort.replace('-', ' ')}
@@ -436,7 +444,7 @@ export default function Expenses() {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: 'var(--text-3)',
+                    color: 'var(--accent)',
                     padding: 0,
                     lineHeight: 1,
                   }}

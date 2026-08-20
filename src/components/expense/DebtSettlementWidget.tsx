@@ -135,8 +135,8 @@ export function DebtSettlementWidget({
             onClick={() => setIsPickerOpen(true)}
             style={{
               padding: '9px 11px',
-              background: 'var(--surface)',
-              border: '1.5px solid var(--accent-border-soft, var(--border))',
+              background: selectedExpenseIds.length > 0 ? 'var(--accent-soft)' : 'var(--surface)',
+              border: selectedExpenseIds.length > 0 ? '1.5px solid var(--accent)' : '1.5px solid var(--border)',
               borderRadius: 'var(--radius)',
               cursor: 'pointer',
               display: 'flex',
