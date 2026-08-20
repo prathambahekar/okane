@@ -1,5 +1,19 @@
-import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Handshake, ChevronDown, ChevronUp, MoreVertical, User, Users, Store, Tv, ArrowUpDown, LayoutGrid, List, SlidersHorizontal } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Handshake,
+  MoreVertical,
+  User,
+  Users,
+  Store,
+  Tv,
+  SlidersHorizontal,
+  X,
+  RotateCcw,
+} from 'lucide-react';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -14,18 +28,18 @@ import FriendModal from '../components/FriendModal';
 import SettleModal from '../components/SettleModal';
 import ExpenseModal from '../components/ExpenseModal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ContactFilterBar from '../components/ContactFilterBar';
+import type { FriendFilterStatus, SortOption, DensityOption } from '../components/ContactFilterBar';
 
 interface Props {
   onNavigate: (v: ViewName, arg?: string) => void;
 }
 
-type FriendFilterStatus = 'all' | 'owes_me' | 'i_owe' | 'settled';
-type SortOption = 'owed_desc' | 'owed_asc' | 'name' | 'recent' | 'expenses_count';
-type DensityOption = 'compact' | 'detailed' | 'grid';
-
 export default function Friends({ onNavigate }: Props) {
   const { db, deleteFriend, showToast } = useStore();
   const { friends, settings: { currency } } = db;
+  const isDevMode = db.settings?.devMode ?? false;
+  const enableAIAssistant = isDevMode && (db.settings?.enableAIAssistant ?? true);
 
   const [editFriend, setEditFriend] = useState<Friend | null>(null);
   const [settleFriend, setSettleFriend] = useState<Friend | null>(null);
@@ -38,6 +52,26 @@ export default function Friends({ onNavigate }: Props) {
   const [statusFilter, setStatusFilter] = useState<FriendFilterStatus>('all');
   const [sortBy, setSortBy] = useState<SortOption>('owed_desc');
   const [density, setDensity] = useState<DensityOption>('compact');
+  const [showFilters, setShowFilters] = useState(false);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(() => {
+    if (typeof document !== 'undefined') {
+      return document.getElementById('floating-extra-actions-slot');
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (!portalTarget) {
+      const interval = setInterval(() => {
+        const slot = document.getElementById('floating-extra-actions-slot');
+        if (slot) {
+          setPortalTarget(slot);
+          clearInterval(interval);
+        }
+      }, 50);
+      return () => clearInterval(interval);
+    }
+  }, [portalTarget]);
 
   // Three-dot menu state
   const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
@@ -99,6 +133,22 @@ export default function Friends({ onNavigate }: Props) {
     return { all: friends.length, friend: friendCount, vendor: vendorCount, subscription: subCount };
   }, [friends]);
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (statusFilter !== 'all') count++;
+    if (sortBy !== 'owed_desc') count++;
+    if (density !== 'compact') count++;
+    if (search.trim() !== '') count++;
+    return count;
+  }, [statusFilter, sortBy, density, search]);
+
+  const handleClearAll = () => {
+    setStatusFilter('all');
+    setSortBy('owed_desc');
+    setDensity('compact');
+    setSearch('');
+  };
+
   const filtered = useMemo(() => {
     const list = friends.filter(f => {
       const fType = f.type || 'friend';
@@ -141,296 +191,330 @@ export default function Friends({ onNavigate }: Props) {
     });
   }, [friends, search, typeFilter, statusFilter, sortBy, db]);
 
-  const [statsExpanded, setStatsExpanded] = useState(false);
+  // Helper label for sort chip
+  const sortLabel = useMemo(() => {
+    switch (sortBy) {
+      case 'owed_desc': return 'Highest Owed';
+      case 'owed_asc': return 'You Owe Most';
+      case 'name': return 'Name (A-Z)';
+      case 'recent': return 'Recent Activity';
+      case 'expenses_count': return 'Most Expenses';
+      default: return sortBy;
+    }
+  }, [sortBy]);
+
+  // Helper label for status chip
+  const statusLabel = useMemo(() => {
+    switch (statusFilter) {
+      case 'owes_me': return 'Owes You';
+      case 'i_owe': return 'You Owe';
+      case 'settled': return 'Settled Up';
+      default: return '';
+    }
+  }, [statusFilter]);
 
   return (
     <div className="view-container">
-      {/* Header Title with quick actions */}
-      <div className="page-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <h1 className="page-title" style={{ fontSize: 20 }}>Contacts</h1>
-          <p className="page-subtitle desktop-only" style={{ fontSize: 12.5, color: 'var(--text-3)', margin: 0 }}>
-            Track shared expenses with friends, spending at vendors, and active subscriptions.
-          </p>
-        </div>
+      {/* Header Title */}
+      <div className="page-header" style={{ marginBottom: 16 }}>
+        <h1 className="page-title">Contacts</h1>
+        <p className="page-subtitle desktop-only" style={{ fontSize: 13, color: 'var(--text-3)', margin: '2px 0 0' }}>
+          Track shared expenses with friends, spending at vendors, and active subscriptions.
+        </p>
+      </div>
 
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {/* Merged Stat Summary Button */}
+      {/* Clean Tab Segmented Switch & Filter Bar */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, width: '100%', minWidth: 0 }}>
+          {/* Contact Type Segmented Switch */}
+          <div className="contact-type-switch" style={{ flex: '1 1 auto', minWidth: 0 }}>
+            <button
+              type="button"
+              className={`type-btn ${typeFilter === 'friend' ? 'active' : ''}`}
+              onClick={() => setTypeFilter('friend')}
+              title="Friends"
+              aria-label="Friends"
+            >
+              <User size={15} style={{ flexShrink: 0, color: typeFilter === 'friend' ? 'var(--accent)' : 'inherit' }} />
+              <span className="type-label desktop-only">Friends</span>
+              <span className="type-badge">{counts.friend}</span>
+            </button>
+
+            <button
+              type="button"
+              className={`type-btn ${typeFilter === 'vendor' ? 'active' : ''}`}
+              onClick={() => setTypeFilter('vendor')}
+              title="Vendors"
+              aria-label="Vendors"
+            >
+              <Store size={15} style={{ flexShrink: 0, color: typeFilter === 'vendor' ? '#F59E0B' : 'inherit' }} />
+              <span className="type-label desktop-only">Vendors</span>
+              <span className="type-badge">{counts.vendor}</span>
+            </button>
+
+            <button
+              type="button"
+              className={`type-btn ${typeFilter === 'subscription' ? 'active' : ''}`}
+              onClick={() => setTypeFilter('subscription')}
+              title="Subscriptions"
+              aria-label="Subscriptions"
+            >
+              <Tv size={15} style={{ flexShrink: 0, color: typeFilter === 'subscription' ? 'var(--accent)' : 'inherit' }} />
+              <span className="type-label desktop-only">Subscriptions</span>
+              <span className="type-badge">{counts.subscription}</span>
+            </button>
+          </div>
+
+          {/* Right Action: Filter Button */}
           <button
             type="button"
-            onClick={() => setStatsExpanded(!statsExpanded)}
+            onClick={() => setShowFilters(true)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 5,
-              height: 36,
-              padding: '0 10px',
-              background: statsExpanded ? 'var(--surface2)' : 'var(--surface)',
-              border: statsExpanded ? '1px solid var(--accent)' : '1px solid var(--border)',
-              borderRadius: 'var(--radius)',
-              cursor: 'pointer',
-              fontSize: 12,
+              height: 38,
+              padding: '0 8px',
+              borderRadius: '10px',
+              fontSize: '12px',
               fontWeight: 600,
-              color: 'var(--text-2)',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
+              backgroundColor: activeFilterCount > 0 ? 'var(--accent-soft)' : 'var(--surface2)',
+              color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-2)',
+              border: activeFilterCount > 0 ? '1px solid var(--accent)' : '1px solid var(--border)',
+              cursor: 'pointer',
               transition: 'all 0.15s ease',
+              flexShrink: 0,
             }}
-            title="Click to toggle full breakdown stats"
+            title="Filters & Sorting"
+            aria-label="Open Filters"
           >
-            <User size={15} className="text-accent" style={{ flexShrink: 0 }} />
-            <span className="hide-on-mobile" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ color: 'var(--credit)' }}>+{fmtMoney(friendStats.credit, currency)}</span>
-              <span style={{ color: 'var(--text-3)', fontSize: 10 }}>/</span>
-              <span style={{ color: 'var(--debit)' }}>-{fmtMoney(friendStats.debit, currency)}</span>
-            </span>
-            {statsExpanded ? (
-              <ChevronUp size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-            ) : (
-              <ChevronDown size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+            <SlidersHorizontal size={14} style={{ color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-2)' }} />
+            <span className="desktop-only">Filters</span>
+            {activeFilterCount > 0 && (
+              <span
+                style={{
+                  backgroundColor: 'var(--accent)',
+                  color: 'var(--accent-contrast, #ffffff)',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  borderRadius: '999px',
+                  padding: '1px 5px',
+                  lineHeight: 1.2,
+                }}
+              >
+                {activeFilterCount}
+              </span>
             )}
           </button>
-
-          <button
-            className="btn btn-primary"
-            style={{ whiteSpace: 'nowrap', flexShrink: 0, height: 36, padding: '0 12px', gap: 5, fontSize: 13, fontWeight: 600 }}
-            onClick={() => {
-              setAddDefaultType(typeFilter);
-              setShowAdd(true);
-            }}
-            title="Add Contact / Vendor / Subscription"
-          >
-            <Plus size={16} style={{ flexShrink: 0 }} />
-            <span>Add Contact</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Full Stat Banners when expanded */}
-      {statsExpanded && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, marginBottom: 12, animation: 'fadein 0.15s ease' }}>
-          {/* Friends Balance Banner */}
-          <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
-                <User size={14} className="text-accent" />
-                <span>Friends Owe Status</span>
-              </div>
-              <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{counts.friend} friends</span>
-            </div>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
-              <div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Owed to You</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--credit)' }}>
-                  {fmtMoney(friendStats.credit, currency)}
-                </div>
-              </div>
-              <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>You Owe</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--debit)' }}>
-                  {fmtMoney(Math.abs(friendStats.debit), currency)}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Vendors & Subscriptions Spending Banner */}
-          <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
-                <Store size={14} style={{ color: '#F59E0B' }} />
-                <span>Vendors & Subscriptions Spend</span>
-              </div>
-              <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{counts.vendor + counts.subscription} contacts</span>
-            </div>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
-              <div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Total Spent</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>
-                  {fmtMoney(vendorAndSubSpend.total, currency)}
-                </div>
-              </div>
-              <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Subscriptions ({counts.subscription})</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-2)' }}>
-                  {fmtMoney(vendorAndSubSpend.subTotal, currency)}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filter Tabs - Only Friends, Vendors, Subscriptions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-        <div className="tab-list" style={{ marginBottom: 0 }}>
-          <button className={`tab-btn ${typeFilter === 'friend' ? 'active' : ''}`} onClick={() => setTypeFilter('friend')}>
-            <User size={13} style={{ flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Friends ({counts.friend})
-            </span>
-          </button>
-          <button className={`tab-btn ${typeFilter === 'vendor' ? 'active' : ''}`} onClick={() => setTypeFilter('vendor')}>
-            <Store size={13} style={{ flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Vendors ({counts.vendor})
-            </span>
-          </button>
-          <button className={`tab-btn ${typeFilter === 'subscription' ? 'active' : ''}`} onClick={() => setTypeFilter('subscription')}>
-            <Tv size={13} style={{ flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Subscriptions ({counts.subscription})
-            </span>
-          </button>
         </div>
 
-        {/* Secondary Status Filter Segment Bar for Friends and Vendors tabs */}
-        {(typeFilter === 'friend' || typeFilter === 'vendor') && counts[typeFilter] > 0 && (
-          <div className="status-segment-bar">
+        {/* Active Filter Chips (if any filter is applied) */}
+        {activeFilterCount > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', padding: '0 2px' }}>
+            {search && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  backgroundColor: 'var(--surface3)',
+                  color: 'var(--text-2)',
+                }}
+              >
+                Search: "{search}"
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-3)',
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            )}
+
+            {statusFilter !== 'all' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  backgroundColor: 'var(--surface3)',
+                  color: 'var(--text-2)',
+                }}
+              >
+                Status: {statusLabel}
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('all')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-3)',
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            )}
+
+            {sortBy !== 'owed_desc' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  backgroundColor: 'var(--surface3)',
+                  color: 'var(--text-2)',
+                }}
+              >
+                Sort: {sortLabel}
+                <button
+                  type="button"
+                  onClick={() => setSortBy('owed_desc')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-3)',
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            )}
+
+            {density !== 'compact' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  backgroundColor: 'var(--surface3)',
+                  color: 'var(--text-2)',
+                }}
+              >
+                Layout: {density === 'detailed' ? 'Detailed' : 'Grid'}
+                <button
+                  type="button"
+                  onClick={() => setDensity('compact')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-3)',
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            )}
+
             <button
               type="button"
-              className={`status-segment-btn ${statusFilter === 'all' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('all')}
+              onClick={handleClearAll}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--accent)',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: '2px 4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+              }}
             >
-              All
-            </button>
-            <button
-              type="button"
-              className={`status-segment-btn owes-me ${statusFilter === 'owes_me' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('owes_me')}
-            >
-              <span className="status-dot status-dot-credit" /> Owes You
-            </button>
-            <button
-              type="button"
-              className={`status-segment-btn i-owe ${statusFilter === 'i_owe' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('i_owe')}
-            >
-              <span className="status-dot status-dot-debit" /> You Owe
-            </button>
-            <button
-              type="button"
-              className={`status-segment-btn settled ${statusFilter === 'settled' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('settled')}
-            >
-              Settled
+              <RotateCcw size={10} />
+              Reset all
             </button>
           </div>
         )}
       </div>
 
-      {/* Sorting & Density Toolbar */}
-      {friends.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span>{filtered.length} {typeFilter === 'friend' ? (filtered.length === 1 ? 'Friend' : 'Friends') : typeFilter === 'vendor' ? 'Vendors' : 'Subscriptions'}</span>
-            {search && <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 400 }}>(filtered)</span>}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {/* Sort Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--surface2)', padding: '2px 8px', borderRadius: 8, border: '1px solid var(--border)' }}>
-              <ArrowUpDown size={12} style={{ color: 'var(--text-3)' }} />
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value as SortOption)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: 11.5,
-                  fontWeight: 500,
-                  color: 'var(--text)',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  padding: '2px 0'
-                }}
-              >
-                {(typeFilter === 'friend' || typeFilter === 'vendor') && <option value="owed_desc">Highest Owed</option>}
-                {(typeFilter === 'friend' || typeFilter === 'vendor') && <option value="owed_asc">You Owe Most</option>}
-                <option value="name">Name (A-Z)</option>
-                <option value="recent">Recent Activity</option>
-                <option value="expenses_count">Most Expenses</option>
-              </select>
-            </div>
-
-            {/* Density Selector */}
-            <div style={{ display: 'flex', background: 'var(--surface2)', padding: 2, borderRadius: 8, border: '1px solid var(--border)' }}>
-              <button
-                type="button"
-                onClick={() => setDensity('compact')}
-                title="Compact List View"
-                style={{
-                  padding: '3px 6px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: density === 'compact' ? 'var(--surface)' : 'transparent',
-                  color: density === 'compact' ? 'var(--accent)' : 'var(--text-3)',
-                  cursor: 'pointer',
-                  boxShadow: density === 'compact' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  display: 'grid',
-                  placeItems: 'center'
-                }}
-              >
-                <List size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setDensity('detailed')}
-                title="Detailed List View"
-                style={{
-                  padding: '3px 6px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: density === 'detailed' ? 'var(--surface)' : 'transparent',
-                  color: density === 'detailed' ? 'var(--accent)' : 'var(--text-3)',
-                  cursor: 'pointer',
-                  boxShadow: density === 'detailed' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  display: 'grid',
-                  placeItems: 'center'
-                }}
-              >
-                <SlidersHorizontal size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setDensity('grid')}
-                title="Card Grid View"
-                style={{
-                  padding: '3px 6px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: density === 'grid' ? 'var(--surface)' : 'transparent',
-                  color: density === 'grid' ? 'var(--accent)' : 'var(--text-3)',
-                  cursor: 'pointer',
-                  boxShadow: density === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  display: 'grid',
-                  placeItems: 'center'
-                }}
-              >
-                <LayoutGrid size={14} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Contacts List / Dedicated Subscriptions View */}
-      {friends.length === 0 ? (
-        <div className="card">
-          <div className="empty-state">
-            <div className="empty-state-icon"><Users size={36} /></div>
-            <div className="empty-state-title">No contacts added yet</div>
-            <p>Add friends for splitting bills, vendors like Tiffin Aunty, or subscriptions like Netflix.</p>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
-              <Plus size={16} /> Add
+      {counts[typeFilter] === 0 ? (
+        <div className="card" style={{ border: '1px solid var(--border)' }}>
+          <div className="empty-state" style={{ padding: '48px 24px' }}>
+            <div className="empty-state-icon" style={{ opacity: 0.65, color: 'var(--text-3)' }}>
+              {typeFilter === 'vendor' ? (
+                <Store size={40} />
+              ) : typeFilter === 'subscription' ? (
+                <Tv size={40} />
+              ) : (
+                <Users size={40} />
+              )}
+            </div>
+            <div className="empty-state-title" style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>
+              {typeFilter === 'friend'
+                ? 'No friends yet'
+                : typeFilter === 'vendor'
+                ? 'No vendors yet'
+                : 'No subscriptions yet'}
+            </div>
+            <p style={{ maxWidth: '340px', margin: '0 auto 20px', color: 'var(--text-2)', fontSize: '13px', lineHeight: 1.5 }}>
+              {typeFilter === 'friend'
+                ? 'Add friends to track shared expenses and balances.'
+                : typeFilter === 'vendor'
+                ? 'Add vendors and shops to log orders and payments.'
+                : 'Add subscriptions to manage renewals and recurring bills.'}
+            </p>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                setAddDefaultType(typeFilter);
+                setShowAdd(true);
+              }}
+            >
+              <Plus size={15} />{' '}
+              {typeFilter === 'friend'
+                ? 'Add Friend'
+                : typeFilter === 'vendor'
+                ? 'Add Vendor'
+                : 'Add Subscription'}
             </button>
           </div>
         </div>
       ) : filtered.length === 0 ? (
         <div className="card">
           <div className="empty-state" style={{ padding: '32px' }}>
-            <p>No contacts match your current filter or search.</p>
-            <button className="btn btn-ghost btn-sm" onClick={() => { setTypeFilter('friend'); setStatusFilter('all'); setSearch(''); }}>
+            <p>
+              No{' '}
+              {typeFilter === 'friend'
+                ? 'friends'
+                : typeFilter === 'vendor'
+                ? 'vendors'
+                : 'subscriptions'}{' '}
+              match your current filter or search.
+            </p>
+            <button className="btn btn-ghost btn-sm" onClick={handleClearAll}>
               Clear Filters
             </button>
           </div>
@@ -703,6 +787,128 @@ export default function Friends({ onNavigate }: Props) {
           <ListItemText primary="Delete Contact" primaryTypographyProps={{ fontSize: 13, color: 'error.main' }} />
         </MenuItem>
       </Menu>
+
+      {/* Contact Filter & Sorting Drawer */}
+      <ContactFilterBar
+        showFilters={showFilters}
+        setShowFilters={setShowFilters}
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        density={density}
+        setDensity={setDensity}
+        search={search}
+        setSearch={setSearch}
+        activeFilterCount={activeFilterCount}
+        onClearAll={handleClearAll}
+        counts={counts}
+        filteredCount={filtered.length}
+        friendStats={friendStats}
+        vendorAndSubSpend={vendorAndSubSpend}
+        currency={currency}
+      />
+
+      {/* Floating Add Contact Button - placed directly inside the floating action stack above search bar */}
+      {portalTarget ? (
+        createPortal(
+          <button
+            type="button"
+            id="floating-add-contact-btn"
+            className="floating-add-contact-btn"
+            onClick={() => {
+              setAddDefaultType(typeFilter);
+              setShowAdd(true);
+            }}
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--surface2)',
+              color: 'var(--text)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              pointerEvents: 'auto',
+              transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = 'var(--surface3)';
+              e.currentTarget.style.borderColor = 'var(--accent)';
+              e.currentTarget.style.color = 'var(--accent)';
+              e.currentTarget.style.transform = 'scale(1.08)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'var(--surface2)';
+              e.currentTarget.style.borderColor = 'var(--border)';
+              e.currentTarget.style.color = 'var(--text)';
+              e.currentTarget.style.transform = 'none';
+            }}
+            onMouseDown={e => {
+              e.currentTarget.style.transform = 'scale(0.95)';
+            }}
+            title={typeFilter === 'friend' ? 'Add Friend' : typeFilter === 'vendor' ? 'Add Vendor' : 'Add Subscription'}
+            aria-label={typeFilter === 'friend' ? 'Add Friend' : typeFilter === 'vendor' ? 'Add Vendor' : 'Add Subscription'}
+          >
+            <Plus size={19} />
+          </button>,
+          portalTarget
+        )
+      ) : (
+        <button
+          type="button"
+          id="floating-add-contact-btn"
+          className="floating-add-contact-btn"
+          onClick={() => {
+            setAddDefaultType(typeFilter);
+            setShowAdd(true);
+          }}
+          style={{
+            position: 'fixed',
+            bottom: enableAIAssistant
+              ? 'calc(env(safe-area-inset-bottom, 0px) + 192px)'
+              : 'calc(env(safe-area-inset-bottom, 0px) + 134px)',
+            right: '16px',
+            width: '46px',
+            height: '46px',
+            borderRadius: '50%',
+            backgroundColor: 'var(--surface2)',
+            color: 'var(--text)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 998,
+            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.backgroundColor = 'var(--surface3)';
+            e.currentTarget.style.borderColor = 'var(--accent)';
+            e.currentTarget.style.color = 'var(--accent)';
+            e.currentTarget.style.transform = 'scale(1.08)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.backgroundColor = 'var(--surface2)';
+            e.currentTarget.style.borderColor = 'var(--border)';
+            e.currentTarget.style.color = 'var(--text)';
+            e.currentTarget.style.transform = 'none';
+          }}
+          onMouseDown={e => {
+            e.currentTarget.style.transform = 'scale(0.95)';
+          }}
+          title={typeFilter === 'friend' ? 'Add Friend' : typeFilter === 'vendor' ? 'Add Vendor' : 'Add Subscription'}
+          aria-label={typeFilter === 'friend' ? 'Add Friend' : typeFilter === 'vendor' ? 'Add Vendor' : 'Add Subscription'}
+        >
+          <Plus size={19} />
+        </button>
+      )}
 
       {/* Modals */}
       {showAdd && <FriendModal defaultType={addDefaultType} onClose={() => setShowAdd(false)} />}
