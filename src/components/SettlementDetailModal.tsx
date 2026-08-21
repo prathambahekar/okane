@@ -80,12 +80,8 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
             style={{
               padding: '16px 18px',
               borderRadius: 14,
-              background: isReceived
-                ? 'linear-gradient(135deg, rgba(46, 125, 50, 0.1) 0%, rgba(46, 125, 50, 0.03) 100%)'
-                : 'linear-gradient(135deg, rgba(211, 47, 47, 0.1) 0%, rgba(211, 47, 47, 0.03) 100%)',
-              border: isReceived
-                ? '1px solid rgba(46, 125, 50, 0.25)'
-                : '1px solid rgba(211, 47, 47, 0.25)',
+              background: isReceived ? 'var(--credit-bg)' : 'var(--debit-bg)',
+              border: `1px solid ${isReceived ? 'var(--credit-border)' : 'var(--debit-border)'}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -442,8 +438,8 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
                               style={{
                                 fontSize: 10,
                                 fontWeight: 600,
-                                color: isPartial ? 'var(--accent)' : '#10b981',
-                                background: isPartial ? 'var(--accent-soft)' : 'rgba(16, 185, 129, 0.12)',
+                                color: isPartial ? 'var(--accent)' : 'var(--credit)',
+                                background: isPartial ? 'var(--accent-soft)' : 'var(--credit-bg)',
                                 padding: '1px 6px',
                                 borderRadius: 6,
                                 display: 'inline-block',
@@ -473,7 +469,12 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
                 onClose();
                 onUndo(settlement.id);
               }}
-              style={{ color: '#d97706', borderColor: 'rgba(217, 119, 6, 0.3)', gap: 4 }}
+              style={{
+                color: 'var(--debit)',
+                borderColor: 'var(--debit-border)',
+                background: 'var(--debit-bg)',
+                gap: 5,
+              }}
             >
               <RotateCcw size={13} /> Undo Settlement
             </button>

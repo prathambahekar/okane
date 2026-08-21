@@ -251,10 +251,10 @@ export default function SettleModal({ friend, onClose }: Props) {
                       fontSize: 12,
                       fontWeight: !isCustomMode ? 650 : 500,
                       borderRadius: 6,
-                      border: !isCustomMode ? '1px solid var(--accent-border-soft, var(--accent))' : '1px solid transparent',
+                      border: 'none',
                       background: !isCustomMode ? 'var(--accent-soft)' : 'transparent',
                       color: !isCustomMode ? 'var(--accent)' : 'var(--text-3)',
-                      boxShadow: !isCustomMode ? '0 1px 3px var(--accent-soft)' : 'none',
+                      boxShadow: !isCustomMode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
                     }}
@@ -274,10 +274,10 @@ export default function SettleModal({ friend, onClose }: Props) {
                       fontSize: 12,
                       fontWeight: isCustomMode ? 650 : 500,
                       borderRadius: 6,
-                      border: isCustomMode ? '1px solid var(--accent-border-soft, var(--accent))' : '1px solid transparent',
+                      border: 'none',
                       background: isCustomMode ? 'var(--accent-soft)' : 'transparent',
                       color: isCustomMode ? 'var(--accent)' : 'var(--text-3)',
-                      boxShadow: isCustomMode ? '0 1px 3px var(--accent-soft)' : 'none',
+                      boxShadow: isCustomMode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
                     }}
@@ -389,7 +389,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                     <Wallet size={13} style={{ color: 'var(--accent)' }} />
                     <span>Payment Method</span>
                   </label>
-                  <div style={{ position: 'relative' }}>
+                  <div>
                     <select
                       value={selectedWalletId}
                       onChange={e => {
@@ -409,8 +409,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                         border: '1px solid var(--border)',
                         background: 'var(--surface2)',
                         color: 'var(--text)',
-                        paddingLeft: 28,
-                        paddingRight: 10,
+                        padding: '0 12px',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
@@ -421,20 +420,6 @@ export default function SettleModal({ friend, onClose }: Props) {
                         </option>
                       ))}
                     </select>
-                    {/* Wallet Color Indicator Dot */}
-                    <span
-                      style={{
-                        position: 'absolute',
-                        left: 12,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        background: activeWallet?.color || 'var(--accent)',
-                        pointerEvents: 'none',
-                      }}
-                    />
                   </div>
                 </div>
               </div>
@@ -485,7 +470,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                 cursor: 'pointer',
               }}
             >
-              Confirm Settle ({fmtMoney(effectiveSettleAmt, currency)})
+              Settle ({fmtMoney(effectiveSettleAmt, currency)})
             </button>
           )}
         </div>

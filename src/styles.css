@@ -744,9 +744,9 @@ html, body, #root {
 .btn-secondary {
   background: var(--surface2);
   color: var(--text);
-  border: 1px solid var(--border2);
+  border: 1px solid var(--border);
 }
-.btn-secondary:hover { background: var(--surface3); }
+.btn-secondary:hover { background: var(--surface3); border-color: var(--border); }
 .btn-ghost {
   background: transparent;
   color: var(--text-2);
@@ -1397,7 +1397,7 @@ html, body, #root {
 .modal {
   position: relative;
   background: var(--surface);
-  border: 1px solid var(--border2);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 520px;
@@ -1718,7 +1718,7 @@ input[type="number"] {
 }
 .form-input, .form-control, .form-select, .form-textarea {
   background: var(--surface2);
-  border: 1px solid var(--border2);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 10px 14px;
   font-size: 14px;
@@ -4510,12 +4510,40 @@ body.no-animations *::after,
 }
 /* Settlement History Visual Enhancements */
 .settlement-history-header {
-  padding: 14px 16px;
+  padding: 16px 18px 12px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: nowrap;
+}
+
+.settlement-history-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  flex: 1;
+}
+
+.settlement-history-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.settlement-history-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  white-space: nowrap;
+  letter-spacing: -0.15px;
 }
 
 .settlement-count-badge {
@@ -4523,11 +4551,17 @@ body.no-animations *::after,
   font-weight: 700;
   color: var(--accent);
   background: var(--accent-soft);
-  padding: 2px 8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 7px;
   border-radius: 999px;
   white-space: nowrap;
   letter-spacing: 0.1px;
-  line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--accent-border-soft, transparent);
 }
 
 /* Timeframe Date Filter Button */
@@ -4536,8 +4570,8 @@ body.no-animations *::after,
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
-  border-radius: 9px;
+  padding: 6px 12px;
+  border-radius: 10px;
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--text);
@@ -4547,11 +4581,13 @@ body.no-animations *::after,
   transition: all 0.15s ease;
   user-select: none;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .settlement-timeframe-btn-wrap:hover {
   background: var(--surface3);
   border-color: var(--border2);
+  transform: translateY(-0.5px);
 }
 
 .settlement-timeframe-btn-wrap .timeframe-icon {
@@ -4561,11 +4597,17 @@ body.no-animations *::after,
 
 .settlement-timeframe-btn-wrap .timeframe-label {
   white-space: nowrap;
+  font-weight: 650;
 }
 
 .settlement-timeframe-btn-wrap .timeframe-chevron {
   color: var(--text-3);
   flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.settlement-timeframe-btn-wrap:hover .timeframe-chevron {
+  color: var(--text);
 }
 
 .settlement-timeframe-select {
@@ -4579,22 +4621,216 @@ body.no-animations *::after,
 }
 
 .settlement-section-padding {
-  padding: 0 16px 14px 16px;
+  padding: 0 18px 16px 18px;
 }
 
 @media (max-width: 640px) {
   .settlement-history-header {
-    padding: 12px 14px;
+    padding: 12px 14px 10px 14px;
+    gap: 8px;
+  }
+
+  .settlement-history-title-wrap {
+    gap: 7px;
+  }
+
+  .settlement-history-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+  }
+
+  .settlement-history-title {
+    font-size: 13.5px;
   }
 
   .settlement-timeframe-btn-wrap {
-    padding: 4px 8px;
+    padding: 5px 9px;
     font-size: 11.5px;
-    gap: 4px;
+    border-radius: 8px;
+    gap: 4.5px;
   }
 
   .settlement-section-padding {
     padding: 0 12px 12px 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .settlement-timeframe-btn-wrap .timeframe-label {
+    font-size: 11px;
+  }
+}
+
+/* Grid View Layout for Settlements */
+.settlement-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+  padding: 0 18px 16px 18px;
+}
+
+.settlement-grid-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.settlement-grid-card:hover {
+  background: var(--surface3);
+  border-color: var(--border2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 640px) {
+  .settlement-grid-container {
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 8px;
+    padding: 0 12px 12px 12px;
+  }
+
+  .settlement-grid-card {
+    padding: 10px 12px;
+  }
+}
+
+/* Pending Settlements Grid View */
+.pending-settlements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.pending-grid-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 13px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.pending-grid-card:hover {
+  background: var(--surface3);
+  border-color: var(--border2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.pending-grid-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pending-grid-name {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.pending-grid-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.pending-grid-amount-wrap {
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pending-grid-amount-label {
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.pending-grid-amount-value {
+  font-size: 15px;
+  font-weight: 750;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: -0.2px;
+  color: var(--text);
+}
+
+.pending-grid-amount-value.debit {
+  color: var(--debit);
+}
+
+.pending-grid-amount-value.credit {
+  color: var(--credit);
+}
+
+.pending-grid-settle-btn {
+  width: 100%;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 6.5px 12px;
+  border-radius: 9px;
+  gap: 6px;
+  background: var(--accent-gradient);
+  color: var(--accent-contrast, #ffffff);
+  box-shadow: 0 2px 6px var(--accent-shadow, rgba(225, 29, 72, 0.2));
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pending-grid-settle-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-0.5px);
+}
+
+@media (max-width: 520px) {
+  .pending-settlements-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .pending-grid-card {
+    padding: 10px;
+    gap: 10px;
+  }
+  .pending-grid-amount-value {
+    font-size: 13.5px;
+  }
+}
+
+@media (max-width: 360px) {
+  .pending-settlements-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -5214,17 +5450,61 @@ body.no-animations *::after,
   }
 }
 
-/* Compact Mobile List Styling */
+/* Settlement Direction Badges */
+.settlement-direction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1.5px 6.5px;
+  border-radius: 99px;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.settlement-direction-badge.received {
+  color: var(--credit);
+  background: var(--credit-bg);
+  border: 1px solid var(--credit-border);
+}
+
+[data-color-scheme="dark"] .settlement-direction-badge.received {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.16);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+}
+
+.settlement-direction-badge.paid {
+  color: var(--debit);
+  background: var(--debit-bg);
+  border: 1px solid var(--debit-border);
+}
+
+[data-color-scheme="dark"] .settlement-direction-badge.paid {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+/* Compact Card List Styling - Compact, elegant with left/right breathing room */
 .settlement-compact-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 0 16px 16px 16px;
+  gap: 10px;
+  padding: 8px 16px 20px 16px;
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-@media (max-width: 640px) {
+@media (min-width: 641px) {
   .settlement-compact-list {
-    padding: 0 12px 14px 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 12px;
+    padding: 10px 20px 24px 20px;
   }
 }
 
@@ -5232,31 +5512,35 @@ body.no-animations *::after,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  background: var(--surface);
+  padding: 11px 14px;
+  background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 12px !important;
   cursor: pointer;
   transition: all 0.15s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  position: relative;
 }
 
 .settlement-compact-card:hover,
 .settlement-compact-card:active {
-  background: var(--surface2);
+  background: var(--surface3);
   border-color: var(--border2);
   transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
 }
 
 [data-color-scheme="dark"] .settlement-compact-card {
   background: var(--surface2);
   border: 1px solid var(--border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 [data-color-scheme="dark"] .settlement-compact-card:hover,
 [data-color-scheme="dark"] .settlement-compact-card:active {
   background: var(--surface3);
-  border-color: var(--border2);
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 /* Compact Table Layout for Desktop */

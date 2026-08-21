@@ -477,211 +477,266 @@ export default function Analytics() {
       )}
 
       {/* Spending Bar Chart (Interactive Weekly / Monthly View) */}
-      <div className="card" style={{ padding: '16px', marginBottom: 16 }}>
-        {/* Uncluttered Header with View Mode Switcher and Month Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text)' }}>
-              <BarChart2 size={16} style={{ color: 'var(--accent)' }} />
-              <span>
-                {chartMode === 'monthly'
-                  ? 'Monthly Spending'
-                  : selectedMonthObj
-                  ? `Weekly Spending (${selectedMonthObj.fullMonthName})`
-                  : 'Weekly Spending'}
-              </span>
+      <div className="card" style={{ padding: '18px 20px', marginBottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+        {/* Top Header Row: Title & Icon on Left, Segmented Control on Right */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: 'var(--accent-soft)',
+                color: 'var(--accent)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <BarChart2 size={16} strokeWidth={2.2} />
             </div>
-
-            {/* Custom Month Selector Popover */}
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <button
-                type="button"
-                onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '4px 10px',
-                  borderRadius: 'var(--radius)',
-                  border: selectedMonth ? '1px solid var(--accent)' : '1px solid var(--border)',
-                  background: selectedMonth ? 'var(--accent-soft)' : 'var(--surface2)',
-                  color: selectedMonth ? 'var(--accent)' : 'var(--text-2)',
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <Calendar size={12} style={{ color: selectedMonth ? 'var(--accent)' : 'var(--text-3)' }} />
-                <span>{selectedMonthObj ? selectedMonthObj.fullMonthName : 'All Months (Rolling)'}</span>
-                <ChevronDown size={12} style={{ opacity: 0.7, transform: isMonthPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-              </button>
-
-              {isMonthPickerOpen && (
-                <>
-                  <div
-                    style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-                    onClick={() => setIsMonthPickerOpen(false)}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 6px)',
-                      left: 0,
-                      zIndex: 100,
-                      width: 230,
-                      maxHeight: 280,
-                      overflowY: 'auto',
-                      background: 'var(--surface)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius-lg)',
-                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.35), 0 4px 10px -2px rgba(0,0,0,0.2)',
-                      padding: 5,
-                      animation: 'fadein 0.15s ease',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedMonth(null);
-                        setSelectedDate(null);
-                        setIsMonthPickerOpen(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '7px 10px',
-                        borderRadius: 'var(--radius)',
-                        background: !selectedMonth ? 'var(--surface2)' : 'transparent',
-                        border: 'none',
-                        color: !selectedMonth ? 'var(--accent)' : 'var(--text)',
-                        fontSize: 12,
-                        fontWeight: !selectedMonth ? 700 : 500,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
-                    >
-                      <span>All Months (Rolling)</span>
-                      {!selectedMonth && <Check size={14} style={{ color: 'var(--accent)' }} />}
-                    </button>
-
-                    <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-
-                    {monthlyMonths.map((m) => {
-                      const isSelected = selectedMonth === m.monthKey;
-                      return (
-                        <button
-                          key={m.monthKey}
-                          type="button"
-                          onClick={() => {
-                            setSelectedMonth(m.monthKey);
-                            setSelectedDate(null);
-                            setChartMode('weekly');
-                            setIsMonthPickerOpen(false);
-                          }}
-                          style={{
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '7px 10px',
-                            borderRadius: 'var(--radius)',
-                            background: isSelected ? 'var(--accent-soft)' : 'transparent',
-                            border: 'none',
-                            color: isSelected ? 'var(--accent)' : 'var(--text)',
-                            fontSize: 12,
-                            fontWeight: isSelected ? 700 : 500,
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Calendar size={12} style={{ opacity: 0.6 }} />
-                            <span>{m.fullMonthName}</span>
-                          </div>
-                          <span style={{ fontSize: 11, color: isSelected ? 'var(--accent)' : 'var(--text-3)', fontWeight: 600 }}>
-                            {fmtMoney(m.spend, currency)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: 0, lineHeight: 1.2 }}>
+                {chartMode === 'monthly' ? 'Monthly Spending' : 'Weekly Spending'}
+              </h3>
+              {selectedMonthObj && (
+                <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>
+                  {selectedMonthObj.fullMonthName}
+                </span>
               )}
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <div
+          {/* Segmented Mode Switcher */}
+          <div style={{ display: 'inline-flex', background: 'var(--surface2)', padding: 3, borderRadius: 'var(--radius)', border: '1px solid var(--border)', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => setChartMode('weekly')}
               style={{
-                fontSize: 11.5,
-                color: 'var(--text-2)',
-                background: 'var(--surface2)',
-                padding: '4px 9px',
-                borderRadius: 'var(--radius)',
-                border: '1px solid var(--border)',
-                whiteSpace: 'nowrap',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
+                padding: '4px 11px',
+                fontSize: 12,
+                fontWeight: chartMode === 'weekly' ? 650 : 500,
+                borderRadius: 6,
+                border: 'none',
+                background: chartMode === 'weekly' ? 'var(--accent)' : 'transparent',
+                color: chartMode === 'weekly' ? '#ffffff' : 'var(--text-2)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
               }}
             >
-              <span>Avg</span>
-              <strong style={{ color: 'var(--text)', fontWeight: 700 }}>
-                {fmtMoney(
-                  chartMode === 'monthly'
-                    ? monthlyMonths.reduce((s, m) => s + m.spend, 0) / Math.max(1, monthlyMonths.length)
-                    : dailyAvgSpend,
-                  currency
-                )}
-              </strong>
-              <span>/ {chartMode === 'monthly' ? 'month' : 'day'}</span>
-            </div>
-
-            {/* Toggle between Weekly & Monthly Chart */}
-            <div className="analytics-segmented-group" style={{ marginBottom: 0, padding: 2, flexShrink: 0 }}>
-              <button
-                className={`analytics-segmented-btn ${chartMode === 'weekly' ? 'active' : ''}`}
-                style={{ height: 26, padding: '0 8px', fontSize: 11 }}
-                onClick={() => setChartMode('weekly')}
-              >
-                Weekly
-              </button>
-              <button
-                className={`analytics-segmented-btn ${chartMode === 'monthly' ? 'active' : ''}`}
-                style={{ height: 26, padding: '0 8px', fontSize: 11 }}
-                onClick={() => setChartMode('monthly')}
-              >
-                Monthly
-              </button>
-            </div>
+              Weekly
+            </button>
+            <button
+              type="button"
+              onClick={() => setChartMode('monthly')}
+              style={{
+                padding: '4px 11px',
+                fontSize: 12,
+                fontWeight: chartMode === 'monthly' ? 650 : 500,
+                borderRadius: 6,
+                border: 'none',
+                background: chartMode === 'monthly' ? 'var(--accent)' : 'transparent',
+                color: chartMode === 'monthly' ? '#ffffff' : 'var(--text-2)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              Monthly
+            </button>
           </div>
         </div>
 
-        {/* Chart Content Container */}
+        {/* Sub Header Toolbar Row: Month Filter Dropdown on Left, Average Metric Badge on Right */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 10, borderTop: '1px solid var(--border)', marginBottom: 16, flexWrap: 'wrap' }}>
+          {/* Custom Month Selector Popover */}
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <button
+              type="button"
+              onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '5px 11px',
+                borderRadius: 'var(--radius)',
+                border: '1px solid var(--border)',
+                background: selectedMonth ? 'var(--accent-soft)' : 'var(--surface2)',
+                color: selectedMonth ? 'var(--accent)' : 'var(--text)',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                outline: 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Calendar size={13} style={{ color: selectedMonth ? 'var(--accent)' : 'var(--text-3)' }} />
+              <span>{selectedMonthObj ? selectedMonthObj.fullMonthName : 'All Months'}</span>
+              <ChevronDown size={13} style={{ opacity: 0.7, transform: isMonthPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+            </button>
+
+            {isMonthPickerOpen && (
+              <>
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                  onClick={() => setIsMonthPickerOpen(false)}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 6px)',
+                    left: 0,
+                    zIndex: 100,
+                    width: 230,
+                    maxHeight: 280,
+                    overflowY: 'auto',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-lg)',
+                    boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
+                    padding: 5,
+                    animation: 'fadein 0.15s ease',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMonth(null);
+                      setSelectedDate(null);
+                      setIsMonthPickerOpen(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '7px 10px',
+                      borderRadius: 'var(--radius)',
+                      background: !selectedMonth ? 'var(--surface2)' : 'transparent',
+                      border: 'none',
+                      color: !selectedMonth ? 'var(--accent)' : 'var(--text)',
+                      fontSize: 12,
+                      fontWeight: !selectedMonth ? 700 : 500,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span>All Months</span>
+                    {!selectedMonth && <Check size={14} style={{ color: 'var(--accent)' }} />}
+                  </button>
+
+                  <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+
+                  {monthlyMonths.map((m) => {
+                    const isSelected = selectedMonth === m.monthKey;
+                    return (
+                      <button
+                        key={m.monthKey}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMonth(m.monthKey);
+                          setSelectedDate(null);
+                          setChartMode('weekly');
+                          setIsMonthPickerOpen(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius)',
+                          background: isSelected ? 'var(--accent-soft)' : 'transparent',
+                          border: 'none',
+                          color: isSelected ? 'var(--accent)' : 'var(--text)',
+                          fontSize: 12,
+                          fontWeight: isSelected ? 700 : 500,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Calendar size={12} style={{ opacity: 0.6 }} />
+                          <span>{m.fullMonthName}</span>
+                        </div>
+                        <span style={{ fontSize: 11, color: isSelected ? 'var(--accent)' : 'var(--text-3)', fontWeight: 600 }}>
+                          {fmtMoney(m.spend, currency)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Average Spending Metric Badge */}
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--text-2)',
+              background: 'var(--surface2)',
+              padding: '5px 11px',
+              borderRadius: 'var(--radius)',
+              border: '1px solid var(--border)',
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+            }}
+          >
+            <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>Avg</span>
+            <strong style={{ color: 'var(--text)', fontWeight: 700 }}>
+              {fmtMoney(
+                chartMode === 'monthly'
+                  ? monthlyMonths.reduce((s, m) => s + m.spend, 0) / Math.max(1, monthlyMonths.length)
+                  : dailyAvgSpend,
+                currency
+              )}
+            </strong>
+            <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>/ {chartMode === 'monthly' ? 'month' : 'day'}</span>
+          </div>
+        </div>
+
+        {/* Chart Content Container with Grid Line Baseline */}
         {chartMode === 'monthly' ? (
           /* Horizontally Scrollable Interactive Monthly Spending Chart */
           <div
             ref={chartScrollRef}
             className="analytics-chart-scroll"
             style={{
+              position: 'relative',
               overflowX: 'auto',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
               WebkitOverflowScrolling: 'touch',
+              paddingTop: 8,
             }}
           >
+            {/* Background Dashed Grid Baseline */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 34,
+                left: 0,
+                right: 0,
+                height: 1,
+                borderTop: '1px dashed var(--border)',
+                pointerEvents: 'none',
+                opacity: 0.8,
+              }}
+            />
+
             <div
               style={{
                 display: 'flex',
-                gap: 14,
+                gap: 16,
                 alignItems: 'flex-end',
                 paddingTop: 16,
-                paddingBottom: 6,
+                paddingBottom: 4,
                 minWidth: 'max-content',
+                position: 'relative',
+                zIndex: 1,
               }}
             >
               {monthlyMonths.map((m) => {
@@ -695,9 +750,9 @@ export default function Analytics() {
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      height: 160,
+                      height: 165,
                       cursor: 'pointer',
-                      width: 54,
+                      width: 58,
                     }}
                     onClick={() => {
                       if (selectedMonth === m.monthKey) {
@@ -710,18 +765,19 @@ export default function Analytics() {
                     }}
                   >
                     {/* Amount Badge directly above the bar */}
-                    <div style={{ minHeight: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                    <div style={{ minHeight: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
                       {m.spend > 0 ? (
                         <span
                           style={{
                             fontSize: 10,
                             fontWeight: isSelected || m.isCurrentMonth ? 700 : 600,
-                            color: isSelected ? 'var(--accent)' : m.isCurrentMonth ? 'var(--accent)' : 'var(--accent)',
+                            color: isSelected ? 'var(--accent)' : m.isCurrentMonth ? 'var(--text)' : 'var(--text-2)',
                             whiteSpace: 'nowrap',
                             letterSpacing: '-0.2px',
-                            background: isSelected ? 'var(--accent-soft)' : undefined,
-                            padding: isSelected ? '1px 5px' : undefined,
-                            borderRadius: 4,
+                            background: isSelected ? 'var(--accent-soft)' : 'transparent',
+                            padding: isSelected ? '2px 6px' : undefined,
+                            borderRadius: 6,
+                            transition: 'all 0.15s ease',
                           }}
                         >
                           {fmtMoney(m.spend, currency)}
@@ -731,18 +787,18 @@ export default function Analytics() {
                       )}
                     </div>
 
-                    {/* Bar Column */}
+                    {/* Bar Column Container */}
                     <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 4 }}>
                       <div
                         style={{
-                          width: 32,
+                          width: 28,
                           background: 'var(--accent)',
-                          borderRadius: '6px 6px 0 0',
+                          borderRadius: m.spend > 0 ? '6px 6px 3px 3px' : '2px',
                           height: m.spend > 0 ? `${barHeightPct}%` : '4px',
-                          opacity: m.spend > 0 ? (selectedMonth ? (isSelected ? 1 : 0.75) : 1) : 0.2,
-                          transition: 'all 0.25s ease',
+                          opacity: m.spend > 0 ? (selectedMonth ? (isSelected ? 1 : 0.6) : (m.isCurrentMonth ? 1 : 0.85)) : 0.25,
+                          transition: 'all 0.2s ease',
                           boxShadow: isSelected
-                            ? '0 0 0 2px var(--surface), 0 0 0 4px var(--accent), 0 0 14px var(--accent-soft)'
+                            ? '0 0 0 2px var(--surface), 0 0 10px var(--accent-soft)'
                             : undefined,
                         }}
                         title={`${m.fullMonthName}: ${fmtMoney(m.spend, currency)} (${m.count} items, Avg ${fmtMoney(m.dailyAvg, currency)}/day)`}
@@ -750,20 +806,33 @@ export default function Analytics() {
                     </div>
 
                     {/* Month Label */}
-                    <div style={{ marginTop: 8, textAlign: 'center' }}>
+                    <div style={{ marginTop: 8, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       <span
                         style={{
-                          fontSize: 11,
-                          color: isSelected ? 'var(--accent)' : m.isCurrentMonth ? 'var(--accent)' : 'var(--text-2)',
+                          fontSize: 11.5,
+                          color: isSelected || m.isCurrentMonth ? 'var(--text)' : 'var(--text-2)',
                           fontWeight: isSelected || m.isCurrentMonth ? 700 : 500,
                           whiteSpace: 'nowrap',
                           display: 'block',
+                          lineHeight: 1.1,
                         }}
                       >
                         {m.monthName}
                       </span>
                       {m.isCurrentMonth && (
-                        <span style={{ fontSize: 8, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                        <span
+                          style={{
+                            fontSize: 8.5,
+                            color: 'var(--accent)',
+                            background: 'var(--accent-soft)',
+                            fontWeight: 700,
+                            padding: '1px 5px',
+                            borderRadius: 4,
+                            marginTop: 3,
+                            display: 'inline-block',
+                            letterSpacing: '0.3px',
+                          }}
+                        >
                           NOW
                         </span>
                       )}
@@ -779,12 +848,28 @@ export default function Analytics() {
             ref={chartScrollRef}
             className="analytics-chart-scroll"
             style={{
+              position: 'relative',
               overflowX: 'auto',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
               WebkitOverflowScrolling: 'touch',
+              paddingTop: 8,
             }}
           >
+            {/* Background Dashed Grid Baseline */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 34,
+                left: 0,
+                right: 0,
+                height: 1,
+                borderTop: '1px dashed var(--border)',
+                pointerEvents: 'none',
+                opacity: 0.8,
+              }}
+            />
+
             <div
               style={{
                 display: 'flex',
@@ -793,6 +878,8 @@ export default function Analytics() {
                 paddingTop: 12,
                 paddingBottom: 4,
                 minWidth: 'max-content',
+                position: 'relative',
+                zIndex: 1,
               }}
             >
               {weeklyWeeks.map((week, wIdx) => {
@@ -855,12 +942,12 @@ export default function Analytics() {
                                     <span style={{
                                       fontSize: 9,
                                       fontWeight: isSelected || d.isToday ? 700 : 600,
-                                      color: isSelected ? 'var(--accent)' : d.isToday ? 'var(--accent)' : 'var(--accent)',
+                                      color: isSelected ? 'var(--accent)' : d.isToday ? 'var(--text)' : 'var(--text-2)',
                                       whiteSpace: 'nowrap',
                                       letterSpacing: '-0.2px',
                                       background: isSelected ? 'var(--accent-soft)' : undefined,
-                                      padding: isSelected ? '1px 3px' : undefined,
-                                      borderRadius: 3,
+                                      padding: isSelected ? '1px 4px' : undefined,
+                                      borderRadius: 4,
                                     }}>
                                       {fmtMoney(d.spend, currency)}
                                     </span>
@@ -873,15 +960,14 @@ export default function Analytics() {
                                 <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 2 }}>
                                   <div
                                     style={{
-                                      width: '80%',
-                                      maxWidth: 28,
+                                      width: 22,
                                       background: 'var(--accent)',
-                                      borderRadius: '4px 4px 0 0',
+                                      borderRadius: d.spend > 0 ? '4px 4px 2px 2px' : '2px',
                                       height: d.spend > 0 ? `${barHeightPct}%` : '4px',
-                                      opacity: d.spend > 0 ? (selectedDate ? (isSelected ? 1 : 0.75) : 1) : 0.2,
+                                      opacity: d.spend > 0 ? (selectedDate ? (isSelected ? 1 : 0.6) : (d.isToday ? 1 : 0.85)) : 0.2,
                                       transition: 'all 0.2s ease',
                                       boxShadow: isSelected
-                                        ? '0 0 0 2px var(--surface), 0 0 0 4px var(--accent), 0 0 12px var(--accent-soft)'
+                                        ? '0 0 0 2px var(--surface), 0 0 8px var(--accent-soft)'
                                         : undefined,
                                     }}
                                     title={`${d.label}: ${fmtMoney(d.spend, currency)} (${d.count} items)`}
@@ -889,18 +975,29 @@ export default function Analytics() {
                                 </div>
 
                                 {/* Day Label */}
-                                <div style={{ marginTop: 6, textAlign: 'center' }}>
+                                <div style={{ marginTop: 6, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                   <span style={{
                                     fontSize: 10,
-                                    color: isSelected ? 'var(--accent)' : d.isToday ? 'var(--accent)' : 'var(--text-2)',
+                                    color: isSelected || d.isToday ? 'var(--text)' : 'var(--text-2)',
                                     fontWeight: isSelected || d.isToday ? 700 : 500,
                                     whiteSpace: 'nowrap',
                                     display: 'block',
+                                    lineHeight: 1.1,
                                   }}>
                                     {d.label}
                                   </span>
                                   {d.isToday && (
-                                    <span style={{ fontSize: 8, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                    <span style={{
+                                      fontSize: 8,
+                                      color: 'var(--accent)',
+                                      background: 'var(--accent-soft)',
+                                      fontWeight: 700,
+                                      padding: '1px 4px',
+                                      borderRadius: 4,
+                                      marginTop: 2,
+                                      display: 'inline-block',
+                                      letterSpacing: '0.3px',
+                                    }}>
                                       TODAY
                                     </span>
                                   )}
