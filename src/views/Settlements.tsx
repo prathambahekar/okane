@@ -17,12 +17,14 @@ import {
   LayoutList,
   List,
   Store,
-  Tv
+  Tv,
+  Search,
+  X,
 } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend, Settlement, Expense } from '../types';
 import { friendBalance, todayISO, unsettledExpensesForFriend } from '../db';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, cleanExpenseDescription } from '../utils';
 import SettleModal from '../components/SettleModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import SettlementDetailModal from '../components/SettlementDetailModal';
@@ -133,6 +135,21 @@ export default function Settlements() {
     });
     return map;
   }, [sorted, expenses]);
+
+  // Friends who have settlements in the current timeframe
+  const timeframeFriends = useMemo(() => {
+    const map = new Map<string, { friend: Friend; count: number }>();
+    timeframeFiltered.forEach(s => {
+      if (!s || !s.friendId) return;
+      const f = friends.find(fr => fr && fr.id === s.friendId);
+      if (f) {
+        const existing = map.get(f.id);
+        if (existing) existing.count += 1;
+        else map.set(f.id, { friend: f, count: 1 });
+      }
+    });
+    return Array.from(map.values());
+  }, [timeframeFiltered, friends]);
 
   // Overall KPI Summary for selected Timeframe
   const kpiSummary = useMemo(() => {
@@ -517,57 +534,57 @@ export default function Settlements() {
               </div>
             </div>
 
-            {/* Filter Toolbar - Clean, Self-Explanatory & Clutter-Free */}
-            <div className="settlement-toolbar-row">
-              {/* Type Filter Segmented Tabs */}
-              <div className="settlement-type-tabs">
-                <button
-                  type="button"
-                  className={`settlement-type-tab ${typeFilter === 'all' ? 'active' : ''}`}
-                  onClick={() => setTypeFilter('all')}
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  className={`settlement-type-tab credit ${typeFilter === 'received' ? 'active' : ''}`}
-                  onClick={() => setTypeFilter('received')}
-                >
-                  <TrendingUp size={12} strokeWidth={2.4} /> Received
-                </button>
-                <button
-                  type="button"
-                  className={`settlement-type-tab debit ${typeFilter === 'paid' ? 'active' : ''}`}
-                  onClick={() => setTypeFilter('paid')}
-                >
-                  <TrendingDown size={12} strokeWidth={2.4} /> Paid
-                </button>
-              </div>
-
-              {/* Right Side: Friend Filter Pill + View Switcher */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {/* Friend Filter Pill */}
+            {/* Search and Toolbar Controls */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+              {/* Search Bar + Layout Toggle Row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div
-                  className={`settlement-friend-pill ${friendFilter !== 'all' ? 'active' : ''}`}
-                  title={friendFilter === 'all' ? 'Filter by Friend' : `Friend: ${friends.find(f => f?.id === friendFilter)?.name || 'Friend'}`}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    padding: '0 10px',
+                    height: 36,
+                    transition: 'border-color 0.15s ease',
+                  }}
                 >
-                  <Users size={13} strokeWidth={2.2} />
-                  <span className="settlement-friend-name">
-                    {friendFilter === 'all' ? 'All Friends' : (friends.find(f => f?.id === friendFilter)?.name || 'Friend')}
-                  </span>
-                  <ChevronDown size={11} />
-                  <select
-                    className="settlement-select-overlay"
-                    value={friendFilter}
-                    onChange={e => setFriendFilter(e.target.value)}
-                  >
-                    <option value="all">All Friends</option>
-                    {friends.map(f => f && (
-                      <option key={f.id} value={f.id}>
-                        {f.name || 'Friend'}
-                      </option>
-                    ))}
-                  </select>
+                  <Search size={14.5} style={{ color: 'var(--text-3)', marginRight: 8, flexShrink: 0 }} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search settlements by friend, note, wallet, or expense..."
+                    style={{
+                      width: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: 12.5,
+                      color: 'var(--text)',
+                      padding: '5px 0',
+                    }}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-3)',
+                        cursor: 'pointer',
+                        padding: 3,
+                        display: 'grid',
+                        placeItems: 'center',
+                      }}
+                      title="Clear search"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
                 </div>
 
                 {/* View Mode Toggle: Detailed Table vs Compact Cards */}
@@ -587,6 +604,154 @@ export default function Settlements() {
                     title="Compact card view"
                   >
                     <List size={13.5} strokeWidth={2.2} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Filter Pills Row: Friend Pills + Type Tabs */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                }}
+              >
+                {/* Friend Filter Pills (Scrollable) */}
+                <div
+                  className="no-scrollbar"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    overflowX: 'auto',
+                    scrollbarWidth: 'none',
+                    padding: '2px 0',
+                    maxWidth: '100%',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setFriendFilter('all')}
+                    style={{
+                      border: friendFilter === 'all' ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                      background: friendFilter === 'all' ? 'var(--accent-soft)' : 'var(--surface2)',
+                      color: friendFilter === 'all' ? 'var(--accent)' : 'var(--text-2)',
+                      fontSize: 11.5,
+                      fontWeight: friendFilter === 'all' ? 700 : 500,
+                      padding: '3.5px 9px',
+                      borderRadius: 18,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4.5,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                      transition: 'all 0.15s ease',
+                      boxShadow: friendFilter === 'all' ? '0 1px 3px var(--accent-soft)' : 'none',
+                    }}
+                  >
+                    <Users size={12} strokeWidth={2.4} />
+                    <span>All Friends</span>
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        padding: '1px 5.5px',
+                        borderRadius: 99,
+                        background: friendFilter === 'all' ? 'var(--accent)' : 'var(--surface3)',
+                        color: friendFilter === 'all' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                      }}
+                    >
+                      {timeframeFiltered.length}
+                    </span>
+                  </button>
+
+                  {timeframeFriends.map(({ friend: f, count }) => {
+                    const isActive = friendFilter === f.id;
+                    const avatar = getAvatarStyle(f.color);
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setFriendFilter(f.id)}
+                        style={{
+                          border: isActive ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                          background: isActive ? 'var(--accent-soft)' : 'var(--surface2)',
+                          color: isActive ? 'var(--accent)' : 'var(--text-2)',
+                          fontSize: 11.5,
+                          fontWeight: isActive ? 700 : 500,
+                          padding: '3.5px 9px',
+                          borderRadius: 18,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4.5,
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                          transition: 'all 0.15s ease',
+                          boxShadow: isActive ? '0 1px 3px var(--accent-soft)' : 'none',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 14,
+                            height: 14,
+                            borderRadius: '50%',
+                            background: avatar.background,
+                            color: avatar.color,
+                            fontSize: 8.5,
+                            fontWeight: 700,
+                            display: 'grid',
+                            placeItems: 'center',
+                            lineHeight: 1,
+                            flexShrink: 0,
+                            boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
+                          }}
+                        >
+                          {friendInitial(f.name, f.avatarNumber)}
+                        </span>
+                        <span>{f.name}</span>
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            padding: '1px 5.5px',
+                            borderRadius: 99,
+                            background: isActive ? 'var(--accent)' : 'var(--surface3)',
+                            color: isActive ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                          }}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Type Filter Segmented Tabs */}
+                <div className="settlement-type-tabs" style={{ marginLeft: 'auto' }}>
+                  <button
+                    type="button"
+                    className={`settlement-type-tab ${typeFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setTypeFilter('all')}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    className={`settlement-type-tab credit ${typeFilter === 'received' ? 'active' : ''}`}
+                    onClick={() => setTypeFilter('received')}
+                  >
+                    <TrendingUp size={12} strokeWidth={2.4} /> Received
+                  </button>
+                  <button
+                    type="button"
+                    className={`settlement-type-tab debit ${typeFilter === 'paid' ? 'active' : ''}`}
+                    onClick={() => setTypeFilter('paid')}
+                  >
+                    <TrendingDown size={12} strokeWidth={2.4} /> Paid
                   </button>
                 </div>
               </div>
@@ -819,6 +984,8 @@ export default function Settlements() {
                                       if (!exp) return null;
                                       const cat = categories.find(c => c && c.name === exp.category);
                                       const isForFriend = exp.type === 'for_friend';
+                                      const isVendorSettlement = friend?.type === 'vendor';
+                                      const expFriend = (isVendorSettlement && exp.friendId && exp.friendId !== friend?.id) ? friends.find(f => f && f.id === exp.friendId) : null;
                                       return (
                                         <div key={exp.id} className="settlement-item-card">
                                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
@@ -844,9 +1011,50 @@ export default function Settlements() {
                                                   whiteSpace: 'nowrap',
                                                   overflow: 'hidden',
                                                   textOverflow: 'ellipsis',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  gap: 4,
                                                 }}
                                               >
-                                                {exp.description || 'Expense'}
+                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                  {cleanExpenseDescription(exp.description) || 'Expense'}
+                                                </span>
+                                                {expFriend ? (
+                                                  <span
+                                                    style={{
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      gap: 3.5,
+                                                      fontSize: 10,
+                                                      fontWeight: 650,
+                                                      padding: '1.5px 6px',
+                                                      borderRadius: 5,
+                                                      background: 'var(--surface3)',
+                                                      color: 'var(--text)',
+                                                      border: '1px solid var(--border)',
+                                                      whiteSpace: 'nowrap',
+                                                      flexShrink: 0,
+                                                    }}
+                                                  >
+                                                    <span
+                                                      style={{
+                                                        width: 12,
+                                                        height: 12,
+                                                        borderRadius: '50%',
+                                                        background: getAvatarStyle(expFriend.color).background,
+                                                        color: '#ffffff',
+                                                        fontSize: 7.5,
+                                                        fontWeight: 700,
+                                                        display: 'grid',
+                                                        placeItems: 'center',
+                                                        lineHeight: 1,
+                                                      }}
+                                                    >
+                                                      {friendInitial(expFriend.name, expFriend.avatarNumber)}
+                                                    </span>
+                                                    <span>{expFriend.name}</span>
+                                                  </span>
+                                                ) : null}
                                               </div>
                                               <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
                                                 {fmtDate(exp.date)} • {isForFriend ? 'You paid' : 'Friend paid'}
@@ -1049,28 +1257,67 @@ export default function Settlements() {
                           {matchedExpenses.map(exp => {
                             if (!exp) return null;
                             const isForFriend = exp.type === 'for_friend';
+                            const isVendorSettlement = friend?.type === 'vendor';
+                            const expFriend = (isVendorSettlement && exp.friendId && exp.friendId !== friend?.id) ? friends.find(f => f && f.id === exp.friendId) : null;
                             return (
                               <div
                                 key={exp.id}
                                 style={{
-                                  padding: '6px 8px',
+                                  padding: '7px 9px',
                                   background: 'var(--surface2)',
-                                  borderRadius: 6,
+                                  borderRadius: 7,
+                                  border: '1px solid var(--border)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   fontSize: 11,
+                                  gap: 6,
                                 }}
                               >
-                                <div style={{ minWidth: 0, flex: 1, marginRight: 6 }}>
-                                  <div style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {exp.description || 'Expense'}
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ fontWeight: 650, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                                    <span>{cleanExpenseDescription(exp.description) || 'Expense'}</span>
+                                    {expFriend ? (
+                                      <span
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 3,
+                                          fontSize: 9.5,
+                                          fontWeight: 650,
+                                          padding: '1px 5px',
+                                          borderRadius: 4,
+                                          background: 'var(--surface3)',
+                                          color: 'var(--text)',
+                                          border: '1px solid var(--border)',
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            width: 11,
+                                            height: 11,
+                                            borderRadius: '50%',
+                                            background: getAvatarStyle(expFriend.color).background,
+                                            color: '#ffffff',
+                                            fontSize: 7,
+                                            fontWeight: 700,
+                                            display: 'grid',
+                                            placeItems: 'center',
+                                            lineHeight: 1,
+                                          }}
+                                        >
+                                          {friendInitial(expFriend.name, expFriend.avatarNumber)}
+                                        </span>
+                                        <span>{expFriend.name}</span>
+                                      </span>
+                                    ) : null}
                                   </div>
-                                  <div style={{ fontSize: 10, color: 'var(--text-3)' }}>
+                                  <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1.5 }}>
                                     {exp.category} • {fmtDate(exp.date)}
                                   </div>
                                 </div>
-                                <div style={{ fontWeight: 700, color: isForFriend ? 'var(--credit)' : 'var(--debit)', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontWeight: 700, color: isForFriend ? 'var(--credit)' : 'var(--debit)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                                   {isForFriend ? '+' : '-'}{fmtMoney(Number(exp.amount) || 0, currency)}
                                 </div>
                               </div>

@@ -32,10 +32,10 @@ export const ACCENT_PRESETS: AccentDefinition[] = [
   {
     id: 'monochrome',
     name: 'Monochrome',
-    swatchLight: '#111111',
-    swatchDark: '#ffffff',
-    light: { main: '#111111', soft: 'rgba(17, 17, 17, 0.10)', dark: '#000000', contrast: '#ffffff' },
-    dark: { main: '#ffffff', soft: 'rgba(255, 255, 255, 0.16)', dark: '#e0e0e0', contrast: '#000000' },
+    swatchLight: '#18181b',
+    swatchDark: '#f4f4f5',
+    light: { main: '#18181b', soft: 'rgba(24, 24, 27, 0.08)', dark: '#09090b', contrast: '#ffffff' },
+    dark: { main: '#f4f4f5', soft: 'rgba(244, 244, 245, 0.14)', dark: '#d4d4d8', contrast: '#09090b' },
   },
   {
     id: 'emerald',

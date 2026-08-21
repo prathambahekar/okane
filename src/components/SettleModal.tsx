@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Calendar, ReceiptText, FileText, Check, Wallet } from 'lucide-react';
+import { X, Calendar, ReceiptText, FileText, Wallet } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend } from '../types';
 import { expenseFlow, unsettledExpensesForFriend, todayISO } from '../db';
 import { fmtMoney, friendInitial, getAvatarStyle } from '../utils';
 import SettleExpensePickerModal from './SettleExpensePickerModal';
+import { NoteEditorModal } from './common/NoteEditorModal';
 
 interface Props {
   friend: Friend;
@@ -25,7 +26,6 @@ export default function SettleModal({ friend, onClose }: Props) {
   );
   const [settleDate, setSettleDate] = useState<string>(todayISO());
   const [note, setNote] = useState('');
-  const [tempNote, setTempNote] = useState('');
 
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [customAmountStr, setCustomAmountStr] = useState('');
@@ -68,13 +68,7 @@ export default function SettleModal({ friend, onClose }: Props) {
   };
 
   const openNoteModal = () => {
-    setTempNote(note);
     setIsNoteModalOpen(true);
-  };
-
-  const saveNoteModal = () => {
-    setNote(tempNote.trim());
-    setIsNoteModalOpen(false);
   };
 
   const handleSettle = () => {
@@ -233,10 +227,10 @@ export default function SettleModal({ friend, onClose }: Props) {
                 </div>
               </div>
 
-              {/* Settlement Amount Mode Segment Toggle */}
+              {/* Settle Amount Mode Segment Toggle */}
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 5 }}>
-                  Settlement Amount Mode
+                  Settle Mode
                 </div>
                 <div
                   style={{
@@ -311,17 +305,21 @@ export default function SettleModal({ friend, onClose }: Props) {
                   <input
                     type="number"
                     step="any"
-                    className="form-input"
                     placeholder={`Enter amount (e.g. ${Math.round(absNet / 2)})`}
                     value={customAmountStr}
                     onChange={e => setCustomAmountStr(e.target.value)}
                     style={{
+                      width: '100%',
                       fontWeight: 700,
                       fontSize: 14,
-                      height: 36,
+                      height: 38,
                       background: 'var(--surface)',
+                      color: 'var(--text)',
                       borderRadius: 6,
                       border: '1px solid var(--border)',
+                      padding: '0 10px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
                     }}
                   />
                 </div>
@@ -359,24 +357,28 @@ export default function SettleModal({ friend, onClose }: Props) {
 
               {/* Date & Payment Method in One Row */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 6 }}>
-                {/* Settlement Date */}
+                {/* Settle Date */}
                 <div>
                   <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
                     <Calendar size={13} style={{ color: 'var(--accent)' }} />
-                    <span>Settlement Date</span>
+                    <span>Settle Date</span>
                   </label>
                   <input
                     type="date"
-                    className="form-input"
                     value={settleDate}
                     onChange={e => setSettleDate(e.target.value)}
                     style={{
+                      width: '100%',
                       fontWeight: 600,
                       height: 40,
                       fontSize: 12.5,
                       borderRadius: 'var(--radius)',
                       border: '1px solid var(--border)',
-                      background: 'var(--surface)',
+                      background: 'var(--surface2)',
+                      color: 'var(--text)',
+                      padding: '0 10px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
                     }}
                   />
                 </div>
@@ -389,7 +391,6 @@ export default function SettleModal({ friend, onClose }: Props) {
                   </label>
                   <div style={{ position: 'relative' }}>
                     <select
-                      className="form-select"
                       value={selectedWalletId}
                       onChange={e => {
                         const wId = e.target.value;
@@ -400,18 +401,22 @@ export default function SettleModal({ friend, onClose }: Props) {
                         }
                       }}
                       style={{
+                        width: '100%',
                         height: 40,
                         fontSize: 12.5,
                         fontWeight: 600,
                         borderRadius: 'var(--radius)',
                         border: '1px solid var(--border)',
-                        background: 'var(--surface)',
+                        background: 'var(--surface2)',
+                        color: 'var(--text)',
                         paddingLeft: 28,
-                        width: '100%',
+                        paddingRight: 10,
+                        outline: 'none',
+                        boxSizing: 'border-box',
                       }}
                     >
                       {wallets.map(w => (
-                        <option key={w.id} value={w.id}>
+                        <option key={w.id} value={w.id} style={{ background: 'var(--surface)', color: 'var(--text)' }}>
                           {w.name}
                         </option>
                       ))}
@@ -438,109 +443,68 @@ export default function SettleModal({ friend, onClose }: Props) {
         </div>
 
         {/* Modal Footer */}
-        <div className="modal-footer" style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} style={{ borderRadius: 'var(--radius)', fontSize: 12.5 }}>
+        <div
+          className="modal-footer"
+          style={{
+            padding: '14px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderTop: 'none',
+            background: 'transparent',
+          }}
+        >
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            style={{
+              borderRadius: 'var(--radius)',
+              fontSize: 12.5,
+              fontWeight: 600,
+              padding: '9px 18px',
+            }}
+          >
             Cancel
           </button>
           {unsettled.length > 0 && (
             <button
+              type="button"
               className="btn btn-primary"
               disabled={!selected.size || (isCustomMode && (!customAmountStr || effectiveSettleAmt <= 0))}
               onClick={handleSettle}
               style={{
                 padding: '9px 20px',
                 fontSize: 13,
-                fontWeight: 600,
+                fontWeight: 650,
                 borderRadius: 'var(--radius)',
-                background: net >= 0 ? 'linear-gradient(135deg, #34D399, #10B981)' : undefined,
+                background: 'var(--accent)',
+                color: 'var(--accent-contrast, #ffffff)',
+                border: 'none',
+                boxShadow: '0 1px 4px var(--accent-shadow, rgba(0,0,0,0.12))',
+                cursor: 'pointer',
               }}
             >
-              Confirm Settlement ({fmtMoney(effectiveSettleAmt, currency)})
+              Confirm Settle ({fmtMoney(effectiveSettleAmt, currency)})
             </button>
           )}
         </div>
       </div>
 
       {/* Separate Dedicated Note Modal */}
-      {isNoteModalOpen && (
-        <div
-          className="modal-backdrop"
-          style={{ zIndex: 10005, background: 'rgba(0,0,0,0.65)' }}
-          onClick={e => { if (e.target === e.currentTarget) setIsNoteModalOpen(false); }}
-        >
-          <div className="modal" style={{ maxWidth: 380, animation: 'slidein 0.15s ease' }}>
-            <div className="modal-handle-bar">
-              <div className="modal-handle" />
-            </div>
-            <div className="modal-header" style={{ padding: '14px 18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', background: 'var(--accent-soft)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
-                  <FileText size={15} />
-                </div>
-                <div className="modal-title" style={{ fontSize: 14, fontWeight: 700 }}>Settlement Note</div>
-              </div>
-              <button className="btn-icon" onClick={() => setIsNoteModalOpen(false)} style={{ borderRadius: 'var(--radius-sm)' }}><X size={16} /></button>
-            </div>
-            <div className="modal-body" style={{ padding: '14px 18px' }}>
-              <textarea
-                className="form-textarea"
-                rows={3}
-                placeholder="Add optional settlement remarks or note..."
-                value={tempNote}
-                onChange={e => setTempNote(e.target.value)}
-                style={{ fontSize: 13, width: '100%', marginBottom: 12, resize: 'none', borderRadius: 'var(--radius)' }}
-              />
-              {/* Quick suggestion tags */}
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>Quick tags:</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {[
-                  activeWallet ? `Paid via ${activeWallet.name}` : 'Paid via Google Pay',
-                  'Cash repayment',
-                  'Settled in full',
-                  'Bill share',
-                ].map(tag => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 'var(--radius-sm)' }}
-                    onClick={() => setTempNote(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="modal-footer" style={{ padding: '12px 18px', display: 'flex', justifyContent: 'space-between' }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                style={{ borderRadius: 'var(--radius-sm)', fontSize: 12 }}
-                onClick={() => {
-                  setTempNote('');
-                  setNote('');
-                  setIsNoteModalOpen(false);
-                }}
-              >
-                Clear
-              </button>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button type="button" className="btn btn-secondary btn-sm" style={{ borderRadius: 'var(--radius-sm)', fontSize: 12 }} onClick={() => setIsNoteModalOpen(false)}>
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={saveNoteModal}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 'var(--radius-sm)', fontSize: 12 }}
-                >
-                  <Check size={14} /> Save Note
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <NoteEditorModal
+        isOpen={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        title="Settle Note"
+        initialNote={note}
+        onSave={(newNote) => setNote(newNote)}
+        placeholder="Add optional settle remarks, payment reference or note..."
+        quickTags={
+          activeWallet
+            ? [`Paid via ${activeWallet.name}`, 'Cash repayment', 'Settled in full', 'Bill share', 'UPI Transfer', 'Bank Transfer']
+            : ['Paid via Google Pay', 'Cash repayment', 'Settled in full', 'Bill share', 'UPI Transfer', 'Bank Transfer']
+        }
+      />
 
       {/* Settle Expense Picker Drawer Modal */}
       {isPickerOpen && (

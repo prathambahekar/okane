@@ -1,10 +1,12 @@
 import { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Search, Check, ReceiptText } from 'lucide-react';
+import { X, Search, Check, ReceiptText, ArrowUpDown, CheckCheck } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
 import type { Friend, Expense, AppDB } from '../types';
 import { expenseFlow } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, cleanExpenseDescription } from '../utils';
+
+export type ExpenseSortOption = 'date_desc' | 'date_asc' | 'friend_asc' | 'amount_desc' | 'amount_asc';
 
 interface SettleExpensePickerModalProps {
   isOpen: boolean;
@@ -35,10 +37,68 @@ export default function SettleExpensePickerModal({
 }: SettleExpensePickerModalProps) {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'owed_to_me' | 'owed_by_me'>('all');
+  const [friendFilter, setFriendFilter] = useState<string>('all'); // 'all' | 'personal' | friendId
+  const [sortBy, setSortBy] = useState<ExpenseSortOption>('date_desc');
 
   const selectedSet = useMemo(() => {
     return selectedIds instanceof Set ? selectedIds : new Set(selectedIds);
   }, [selectedIds]);
+
+  const friendsList = useMemo(() => db.friends || [], [db.friends]);
+  const friendsMap = useMemo(() => {
+    const map = new Map<string, Friend>();
+    friendsList.forEach(f => {
+      if (f && f.id) map.set(f.id, f);
+    });
+    return map;
+  }, [friendsList]);
+
+  const isVendor = friend.type === 'vendor';
+
+  // Compute friend participants in the current expense set (only for vendor settlements)
+  const friendStats = useMemo(() => {
+    if (!isVendor) {
+      return {
+        personalCount: 0,
+        personalTotal: 0,
+        friends: [],
+        hasMultipleParticipants: false,
+        hasAnyFriendAttribution: false,
+      };
+    }
+    let personalCount = 0;
+    let personalTotal = 0;
+    const friendCounts = new Map<string, { friend: Friend; count: number; total: number }>();
+
+    expenses.forEach(e => {
+      const amt = Number(e.amount) || 0;
+      // Only count actual distinct other friends (not the vendor itself)
+      if (e.friendId && e.friendId !== friend.id && friendsMap.has(e.friendId)) {
+        const existing = friendCounts.get(e.friendId);
+        if (existing) {
+          existing.count += 1;
+          existing.total += amt;
+        } else {
+          friendCounts.set(e.friendId, {
+            friend: friendsMap.get(e.friendId)!,
+            count: 1,
+            total: amt,
+          });
+        }
+      } else {
+        personalCount += 1;
+        personalTotal += amt;
+      }
+    });
+
+    return {
+      personalCount,
+      personalTotal,
+      friends: Array.from(friendCounts.values()),
+      hasMultipleParticipants: (personalCount > 0 ? 1 : 0) + friendCounts.size > 1,
+      hasAnyFriendAttribution: friendCounts.size > 0,
+    };
+  }, [expenses, friendsMap, isVendor, friend.id]);
 
   const isOwedToMe = useCallback((e: Expense) => {
     return e.friendId === friend.id && e.type === 'for_friend' && expenseFlow(e) === 'out';
@@ -55,15 +115,34 @@ export default function SettleExpensePickerModal({
     return false;
   }, [expenses, isOwedToMe]);
 
+  // Helper to get friend name for an expense (only distinct other friends)
+  const getExpenseFriend = useCallback((e: Expense): { friend?: Friend; isPersonal: boolean; name: string } => {
+    if (e.friendId && e.friendId !== friend.id && friendsMap.has(e.friendId)) {
+      const f = friendsMap.get(e.friendId)!;
+      return { friend: f, isPersonal: false, name: f.name };
+    }
+    return { isPersonal: true, name: '' };
+  }, [friendsMap, friend.id]);
+
+  // Filtered & Sorted expenses
   const filteredExpenses = useMemo(() => {
     let list = expenses;
 
+    // 1. Flow filter (owed to me / owed by me)
     if (filterType === 'owed_to_me') {
       list = list.filter(isOwedToMe);
     } else if (filterType === 'owed_by_me') {
       list = list.filter(e => !isOwedToMe(e));
     }
 
+    // 2. Friend filter
+    if (friendFilter === 'personal') {
+      list = list.filter(e => !e.friendId || e.type === 'personal');
+    } else if (friendFilter !== 'all') {
+      list = list.filter(e => e.friendId === friendFilter);
+    }
+
+    // 3. Search query
     if (search.trim()) {
       const q = search.toLowerCase().trim();
       list = list.filter(e => {
@@ -71,12 +150,36 @@ export default function SettleExpensePickerModal({
         const cat = (e.category || '').toLowerCase();
         const date = (e.date || '').toLowerCase();
         const amt = String(e.amount || '');
-        return desc.includes(q) || cat.includes(q) || date.includes(q) || amt.includes(q);
+        const fInfo = getExpenseFriend(e);
+        const fName = fInfo.name.toLowerCase();
+        return desc.includes(q) || cat.includes(q) || date.includes(q) || amt.includes(q) || fName.includes(q);
       });
     }
 
-    return list;
-  }, [expenses, filterType, search, isOwedToMe]);
+    // 4. Sorting
+    const sorted = [...list].sort((a, b) => {
+      if (sortBy === 'date_desc') {
+        return (b.originalDate || b.date || '').localeCompare(a.originalDate || a.date || '') || (Number(b.createdAt || 0) - Number(a.createdAt || 0));
+      }
+      if (sortBy === 'date_asc') {
+        return (a.originalDate || a.date || '').localeCompare(b.originalDate || b.date || '') || (Number(a.createdAt || 0) - Number(b.createdAt || 0));
+      }
+      if (sortBy === 'amount_desc') {
+        return (Number(b.amount) || 0) - (Number(a.amount) || 0);
+      }
+      if (sortBy === 'amount_asc') {
+        return (Number(a.amount) || 0) - (Number(b.amount) || 0);
+      }
+      if (sortBy === 'friend_asc') {
+        const nameA = getExpenseFriend(a).name;
+        const nameB = getExpenseFriend(b).name;
+        return nameA.localeCompare(nameB) || (b.date || '').localeCompare(a.date || '');
+      }
+      return 0;
+    });
+
+    return sorted;
+  }, [expenses, filterType, friendFilter, search, isOwedToMe, sortBy, getExpenseFriend]);
 
   // Calculate selected total in modal
   const selectedExpenses = useMemo(() => {
@@ -93,7 +196,36 @@ export default function SettleExpensePickerModal({
 
   const netTotal = owedToMeAmt - owedByMeAmt;
   const absNet = Math.abs(netTotal);
-  const allSelected = expenses.length > 0 && selectedSet.size === expenses.length;
+
+  // Check selection state for current filtered view
+  const currentFilteredIds = useMemo(() => filteredExpenses.map(e => e.id), [filteredExpenses]);
+  const allFilteredSelected = currentFilteredIds.length > 0 && currentFilteredIds.every(id => selectedSet.has(id));
+
+  // Toggle selection for current filtered items
+  const handleToggleCurrentFiltered = () => {
+    if (allFilteredSelected) {
+      // Deselect all items in current filter
+      currentFilteredIds.forEach(id => {
+        if (selectedSet.has(id)) {
+          onToggle(id);
+        }
+      });
+    } else {
+      // Select all items in current filter
+      currentFilteredIds.forEach(id => {
+        if (!selectedSet.has(id)) {
+          onToggle(id);
+        }
+      });
+    }
+  };
+
+  const activeFriendObj = friendFilter !== 'all' && friendFilter !== 'personal' ? friendsMap.get(friendFilter) : null;
+  const activeFilterLabel = friendFilter === 'personal'
+    ? 'Personal'
+    : activeFriendObj
+    ? activeFriendObj.name
+    : 'all items';
 
   if (!isOpen) return null;
 
@@ -125,8 +257,8 @@ export default function SettleExpensePickerModal({
               className="avatar"
               style={{
                 ...getAvatarStyle(friend.color),
-                width: 32,
-                height: 32,
+                width: 34,
+                height: 34,
                 fontSize: 13,
                 flexShrink: 0,
               }}
@@ -134,11 +266,11 @@ export default function SettleExpensePickerModal({
               {friendInitial(friend.name, friend.avatarNumber)}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 650, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
                 {title}
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
-                {friend.name} • {expenses.length} pending expense{expenses.length !== 1 ? 's' : ''}
+                {friend.name} • {expenses.length} pending transaction{expenses.length !== 1 ? 's' : ''}
               </div>
             </div>
           </div>
@@ -166,7 +298,7 @@ export default function SettleExpensePickerModal({
         </div>
 
         {/* Search & Filter Toolbar */}
-        <div style={{ padding: '12px 18px 8px', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
+        <div style={{ padding: '10px 18px 8px', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
           {/* Search Box */}
           <div
             style={{
@@ -177,12 +309,12 @@ export default function SettleExpensePickerModal({
               border: '1px solid var(--border)',
               borderRadius: 10,
               padding: '0 10px',
-              height: 38,
+              height: 36,
               transition: 'border-color 0.15s ease',
             }}
           >
             <Search
-              size={15}
+              size={14.5}
               style={{
                 color: 'var(--text-3)',
                 marginRight: 8,
@@ -193,15 +325,15 @@ export default function SettleExpensePickerModal({
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search expenses by name or category..."
+              placeholder={isVendor ? "Search by name, category, or friend..." : "Search expenses by name or category..."}
               style={{
                 width: '100%',
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                fontSize: 13,
+                fontSize: 12.5,
                 color: 'var(--text)',
-                padding: '6px 0',
+                padding: '5px 0',
               }}
             />
             {search && (
@@ -218,99 +350,273 @@ export default function SettleExpensePickerModal({
                   placeItems: 'center',
                 }}
               >
-                <X size={14} />
+                <X size={13} />
               </button>
             )}
           </div>
 
-          {/* Filter Pills + Select All Row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            {hasMixedFlows ? (
-              <div
+          {/* Friend Filter Pills Bar (ONLY for Vendor settlements with multiple participants) */}
+          {isVendor && friendStats.hasMultipleParticipants && (
+            <div
+              className="no-scrollbar"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                overflowX: 'auto',
+                padding: '2px 0',
+                scrollbarWidth: 'none',
+              }}
+            >
+              {/* All Filter Pill */}
+              <button
+                type="button"
+                onClick={() => setFriendFilter('all')}
                 style={{
-                  display: 'flex',
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  padding: 2,
-                  gap: 2,
+                  border: friendFilter === 'all' ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                  background: friendFilter === 'all' ? 'var(--accent-soft)' : 'var(--surface2)',
+                  color: friendFilter === 'all' ? 'var(--accent)' : 'var(--text-2)',
+                  fontSize: 11.5,
+                  fontWeight: friendFilter === 'all' ? 700 : 500,
+                  padding: '4px 10px',
+                  borderRadius: 20,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <button
-                  type="button"
-                  onClick={() => setFilterType('all')}
+                <span>All</span>
+                <span
                   style={{
-                    border: 'none',
-                    background: filterType === 'all' ? 'var(--accent)' : 'transparent',
-                    color: filterType === 'all' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
-                    fontSize: 11.5,
-                    fontWeight: filterType === 'all' ? 650 : 500,
-                    padding: '3px 10px',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: 99,
+                    background: friendFilter === 'all' ? 'var(--accent)' : 'var(--surface3)',
+                    color: friendFilter === 'all' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
                   }}
                 >
-                  All ({expenses.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterType('owed_to_me')}
-                  style={{
-                    border: 'none',
-                    background: filterType === 'owed_to_me' ? 'var(--accent)' : 'transparent',
-                    color: filterType === 'owed_to_me' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
-                    fontSize: 11.5,
-                    fontWeight: filterType === 'owed_to_me' ? 650 : 500,
-                    padding: '3px 10px',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  Owed to you
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterType('owed_by_me')}
-                  style={{
-                    border: 'none',
-                    background: filterType === 'owed_by_me' ? 'var(--accent)' : 'transparent',
-                    color: filterType === 'owed_by_me' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
-                    fontSize: 11.5,
-                    fontWeight: filterType === 'owed_by_me' ? 650 : 500,
-                    padding: '3px 10px',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  You owe
-                </button>
-              </div>
-            ) : (
-              <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>
-                {filteredExpenses.length} transaction{filteredExpenses.length !== 1 ? 's' : ''}
-              </div>
-            )}
+                  {expenses.length}
+                </span>
+              </button>
 
+              {/* Friend Pills */}
+              {friendStats.friends.map(({ friend: f, count }) => {
+                const isActive = friendFilter === f.id;
+                const avatar = getAvatarStyle(f.color);
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setFriendFilter(f.id)}
+                    style={{
+                      border: isActive ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                      background: isActive ? 'var(--accent-soft)' : 'var(--surface2)',
+                      color: isActive ? 'var(--accent)' : 'var(--text)',
+                      fontSize: 11.5,
+                      fontWeight: isActive ? 700 : 500,
+                      padding: '4px 10px',
+                      borderRadius: 20,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 15,
+                        height: 15,
+                        borderRadius: '50%',
+                        background: avatar.background,
+                        color: avatar.color,
+                        fontSize: 8.5,
+                        fontWeight: 700,
+                        display: 'grid',
+                        placeItems: 'center',
+                        lineHeight: 1,
+                        flexShrink: 0,
+                        boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
+                      }}
+                    >
+                      {friendInitial(f.name, f.avatarNumber)}
+                    </span>
+                    <span>{f.name}</span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '1px 6px',
+                        borderRadius: 99,
+                        background: isActive ? 'var(--accent)' : 'var(--surface3)',
+                        color: isActive ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                      }}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Sub-toolbar: Sort Selector + Flow Tabs + Select All */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', paddingTop: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {/* Sort Selector Dropdown */}
+              <div
+                style={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 7,
+                  padding: '4px 9px',
+                  fontSize: 11.5,
+                  fontWeight: 500,
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                }}
+              >
+                <ArrowUpDown size={11} style={{ color: 'var(--accent)' }} />
+                <span>
+                  {sortBy === 'date_desc'
+                    ? 'Newest'
+                    : sortBy === 'date_asc'
+                    ? 'Oldest'
+                    : sortBy === 'friend_asc'
+                    ? 'Friend A-Z'
+                    : sortBy === 'amount_desc'
+                    ? 'Amt: High'
+                    : 'Amt: Low'}
+                </span>
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as ExpenseSortOption)}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    opacity: 0,
+                    cursor: 'pointer',
+                    width: '100%',
+                    height: '100%',
+                  }}
+                >
+                  <option value="date_desc">Date: Newest First</option>
+                  <option value="date_asc">Date: Oldest First</option>
+                  {isVendor && <option value="friend_asc">Friend Name: A to Z</option>}
+                  <option value="amount_desc">Amount: High to Low</option>
+                  <option value="amount_asc">Amount: Low to High</option>
+                </select>
+              </div>
+
+              {/* Mixed Flow Tabs if any */}
+              {hasMixedFlows && (
+                <div
+                  style={{
+                    display: 'flex',
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 7,
+                    padding: 2,
+                    gap: 2,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setFilterType('all')}
+                    style={{
+                      border: 'none',
+                      background: filterType === 'all' ? 'var(--accent)' : 'transparent',
+                      color: filterType === 'all' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                      fontSize: 11,
+                      fontWeight: filterType === 'all' ? 650 : 500,
+                      padding: '2px 8px',
+                      borderRadius: 5,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    All Flows
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterType('owed_to_me')}
+                    style={{
+                      border: 'none',
+                      background: filterType === 'owed_to_me' ? 'var(--accent)' : 'transparent',
+                      color: filterType === 'owed_to_me' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                      fontSize: 11,
+                      fontWeight: filterType === 'owed_to_me' ? 650 : 500,
+                      padding: '2px 8px',
+                      borderRadius: 5,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    To You
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterType('owed_by_me')}
+                    style={{
+                      border: 'none',
+                      background: filterType === 'owed_by_me' ? 'var(--accent)' : 'transparent',
+                      color: filterType === 'owed_by_me' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                      fontSize: 11,
+                      fontWeight: filterType === 'owed_by_me' ? 650 : 500,
+                      padding: '2px 8px',
+                      borderRadius: 5,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    You Owe
+                  </button>
+                </div>
+              )}
+
+              <span style={{ fontSize: 11.5, color: 'var(--text-3)', fontWeight: 500 }}>
+                {filteredExpenses.length} item{filteredExpenses.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {/* Select/Deselect All Button */}
             <button
               type="button"
-              onClick={allSelected ? onDeselectAll : onSelectAll}
+              onClick={friendFilter !== 'all' || filterType !== 'all' ? handleToggleCurrentFiltered : (allFilteredSelected ? onDeselectAll : onSelectAll)}
               style={{
-                border: 'none',
-                background: 'none',
-                color: 'var(--accent)',
+                background: 'var(--surface2)',
+                color: 'var(--text)',
+                border: '1px solid var(--border)',
+                borderRadius: 7,
                 fontSize: 11.5,
-                fontWeight: 650,
-                padding: '4px 6px',
+                fontWeight: 600,
+                padding: '4px 9px',
                 cursor: 'pointer',
                 flexShrink: 0,
                 whiteSpace: 'nowrap',
-                marginLeft: 'auto',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4.5,
+                transition: 'all 0.15s ease',
               }}
             >
-              {allSelected ? 'Deselect all' : 'Select all'}
+              <CheckCheck size={13} strokeWidth={2.4} />
+              <span>
+                {isVendor && friendFilter !== 'all'
+                  ? (allFilteredSelected ? `Deselect ${activeFilterLabel}` : `Select all ${activeFilterLabel}`)
+                  : (allFilteredSelected ? 'Deselect all' : 'Select all')}
+              </span>
             </button>
           </div>
         </div>
@@ -323,7 +629,7 @@ export default function SettleExpensePickerModal({
             overflowY: 'auto',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            padding: '6px 18px 12px',
+            padding: '8px 18px 14px',
             display: 'flex',
             flexDirection: 'column',
             gap: 8,
@@ -334,7 +640,7 @@ export default function SettleExpensePickerModal({
               <ReceiptText size={28} style={{ opacity: 0.4, margin: '0 auto 8px' }} />
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>No expenses found</div>
               <div style={{ fontSize: 11.5, marginTop: 2 }}>
-                {search ? 'Try adjusting your search query' : 'No unsettled transactions for this filter'}
+                {search ? 'Try adjusting your search query' : 'No unsettled transactions match this filter'}
               </div>
             </div>
           ) : (
@@ -344,6 +650,8 @@ export default function SettleExpensePickerModal({
               const isSelected = selectedSet.has(e.id);
               const origAmt = typeof e.originalAmount === 'number' ? e.originalAmount : null;
               const hasDiffOrig = origAmt !== null && origAmt > 0 && Math.abs(origAmt - e.amount) > 0.01;
+              const fInfo = getExpenseFriend(e);
+              const isOtherFriend = isVendor && fInfo.friend && fInfo.friend.id !== friend.id;
 
               return (
                 <div
@@ -352,15 +660,15 @@ export default function SettleExpensePickerModal({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 12,
-                    padding: '10px 14px',
-                    background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
-                    border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
-                    boxShadow: isSelected ? '0 1px 4px var(--accent-soft)' : 'none',
+                    gap: 11,
+                    padding: '10px 13px',
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    boxShadow: 'none',
                     borderRadius: 12,
                     cursor: 'pointer',
                     userSelect: 'none',
-                    transition: 'all 0.12s ease',
+                    transition: 'border-color 0.12s ease, background 0.12s ease',
                   }}
                 >
                   {/* Custom Checkbox */}
@@ -368,9 +676,9 @@ export default function SettleExpensePickerModal({
                     style={{
                       width: 18,
                       height: 18,
-                      borderRadius: 4,
+                      borderRadius: 5,
                       border: isSelected ? 'none' : '1.5px solid var(--border2, var(--text-3))',
-                      background: isSelected ? 'var(--accent)' : 'transparent',
+                      background: isSelected ? 'var(--accent)' : 'var(--surface)',
                       color: 'var(--accent-contrast, #ffffff)',
                       display: 'grid',
                       placeItems: 'center',
@@ -388,21 +696,59 @@ export default function SettleExpensePickerModal({
                     style={{ color: cat?.color ?? 'var(--accent)', flexShrink: 0 }}
                   />
 
-                  {/* Expense Description & Date */}
+                  {/* Expense Description & Friend Badge & Meta */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: 'var(--text)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {cleanExpenseDescription(e.description)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 650,
+                          color: 'var(--text)',
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {cleanExpenseDescription(e.description)}
+                      </span>
+
+                      {/* Friend Badge - ONLY rendered when settling a vendor and expense belongs to another friend */}
+                      {isOtherFriend && fInfo.friend ? (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4.5,
+                            fontSize: 10.5,
+                            fontWeight: 650,
+                            padding: '2px 7px',
+                            borderRadius: 6,
+                            background: 'var(--surface3)',
+                            color: 'var(--text)',
+                            border: '1px solid var(--border)',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 13,
+                              height: 13,
+                              borderRadius: '50%',
+                              background: getAvatarStyle(fInfo.friend.color).background,
+                              color: '#ffffff',
+                              fontSize: 7.5,
+                              fontWeight: 700,
+                              display: 'grid',
+                              placeItems: 'center',
+                              lineHeight: 1,
+                            }}
+                          >
+                            {friendInitial(fInfo.friend.name, fInfo.friend.avatarNumber)}
+                          </span>
+                          <span>{fInfo.friend.name}</span>
+                        </span>
+                      ) : null}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2.5, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span>{fmtDate(e.originalDate || e.date)}</span>
                       {e.category ? (
                         <>
@@ -447,7 +793,6 @@ export default function SettleExpensePickerModal({
           style={{
             padding: '12px 18px calc(12px + env(safe-area-inset-bottom, 0px))',
             background: 'var(--surface)',
-            borderTop: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',

@@ -698,7 +698,6 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                     style={{
                       marginTop: 8,
                       paddingTop: 8,
-                      borderTop: '1px dashed var(--border)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -768,7 +767,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
             </div>
           </div>
 
-          <div className="modal-footer" style={{ padding: '12px 18px', display: 'flex', gap: 10, background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
+          <div className="modal-footer" style={{ padding: '12px 18px', display: 'flex', gap: 10, background: 'var(--surface)', borderTop: 'none' }}>
             <button
               type="button"
               className="btn btn-secondary"
@@ -826,7 +825,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
               <div className="modal-handle-bar">
                 <div className="modal-handle" />
               </div>
-              <div className="modal-header" style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
+              <div className="modal-header" style={{ padding: '14px 18px', borderBottom: 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent-soft)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
                     <Repeat size={15} />
@@ -1051,7 +1050,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
                 )}
               </div>
 
-              <div className="modal-footer" style={{ padding: '12px 18px', display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
+              <div className="modal-footer" style={{ padding: '12px 18px', display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: 'none', background: 'var(--surface)' }}>
                 <button type="button" className="btn btn-secondary btn-sm" style={{ borderRadius: 8, fontSize: 12, height: 34, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }} onClick={() => setIsCycleModalOpen(false)}>
                   Cancel
                 </button>

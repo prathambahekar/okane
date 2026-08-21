@@ -350,14 +350,62 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
                           <div
                             style={{
                               fontSize: 13,
-                              fontWeight: 600,
+                              fontWeight: 650,
                               color: 'var(--text)',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
                             }}
                           >
-                            {cleanExpenseDescription(exp.description) || 'Expense'}
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {cleanExpenseDescription(exp.description) || 'Expense'}
+                            </span>
+                            {(() => {
+                              if (friend?.type !== 'vendor') return null;
+                              const expFriend = (exp.friendId && exp.friendId !== friend.id) ? friends.find(f => f && f.id === exp.friendId) : null;
+                              if (expFriend) {
+                                return (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3.5,
+                                      fontSize: 10,
+                                      fontWeight: 650,
+                                      padding: '1.5px 6px',
+                                      borderRadius: 5,
+                                      background: 'var(--surface3)',
+                                      color: 'var(--text)',
+                                      border: '1px solid var(--border)',
+                                      whiteSpace: 'nowrap',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        width: 12,
+                                        height: 12,
+                                        borderRadius: '50%',
+                                        background: getAvatarStyle(expFriend.color).background,
+                                        color: '#ffffff',
+                                        fontSize: 7.5,
+                                        fontWeight: 700,
+                                        display: 'grid',
+                                        placeItems: 'center',
+                                        lineHeight: 1,
+                                      }}
+                                    >
+                                      {friendInitial(expFriend.name, expFriend.avatarNumber)}
+                                    </span>
+                                    <span>{expFriend.name}</span>
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-3)', marginTop: 2, flexWrap: 'wrap' }}>
                             <span>{fmtDate(exp.originalDate || exp.date)}</span>

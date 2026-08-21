@@ -2868,33 +2868,37 @@ table.desktop-only { display: table !important; }
 }
 
 .mobile-action-btn.action-edit {
-  background: var(--surface2);
+  background: var(--surface);
   color: var(--text);
-  border-color: var(--border);
+  border: 1px solid var(--border);
+  font-weight: 600;
 }
 .mobile-action-btn.action-edit:hover {
-  background: var(--surface3);
+  background: var(--surface2);
   border-color: var(--border2);
+  transform: translateY(-1px);
 }
 
 .mobile-action-btn.action-undo {
-  background: rgba(245, 158, 11, 0.08);
+  background: rgba(245, 158, 11, 0.1);
   color: #f59e0b;
   border-color: rgba(245, 158, 11, 0.25);
 }
 .mobile-action-btn.action-undo:hover {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(245, 158, 11, 0.18);
   border-color: rgba(245, 158, 11, 0.4);
+  transform: translateY(-1px);
 }
 
 .mobile-action-btn.action-delete {
-  background: rgba(239, 68, 68, 0.08);
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.25);
+  background: var(--debit-soft, rgba(239, 68, 68, 0.08));
+  color: var(--debit, #ef4444);
+  border-color: rgba(239, 68, 68, 0.2);
 }
 .mobile-action-btn.action-delete:hover {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.35);
+  transform: translateY(-1px);
 }
 
 .mobile-action-btn:active {
@@ -5410,8 +5414,9 @@ body.no-animations *::after,
   }
 }
 
-/* Floating Add Contact Button - Matches FloatingSearchButton design */
-.floating-add-contact-btn {
+/* Floating Add Buttons - Matches FloatingSearchButton design */
+.floating-add-contact-btn,
+.floating-add-autopay-btn {
   position: relative;
   height: 46px;
   width: 46px;
@@ -5429,14 +5434,16 @@ body.no-animations *::after,
   padding: 0;
 }
 
-.floating-add-contact-btn:hover {
+.floating-add-contact-btn:hover,
+.floating-add-autopay-btn:hover {
   background-color: var(--surface3);
   border-color: var(--accent);
   color: var(--accent);
   transform: scale(1.08);
 }
 
-.floating-add-contact-btn:active {
+.floating-add-contact-btn:active,
+.floating-add-autopay-btn:active {
   transform: scale(0.95);
 }
 

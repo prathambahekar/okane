@@ -165,10 +165,12 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
               <span style={{ fontWeight: 500, flexShrink: 0 }}>{ge.category}</span>
 
               {vendor && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--text-2)', flexShrink: 0 }}>
-                  <span style={{ color: 'var(--text-3)', marginRight: 1 }}>•</span>
-                  <Store size={11} style={{ color: 'var(--accent)' }} />
-                  <span>{vendor.name}</span>
+                <span
+                  style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--accent)', flexShrink: 0 }}
+                  title={`Vendor: ${vendor.name}`}
+                >
+                  <span style={{ color: 'var(--text-3)', marginRight: 3 }}>•</span>
+                  <Store size={12} strokeWidth={2.2} />
                 </span>
               )}
 
@@ -284,8 +286,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
               className="mobile-expense-detail-item"
               style={{
                 gridColumn: '1 / -1',
-                borderBottom: '1px solid var(--border)',
-                paddingBottom: 8,
+                paddingBottom: 2,
                 marginBottom: 2,
               }}
             >
@@ -352,8 +353,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                 className="mobile-expense-detail-item"
                 style={{
                   gridColumn: '1 / -1',
-                  borderTop: '1px solid var(--border)',
-                  paddingTop: 8,
+                  paddingTop: 2,
                   marginTop: 2,
                 }}
               >
@@ -380,7 +380,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
           {!isTransfer && (ge.isSplit || ge.isSettlementGroup || (ge.items.length > 1 && ge.friendIds.length > 0)) && (
             <div
               style={{
-                background: 'var(--surface2)',
+                background: 'var(--surface)',
                 borderRadius: 10,
                 padding: '12px 14px',
                 border: '1px solid var(--border)',
@@ -392,9 +392,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  paddingBottom: 8,
-                  marginBottom: 6,
-                  borderBottom: '1px solid var(--border)',
+                  marginBottom: 10,
                 }}
               >
                 <div
@@ -417,7 +415,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                     fontSize: 11,
                     fontWeight: 650,
                     color: 'var(--text-2)',
-                    background: 'var(--surface)',
+                    background: 'var(--surface2)',
                     padding: '2px 8px',
                     borderRadius: 6,
                     border: '1px solid var(--border)',
@@ -428,10 +426,10 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
               </div>
 
               {/* Items List */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {ge.items
                   .filter((item: Expense) => !(item.type === 'personal' && (Number(item.amount) || 0) <= 0))
-                  .map((item: Expense, idx: number, arr: Expense[]) => {
+                  .map((item: Expense, idx: number) => {
                     const itemFriend = item.friendId ? friendsMap.get(item.friendId) : null;
                     const isMine = item.type === 'personal';
                     const name = itemFriend?.name ?? 'Contact';
@@ -439,7 +437,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                     let primaryName = name;
                     let actionSubtitle = 'Split share';
                     let statusPill = (
-                      <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 5, background: 'rgba(34, 197, 94, 0.12)', color: 'var(--credit)' }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: '1.5px 6px', borderRadius: 5, background: 'var(--credit-soft, rgba(34, 197, 94, 0.12))', color: 'var(--credit)' }}>
                         Settled ✓
                       </span>
                     );
@@ -450,15 +448,15 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                       primaryName = itemDesc;
                       actionSubtitle = `Original date: ${itemDateStr}`;
                       statusPill = (
-                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 5, background: 'rgba(34, 197, 94, 0.12)', color: 'var(--credit)' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1.5px 6px', borderRadius: 5, background: 'var(--credit-soft, rgba(34, 197, 94, 0.12))', color: 'var(--credit)' }}>
                           Settled ✓
                         </span>
                       );
                     } else if (isMine) {
-                      primaryName = 'You (Your Share)';
+                      primaryName = 'You';
                       actionSubtitle = 'Your personal share';
                       statusPill = (
-                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 5, background: 'var(--surface)', color: 'var(--text-3)', border: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1.5px 6px', borderRadius: 5, background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)' }}>
                           Personal
                         </span>
                       );
@@ -466,11 +464,11 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                       primaryName = name;
                       actionSubtitle = item.settled ? 'Paid their share to you' : 'Owes you their share';
                       statusPill = item.settled ? (
-                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 5, background: 'rgba(34, 197, 94, 0.12)', color: 'var(--credit)' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1.5px 6px', borderRadius: 5, background: 'var(--credit-soft, rgba(34, 197, 94, 0.12))', color: 'var(--credit)' }}>
                           Settled ✓
                         </span>
                       ) : (
-                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 5, background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1.5px 6px', borderRadius: 5, background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
                           Owes You
                         </span>
                       );
@@ -478,11 +476,11 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                       primaryName = name;
                       actionSubtitle = item.settled ? 'Paid bill' : (vendor ? 'Vendor bill to pay' : 'You owe them');
                       statusPill = item.settled ? (
-                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 5, background: 'rgba(34, 197, 94, 0.12)', color: 'var(--credit)' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1.5px 6px', borderRadius: 5, background: 'var(--credit-soft, rgba(34, 197, 94, 0.12))', color: 'var(--credit)' }}>
                           Settled ✓
                         </span>
                       ) : (
-                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 5, background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1.5px 6px', borderRadius: 5, background: 'var(--debit-soft, rgba(239, 68, 68, 0.12))', color: 'var(--debit)', border: '1px solid rgba(239, 68, 68, 0.25)' }}>
                           Unpaid
                         </span>
                       );
@@ -499,36 +497,37 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          padding: '8px 2px',
-                          borderBottom: idx < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                          padding: '6px 4px',
+                          borderRadius: 8,
+                          transition: 'background 0.15s ease',
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                           {isMine ? (
                             <div
                               style={{
-                                width: 26,
-                                height: 26,
+                                width: 28,
+                                height: 28,
                                 borderRadius: '50%',
-                                background: 'var(--surface)',
+                                background: 'var(--surface2)',
                                 border: '1px solid var(--border)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: 'var(--text-3)',
+                                color: 'var(--text-2)',
                                 flexShrink: 0,
                               }}
                             >
-                              <User size={13} />
+                              <User size={14} />
                             </div>
                           ) : (
                             <span
                               className="avatar avatar-sm"
                               style={{
                                 ...getAvatarStyle(itemFriend?.color),
-                                width: 26,
-                                height: 26,
-                                fontSize: 10,
+                                width: 28,
+                                height: 28,
+                                fontSize: 10.5,
                                 fontWeight: 700,
                                 flexShrink: 0,
                               }}
