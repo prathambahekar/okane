@@ -10,12 +10,10 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
-  X,
   Edit2,
   Trash2,
   Wallet,
   User,
-  Tag,
   Award,
   Check
 } from 'lucide-react';
@@ -28,25 +26,16 @@ function formatISO(d: Date): string {
   return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`;
 }
 
-function formatDateLabel(dateStr: string): string {
-  if (!dateStr) return '';
-  const parts = dateStr.split('-');
-  if (parts.length !== 3) return dateStr;
-  const [y, m, d] = parts.map(Number);
-  if (!y || !m || !d) return dateStr;
-  const dt = new Date(y, m - 1, d);
-  return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
 export default function Analytics() {
   const { db, deleteExpense, showToast } = useStore();
   const { expenses, wallets, friends, settings: { currency } } = db;
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [chartMode, setChartMode] = useState<'weekly' | 'monthly'>('weekly');
-  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [expandedGroupIds, setExpandedGroupIds] = useState<Record<string, boolean>>({});
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -64,25 +53,34 @@ export default function Analytics() {
   // Base expense filter using grouped expenses
   const groupedExpenses = useMemo(() => groupExpenses(expenses, wallets), [expenses, wallets]);
 
-  // Filtered expenses according to category, date, or month
+  // Filtered expenses according to category, date, week, or month
   const filteredExpenses = useMemo(() => {
     return groupedExpenses.filter(ge => {
       if (selectedCategory && ge.category !== selectedCategory) return false;
       if (selectedDate) return ge.date === selectedDate;
-      if (selectedMonth) return ge.date.slice(0, 7) === selectedMonth;
+      if (chartMode === 'weekly' && selectedWeek) {
+        const [wy, wm, wd] = selectedWeek.split('-').map(Number);
+        const monD = new Date(wy, wm - 1, wd);
+        const sunD = new Date(monD.getFullYear(), monD.getMonth(), monD.getDate() + 6);
+        const sunStr = formatISO(sunD);
+        if (ge.date < selectedWeek || ge.date > sunStr) return false;
+      } else if (chartMode === 'monthly' && selectedMonth) {
+        if (ge.date.slice(0, 7) !== selectedMonth) return false;
+      }
       return true;
     });
-  }, [groupedExpenses, selectedCategory, selectedDate, selectedMonth]);
+  }, [groupedExpenses, selectedCategory, selectedDate, chartMode, selectedWeek, selectedMonth]);
 
   // Outflow total
   const totalSpent = useMemo(() =>
     filteredExpenses.filter(ge => ge.flow === 'out').reduce((sum, ge) => sum + Number(ge.totalAmount), 0),
   [filteredExpenses]);
 
-  // Days in selected timeframe or selected month
+  // Days in selected timeframe or selected month / week
   const daysInPeriod = useMemo(() => {
     if (selectedDate) return 1;
-    if (selectedMonth) {
+    if (chartMode === 'weekly' && selectedWeek) return 7;
+    if (chartMode === 'monthly' && selectedMonth) {
       const [y, m] = selectedMonth.split('-').map(Number);
       const isCurrentM = selectedMonth === todayStr.slice(0, 7);
       const totalDaysInM = new Date(y, m, 0).getDate();
@@ -94,7 +92,7 @@ export default function Analytics() {
     const minDate = Math.min(...dates);
     const diffDays = Math.ceil((now.getTime() - minDate) / (1000 * 60 * 60 * 24));
     return Math.max(1, diffDays);
-  }, [now, groupedExpenses, selectedDate, selectedMonth, todayStr]);
+  }, [now, groupedExpenses, selectedDate, chartMode, selectedWeek, selectedMonth, todayStr]);
 
   const dailyAvgSpend = totalSpent / daysInPeriod;
 
@@ -315,6 +313,12 @@ export default function Analytics() {
     return weeks;
   }, [groupedExpenses, selectedCategory, selectedMonth, todayStr, yesterdayStr]);
 
+  // Selected Week details
+  const selectedWeekObj = useMemo(() => {
+    if (!selectedWeek) return null;
+    return weeklyWeeks.find(w => w.weekMonStr === selectedWeek) || null;
+  }, [selectedWeek, weeklyWeeks]);
+
   // Auto-scroll to the rightmost week (This Week) on load or week update
   useEffect(() => {
     if (chartScrollRef.current) {
@@ -417,69 +421,10 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Active Filter Indicators */}
-      {(selectedDate || selectedMonth || selectedCategory) && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-          {selectedDate && (
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px',
-              background: 'var(--accent-soft)', border: '1px solid var(--accent)',
-              borderRadius: 99, fontSize: 12, color: 'var(--accent)', fontWeight: 600,
-            }}>
-              <Calendar size={13} />
-              Date: {formatDateLabel(selectedDate)}
-              <button
-                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex' }}
-                onClick={() => setSelectedDate(null)}
-                title="Clear date filter"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          )}
-
-          {selectedMonth && (
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px',
-              background: 'var(--accent-soft)', border: '1px solid var(--accent)',
-              borderRadius: 99, fontSize: 12, color: 'var(--accent)', fontWeight: 600,
-            }}>
-              <Calendar size={13} />
-              Month: {selectedMonthObj?.fullMonthName || selectedMonth}
-              <button
-                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex' }}
-                onClick={() => setSelectedMonth(null)}
-                title="Clear month filter"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          )}
-
-          {selectedCategory && (
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px',
-              background: 'var(--accent-soft)', border: '1px solid var(--accent)',
-              borderRadius: 99, fontSize: 12, color: 'var(--accent)', fontWeight: 600,
-            }}>
-              <Tag size={13} />
-              Category: {selectedCategory}
-              <button
-                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex' }}
-                onClick={() => setSelectedCategory(null)}
-                title="Clear category filter"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Spending Bar Chart (Interactive Weekly / Monthly View) */}
       <div className="card" style={{ padding: '18px 20px', marginBottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
         {/* Top Header Row: Title & Icon on Left, Segmented Control on Right */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
@@ -500,11 +445,6 @@ export default function Analytics() {
               <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: 0, lineHeight: 1.2 }}>
                 {chartMode === 'monthly' ? 'Monthly Spending' : 'Weekly Spending'}
               </h3>
-              {selectedMonthObj && (
-                <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>
-                  {selectedMonthObj.fullMonthName}
-                </span>
-              )}
             </div>
           </div>
 
@@ -512,7 +452,12 @@ export default function Analytics() {
           <div style={{ display: 'inline-flex', background: 'var(--surface2)', padding: 3, borderRadius: 'var(--radius)', border: '1px solid var(--border)', flexShrink: 0 }}>
             <button
               type="button"
-              onClick={() => setChartMode('weekly')}
+              onClick={() => {
+                setChartMode('weekly');
+                setSelectedMonth(null);
+                setSelectedDate(null);
+                setIsPickerOpen(false);
+              }}
               style={{
                 padding: '4px 11px',
                 fontSize: 12,
@@ -529,7 +474,12 @@ export default function Analytics() {
             </button>
             <button
               type="button"
-              onClick={() => setChartMode('monthly')}
+              onClick={() => {
+                setChartMode('monthly');
+                setSelectedWeek(null);
+                setSelectedDate(null);
+                setIsPickerOpen(false);
+              }}
               style={{
                 padding: '4px 11px',
                 fontSize: 12,
@@ -547,22 +497,22 @@ export default function Analytics() {
           </div>
         </div>
 
-        {/* Sub Header Toolbar Row: Month Filter Dropdown on Left, Average Metric Badge on Right */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingTop: 10, borderTop: '1px solid var(--border)', marginBottom: 16, flexWrap: 'wrap' }}>
-          {/* Custom Month Selector Popover */}
+        {/* Sub Header Toolbar Row: Period Filter Dropdown on Left, Average Metric Badge on Right */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 16 }}>
+          {/* Custom Period (Week / Month) Selector Popover */}
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <button
               type="button"
-              onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
+              onClick={() => setIsPickerOpen(!isPickerOpen)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '5px 11px',
+                gap: 7,
+                padding: selectedWeekObj ? '4px 10px' : '5px 11px',
                 borderRadius: 'var(--radius)',
                 border: '1px solid var(--border)',
-                background: selectedMonth ? 'var(--accent-soft)' : 'var(--surface2)',
-                color: selectedMonth ? 'var(--accent)' : 'var(--text)',
+                background: (chartMode === 'weekly' ? selectedWeek : selectedMonth) ? 'var(--accent-soft)' : 'var(--surface2)',
+                color: (chartMode === 'weekly' ? selectedWeek : selectedMonth) ? 'var(--accent)' : 'var(--text)',
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -570,16 +520,29 @@ export default function Analytics() {
                 transition: 'all 0.15s ease',
               }}
             >
-              <Calendar size={13} style={{ color: selectedMonth ? 'var(--accent)' : 'var(--text-3)' }} />
-              <span>{selectedMonthObj ? selectedMonthObj.fullMonthName : 'All Months'}</span>
-              <ChevronDown size={13} style={{ opacity: 0.7, transform: isMonthPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+              <Calendar size={13} style={{ color: (chartMode === 'weekly' ? selectedWeek : selectedMonth) ? 'var(--accent)' : 'var(--text-3)', flexShrink: 0 }} />
+              {chartMode === 'weekly' ? (
+                selectedWeekObj ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15, textAlign: 'left' }}>
+                    <span style={{ fontSize: 12, fontWeight: 650 }}>{selectedWeekObj.label}</span>
+                    <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.8, color: 'inherit' }}>
+                      ({selectedWeekObj.dateRange})
+                    </span>
+                  </div>
+                ) : (
+                  <span>All Weeks</span>
+                )
+              ) : (
+                <span>{selectedMonthObj ? selectedMonthObj.fullMonthName : 'All Months'}</span>
+              )}
+              <ChevronDown size={13} style={{ opacity: 0.7, transform: isPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }} />
             </button>
 
-            {isMonthPickerOpen && (
+            {isPickerOpen && (
               <>
                 <div
                   style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-                  onClick={() => setIsMonthPickerOpen(false)}
+                  onClick={() => setIsPickerOpen(false)}
                 />
                 <div
                   style={{
@@ -587,7 +550,7 @@ export default function Analytics() {
                     top: 'calc(100% + 6px)',
                     left: 0,
                     zIndex: 100,
-                    width: 230,
+                    width: 250,
                     maxHeight: 280,
                     overflowY: 'auto',
                     background: 'var(--surface)',
@@ -598,46 +561,14 @@ export default function Analytics() {
                     animation: 'fadein 0.15s ease',
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedMonth(null);
-                      setSelectedDate(null);
-                      setIsMonthPickerOpen(false);
-                    }}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '7px 10px',
-                      borderRadius: 'var(--radius)',
-                      background: !selectedMonth ? 'var(--surface2)' : 'transparent',
-                      border: 'none',
-                      color: !selectedMonth ? 'var(--accent)' : 'var(--text)',
-                      fontSize: 12,
-                      fontWeight: !selectedMonth ? 700 : 500,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <span>All Months</span>
-                    {!selectedMonth && <Check size={14} style={{ color: 'var(--accent)' }} />}
-                  </button>
-
-                  <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-
-                  {monthlyMonths.map((m) => {
-                    const isSelected = selectedMonth === m.monthKey;
-                    return (
+                  {chartMode === 'weekly' ? (
+                    <>
                       <button
-                        key={m.monthKey}
                         type="button"
                         onClick={() => {
-                          setSelectedMonth(m.monthKey);
+                          setSelectedWeek(null);
                           setSelectedDate(null);
-                          setChartMode('weekly');
-                          setIsMonthPickerOpen(false);
+                          setIsPickerOpen(false);
                         }}
                         style={{
                           width: '100%',
@@ -646,25 +577,130 @@ export default function Analytics() {
                           justifyContent: 'space-between',
                           padding: '7px 10px',
                           borderRadius: 'var(--radius)',
-                          background: isSelected ? 'var(--accent-soft)' : 'transparent',
+                          background: !selectedWeek ? 'var(--surface2)' : 'transparent',
                           border: 'none',
-                          color: isSelected ? 'var(--accent)' : 'var(--text)',
+                          color: !selectedWeek ? 'var(--accent)' : 'var(--text)',
                           fontSize: 12,
-                          fontWeight: isSelected ? 700 : 500,
+                          fontWeight: !selectedWeek ? 700 : 500,
                           cursor: 'pointer',
                           textAlign: 'left',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Calendar size={12} style={{ opacity: 0.6 }} />
-                          <span>{m.fullMonthName}</span>
-                        </div>
-                        <span style={{ fontSize: 11, color: isSelected ? 'var(--accent)' : 'var(--text-3)', fontWeight: 600 }}>
-                          {fmtMoney(m.spend, currency)}
-                        </span>
+                        <span>All Weeks</span>
+                        {!selectedWeek && <Check size={14} style={{ color: 'var(--accent)' }} />}
                       </button>
-                    );
-                  })}
+
+                      {[...weeklyWeeks].reverse().map((w) => {
+                        const isSelected = selectedWeek === w.weekMonStr;
+                        return (
+                          <button
+                            key={w.weekMonStr}
+                            type="button"
+                            onClick={() => {
+                              setSelectedWeek(w.weekMonStr);
+                              setSelectedDate(null);
+                              setIsPickerOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '7px 10px',
+                              borderRadius: 'var(--radius)',
+                              background: isSelected ? 'var(--accent-soft)' : 'transparent',
+                              border: 'none',
+                              color: isSelected ? 'var(--accent)' : 'var(--text)',
+                              fontSize: 12,
+                              fontWeight: isSelected ? 700 : 500,
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                            }}
+                          >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Calendar size={12} style={{ opacity: 0.6 }} />
+                                <span>{w.label}</span>
+                              </div>
+                              <span style={{ fontSize: 10, color: 'var(--text-3)', paddingLeft: 18 }}>
+                                {w.dateRange}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: 11, color: isSelected ? 'var(--accent)' : 'var(--text-3)', fontWeight: 600 }}>
+                              {fmtMoney(w.weekTotal, currency)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMonth(null);
+                          setSelectedDate(null);
+                          setIsPickerOpen(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius)',
+                          background: !selectedMonth ? 'var(--surface2)' : 'transparent',
+                          border: 'none',
+                          color: !selectedMonth ? 'var(--accent)' : 'var(--text)',
+                          fontSize: 12,
+                          fontWeight: !selectedMonth ? 700 : 500,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <span>All Months</span>
+                        {!selectedMonth && <Check size={14} style={{ color: 'var(--accent)' }} />}
+                      </button>
+
+                      {monthlyMonths.map((m) => {
+                        const isSelected = selectedMonth === m.monthKey;
+                        return (
+                          <button
+                            key={m.monthKey}
+                            type="button"
+                            onClick={() => {
+                              setSelectedMonth(m.monthKey);
+                              setSelectedDate(null);
+                              setIsPickerOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '7px 10px',
+                              borderRadius: 'var(--radius)',
+                              background: isSelected ? 'var(--accent-soft)' : 'transparent',
+                              border: 'none',
+                              color: isSelected ? 'var(--accent)' : 'var(--text)',
+                              fontSize: 12,
+                              fontWeight: isSelected ? 700 : 500,
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Calendar size={12} style={{ opacity: 0.6 }} />
+                              <span>{m.fullMonthName}</span>
+                            </div>
+                            <span style={{ fontSize: 11, color: isSelected ? 'var(--accent)' : 'var(--text-3)', fontWeight: 600 }}>
+                              {fmtMoney(m.spend, currency)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -698,7 +734,7 @@ export default function Analytics() {
           </div>
         </div>
 
-        {/* Chart Content Container with Grid Line Baseline */}
+        {/* Chart Content Container */}
         {chartMode === 'monthly' ? (
           /* Horizontally Scrollable Interactive Monthly Spending Chart */
           <div
@@ -713,20 +749,6 @@ export default function Analytics() {
               paddingTop: 8,
             }}
           >
-            {/* Background Dashed Grid Baseline */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 34,
-                left: 0,
-                right: 0,
-                height: 1,
-                borderTop: '1px dashed var(--border)',
-                pointerEvents: 'none',
-                opacity: 0.8,
-              }}
-            />
-
             <div
               style={{
                 display: 'flex',
@@ -856,24 +878,10 @@ export default function Analytics() {
               paddingTop: 8,
             }}
           >
-            {/* Background Dashed Grid Baseline */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 34,
-                left: 0,
-                right: 0,
-                height: 1,
-                borderTop: '1px dashed var(--border)',
-                pointerEvents: 'none',
-                opacity: 0.8,
-              }}
-            />
-
             <div
               style={{
                 display: 'flex',
-                gap: 16,
+                gap: 20,
                 alignItems: 'flex-end',
                 paddingTop: 12,
                 paddingBottom: 4,
@@ -882,7 +890,7 @@ export default function Analytics() {
                 zIndex: 1,
               }}
             >
-              {weeklyWeeks.map((week, wIdx) => {
+              {(selectedWeek ? weeklyWeeks.filter(w => w.weekMonStr === selectedWeek) : weeklyWeeks).map((week) => {
                 const isCurrent = week.isCurrentWeek;
                 return (
                   <div
@@ -890,8 +898,6 @@ export default function Analytics() {
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      paddingRight: wIdx < weeklyWeeks.length - 1 ? 16 : 0,
-                      borderRight: wIdx < weeklyWeeks.length - 1 ? '1px solid var(--border)' : 'none',
                     }}
                   >
                     {/* Week Label & Total */}
