@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useStore } from '../store';
 import { fmtMoney, groupExpenses, type GroupedExpense } from '../utils';
 import { CategoryBadge } from '../components/CategoryIcon';
@@ -10,12 +11,15 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Edit2,
   Trash2,
   Wallet,
   User,
   Award,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 
 function padZero(n: number): string {
@@ -24,6 +28,20 @@ function padZero(n: number): string {
 
 function formatISO(d: Date): string {
   return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`;
+}
+
+function fmtCompactMoney(amount: number, currency: string): string {
+  if (amount === 0) return '-';
+  const sym = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+  if (amount >= 1000000) {
+    const val = (amount / 1000000).toFixed(1).replace(/\.0$/, '');
+    return `${sym}${val}M`;
+  }
+  if (amount >= 10000) {
+    const val = (amount / 1000).toFixed(1).replace(/\.0$/, '');
+    return `${sym}${val}k`;
+  }
+  return `${sym}${Math.round(amount).toLocaleString()}`;
 }
 
 export default function Analytics() {
@@ -40,6 +58,39 @@ export default function Analytics() {
   const [expandedGroupIds, setExpandedGroupIds] = useState<Record<string, boolean>>({});
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showCategoryDrawer, setShowCategoryDrawer] = useState(false);
+
+  // Floating Action Button Portal Target
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(() => {
+    if (typeof document !== 'undefined') {
+      return document.getElementById('floating-extra-actions-slot');
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (!portalTarget) {
+      const interval = setInterval(() => {
+        const slot = document.getElementById('floating-extra-actions-slot');
+        if (slot) {
+          setPortalTarget(slot);
+          clearInterval(interval);
+        }
+      }, 50);
+      return () => clearInterval(interval);
+    }
+  }, [portalTarget]);
+
+  // Lock body scroll when Category Drawer is open
+  useEffect(() => {
+    if (showCategoryDrawer) {
+      const origOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = origOverflow;
+      };
+    }
+  }, [showCategoryDrawer]);
 
   const now = useMemo(() => new Date(), []);
   const todayStr = useMemo(() => formatISO(now), [now]);
@@ -97,6 +148,75 @@ export default function Analytics() {
   const dailyAvgSpend = totalSpent / daysInPeriod;
 
   const chartScrollRef = useRef<HTMLDivElement>(null);
+
+  // Desktop mouse drag-to-scroll & wheel scrolling
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeftStart, setScrollLeftStart] = useState(0);
+  const [hasMoved, setHasMoved] = useState(false);
+  const isWheelScrolling = useRef(false);
+
+  useEffect(() => {
+    const el = chartScrollRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (Math.abs(delta) < 5) return;
+
+      e.preventDefault();
+
+      if (isWheelScrolling.current) return;
+      isWheelScrolling.current = true;
+
+      const step = el.clientWidth;
+      const dir = delta > 0 ? 1 : -1;
+      el.scrollBy({ left: dir * step, behavior: 'smooth' });
+
+      setTimeout(() => {
+        isWheelScrolling.current = false;
+      }, 300);
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [chartMode]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const el = chartScrollRef.current;
+    if (!el) return;
+    setIsMouseDown(true);
+    setHasMoved(false);
+    setStartX(e.clientX);
+    setScrollLeftStart(el.scrollLeft);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isMouseDown) return;
+    const el = chartScrollRef.current;
+    if (!el) return;
+    e.preventDefault();
+    const diff = e.clientX - startX;
+    if (Math.abs(diff) > 5) {
+      setHasMoved(true);
+    }
+    el.scrollLeft = scrollLeftStart - diff;
+  };
+
+  const handleMouseUpOrLeave = (e: React.MouseEvent) => {
+    if (!isMouseDown) return;
+    setIsMouseDown(false);
+
+    const el = chartScrollRef.current;
+    if (!el) return;
+
+    const diff = e.clientX - startX;
+    if (Math.abs(diff) > 20) {
+      const dir = diff < 0 ? 1 : -1;
+      const targetScroll = scrollLeftStart + dir * el.clientWidth;
+      el.scrollTo({ left: targetScroll, behavior: 'smooth' });
+    }
+  };
 
   // Multi-month Chart Data for Interactive Monthly Spending Chart
   const monthlyMonths = useMemo(() => {
@@ -319,12 +439,27 @@ export default function Analytics() {
     return weeklyWeeks.find(w => w.weekMonStr === selectedWeek) || null;
   }, [selectedWeek, weeklyWeeks]);
 
-  // Auto-scroll to the rightmost week (This Week) on load or week update
+  // Auto-scroll when selectedWeek or chartMode changes
   useEffect(() => {
-    if (chartScrollRef.current) {
+    if (!chartScrollRef.current) return;
+    if (chartMode === 'weekly') {
+      if (selectedWeek) {
+        const target = chartScrollRef.current.querySelector(`[data-week-id="${selectedWeek}"]`) as HTMLElement;
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        }
+      } else {
+        chartScrollRef.current.scrollTo({ left: chartScrollRef.current.scrollWidth, behavior: 'smooth' });
+      }
+    }
+  }, [selectedWeek, chartMode]);
+
+  // Initial scroll to rightmost week (This Week) on load or week list recalculation
+  useEffect(() => {
+    if (chartScrollRef.current && chartMode === 'weekly' && !selectedWeek) {
       chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
     }
-  }, [weeklyWeeks]);
+  }, [weeklyWeeks, chartMode, selectedWeek]);
 
   // Daily log breakdown
   const perDayList = useMemo(() => {
@@ -465,7 +600,7 @@ export default function Analytics() {
                 borderRadius: 6,
                 border: 'none',
                 background: chartMode === 'weekly' ? 'var(--accent)' : 'transparent',
-                color: chartMode === 'weekly' ? '#ffffff' : 'var(--text-2)',
+                color: chartMode === 'weekly' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -487,7 +622,7 @@ export default function Analytics() {
                 borderRadius: 6,
                 border: 'none',
                 background: chartMode === 'monthly' ? 'var(--accent)' : 'transparent',
-                color: chartMode === 'monthly' ? '#ffffff' : 'var(--text-2)',
+                color: chartMode === 'monthly' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -497,10 +632,10 @@ export default function Analytics() {
           </div>
         </div>
 
-        {/* Sub Header Toolbar Row: Period Filter Dropdown on Left, Average Metric Badge on Right */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 16 }}>
+        {/* Sub Header Toolbar Row: Period Filter Dropdown on Left, Average Metric Badge and Nav Arrows on Right */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
           {/* Custom Period (Week / Month) Selector Popover */}
-          <div style={{ position: 'relative', display: 'inline-block' }}>
+          <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => setIsPickerOpen(!isPickerOpen)}
@@ -508,7 +643,7 @@ export default function Analytics() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 7,
-                padding: selectedWeekObj ? '4px 10px' : '5px 11px',
+                padding: selectedWeekObj ? '4px 10px' : '6px 11px',
                 borderRadius: 'var(--radius)',
                 border: '1px solid var(--border)',
                 background: (chartMode === 'weekly' ? selectedWeek : selectedMonth) ? 'var(--accent-soft)' : 'var(--surface2)',
@@ -517,23 +652,24 @@ export default function Analytics() {
                 fontWeight: 600,
                 cursor: 'pointer',
                 outline: 'none',
+                whiteSpace: 'nowrap',
                 transition: 'all 0.15s ease',
               }}
             >
               <Calendar size={13} style={{ color: (chartMode === 'weekly' ? selectedWeek : selectedMonth) ? 'var(--accent)' : 'var(--text-3)', flexShrink: 0 }} />
               {chartMode === 'weekly' ? (
                 selectedWeekObj ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15, textAlign: 'left' }}>
-                    <span style={{ fontSize: 12, fontWeight: 650 }}>{selectedWeekObj.label}</span>
-                    <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.8, color: 'inherit' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: 1.25 }}>
+                    <span style={{ fontSize: 12, fontWeight: 650, whiteSpace: 'nowrap' }}>{selectedWeekObj.label}</span>
+                    <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.85, color: 'inherit', whiteSpace: 'nowrap' }}>
                       ({selectedWeekObj.dateRange})
                     </span>
                   </div>
                 ) : (
-                  <span>All Weeks</span>
+                  <span style={{ whiteSpace: 'nowrap' }}>All Weeks</span>
                 )
               ) : (
-                <span>{selectedMonthObj ? selectedMonthObj.fullMonthName : 'All Months'}</span>
+                <span style={{ whiteSpace: 'nowrap' }}>{selectedMonthObj ? selectedMonthObj.fullMonthName : 'All Months'}</span>
               )}
               <ChevronDown size={13} style={{ opacity: 0.7, transform: isPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }} />
             </button>
@@ -706,162 +842,270 @@ export default function Analytics() {
             )}
           </div>
 
-          {/* Average Spending Metric Badge */}
-          <div
-            style={{
-              fontSize: 12,
-              color: 'var(--text-2)',
-              background: 'var(--surface2)',
-              padding: '5px 11px',
-              borderRadius: 'var(--radius)',
-              border: '1px solid var(--border)',
-              whiteSpace: 'nowrap',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-            }}
-          >
-            <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>Avg</span>
-            <strong style={{ color: 'var(--text)', fontWeight: 700 }}>
-              {fmtMoney(
-                chartMode === 'monthly'
-                  ? monthlyMonths.reduce((s, m) => s + m.spend, 0) / Math.max(1, monthlyMonths.length)
-                  : dailyAvgSpend,
-                currency
-              )}
-            </strong>
-            <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>/ {chartMode === 'monthly' ? 'month' : 'day'}</span>
+          {/* Average Metric Badge (Top) & Scroll Arrows (Below) */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--text-2)',
+                background: 'var(--surface2)',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius)',
+                border: '1px solid var(--border)',
+                whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
+              <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>Avg</span>
+              <strong style={{ color: 'var(--text)', fontWeight: 700 }}>
+                {fmtMoney(
+                  chartMode === 'monthly'
+                    ? monthlyMonths.reduce((s, m) => s + m.spend, 0) / Math.max(1, monthlyMonths.length)
+                    : dailyAvgSpend,
+                  currency
+                )}
+              </strong>
+              <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>/ {chartMode === 'monthly' ? 'month' : 'day'}</span>
+            </div>
+
+            {/* Prev / Next Scroll Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button
+                type="button"
+                title="Previous"
+                onClick={() => {
+                  const el = chartScrollRef.current;
+                  if (!el) return;
+                  el.scrollBy({ left: -el.clientWidth, behavior: 'smooth' });
+                }}
+                style={{
+                  height: 24,
+                  padding: '0 8px',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface2)',
+                  color: 'var(--text-2)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--text)';
+                  e.currentTarget.style.borderColor = 'var(--border2, var(--border))';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-2)';
+                  e.currentTarget.style.borderColor = 'var(--border)';
+                }}
+              >
+                <ChevronLeft size={13} />
+                <span>Prev</span>
+              </button>
+              <button
+                type="button"
+                title="Next"
+                onClick={() => {
+                  const el = chartScrollRef.current;
+                  if (!el) return;
+                  el.scrollBy({ left: el.clientWidth, behavior: 'smooth' });
+                }}
+                style={{
+                  height: 24,
+                  padding: '0 8px',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface2)',
+                  color: 'var(--text-2)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--text)';
+                  e.currentTarget.style.borderColor = 'var(--border2, var(--border))';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-2)';
+                  e.currentTarget.style.borderColor = 'var(--border)';
+                }}
+              >
+                <span>Next</span>
+                <ChevronRight size={13} />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Chart Content Container */}
         {chartMode === 'monthly' ? (
-          /* Horizontally Scrollable Interactive Monthly Spending Chart */
+          /* Horizontally Scrollable Interactive Monthly Spending Chart Container */
           <div
-            ref={chartScrollRef}
-            className="analytics-chart-scroll"
             style={{
-              position: 'relative',
-              overflowX: 'auto',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch',
-              paddingTop: 8,
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '16px 14px 12px 14px',
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden',
             }}
           >
             <div
+              ref={chartScrollRef}
+              className="analytics-chart-scroll"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUpOrLeave}
+              onMouseLeave={handleMouseUpOrLeave}
               style={{
-                display: 'flex',
-                gap: 16,
-                alignItems: 'flex-end',
-                paddingTop: 16,
-                paddingBottom: 4,
-                minWidth: 'max-content',
                 position: 'relative',
-                zIndex: 1,
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                WebkitOverflowScrolling: 'touch',
+                cursor: isMouseDown ? 'grabbing' : 'grab',
+                userSelect: isMouseDown ? 'none' : 'auto',
+                scrollBehavior: 'smooth',
+                width: '100%',
               }}
             >
-              {monthlyMonths.map((m) => {
-                const isSelected = selectedMonth === m.monthKey;
-                const barHeightPct = m.spend > 0 ? Math.max(10, Math.round((m.spend / maxMonthlyVal) * 100)) : 0;
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  justifyContent: 'space-between',
+                  gap: 6,
+                  width: '100%',
+                  minWidth: monthlyMonths.length > 8 ? `${monthlyMonths.length * 56}px` : '100%',
+                  height: 180,
+                  position: 'relative',
+                  zIndex: 1,
+                  boxSizing: 'border-box',
+                }}
+              >
+                {monthlyMonths.map((m) => {
+                  const isSelected = selectedMonth === m.monthKey;
+                  const barHeightPct = m.spend > 0 ? Math.max(10, Math.round((m.spend / maxMonthlyVal) * 100)) : 0;
 
-                return (
-                  <div
-                    key={m.monthKey}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      height: 165,
-                      cursor: 'pointer',
-                      width: 58,
-                    }}
-                    onClick={() => {
-                      if (selectedMonth === m.monthKey) {
-                        setSelectedMonth(null);
-                      } else {
-                        setSelectedMonth(m.monthKey);
-                        setSelectedDate(null);
-                        setChartMode('weekly');
-                      }
-                    }}
-                  >
-                    {/* Amount Badge directly above the bar */}
-                    <div style={{ minHeight: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                      {m.spend > 0 ? (
+                  return (
+                    <div
+                      key={m.monthKey}
+                      data-month-id={m.monthKey}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        height: '100%',
+                        cursor: 'pointer',
+                        flex: 1,
+                        minWidth: 48,
+                        borderRadius: 'var(--radius)',
+                        background: isSelected ? 'var(--accent-soft)' : 'transparent',
+                        padding: '6px 2px',
+                        transition: 'all 0.15s ease',
+                        position: 'relative',
+                      }}
+                      onClick={() => {
+                        if (hasMoved) return;
+                        if (selectedMonth === m.monthKey) {
+                          setSelectedMonth(null);
+                        } else {
+                          setSelectedMonth(m.monthKey);
+                          setSelectedDate(null);
+                        }
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) e.currentTarget.style.background = 'var(--surface)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      {/* Amount Badge directly above the bar */}
+                      <div style={{ minHeight: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                        {m.spend > 0 ? (
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: isSelected || m.isCurrentMonth ? 700 : 600,
+                              color: isSelected ? 'var(--accent)' : m.isCurrentMonth ? 'var(--text)' : 'var(--text-2)',
+                              whiteSpace: 'nowrap',
+                              letterSpacing: '-0.2px',
+                            }}
+                          >
+                            {fmtCompactMoney(m.spend, currency)}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 10, color: 'var(--text-3)', opacity: 0.3 }}>-</span>
+                        )}
+                      </div>
+
+                      {/* Bar Column Container */}
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 4, marginBottom: 6 }}>
+                        <div
+                          style={{
+                            width: '55%',
+                            maxWidth: 28,
+                            minWidth: 14,
+                            background: 'var(--accent)',
+                            borderRadius: m.spend > 0 ? '6px 6px 3px 3px' : '2px',
+                            height: m.spend > 0 ? `${barHeightPct}%` : '4px',
+                            opacity: m.spend > 0 ? (selectedMonth ? (isSelected ? 1 : 0.45) : (m.isCurrentMonth ? 1 : 0.8)) : 0.2,
+                            transition: 'all 0.2s ease',
+                            boxShadow: isSelected
+                              ? '0 0 0 2px var(--surface), 0 0 10px var(--accent-soft)'
+                              : undefined,
+                          }}
+                          title={`${m.fullMonthName}: ${fmtMoney(m.spend, currency)} (${m.count} items, Avg ${fmtMoney(m.dailyAvg, currency)}/day)`}
+                        />
+                      </div>
+
+                      {/* Month Label */}
+                      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <span
                           style={{
-                            fontSize: 10,
-                            fontWeight: isSelected || m.isCurrentMonth ? 700 : 600,
-                            color: isSelected ? 'var(--accent)' : m.isCurrentMonth ? 'var(--text)' : 'var(--text-2)',
+                            fontSize: 11.5,
+                            color: isSelected || m.isCurrentMonth ? 'var(--accent)' : 'var(--text-2)',
+                            fontWeight: isSelected || m.isCurrentMonth ? 750 : 500,
                             whiteSpace: 'nowrap',
-                            letterSpacing: '-0.2px',
-                            background: isSelected ? 'var(--accent-soft)' : 'transparent',
-                            padding: isSelected ? '2px 6px' : undefined,
-                            borderRadius: 6,
-                            transition: 'all 0.15s ease',
+                            lineHeight: 1.1,
                           }}
                         >
-                          {fmtMoney(m.spend, currency)}
+                          {m.monthName}
                         </span>
-                      ) : (
-                        <span style={{ fontSize: 10, color: 'var(--text-3)', opacity: 0.3 }}>-</span>
-                      )}
+                        {m.isCurrentMonth && (
+                          <span
+                            style={{
+                              fontSize: 8,
+                              color: 'var(--accent)',
+                              background: 'var(--accent-soft)',
+                              fontWeight: 700,
+                              padding: '1px 4px',
+                              borderRadius: 3,
+                              marginTop: 2,
+                              display: 'inline-block',
+                              letterSpacing: '0.3px',
+                            }}
+                          >
+                            NOW
+                          </span>
+                        )}
+                      </div>
                     </div>
-
-                    {/* Bar Column Container */}
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 4 }}>
-                      <div
-                        style={{
-                          width: 28,
-                          background: 'var(--accent)',
-                          borderRadius: m.spend > 0 ? '6px 6px 3px 3px' : '2px',
-                          height: m.spend > 0 ? `${barHeightPct}%` : '4px',
-                          opacity: m.spend > 0 ? (selectedMonth ? (isSelected ? 1 : 0.6) : (m.isCurrentMonth ? 1 : 0.85)) : 0.25,
-                          transition: 'all 0.2s ease',
-                          boxShadow: isSelected
-                            ? '0 0 0 2px var(--surface), 0 0 10px var(--accent-soft)'
-                            : undefined,
-                        }}
-                        title={`${m.fullMonthName}: ${fmtMoney(m.spend, currency)} (${m.count} items, Avg ${fmtMoney(m.dailyAvg, currency)}/day)`}
-                      />
-                    </div>
-
-                    {/* Month Label */}
-                    <div style={{ marginTop: 8, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <span
-                        style={{
-                          fontSize: 11.5,
-                          color: isSelected || m.isCurrentMonth ? 'var(--text)' : 'var(--text-2)',
-                          fontWeight: isSelected || m.isCurrentMonth ? 700 : 500,
-                          whiteSpace: 'nowrap',
-                          display: 'block',
-                          lineHeight: 1.1,
-                        }}
-                      >
-                        {m.monthName}
-                      </span>
-                      {m.isCurrentMonth && (
-                        <span
-                          style={{
-                            fontSize: 8.5,
-                            color: 'var(--accent)',
-                            background: 'var(--accent-soft)',
-                            fontWeight: 700,
-                            padding: '1px 5px',
-                            borderRadius: 4,
-                            marginTop: 3,
-                            display: 'inline-block',
-                            letterSpacing: '0.3px',
-                          }}
-                        >
-                          NOW
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         ) : (
@@ -869,53 +1113,95 @@ export default function Analytics() {
           <div
             ref={chartScrollRef}
             className="analytics-chart-scroll"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUpOrLeave}
+            onMouseLeave={handleMouseUpOrLeave}
             style={{
               position: 'relative',
               overflowX: 'auto',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
               WebkitOverflowScrolling: 'touch',
-              paddingTop: 8,
+              paddingTop: 4,
+              paddingBottom: 4,
+              cursor: isMouseDown ? 'grabbing' : 'grab',
+              userSelect: isMouseDown ? 'none' : 'auto',
+              scrollSnapType: isMouseDown ? 'none' : 'x mandatory',
+              scrollBehavior: 'smooth',
+              scrollPadding: 0,
+              width: '100%',
             }}
           >
             <div
               style={{
                 display: 'flex',
-                gap: 20,
-                alignItems: 'flex-end',
-                paddingTop: 12,
+                alignItems: 'stretch',
+                paddingTop: 4,
                 paddingBottom: 4,
-                minWidth: 'max-content',
+                width: '100%',
                 position: 'relative',
                 zIndex: 1,
               }}
             >
-              {(selectedWeek ? weeklyWeeks.filter(w => w.weekMonStr === selectedWeek) : weeklyWeeks).map((week) => {
+              {weeklyWeeks.map((week) => {
+                const isSelected = selectedWeek === week.weekMonStr;
                 const isCurrent = week.isCurrentWeek;
+                const isActiveCard = isSelected || (!selectedWeek && isCurrent);
+
                 return (
                   <div
                     key={week.weekMonStr}
+                    data-week-id={week.weekMonStr}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
+                      scrollSnapAlign: 'start',
+                      scrollSnapStop: 'always',
+                      flexShrink: 0,
+                      width: '100%',
+                      minWidth: '100%',
+                      boxSizing: 'border-box',
+                      background: 'var(--surface2)',
+                      border: isActiveCard ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                      borderRadius: 'var(--radius-lg)',
+                      padding: '12px 14px',
+                      boxShadow: isActiveCard ? '0 2px 10px var(--accent-soft)' : undefined,
+                      transition: 'all 0.2s ease',
                     }}
                   >
-                    {/* Week Label & Total */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: 8,
-                      padding: '0 4px',
-                    }}>
+                    {/* Week Label & Total - Click to select/filter by this week */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: 8,
+                        padding: '2px 4px',
+                        gap: 12,
+                        cursor: 'pointer',
+                        borderRadius: 'var(--radius)',
+                      }}
+                      onClick={() => {
+                        if (hasMoved) return;
+                        if (selectedWeek === week.weekMonStr) {
+                          setSelectedWeek(null);
+                        } else {
+                          setSelectedWeek(week.weekMonStr);
+                          setSelectedDate(null);
+                        }
+                      }}
+                      title={isSelected ? 'Click to show All Weeks' : `Click to select ${week.label}`}
+                    >
                       <span style={{
                         fontSize: 11,
-                        fontWeight: isCurrent ? 700 : 600,
-                        color: isCurrent ? 'var(--accent)' : 'var(--text-2)',
+                        fontWeight: isActiveCard ? 700 : 600,
+                        color: isActiveCard ? 'var(--accent)' : 'var(--text-2)',
+                        whiteSpace: 'nowrap',
                       }}>
                         {week.label}
                       </span>
-                      <span style={{ fontSize: 10.5, color: 'var(--text-3)', fontWeight: 500 }}>
+                      <span style={{ fontSize: 10.5, color: isActiveCard ? 'var(--text)' : 'var(--text-3)', fontWeight: 600, whiteSpace: 'nowrap' }}>
                         {fmtMoney(week.weekTotal, currency)}
                       </span>
                     </div>
@@ -924,7 +1210,7 @@ export default function Analytics() {
                     {(() => {
                       const weekMaxSpend = Math.max(...week.days.map(d => d.spend), dailyAvgSpend, 10);
                       return (
-                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 140 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 4, height: 140, width: '100%' }}>
                           {week.days.map(d => {
                             const isSelected = selectedDate === d.dateStr;
                             const barHeightPct = d.spend > 0 ? Math.max(8, Math.round((d.spend / weekMaxSpend) * 100)) : 0;
@@ -938,9 +1224,12 @@ export default function Analytics() {
                                   alignItems: 'center',
                                   height: '100%',
                                   cursor: 'pointer',
-                                  width: 36,
+                                  flex: 1,
+                                  minWidth: 0,
                                 }}
-                                onClick={() => handleToggleDate(d.dateStr)}
+                                onClick={() => {
+                                  if (!hasMoved) handleToggleDate(d.dateStr);
+                                }}
                               >
                                 {/* Amount Badge directly above the bar */}
                                 <div style={{ minHeight: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1025,34 +1314,45 @@ export default function Analytics() {
       </div>
 
       {/* Grid: Daily Expenditure Log & Category Share */}
-      <div className="dashboard-grid" style={{ gap: 16 }}>
-        {/* Daily Log List (Interactive & Expandable) */}
-        <div className="card" style={{ padding: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: '1 1 auto' }}>
-              <Award size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Daily Expenditure Log</span>
-              <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-3)', flexShrink: 0 }}>
+      <div className="dashboard-grid" style={{ gap: 16, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+        {/* Category Distribution Button in Daily Log Header */}
+        <div className="card" style={{ padding: '16px', overflow: 'hidden', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: '1 1 auto' }}>
+              <Award size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.2px' }}>Daily Expenditure Log</span>
+              <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', flexShrink: 0 }}>
                 ({perDayList.length} {perDayList.length === 1 ? 'day' : 'days'})
               </span>
             </div>
-            {selectedDate && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <button
+                type="button"
                 className="btn btn-secondary btn-sm"
-                style={{ fontSize: 11, padding: '3px 10px', height: 26, whiteSpace: 'nowrap', flexShrink: 0 }}
-                onClick={() => setSelectedDate(null)}
+                style={{ fontSize: 11, padding: '3px 10px', height: 26, gap: 5, display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', flexShrink: 0, border: 'none', background: 'var(--surface2)' }}
+                onClick={() => setShowCategoryDrawer(true)}
               >
-                Clear Date
+                <PieChart size={13} style={{ color: 'var(--accent)' }} /> Categories
               </button>
-            )}
+              {selectedDate && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: 11, padding: '3px 10px', height: 26, whiteSpace: 'nowrap', flexShrink: 0, border: 'none', background: 'var(--surface2)' }}
+                  onClick={() => setSelectedDate(null)}
+                >
+                  Clear Date
+                </button>
+              )}
+            </div>
           </div>
 
           {perDayList.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '24px 0', textAlign: 'center' }}>
+            <div style={{ fontSize: 12.5, color: 'var(--text-3)', padding: '28px 0', textAlign: 'center' }}>
               No transactions recorded for this selection
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {perDayList.map(row => {
                 const catObj = db.settings.categories.find(c => c.name === row.topCategory);
                 const isExpanded = Boolean(expandedDates[row.dateStr] || selectedDate === row.dateStr);
@@ -1062,11 +1362,12 @@ export default function Analytics() {
                     key={row.dateStr}
                     style={{
                       background: 'var(--surface2)',
-                      borderRadius: 8,
-                      border: selectedDate === row.dateStr ? '1px solid var(--accent)' : '1px solid var(--border)',
-                      boxShadow: selectedDate === row.dateStr ? '0 0 10px var(--accent-soft)' : undefined,
+                      borderRadius: 10,
+                      border: selectedDate === row.dateStr ? '1.5px solid var(--accent)' : '1px solid var(--border)',
                       overflow: 'hidden',
                       transition: 'all 0.2s ease',
+                      width: '100%',
+                      boxSizing: 'border-box',
                     }}
                   >
                     {/* Day Row Header */}
@@ -1075,21 +1376,23 @@ export default function Analytics() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '10px 12px',
+                        padding: '11px 13px',
                         cursor: 'pointer',
                         fontSize: 12.5,
                         gap: 8,
                         userSelect: 'none',
+                        width: '100%',
+                        boxSizing: 'border-box',
                       }}
                       onClick={() => handleToggleExpand(row.dateStr)}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-                        <CategoryBadge category={row.topCategory} color={catObj?.color} icon={catObj?.icon} size={14} showLabel={false} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, flex: 1 }}>
+                        <CategoryBadge category={row.topCategory} color={catObj?.color} icon={catObj?.icon} size={15} showLabel={false} />
                         <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <span>{row.dayName}</span>
-                            {row.isToday && <span className="badge" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9, padding: '1px 5px' }}>Today</span>}
-                            {row.isYesterday && <span className="badge" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9, padding: '1px 5px' }}>Yest.</span>}
+                          <div style={{ fontWeight: 650, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text)', fontSize: 13 }}>{row.dayName}</span>
+                            {row.isToday && <span style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, flexShrink: 0 }}>Today</span>}
+                            {row.isYesterday && <span style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, flexShrink: 0 }}>Yest.</span>}
                           </div>
                           <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {row.count} {row.count === 1 ? 'item' : 'items'} · {row.topCategory}
@@ -1179,31 +1482,32 @@ export default function Analytics() {
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
                                   {ge.items.length > 1 && (
-                                    <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center' }}>
+                                    <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                                       {isGroupExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                     </div>
                                   )}
-                                  <CategoryBadge category={ge.category} color={itemCat?.color} icon={itemCat?.icon} size={13} showLabel={false} />
+                                  <CategoryBadge category={ge.category} color={itemCat?.color} icon={itemCat?.icon} size={14} showLabel={false} />
                                   <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                       {ge.description || 'Expense'}
                                     </div>
-                                    <div style={{ fontSize: 10.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+                                    <div style={{ fontSize: 10.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap', marginTop: 2, overflow: 'hidden' }}>
                                       {ge.isSplit ? (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--accent)' }}>
-                                          <User size={10} /> Split Expense
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--accent)', flexShrink: 0 }}>
+                                          <User size={10} /> Split
                                         </span>
                                       ) : (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
                                           <Wallet size={10} /> {walletObj?.name || 'Personal'}
                                         </span>
                                       )}
-                                      <span>·</span>
+                                      <span style={{ flexShrink: 0 }}>·</span>
                                       <span style={{
                                         padding: '1px 5px',
                                         borderRadius: 4,
                                         fontSize: 9.5,
                                         fontWeight: 600,
+                                        flexShrink: 0,
                                         background: allSettled ? 'rgba(34, 197, 94, 0.15)' : (someSettled ? 'rgba(234, 179, 8, 0.15)' : 'rgba(239, 68, 68, 0.15)'),
                                         color: allSettled ? '#22C55E' : (someSettled ? '#EAB308' : '#EF4444'),
                                       }}>
@@ -1252,10 +1556,11 @@ export default function Analytics() {
                                     );
                                   })()}
 
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
                                     <button
+                                      type="button"
                                       className="btn-icon"
-                                      style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0 }}
+                                      style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0, background: 'transparent', border: 'none' }}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (primaryItem) setEditingExpense(primaryItem);
@@ -1266,8 +1571,9 @@ export default function Analytics() {
                                     </button>
 
                                     <button
+                                      type="button"
                                       className="btn-icon"
-                                      style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0, color: '#EF4444' }}
+                                      style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0, color: '#EF4444', background: 'transparent', border: 'none' }}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (primaryItem) setDeletingId(primaryItem.id);
@@ -1284,12 +1590,14 @@ export default function Analytics() {
                               {ge.items.length > 1 && isGroupExpanded && (
                                 <div style={{
                                   borderTop: '1px solid var(--border)',
-                                  background: 'var(--surface)',
-                                  padding: '6px 10px',
+                                  background: 'var(--surface2)',
+                                  padding: '8px 12px',
                                   display: 'flex',
                                   flexDirection: 'column',
-                                  gap: 4,
+                                  gap: 5,
                                   fontSize: 11,
+                                  width: '100%',
+                                  boxSizing: 'border-box',
                                 }}>
                                   {ge.items.filter(sub => !(sub.type === 'personal' && (Number(sub.amount) || 0) <= 0)).map(sub => {
                                     const frObj = friends.find(f => f.id === sub.friendId);
@@ -1308,22 +1616,22 @@ export default function Analytics() {
                                     const subColor = isSubDebit ? 'var(--debit)' : 'var(--credit)';
 
                                     return (
-                                      <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 0' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-2)' }}>
-                                          <User size={10} style={{ opacity: 0.7 }} />
-                                          <span>{roleLabel}</span>
+                                      <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-2)', minWidth: 0 }}>
+                                          <User size={10} style={{ opacity: 0.7, flexShrink: 0 }} />
+                                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roleLabel}</span>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                                           <span style={{ fontWeight: 600, color: subColor }}>
                                             {subSign}{fmtMoney(sub.amount, currency)}
                                           </span>
                                           <span style={{
                                             padding: '1px 5px',
-                                            borderRadius: 4,
+                                            borderRadius: 999,
                                             fontSize: 9,
-                                            fontWeight: 600,
-                                            background: isSubSettled ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                            color: isSubSettled ? '#22C55E' : '#EF4444',
+                                            fontWeight: 650,
+                                            background: isSubSettled ? 'rgba(34, 197, 94, 0.12)' : 'rgba(248, 113, 113, 0.12)',
+                                            color: isSubSettled ? '#4ADE80' : '#FCA5A5',
                                           }}>
                                             {isSubSettled ? 'Settled' : 'Unsettled'}
                                           </span>
@@ -1345,68 +1653,237 @@ export default function Analytics() {
           )}
         </div>
 
-        {/* Category Share */}
-        <div className="card" style={{ padding: '16px' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <PieChart size={15} style={{ color: 'var(--accent)' }} /> Category Distribution
-            </div>
-            {selectedCategory && (
-              <button
-                className="btn btn-secondary btn-sm"
-                style={{ fontSize: 11, padding: '2px 8px' }}
-                onClick={() => setSelectedCategory(null)}
-              >
-                Clear Category
-              </button>
-            )}
-          </div>
-
-          {categoryBreakdown.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '20px 0', textAlign: 'center' }}>
-              No categories to display
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {categoryBreakdown.map(({ cat, amount, pct, count }) => {
-                const catObj = db.settings.categories.find(c => c.name === cat);
-                const catColor = catObj?.color ?? '#6B7280';
-                const isSelectedCat = selectedCategory === cat;
-
-                return (
-                  <div
-                    key={cat}
-                    style={{
-                      cursor: 'pointer',
-                      padding: '6px 8px',
-                      borderRadius: 6,
-                      background: isSelectedCat ? 'var(--surface2)' : 'transparent',
-                      border: isSelectedCat ? '1px solid var(--accent)' : '1px solid transparent',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onClick={() => setSelectedCategory(isSelectedCat ? null : cat)}
-                    title={`Click to filter by ${cat}`}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <CategoryBadge category={cat} color={catColor} icon={catObj?.icon} size={13} />
-                        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>({count})</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, fontWeight: 600 }}>
-                        <span style={{ color: 'var(--text-3)' }}>{Math.round(pct)}%</span>
-                        <span>{fmtMoney(amount, currency)}</span>
-                      </div>
-                    </div>
-                    <div className="progress-bar-track">
-                      <div className="progress-bar-fill" style={{ width: `${pct}%`, background: catColor }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </div>
+
+      {/* Floating Action Button (rendered directly above the Search Button) */}
+      {portalTarget && createPortal(
+        <button
+          type="button"
+          id="floating-category-drawer-btn"
+          onClick={() => setShowCategoryDrawer(true)}
+          style={{
+            width: '46px',
+            height: '46px',
+            borderRadius: '50%',
+            backgroundColor: showCategoryDrawer ? 'var(--accent)' : 'var(--surface2)',
+            color: showCategoryDrawer ? 'var(--accent-contrast, #ffffff)' : 'var(--text)',
+            border: showCategoryDrawer ? '1px solid var(--accent)' : '1px solid var(--border)',
+            boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            position: 'relative',
+          }}
+          onMouseEnter={e => {
+            if (!showCategoryDrawer) {
+              e.currentTarget.style.backgroundColor = 'var(--surface3)';
+              e.currentTarget.style.borderColor = 'var(--accent)';
+              e.currentTarget.style.color = 'var(--accent)';
+            }
+            e.currentTarget.style.transform = 'scale(1.08)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.backgroundColor = showCategoryDrawer ? 'var(--accent)' : 'var(--surface2)';
+            e.currentTarget.style.borderColor = showCategoryDrawer ? 'var(--accent)' : 'var(--border)';
+            e.currentTarget.style.color = showCategoryDrawer ? 'var(--accent-contrast, #ffffff)' : 'var(--text)';
+            e.currentTarget.style.transform = 'none';
+          }}
+          onMouseDown={e => {
+            e.currentTarget.style.transform = 'scale(0.95)';
+          }}
+          title="Category Distribution"
+          aria-label="Category Distribution"
+        >
+          <PieChart size={19} />
+          {selectedCategory && (
+            <span
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: 'var(--accent)',
+                border: '2px solid var(--surface)',
+              }}
+            />
+          )}
+        </button>,
+        portalTarget
+      )}
+
+      {/* Category Distribution Modal Drawer */}
+      {showCategoryDrawer && createPortal(
+        <div
+          className="filter-drawer-overlay"
+          onClick={() => setShowCategoryDrawer(false)}
+        >
+          <div
+            className="filter-drawer-panel"
+            onClick={e => e.stopPropagation()}
+            style={{ border: 'none', boxShadow: '0 -12px 48px rgba(0, 0, 0, 0.65)' }}
+          >
+            {/* Top Handle Bar for mobile sheet feel */}
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 2 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--surface3)', opacity: 0.8 }} />
+            </div>
+
+            {/* Drawer Header (No splitting lines) */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 20px 8px 20px',
+                background: 'transparent',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 11,
+                    background: 'var(--accent-soft)',
+                    color: 'var(--accent)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <PieChart size={19} strokeWidth={2.2} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.3px' }}>
+                    Category Distribution
+                  </h3>
+                  <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                    {selectedCategory ? `Filtered by ${selectedCategory}` : 'Breakdown of spending across categories'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {selectedCategory && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: 11, padding: '3px 10px', border: 'none', background: 'var(--surface2)' }}
+                    onClick={() => setSelectedCategory(null)}
+                  >
+                    Clear Filter
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn-icon"
+                  onClick={() => setShowCategoryDrawer(false)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    padding: 0,
+                    background: 'var(--surface2)',
+                    border: 'none',
+                    color: 'var(--text-2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                  title="Close drawer"
+                  aria-label="Close drawer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Drawer Content */}
+            <div className="filter-drawer-content" style={{ padding: '12px 20px 24px 20px' }}>
+              {categoryBreakdown.length === 0 ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '44px 20px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      background: 'var(--surface2)',
+                      color: 'var(--text-3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 14,
+                    }}
+                  >
+                    <PieChart size={26} strokeWidth={1.8} style={{ opacity: 0.6 }} />
+                  </div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)', marginBottom: 4, letterSpacing: '-0.2px' }}>
+                    No Category Data
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-3)', maxWidth: 250, lineHeight: 1.45 }}>
+                    There are no expenses recorded for the selected timeframe or filter.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {categoryBreakdown.map(({ cat, amount, pct, count }) => {
+                    const catObj = db.settings.categories.find(c => c.name === cat);
+                    const catColor = catObj?.color ?? '#6B7280';
+                    const isSelectedCat = selectedCategory === cat;
+
+                    return (
+                      <div
+                        key={cat}
+                        style={{
+                          cursor: 'pointer',
+                          padding: '12px 14px',
+                          borderRadius: 'var(--radius-lg)',
+                          background: isSelectedCat ? 'var(--accent-soft)' : 'var(--surface2)',
+                          border: isSelectedCat ? '1.5px solid var(--accent)' : 'none',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onClick={() => setSelectedCategory(isSelectedCat ? null : cat)}
+                        title={`Click to filter by ${cat}`}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                            <CategoryBadge category={cat} color={catColor} icon={catObj?.icon} size={15} />
+                            <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--text)' }}>{cat}</span>
+                            <span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>({count} {count === 1 ? 'item' : 'items'})</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700 }}>
+                            <span style={{ color: 'var(--text-3)', fontSize: 12, fontWeight: 600 }}>{Math.round(pct)}%</span>
+                            <span style={{ fontSize: 14, color: 'var(--text)' }}>{fmtMoney(amount, currency)}</span>
+                          </div>
+                        </div>
+                        <div className="progress-bar-track" style={{ height: 5, borderRadius: 999, background: 'rgba(255, 255, 255, 0.06)' }}>
+                          <div className="progress-bar-fill" style={{ width: `${pct}%`, background: catColor, borderRadius: 999 }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Edit Expense Modal */}
       {editingExpense && (

@@ -1671,7 +1671,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             borderTopLeftRadius: '28px',
             borderTopRightRadius: '28px',
             maxHeight: '90vh',
-            width: '100vw',
+            width: '100%',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',

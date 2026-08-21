@@ -663,7 +663,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   fontSize: 12.5,
                   fontWeight: 600,
                   background: 'var(--accent)',
-                  color: '#ffffff',
+                  color: 'var(--accent-contrast, #ffffff)',
                   border: 'none',
                   cursor: 'pointer',
                   padding: '6px 16px',

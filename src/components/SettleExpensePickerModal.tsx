@@ -137,7 +137,7 @@ export default function SettleExpensePickerModal({
 
     // 2. Friend filter
     if (friendFilter === 'personal') {
-      list = list.filter(e => !e.friendId || e.type === 'personal');
+      list = list.filter(e => !(e.friendId && e.friendId !== friend.id && friendsMap.has(e.friendId)));
     } else if (friendFilter !== 'all') {
       list = list.filter(e => e.friendId === friendFilter);
     }
@@ -179,7 +179,7 @@ export default function SettleExpensePickerModal({
     });
 
     return sorted;
-  }, [expenses, filterType, friendFilter, search, isOwedToMe, sortBy, getExpenseFriend]);
+  }, [expenses, filterType, friendFilter, search, isOwedToMe, sortBy, getExpenseFriend, friend.id, friendsMap]);
 
   // Calculate selected total in modal
   const selectedExpenses = useMemo(() => {
@@ -403,6 +403,62 @@ export default function SettleExpensePickerModal({
                   {expenses.length}
                 </span>
               </button>
+
+              {/* You / Personal Filter Pill */}
+              {friendStats.personalCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFriendFilter('personal')}
+                  style={{
+                    border: friendFilter === 'personal' ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                    background: friendFilter === 'personal' ? 'var(--accent-soft)' : 'var(--surface2)',
+                    color: friendFilter === 'personal' ? 'var(--accent)' : 'var(--text-2)',
+                    fontSize: 11.5,
+                    fontWeight: friendFilter === 'personal' ? 700 : 500,
+                    padding: '4px 10px',
+                    borderRadius: 20,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 15,
+                      height: 15,
+                      borderRadius: '50%',
+                      background: 'var(--accent-soft)',
+                      color: 'var(--accent)',
+                      fontSize: 8.5,
+                      fontWeight: 700,
+                      display: 'grid',
+                      placeItems: 'center',
+                      lineHeight: 1,
+                      flexShrink: 0,
+                      boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
+                    }}
+                  >
+                    Y
+                  </span>
+                  <span>You</span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: 99,
+                      background: friendFilter === 'personal' ? 'var(--accent)' : 'var(--surface3)',
+                      color: friendFilter === 'personal' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
+                    }}
+                  >
+                    {friendStats.personalCount}
+                  </span>
+                </button>
+              )}
 
               {/* Friend Pills */}
               {friendStats.friends.map(({ friend: f, count }) => {

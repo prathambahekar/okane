@@ -101,6 +101,18 @@
   animation: none !important;
 }
 
+/* Hide scrollbars across all browsers for elements with .no-scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
 /* Disable all transitions during startup/hydration to prevent initial theme/border flickering */
 .app-preload,
 .app-preload *,
@@ -3589,6 +3601,9 @@ table.desktop-only { display: table !important; }
   overflow-x: auto;
   padding-bottom: 8px;
   -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scroll-padding: 0;
 }
 .analytics-chart-scroll::-webkit-scrollbar {
   height: 4px;
@@ -5649,6 +5664,12 @@ body.no-animations *::after,
 
 /* Responsive Visibility Helpers */
 @media (max-width: 640px) {
+  .view-container {
+    padding: 12px 10px 28px !important;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
   .desktop-only {
     display: none !important;
   }
@@ -5734,14 +5755,9 @@ body.no-animations *::after,
 /* Filter Drawer & Modal Overlay */
 .filter-drawer-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  width: 100dvw;
-  height: 100vh;
-  height: 100dvh;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 99999;
   background-color: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(6px);
@@ -5751,8 +5767,8 @@ body.no-animations *::after,
   justify-content: center;
   padding: 0;
   animation: fadein 0.18s ease;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .filter-drawer-panel {
@@ -5771,7 +5787,7 @@ body.no-animations *::after,
   flex-direction: column;
   overflow: hidden;
   animation: slideup 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-  overscroll-behavior: contain;
+  margin: 0;
 }
 
 .filter-drawer-panel,
@@ -5796,8 +5812,6 @@ body.no-animations *::after,
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
 }
 
 @media (min-width: 641px) {
@@ -5816,7 +5830,7 @@ body.no-animations *::after,
     border: 1px solid var(--border);
     animation: slidein 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--border);
-    margin: 0 auto;
+    margin: auto;
   }
 }
 
@@ -5824,8 +5838,8 @@ body.no-animations *::after,
 .note-drawer-overlay {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   z-index: 10005;
   background-color: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(4px);
