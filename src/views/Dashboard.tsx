@@ -85,13 +85,13 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
 
       {/* Hero Financial Overview Header Card */}
       <div className="dashboard-hero-card">
-        <div className="dashboard-hero-grid">
+        <div className="dashboard-hero-content">
 
-          {/* Left Column: Total Net Worth & Interactive Wallet Chips */}
-          <div className="dashboard-hero-left">
+          {/* Top/Left Section: Total Net Worth & Interactive Wallet Chips */}
+          <div className="dashboard-hero-top">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                   Total Net Worth
                 </span>
                 <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', fontSize: 11 }}>
@@ -105,9 +105,9 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             </div>
 
             {/* Quick Wallet Breakdown Chips */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <div style={{ marginTop: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                   Wallets Breakdown
                 </div>
                 {wallets.length >= 2 && (
@@ -121,9 +121,9 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       borderRadius: 6,
                       fontSize: 11,
                       fontWeight: 700,
-                      padding: '2px 8px',
+                      padding: '3px 9px',
                       cursor: 'pointer',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       gap: 4
                     }}
@@ -133,7 +133,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   </button>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {wallets.map(w => {
                   const bal = walletBalance(db, w.id);
                   return (
@@ -153,14 +153,13 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             </div>
           </div>
 
-          {/* Right Column: Month Cash Flow & Friends Net Summary */}
-          <div className="dashboard-hero-right">
-
-            {/* 3 Metric Cards Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(95px, 1fr))', gap: 10 }}>
+          {/* Stats Section: 3 Mini Metric Cards Grid */}
+          <div className="dashboard-hero-stats">
+            <div className="dashboard-stats-grid">
               <div className="dashboard-mini-stat">
                 <div className="dashboard-mini-stat-header">
-                  <TrendingDown size={13} style={{ color: 'var(--debit)' }} /> {monthName} Spend
+                  <TrendingDown size={14} style={{ color: 'var(--debit)' }} />
+                  <span>{monthName.toUpperCase()} SPEND</span>
                 </div>
                 <div className="dashboard-mini-stat-val" style={{ color: 'var(--debit)' }}>
                   {fmtMoney(monthSpend, currency)}
@@ -169,7 +168,8 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
 
               <div className="dashboard-mini-stat">
                 <div className="dashboard-mini-stat-header">
-                  <TrendingUp size={13} style={{ color: 'var(--credit)' }} /> {monthName} Income
+                  <TrendingUp size={14} style={{ color: 'var(--credit)' }} />
+                  <span>{monthName.toUpperCase()} INCOME</span>
                 </div>
                 <div className="dashboard-mini-stat-val" style={{ color: 'var(--credit)' }}>
                   {fmtMoney(monthIncome, currency)}
@@ -178,34 +178,35 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
 
               <div className="dashboard-mini-stat">
                 <div className="dashboard-mini-stat-header">
-                  <Users size={13} style={{ color: (overallCredit - overallDebt) >= 0 ? 'var(--credit)' : 'var(--debit)' }} /> Friends Net
+                  <Users size={14} style={{ color: (overallCredit - overallDebt) >= 0 ? 'var(--credit)' : 'var(--debit)' }} />
+                  <span>FRIENDS NET</span>
                 </div>
                 <div className="dashboard-mini-stat-val" style={{ color: (overallCredit - overallDebt) >= 0 ? 'var(--credit)' : 'var(--debit)' }}>
                   {(overallCredit - overallDebt) >= 0 ? '+' : ''}{fmtMoney(overallCredit - overallDebt, currency)}
                 </div>
               </div>
             </div>
-
           </div>
+
         </div>
       </div>
 
       <div className="dashboard-grid">
         {/* Recent Expenses */}
-        <div className="card" style={{ gridColumn: '1 / -1' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ReceiptText size={18} style={{ color: 'var(--accent)' }} />
-              <h2 style={{ fontSize: 14, fontWeight: 600 }}>Recent Expenses</h2>
+        <div className="card" style={{ gridColumn: '1 / -1', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, width: '100%', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+              <ReceiptText size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <h2 style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Recent Expenses</h2>
             </div>
-            <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('expenses')} style={{ fontSize: 12, padding: '2px 8px' }}>View all →</button>
+            <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('expenses')} style={{ fontSize: 12, padding: '2px 8px', flexShrink: 0 }}>View all →</button>
           </div>
           {recentExpenses.length === 0 ? (
             <div className="empty-state" style={{ padding: '24px' }}>
               <p>No expenses yet.</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
               {recentExpenses.map((ge, idx) => {
                 const cat = db.settings.categories.find(c => c.name === ge.category);
                 const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
@@ -220,12 +221,15 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     padding: '9px 0',
                     borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
                     gap: 10,
+                    width: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
                       <CategoryBadge category={ge.category} color={cat?.color} icon={cat?.icon} size={14} showLabel={false} />
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ge.description}</span>
+                      <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
+                        <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, width: '100%' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: '0 1 auto' }}>{ge.description}</span>
                           {vendor && (
                             <span
                               style={{
@@ -240,12 +244,15 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 3,
-                                flexShrink: 0
+                                flexShrink: 0,
+                                maxWidth: '110px',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
                               }}
                               title={`Vendor: ${vendor.name}`}
                             >
-                              <Store size={9} style={{ color: 'var(--accent)' }} />
-                              {vendor.name}
+                              <Store size={9} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vendor.name}</span>
                             </span>
                           )}
                           {ge.isSplit && (
@@ -261,13 +268,13 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                             }}>Split</span>
                           )}
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                           {fmtDate(ge.date)} · {ge.category}
                           {friendsInGroup.length > 0 ? ` · ${friendsInGroup.map(f => f?.name).join(', ')}` : ''}
                         </div>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right', fontWeight: 600, fontSize: 13, flexShrink: 0, color: isIn ? 'var(--credit)' : undefined }}>
+                    <div style={{ textAlign: 'right', fontWeight: 600, fontSize: 13, flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: isIn ? 'var(--credit)' : undefined }}>
                       {isIn ? '+' : ''}{fmtMoney(ge.totalAmount, currency)}
                     </div>
                   </div>
@@ -278,25 +285,27 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         </div>
 
         {/* Friend Balances */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Users size={18} style={{ color: 'var(--accent)' }} />
-              <h2 style={{ fontSize: 14, fontWeight: 600 }}>Friends</h2>
+        <div className="card" style={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, width: '100%', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+              <Users size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <h2 style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Friends</h2>
             </div>
-            <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('friends')} style={{ fontSize: 12, padding: '2px 8px' }}>View all →</button>
+            <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('friends')} style={{ fontSize: 12, padding: '2px 8px', flexShrink: 0 }}>View all →</button>
           </div>
           {balancedFriends.length === 0 ? (
             <div style={{ color: 'var(--text-3)', fontSize: 12.5, padding: '12px 0' }}>All settled up!</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', minWidth: 0 }}>
               {balancedFriends.map(({ friend, net }: { friend: Friend; net: number }) => (
-                <div key={friend.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                <div key={friend.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                   onClick={() => onNavigate('friend-detail', friend.id)}>
-                  <div className="avatar avatar-sm" style={{ ...getAvatarStyle(friend.color), width: 22, height: 22, fontSize: 10 }}>{friendInitial(friend.name, friend.avatarNumber)}</div>
-                  <span style={{ flex: 1, fontSize: 12.5, fontWeight: 500 }}>{friend.name}</span>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: net > 0 ? 'var(--credit)' : 'var(--debit)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                    <div className="avatar avatar-sm" style={{ ...getAvatarStyle(friend.color), width: 22, height: 22, fontSize: 10, flexShrink: 0 }}>{friendInitial(friend.name, friend.avatarNumber)}</div>
+                    <span style={{ flex: 1, fontSize: 12.5, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{friend.name}</span>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: net > 0 ? 'var(--credit)' : 'var(--debit)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                       {net > 0 ? '+' : ''}{fmtMoney(net, currency)}
                     </div>
                   </div>
@@ -307,22 +316,24 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         </div>
 
         {/* Wallets */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Wallet size={18} style={{ color: 'var(--accent)' }} />
-              <h2 style={{ fontSize: 14, fontWeight: 600 }}>Wallets</h2>
+        <div className="card" style={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, width: '100%', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+              <Wallet size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <h2 style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Wallets</h2>
             </div>
-            <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('wallets')} style={{ fontSize: 12, padding: '2px 8px' }}>Manage →</button>
+            <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('wallets')} style={{ fontSize: 12, padding: '2px 8px', flexShrink: 0 }}>Manage →</button>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', minWidth: 0 }}>
             {wallets.map(w => {
               const bal = walletBalance(db, w.id);
               return (
-                <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: w.color, flexShrink: 0 }} />
-                  <span style={{ flex: 1, fontSize: 12.5 }}>{w.name}</span>
-                  <span style={{ fontSize: 12.5, fontWeight: 500, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>{fmtMoney(bal, currency)}</span>
+                <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: w.color, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{w.name}</span>
+                  </div>
+                  <span style={{ fontSize: 12.5, fontWeight: 500, color: bal < 0 ? 'var(--debit)' : 'var(--text)', flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(bal, currency)}</span>
                 </div>
               );
             })}

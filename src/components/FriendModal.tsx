@@ -23,6 +23,7 @@ interface Props {
   friend?: Friend | null;
   defaultType?: ContactType;
   onClose: () => void;
+  onSuccess?: (createdFriend: Friend) => void;
 }
 
 interface CycleChoice {
@@ -87,7 +88,7 @@ const getCycleDisplayInfo = (cycle: string, amountStr?: string, currency = '₹'
   };
 };
 
-export default function FriendModal({ friend, defaultType = 'friend', onClose }: Props) {
+export default function FriendModal({ friend, defaultType = 'friend', onClose, onSuccess }: Props) {
   const { db, addFriend, updateFriend, showToast } = useStore();
   const [type, setType] = useState<ContactType>(friend?.type ?? defaultType);
   const [name, setName] = useState(friend?.name ?? '');
@@ -186,8 +187,11 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose }:
       updateFriend(friend.id, payload);
       showToast(`${type === 'vendor' ? 'Vendor' : type === 'subscription' ? 'Subscription' : 'Friend'} updated`);
     } else {
-      addFriend(payload);
+      const created = addFriend(payload);
       showToast(`${type === 'vendor' ? 'Vendor' : type === 'subscription' ? 'Subscription' : 'Friend'} added`);
+      if (onSuccess) {
+        onSuccess(created);
+      }
     }
     onClose();
   };

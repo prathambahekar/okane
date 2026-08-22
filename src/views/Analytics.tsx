@@ -4,6 +4,7 @@ import { useStore } from '../store';
 import { fmtMoney, groupExpenses, type GroupedExpense } from '../utils';
 import { CategoryBadge } from '../components/CategoryIcon';
 import ExpenseModal from '../components/ExpenseModal';
+import ExpenseDetailDrawer from '../components/ExpenseDetailDrawer';
 import type { Expense } from '../types';
 import {
   BarChart2,
@@ -13,8 +14,6 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
-  Edit2,
-  Trash2,
   Wallet,
   User,
   Award,
@@ -46,7 +45,7 @@ function fmtCompactMoney(amount: number, currency: string): string {
 
 export default function Analytics() {
   const { db, deleteExpense, showToast } = useStore();
-  const { expenses, wallets, friends, settings: { currency } } = db;
+  const { expenses, wallets, settings: { currency } } = db;
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
@@ -55,31 +54,10 @@ export default function Analytics() {
   const [chartMode, setChartMode] = useState<'weekly' | 'monthly'>('weekly');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
-  const [expandedGroupIds, setExpandedGroupIds] = useState<Record<string, boolean>>({});
+  const [selectedGroupExpense, setSelectedGroupExpense] = useState<GroupedExpense | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showCategoryDrawer, setShowCategoryDrawer] = useState(false);
-
-  // Floating Action Button Portal Target
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(() => {
-    if (typeof document !== 'undefined') {
-      return document.getElementById('floating-extra-actions-slot');
-    }
-    return null;
-  });
-
-  useEffect(() => {
-    if (!portalTarget) {
-      const interval = setInterval(() => {
-        const slot = document.getElementById('floating-extra-actions-slot');
-        if (slot) {
-          setPortalTarget(slot);
-          clearInterval(interval);
-        }
-      }, 50);
-      return () => clearInterval(interval);
-    }
-  }, [portalTarget]);
 
   // Lock body scroll when Category Drawer is open
   useEffect(() => {
@@ -122,10 +100,32 @@ export default function Analytics() {
     });
   }, [groupedExpenses, selectedCategory, selectedDate, chartMode, selectedWeek, selectedMonth]);
 
-  // Outflow total
+  // Timeframe expenses (ignoring selectedCategory filter so drawer shows full distribution)
+  const timeframeExpenses = useMemo(() => {
+    return groupedExpenses.filter(ge => {
+      if (selectedDate) return ge.date === selectedDate;
+      if (chartMode === 'weekly' && selectedWeek) {
+        const [wy, wm, wd] = selectedWeek.split('-').map(Number);
+        const monD = new Date(wy, wm - 1, wd);
+        const sunD = new Date(monD.getFullYear(), monD.getMonth(), monD.getDate() + 6);
+        const sunStr = formatISO(sunD);
+        if (ge.date < selectedWeek || ge.date > sunStr) return false;
+      } else if (chartMode === 'monthly' && selectedMonth) {
+        if (ge.date.slice(0, 7) !== selectedMonth) return false;
+      }
+      return true;
+    });
+  }, [groupedExpenses, selectedDate, chartMode, selectedWeek, selectedMonth]);
+
+  // Outflow total for filtered view
   const totalSpent = useMemo(() =>
     filteredExpenses.filter(ge => ge.flow === 'out').reduce((sum, ge) => sum + Number(ge.totalAmount), 0),
   [filteredExpenses]);
+
+  // Outflow total across the active timeframe (for category share % and summary)
+  const timeframeOutflowTotal = useMemo(() =>
+    timeframeExpenses.filter(ge => ge.flow === 'out').reduce((sum, ge) => sum + Number(ge.totalAmount), 0),
+  [timeframeExpenses]);
 
   // Days in selected timeframe or selected month / week
   const daysInPeriod = useMemo(() => {
@@ -506,7 +506,7 @@ export default function Analytics() {
   // Category breakdown
   const categoryBreakdown = useMemo(() => {
     const map: Record<string, { amount: number; count: number }> = {};
-    filteredExpenses.forEach(ge => {
+    timeframeExpenses.forEach(ge => {
       if (ge.flow !== 'out') return;
       if (!map[ge.category]) map[ge.category] = { amount: 0, count: 0 };
       map[ge.category].amount += Number(ge.totalAmount);
@@ -518,10 +518,10 @@ export default function Analytics() {
         cat,
         amount: data.amount,
         count: data.count,
-        pct: totalSpent > 0 ? (data.amount / totalSpent) * 100 : 0,
+        pct: timeframeOutflowTotal > 0 ? (data.amount / timeframeOutflowTotal) * 100 : 0,
       }))
       .sort((a, b) => b.amount - a.amount);
-  }, [filteredExpenses, totalSpent]);
+  }, [timeframeExpenses, timeframeOutflowTotal]);
 
   // Toggle date selection from bar chart or list
   const handleToggleDate = (dateStr: string) => {
@@ -1317,19 +1317,45 @@ export default function Analytics() {
       <div className="dashboard-grid" style={{ gap: 16, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
         {/* Category Distribution Button in Daily Log Header */}
         <div className="card" style={{ padding: '16px', overflow: 'hidden', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: '1 1 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'nowrap', gap: 8, width: '100%', minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
               <Award size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.2px' }}>Daily Expenditure Log</span>
-              <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', flexShrink: 0 }}>
-                ({perDayList.length} {perDayList.length === 1 ? 'day' : 'days'})
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.2px', flexShrink: 1 }}>
+                Daily Expenditure
+              </span>
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  color: 'var(--text-2)',
+                  background: 'var(--surface2)',
+                  padding: '2px 6px',
+                  borderRadius: 6,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  lineHeight: '1.2',
+                }}
+              >
+                {perDayList.length} {perDayList.length === 1 ? 'day' : 'days'}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                style={{ fontSize: 11, padding: '3px 10px', height: 26, gap: 5, display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', flexShrink: 0, border: 'none', background: 'var(--surface2)' }}
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  height: 26,
+                  gap: 4,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  border: 'none',
+                  background: 'var(--surface2)',
+                  fontWeight: 600,
+                }}
                 onClick={() => setShowCategoryDrawer(true)}
               >
                 <PieChart size={13} style={{ color: 'var(--accent)' }} /> Categories
@@ -1338,7 +1364,16 @@ export default function Analytics() {
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  style={{ fontSize: 11, padding: '3px 10px', height: 26, whiteSpace: 'nowrap', flexShrink: 0, border: 'none', background: 'var(--surface2)' }}
+                  style={{
+                    fontSize: 11,
+                    padding: '3px 8px',
+                    height: 26,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    border: 'none',
+                    background: 'var(--surface2)',
+                    fontWeight: 600,
+                  }}
                   onClick={() => setSelectedDate(null)}
                 >
                   Clear Date
@@ -1360,41 +1395,30 @@ export default function Analytics() {
                 return (
                   <div
                     key={row.dateStr}
+                    className="daily-expenditure-group"
                     style={{
-                      background: 'var(--surface2)',
-                      borderRadius: 10,
-                      border: selectedDate === row.dateStr ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-                      overflow: 'hidden',
-                      transition: 'all 0.2s ease',
                       width: '100%',
                       boxSizing: 'border-box',
+                      border: selectedDate === row.dateStr ? '1.5px solid var(--accent)' : undefined,
                     }}
                   >
                     {/* Day Row Header */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '11px 13px',
-                        cursor: 'pointer',
-                        fontSize: 12.5,
-                        gap: 8,
-                        userSelect: 'none',
-                        width: '100%',
-                        boxSizing: 'border-box',
-                      }}
+                    <button
+                      type="button"
+                      className="daily-expenditure-header"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
                       onClick={() => handleToggleExpand(row.dateStr)}
+                      aria-expanded={isExpanded}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                         <CategoryBadge category={row.topCategory} color={catObj?.color} icon={catObj?.icon} size={15} showLabel={false} />
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ fontWeight: 650, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
-                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text)', fontSize: 13 }}>{row.dayName}</span>
-                            {row.isToday && <span style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, flexShrink: 0 }}>Today</span>}
-                            {row.isYesterday && <span style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, flexShrink: 0 }}>Yest.</span>}
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text)', fontSize: 13.5 }}>{row.dayName}</span>
+                            {row.isToday && <span style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9.5, fontWeight: 700, padding: '1.5px 6px', borderRadius: 5, flexShrink: 0 }}>Today</span>}
+                            {row.isYesterday && <span style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', fontSize: 9.5, fontWeight: 700, padding: '1.5px 6px', borderRadius: 5, flexShrink: 0 }}>Yest.</span>}
                           </div>
-                          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {row.count} {row.count === 1 ? 'item' : 'items'} · {row.topCategory}
                           </div>
                         </div>
@@ -1421,34 +1445,24 @@ export default function Analytics() {
                           }
 
                           return (
-                            <div style={{ textAlign: 'right', fontWeight: 700, fontSize: 13.5, color: amountColor, whiteSpace: 'nowrap' }}>
+                            <div style={{ textAlign: 'right', fontWeight: 750, fontSize: 14, color: amountColor, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                               {amountText}
                             </div>
                           );
                         })()}
-                        <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center', padding: '2px', flexShrink: 0 }}>
-                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                          {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                         </div>
                       </div>
-                    </div>
+                    </button>
 
                     {/* Expandable Itemized Transactions List */}
                     {isExpanded && (
-                      <div style={{
-                        borderTop: '1px solid var(--border)',
-                        background: 'var(--surface)',
-                        padding: '6px 8px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 6,
-                        animation: 'fadein 0.15s ease',
-                      }}>
+                      <div className="daily-expenditure-items">
                         {row.items.map(ge => {
                           const isDebit = ge.flow === 'out';
                           const itemCat = db.settings.categories.find(c => c.name === ge.category);
-                          const primaryItem = ge.items[0];
                           const walletObj = wallets.find(w => w.id === ge.walletId);
-                          const isGroupExpanded = !!expandedGroupIds[ge.id];
 
                           // Settlement status calculation
                           const allSettled = ge.items.every(i => i.settled || i.status === 'paid');
@@ -1457,61 +1471,47 @@ export default function Analytics() {
                           return (
                             <div
                               key={ge.id}
-                              style={{
-                                borderRadius: 8,
-                                background: 'var(--surface2)',
-                                border: '1px solid var(--border)',
-                                overflow: 'hidden',
+                              className="daily-expense-row-wrap"
+                              onClick={() => setSelectedGroupExpense(ge)}
+                              style={{ cursor: 'pointer' }}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  setSelectedGroupExpense(ge);
+                                }
                               }}
                             >
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '8px 10px',
-                                  gap: 8,
-                                  fontSize: 12,
-                                  cursor: ge.items.length > 1 ? 'pointer' : 'default',
-                                }}
-                                onClick={() => {
-                                  if (ge.items.length > 1) {
-                                    setExpandedGroupIds(prev => ({ ...prev, [ge.id]: !prev[ge.id] }));
-                                  }
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-                                  {ge.items.length > 1 && (
-                                    <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                                      {isGroupExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                    </div>
-                                  )}
-                                  <CategoryBadge category={ge.category} color={itemCat?.color} icon={itemCat?.icon} size={14} showLabel={false} />
+                              <div className="daily-expense-row">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, flex: 1 }}>
+                                  <CategoryBadge category={ge.category} color={itemCat?.color} icon={itemCat?.icon} size={15} showLabel={false} />
                                   <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                       {ge.description || 'Expense'}
                                     </div>
-                                    <div style={{ fontSize: 10.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap', marginTop: 2, overflow: 'hidden' }}>
+                                    <div style={{ fontSize: 11, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap', marginTop: 1, overflow: 'hidden' }}>
                                       {ge.isSplit ? (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--accent)', flexShrink: 0 }}>
-                                          <User size={10} /> Split
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--accent)', fontWeight: 600, flexShrink: 0 }}>
+                                          <User size={11} /> Split
                                         </span>
                                       ) : (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-                                          <Wallet size={10} /> {walletObj?.name || 'Personal'}
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '85px' }}>
+                                          <Wallet size={11} /> {walletObj?.name || 'Personal'}
                                         </span>
                                       )}
-                                      <span style={{ flexShrink: 0 }}>·</span>
+                                      <span style={{ flexShrink: 0, opacity: 0.5 }}>·</span>
                                       <span style={{
                                         padding: '1px 5px',
                                         borderRadius: 4,
                                         fontSize: 9.5,
-                                        fontWeight: 600,
+                                        fontWeight: 650,
                                         flexShrink: 0,
-                                        background: allSettled ? 'rgba(34, 197, 94, 0.15)' : (someSettled ? 'rgba(234, 179, 8, 0.15)' : 'rgba(239, 68, 68, 0.15)'),
-                                        color: allSettled ? '#22C55E' : (someSettled ? '#EAB308' : '#EF4444'),
+                                        whiteSpace: 'nowrap',
+                                        background: allSettled ? 'rgba(16, 185, 129, 0.12)' : (someSettled ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)'),
+                                        color: allSettled ? '#10b981' : (someSettled ? '#f59e0b' : '#ef4444'),
                                       }}>
-                                        {allSettled ? 'Settled' : (someSettled ? 'Partially Settled' : 'Unsettled')}
+                                        {allSettled ? 'Settled' : (someSettled ? 'Partial' : 'Unsettled')}
                                       </span>
                                     </div>
                                   </div>
@@ -1547,100 +1547,17 @@ export default function Analytics() {
                                     return (
                                       <div style={{
                                         fontWeight: 700,
-                                        fontSize: 12.5,
+                                        fontSize: 13.5,
                                         color: displayColor,
                                         whiteSpace: 'nowrap',
+                                        fontVariantNumeric: 'tabular-nums',
                                       }}>
                                         {displayAmount}
                                       </div>
                                     );
                                   })()}
-
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-                                    <button
-                                      type="button"
-                                      className="btn-icon"
-                                      style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0, background: 'transparent', border: 'none' }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (primaryItem) setEditingExpense(primaryItem);
-                                      }}
-                                      title="Edit expense"
-                                    >
-                                      <Edit2 size={12} />
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      className="btn-icon"
-                                      style={{ width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0, color: '#EF4444', background: 'transparent', border: 'none' }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (primaryItem) setDeletingId(primaryItem.id);
-                                      }}
-                                      title="Delete expense"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  </div>
                                 </div>
                               </div>
-
-                              {/* Breakdown if split and expanded */}
-                              {ge.items.length > 1 && isGroupExpanded && (
-                                <div style={{
-                                  borderTop: '1px solid var(--border)',
-                                  background: 'var(--surface2)',
-                                  padding: '8px 12px',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 5,
-                                  fontSize: 11,
-                                  width: '100%',
-                                  boxSizing: 'border-box',
-                                }}>
-                                  {ge.items.filter(sub => !(sub.type === 'personal' && (Number(sub.amount) || 0) <= 0)).map(sub => {
-                                    const frObj = friends.find(f => f.id === sub.friendId);
-                                    const isSubSettled = sub.settled || sub.status === 'paid';
-                                    const name = frObj?.name || 'Contact';
-
-                                    let roleLabel = 'Personal Share';
-                                    if (sub.type === 'for_friend') {
-                                      roleLabel = isSubSettled ? `${name} paid you` : `${name} owes you`;
-                                    } else if (sub.type === 'by_friend') {
-                                      roleLabel = isSubSettled ? `Paid to ${name}` : `You owe ${name}`;
-                                    }
-
-                                    const isSubDebit = sub.type === 'by_friend' || sub.type === 'personal';
-                                    const subSign = isSubDebit ? '-' : '+';
-                                    const subColor = isSubDebit ? 'var(--debit)' : 'var(--credit)';
-
-                                    return (
-                                      <div key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-2)', minWidth: 0 }}>
-                                          <User size={10} style={{ opacity: 0.7, flexShrink: 0 }} />
-                                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roleLabel}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                                          <span style={{ fontWeight: 600, color: subColor }}>
-                                            {subSign}{fmtMoney(sub.amount, currency)}
-                                          </span>
-                                          <span style={{
-                                            padding: '1px 5px',
-                                            borderRadius: 999,
-                                            fontSize: 9,
-                                            fontWeight: 650,
-                                            background: isSubSettled ? 'rgba(34, 197, 94, 0.12)' : 'rgba(248, 113, 113, 0.12)',
-                                            color: isSubSettled ? '#4ADE80' : '#FCA5A5',
-                                          }}>
-                                            {isSubSettled ? 'Settled' : 'Unsettled'}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
                             </div>
                           );
                         })}
@@ -1655,98 +1572,27 @@ export default function Analytics() {
 
       </div>
 
-      {/* Floating Action Button (rendered directly above the Search Button) */}
-      {portalTarget && createPortal(
-        <button
-          type="button"
-          id="floating-category-drawer-btn"
-          onClick={() => setShowCategoryDrawer(true)}
-          style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '50%',
-            backgroundColor: showCategoryDrawer ? 'var(--accent)' : 'var(--surface2)',
-            color: showCategoryDrawer ? 'var(--accent-contrast, #ffffff)' : 'var(--text)',
-            border: showCategoryDrawer ? '1px solid var(--accent)' : '1px solid var(--border)',
-            boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            pointerEvents: 'auto',
-            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            position: 'relative',
-          }}
-          onMouseEnter={e => {
-            if (!showCategoryDrawer) {
-              e.currentTarget.style.backgroundColor = 'var(--surface3)';
-              e.currentTarget.style.borderColor = 'var(--accent)';
-              e.currentTarget.style.color = 'var(--accent)';
-            }
-            e.currentTarget.style.transform = 'scale(1.08)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.backgroundColor = showCategoryDrawer ? 'var(--accent)' : 'var(--surface2)';
-            e.currentTarget.style.borderColor = showCategoryDrawer ? 'var(--accent)' : 'var(--border)';
-            e.currentTarget.style.color = showCategoryDrawer ? 'var(--accent-contrast, #ffffff)' : 'var(--text)';
-            e.currentTarget.style.transform = 'none';
-          }}
-          onMouseDown={e => {
-            e.currentTarget.style.transform = 'scale(0.95)';
-          }}
-          title="Category Distribution"
-          aria-label="Category Distribution"
-        >
-          <PieChart size={19} />
-          {selectedCategory && (
-            <span
-              style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                background: 'var(--accent)',
-                border: '2px solid var(--surface)',
-              }}
-            />
-          )}
-        </button>,
-        portalTarget
-      )}
-
       {/* Category Distribution Modal Drawer */}
       {showCategoryDrawer && createPortal(
         <div
-          className="filter-drawer-overlay"
-          onClick={() => setShowCategoryDrawer(false)}
+          className="modal-backdrop"
+          onClick={e => {
+            if (e.target === e.currentTarget) setShowCategoryDrawer(false);
+          }}
         >
-          <div
-            className="filter-drawer-panel"
-            onClick={e => e.stopPropagation()}
-            style={{ border: 'none', boxShadow: '0 -12px 48px rgba(0, 0, 0, 0.65)' }}
-          >
-            {/* Top Handle Bar for mobile sheet feel */}
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 2 }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--surface3)', opacity: 0.8 }} />
+          <div className="modal category-dist-modal">
+            {/* Drag Handle Bar for mobile bottom sheet */}
+            <div className="modal-handle-bar">
+              <div className="modal-handle" />
             </div>
 
-            {/* Drawer Header (No splitting lines) */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 20px 8px 20px',
-                background: 'transparent',
-              }}
-            >
+            {/* Header */}
+            <div className="category-dist-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div
                   style={{
-                    width: 36,
-                    height: 36,
+                    width: 38,
+                    height: 38,
                     borderRadius: 11,
                     background: 'var(--accent-soft)',
                     color: 'var(--accent)',
@@ -1759,11 +1605,11 @@ export default function Analytics() {
                   <PieChart size={19} strokeWidth={2.2} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.3px' }}>
+                  <h3 style={{ fontSize: 15.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.3px' }}>
                     Category Distribution
                   </h3>
                   <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
-                    {selectedCategory ? `Filtered by ${selectedCategory}` : 'Breakdown of spending across categories'}
+                    {selectedCategory ? `Filtering by ${selectedCategory} · Click to reset` : 'Breakdown of spending across categories'}
                   </p>
                 </div>
               </div>
@@ -1773,7 +1619,7 @@ export default function Analytics() {
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    style={{ fontSize: 11, padding: '3px 10px', border: 'none', background: 'var(--surface2)' }}
+                    style={{ fontSize: 11.5, padding: '4px 10px', height: 30, borderRadius: 8 }}
                     onClick={() => setSelectedCategory(null)}
                   >
                     Clear Filter
@@ -1781,21 +1627,8 @@ export default function Analytics() {
                 )}
                 <button
                   type="button"
-                  className="btn-icon"
+                  className="compact-close-btn"
                   onClick={() => setShowCategoryDrawer(false)}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    padding: 0,
-                    background: 'var(--surface2)',
-                    border: 'none',
-                    color: 'var(--text-2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                  }}
                   title="Close drawer"
                   aria-label="Close drawer"
                 >
@@ -1804,8 +1637,8 @@ export default function Analytics() {
               </div>
             </div>
 
-            {/* Drawer Content */}
-            <div className="filter-drawer-content" style={{ padding: '12px 20px 24px 20px' }}>
+            {/* Content Body */}
+            <div className="category-dist-body">
               {categoryBreakdown.length === 0 ? (
                 <div
                   style={{
@@ -1813,7 +1646,7 @@ export default function Analytics() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '44px 20px',
+                    padding: '48px 20px',
                     textAlign: 'center',
                   }}
                 >
@@ -1835,54 +1668,151 @@ export default function Analytics() {
                   <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)', marginBottom: 4, letterSpacing: '-0.2px' }}>
                     No Category Data
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-3)', maxWidth: 250, lineHeight: 1.45 }}>
-                    There are no expenses recorded for the selected timeframe or filter.
+                  <div style={{ fontSize: 12, color: 'var(--text-3)', maxWidth: 260, lineHeight: 1.45 }}>
+                    There are no outflow expenses recorded for the selected timeframe.
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <>
+                  {/* Summary Bar */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '7px 12px',
+                      background: 'var(--surface2)',
+                      borderRadius: 9,
+                      fontSize: 11.5,
+                      color: 'var(--text-2)',
+                      marginBottom: 2,
+                    }}
+                  >
+                    <span>{categoryBreakdown.length} {categoryBreakdown.length === 1 ? 'Category' : 'Categories'}</span>
+                    <span>
+                      Total:{' '}
+                      <strong style={{ color: 'var(--text)', fontWeight: 700 }}>
+                        {fmtMoney(timeframeOutflowTotal, currency)}
+                      </strong>
+                    </span>
+                  </div>
+
+                  {/* Category Cards List */}
                   {categoryBreakdown.map(({ cat, amount, pct, count }) => {
                     const catObj = db.settings.categories.find(c => c.name === cat);
                     const catColor = catObj?.color ?? '#6B7280';
                     const isSelectedCat = selectedCategory === cat;
 
                     return (
-                      <div
+                      <button
                         key={cat}
-                        style={{
-                          cursor: 'pointer',
-                          padding: '12px 14px',
-                          borderRadius: 'var(--radius-lg)',
-                          background: isSelectedCat ? 'var(--accent-soft)' : 'var(--surface2)',
-                          border: isSelectedCat ? '1.5px solid var(--accent)' : 'none',
-                          transition: 'all 0.15s ease',
-                        }}
+                        type="button"
+                        className={`category-dist-card ${isSelectedCat ? 'active' : ''}`}
                         onClick={() => setSelectedCategory(isSelectedCat ? null : cat)}
-                        title={`Click to filter by ${cat}`}
+                        title={`Click to filter log by ${cat}`}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 13 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                            <CategoryBadge category={cat} color={catColor} icon={catObj?.icon} size={15} />
-                            <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--text)' }}>{cat}</span>
-                            <span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>({count} {count === 1 ? 'item' : 'items'})</span>
+                        {/* Top Info Row */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, width: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                            <CategoryBadge
+                              category={cat}
+                              color={catColor}
+                              icon={catObj?.icon}
+                              size={15}
+                              showLabel={false}
+                            />
+                            <span
+                              style={{
+                                fontWeight: 650,
+                                fontSize: 14,
+                                color: isSelectedCat ? 'var(--accent)' : 'var(--text)',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {cat}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: isSelectedCat ? 'var(--accent)' : 'var(--text-3)',
+                                background: isSelectedCat ? 'var(--accent-soft)' : 'var(--surface3)',
+                                padding: '2px 7px',
+                                borderRadius: 6,
+                                fontWeight: 500,
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {count} {count === 1 ? 'item' : 'items'}
+                            </span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700 }}>
-                            <span style={{ color: 'var(--text-3)', fontSize: 12, fontWeight: 600 }}>{Math.round(pct)}%</span>
-                            <span style={{ fontSize: 14, color: 'var(--text)' }}>{fmtMoney(amount, currency)}</span>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                            <span
+                              style={{
+                                color: isSelectedCat ? 'var(--accent)' : 'var(--text-3)',
+                                fontSize: 12,
+                                fontWeight: 650,
+                                fontVariantNumeric: 'tabular-nums',
+                              }}
+                            >
+                              {Math.round(pct)}%
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 14.5,
+                                fontWeight: 750,
+                                color: 'var(--text)',
+                                fontVariantNumeric: 'tabular-nums',
+                              }}
+                            >
+                              {fmtMoney(amount, currency)}
+                            </span>
                           </div>
                         </div>
-                        <div className="progress-bar-track" style={{ height: 5, borderRadius: 999, background: 'rgba(255, 255, 255, 0.06)' }}>
-                          <div className="progress-bar-fill" style={{ width: `${pct}%`, background: catColor, borderRadius: 999 }} />
+
+                        {/* Progress Bar */}
+                        <div className="category-dist-progress-track">
+                          <div
+                            className="category-dist-progress-fill"
+                            style={{
+                              width: `${Math.min(100, Math.max(1.5, pct))}%`,
+                              background: isSelectedCat ? 'var(--accent)' : catColor,
+                            }}
+                          />
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
-                </div>
+                </>
               )}
             </div>
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Transaction Detail Drawer */}
+      {selectedGroupExpense && (
+        <ExpenseDetailDrawer
+          ge={selectedGroupExpense}
+          onClose={() => setSelectedGroupExpense(null)}
+          onEdit={(item) => {
+            setSelectedGroupExpense(null);
+            setEditingExpense(item);
+          }}
+          onDelete={(id) => {
+            setSelectedGroupExpense(null);
+            setDeletingId(id);
+          }}
+          currency={currency}
+          friends={db.friends}
+          wallets={db.wallets}
+          categories={db.settings.categories}
+          settlements={db.settlements}
+        />
       )}
 
       {/* Edit Expense Modal */}
