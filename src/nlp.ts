@@ -43,6 +43,104 @@ export function parseLocallyClient(
   const fmt = (n: number) => `${sym}${Math.abs(n).toLocaleString()}`;
 
   // ==========================================
+  // 0. CONVERSATIONAL & GREETING INTENT HANDLING
+  // ==========================================
+  const expenseVerbsPattern = /\b(spent|spend|paid|pay|bought|buy|received|got|earned|salary|credited|debited|split|borrowed|lent|repaid|gave|sent|cost|charge|bill|fee|tiffin|coffee|chai|tea|lunch|dinner|breakfast|uber|cab|auto|petrol|diesel|groceries|swiggy|zomato|movie|rent|wifi|recharge)\b/i;
+  const hasExpenseKeywords = expenseVerbsPattern.test(lower);
+  const hasNumbers = /\b\d+\b/.test(lower);
+
+  // If no expense keywords and no numbers, handle greetings, questions & casual talk naturally
+  if (!hasExpenseKeywords && !hasNumbers) {
+    // Greetings
+    if (/^\s*(hi+|hello+|hey+|heyy+|greetings|good morning|good afternoon|good evening|yo+|sup|namaste|hola)\b/i.test(lower)) {
+      return {
+        reply: `Hey there! 👋 I'm Max, your Okane AI assistant. How can I help you today? You can ask about your balances, spending summaries, or log a transaction!`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    // Identity & Capabilities
+    if (/who are you|what is your name|what can you do|what are your features|who made you|help|help me|how to use|features/i.test(lower)) {
+      return {
+        reply: `I'm Max, your personal AI financial assistant in Okane! Here's what I can do:\n• **Log transactions**: e.g., *"Spent ₹150 on Lunch"* or *"Got ₹5000 salary"*\n• **Split bills**: e.g., *"Paid 600 for Dinner with Rahul"*\n• **Check balances**: e.g., *"What is my balance?"* or *"Who owes me money?"*\n• **Monthly insights**: e.g., *"How much did I spend this month?"*`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    // Small talk & Pleasantries
+    if (/how are you|how's it going|how is it going|what's up|how do you do/i.test(lower)) {
+      return {
+        reply: `I'm doing great and ready to assist! How are your finances looking today?`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    // Gratitude
+    if (/\b(thanks|thank you|thx|tysm|cheers|appreciation)\b/i.test(lower)) {
+      return {
+        reply: `You're very welcome! 😊 Let me know whenever you want to track an expense or check your ledger.`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    // Praise / Feedback
+    if (/\b(good job|awesome|cool|nice|great|perfect|amazing)\b/i.test(lower)) {
+      return {
+        reply: `Thank you! Happy to help you manage your money effortlessly. 🚀`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    // Jokes
+    if (/\b(tell me a joke|joke|humor|funny)\b/i.test(lower)) {
+      return {
+        reply: `Why did the dollar bill go to school? Because it wanted to get a little more cents! 😄`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    // Farewell
+    if (/\b(bye|goodbye|see you|later|cya)\b/i.test(lower)) {
+      return {
+        reply: `Goodbye! Have a great day and happy budgeting! 👋`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    // Okane App & Financial FAQ
+    if (/\b(save money|tips to save|how to save|budgeting tips)\b/i.test(lower)) {
+      return {
+        reply: `Here are 3 quick tips to save more with Okane:\n1. **Use Envelope Budgeting** to set strict monthly caps.\n2. **Track small daily expenses** like coffee & snacks—they add up fast!\n3. **Review your monthly summary** regularly to spot unnecessary recurring expenses.`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    if (/\b(envelope|envelopes)\b/i.test(lower)) {
+      return {
+        reply: `Envelope budgeting lets you allocate funds into virtual envelopes (e.g., Food, Transport, Rent). When an envelope runs out, you know it's time to pause spending in that category!`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    if (/\b(split trip|trips|vacation)\b/i.test(lower)) {
+      return {
+        reply: `Split Trips lets you group shared expenses during vacations or events with friends. You can track who paid what and calculate settlements easily!`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+  }
+
+  // ==========================================
   // 1. QUERY HANDLING: WALLET / ACCOUNT BALANCES
   // ==========================================
   const isBalanceQuery =
@@ -310,6 +408,13 @@ export function parseLocallyClient(
   const utilityKeywords = ['electricity', 'wifi', 'internet', 'rent', 'recharge', 'mobile', 'water', 'gas', 'bill'];
   const shoppingKeywords = ['shopping', 'clothes', 'shoes', 'amazon', 'flipkart', 'myntra', 'mall'];
 
+  const matchedKnownItem = foodKeywords.some(k => lower.includes(k)) ||
+    transportKeywords.some(k => lower.includes(k)) ||
+    groceryKeywords.some(k => lower.includes(k)) ||
+    entertainmentKeywords.some(k => lower.includes(k)) ||
+    utilityKeywords.some(k => lower.includes(k)) ||
+    shoppingKeywords.some(k => lower.includes(k));
+
   if (isIncome) {
     category = 'Income';
   } else if (foodKeywords.some(k => lower.includes(k))) {
@@ -370,7 +475,7 @@ export function parseLocallyClient(
   // If amount was not specified in the query, check if this title has a known exact recurring or past price (e.g. Tiffin = 75)
   if (amount === 0 && db) {
     const lowerTitle = title.toLowerCase();
-    const matchingRecurring = db.recurringRules.find(r => r.title.toLowerCase().includes(lowerTitle));
+    const matchingRecurring = db.recurringRules?.find(r => r.title.toLowerCase().includes(lowerTitle));
     if (matchingRecurring && matchingRecurring.amount > 0) {
       amount = matchingRecurring.amount;
     } else {
@@ -379,6 +484,18 @@ export function parseLocallyClient(
         amount = pastExpenses[0].amount;
       }
     }
+  }
+
+  // CHECK FINANCIAL INTENT:
+  // Only extract info & build draft if user specified an amount, used transaction verbs, or mentioned a known item/friend action
+  const hasTransactionIntent = amount > 0 || hasExpenseKeywords || matchedKnownItem || (foundFriendName != null && (lower.includes('paid') || lower.includes('gave') || lower.includes('split') || lower.includes('for')));
+
+  if (!hasTransactionIntent) {
+    return {
+      reply: `I didn't catch an expense amount or transaction details in your message. If you'd like to log an expense, try something like: *"Spent ₹150 on Lunch"* or *"Paid ₹500 for Uber with Cash"*!`,
+      actionType: 'general_query',
+      isOffline: true,
+    };
   }
 
   // Dates
@@ -398,7 +515,7 @@ export function parseLocallyClient(
   const amtLabel = amount > 0 ? `${sym}${amount}` : 'amount';
 
   return {
-    reply: `Captured "${title}" for ${amtLabel} under ${category}${friendLabel} using ${matchedWallet}. Review and confirm below!`,
+    reply: `I've drafted "${title}" for ${amtLabel} under ${category}${friendLabel} using ${matchedWallet}. Review and confirm below!`,
     actionType: 'add_expense',
     isOffline: true,
     draft: {

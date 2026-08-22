@@ -26,7 +26,6 @@ import {
   Mic,
   MicOff,
   Send,
-  CheckCircle2,
   X,
   User,
   PlusCircle,
@@ -40,12 +39,14 @@ import {
   ShoppingBag,
   Banknote,
   Clock,
+  Zap,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { currencySymbol } from '../utils';
 import { parseLocallyClient } from '../nlp';
-import { uid, todayISO, friendBalance } from '../db';
+import { uid, todayISO, friendBalance, walletBalance, totalWalletBalance } from '../db';
 import type { ExpenseType, ExpenseFlow } from '../types';
+import { CategoryBadge } from './CategoryIcon';
 
 const ModalFadeTransition = React.forwardRef(function Transition(
   props: TransitionProps & {
@@ -1417,181 +1418,114 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             bgcolor: 'var(--surface2)',
             display: 'flex',
             flexDirection: 'column',
-            gap: 1.5,
-            mt: 0.5,
+            gap: 1.75,
+            mt: 1,
           }}
         >
           {/* Header Row */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CheckCircle2 size={17} color="var(--credit)" />
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>
-                Extracted Record Details
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip
-                label={`${currSym} ${activeDraft.amount}`}
-                size="small"
-                sx={{ fontWeight: 700, fontSize: '13px', borderRadius: '6px', px: 0.5, bgcolor: 'var(--accent)', color: 'var(--accent-contrast)' }}
-              />
-            </Box>
-          </Box>
-
-          {/* Transaction Type Toggle */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
-              Transaction Type
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--text)' }}>
+              Extracted Record Details
             </Typography>
-            <ToggleButtonGroup
-              value={activeDraft.flow || 'out'}
-              exclusive
-              onChange={(_, newFlow) => {
-                if (!newFlow) return;
-                setActiveDraft({
-                  ...activeDraft,
-                  flow: newFlow,
-                  category: newFlow === 'in' ? 'Income' : (activeDraft.category === 'Income' ? 'Food' : activeDraft.category),
-                  splitMode: newFlow === 'in' ? 'just_me' : activeDraft.splitMode,
-                  type: newFlow === 'in' ? 'personal' : activeDraft.type,
-                  whoPaid: newFlow === 'in' ? 'me' : activeDraft.whoPaid,
-                });
-              }}
+            <Chip
+              label={`${currSym} ${activeDraft.amount != null && !isNaN(activeDraft.amount) ? activeDraft.amount : 0}`}
               size="small"
-              fullWidth
               sx={{
-                display: 'flex',
-                gap: 0.5,
-                bgcolor: 'var(--surface)',
-                p: 0.5,
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                '& .MuiToggleButton-root': {
-                  flex: 1,
-                  borderRadius: '6px !important',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '12px',
-                  py: 0.65,
-                  color: 'var(--text-2)',
-                  border: 'none !important',
-                  '&.Mui-selected': {
-                    bgcolor: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--debit)',
-                    color: '#ffffff !important',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                  },
-                },
+                fontWeight: 700,
+                fontSize: '13px',
+                borderRadius: '6px',
+                px: 0.5,
+                bgcolor: activeDraft.flow === 'in' ? 'rgba(34, 197, 94, 0.15)' : 'var(--accent-soft)',
+                color: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--accent)',
               }}
-            >
-              <ToggleButton value="out">
-                <TrendingDown size={14} style={{ marginRight: 4 }} /> Expense (-)
-              </ToggleButton>
-              <ToggleButton value="in">
-                <TrendingUp size={14} style={{ marginRight: 4 }} /> Income (+)
-              </ToggleButton>
-            </ToggleButtonGroup>
+            />
           </Box>
 
-          {/* Who Paid & Split Mode Selector */}
-          {activeDraft.flow !== 'in' && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
-                  Who Paid?
-                </Typography>
-                <ToggleButtonGroup
-                  value={(activeDraft.whoPaid === 'other' || activeDraft.type === 'by_friend' || activeDraft.splitMode === 'by_friend') ? 'friend' : 'me'}
-                  exclusive
-                  onChange={(_, newPayer) => {
-                    if (!newPayer) return;
-                    const updated = { ...activeDraft };
-                    const selectedFriendCount = (updated.friendNames && updated.friendNames.length > 0) ? updated.friendNames.length : 1;
+          {/* Transaction Type & Mode Selection */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+            {/* Flow: Expense / Income */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-3)', fontSize: '11px' }}>
+                Type
+              </Typography>
+              <ToggleButtonGroup
+                value={activeDraft.flow || 'out'}
+                exclusive
+                onChange={(_, newFlow) => {
+                  if (!newFlow) return;
+                  setActiveDraft({
+                    ...activeDraft,
+                    flow: newFlow,
+                    category: newFlow === 'in' ? 'Income' : (activeDraft.category === 'Income' ? 'Food & Dining' : activeDraft.category),
+                    splitMode: newFlow === 'in' ? 'just_me' : activeDraft.splitMode,
+                    type: newFlow === 'in' ? 'personal' : activeDraft.type,
+                    whoPaid: newFlow === 'in' ? 'me' : activeDraft.whoPaid,
+                  });
+                }}
+                size="small"
+                fullWidth
+                sx={{
+                  bgcolor: 'var(--surface)',
+                  p: 0.4,
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  '& .MuiToggleButton-root': {
+                    flex: 1,
+                    borderRadius: '6px !important',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    py: 0.6,
+                    color: 'var(--text-2)',
+                    border: 'none !important',
+                    '&.Mui-selected': {
+                      bgcolor: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--debit)',
+                      color: '#ffffff !important',
+                    },
+                  },
+                }}
+              >
+                <ToggleButton value="out">
+                  <TrendingDown size={13} style={{ marginRight: 4 }} /> Expense
+                </ToggleButton>
+                <ToggleButton value="in">
+                  <TrendingUp size={13} style={{ marginRight: 4 }} /> Income
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
 
-                    if (newPayer === 'friend') {
-                      updated.splitMode = 'by_friend';
-                      updated.type = 'by_friend';
-                      updated.whoPaid = 'other';
-                      updated.myShare = updated.amount;
-                      updated.friendShare = 0;
-                    } else {
-                      const mode = (updated.splitMode === 'by_friend') ? 'just_me' : (updated.splitMode || 'just_me');
-                      updated.whoPaid = 'me';
-                      if (mode === 'equal_split') {
-                        updated.splitMode = 'equal_split';
-                        updated.type = 'for_friend';
-                        const share = Math.round((updated.amount / (selectedFriendCount + 1)) * 100) / 100;
-                        updated.myShare = share;
-                        updated.friendShare = Math.round((updated.amount - share) * 100) / 100;
-                      } else if (mode === 'for_friend') {
-                        updated.splitMode = 'for_friend';
-                        updated.type = 'for_friend';
-                        updated.myShare = 0;
-                        updated.friendShare = updated.amount;
-                      } else {
-                        updated.splitMode = 'just_me';
-                        updated.type = 'personal';
+            {/* Payment & Split Mode Dropdown */}
+            {activeDraft.flow !== 'in' && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-3)', fontSize: '11px' }}>
+                  Split & Payment Mode
+                </Typography>
+                <FormControl size="small" fullWidth>
+                  <Select
+                    value={
+                      (activeDraft.whoPaid === 'other' || activeDraft.type === 'by_friend' || activeDraft.splitMode === 'by_friend')
+                        ? 'by_friend'
+                        : (activeDraft.splitMode || 'just_me')
+                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = { ...activeDraft };
+                      const friendCount = (updated.friendNames && updated.friendNames.length > 0) ? updated.friendNames.length : 1;
+
+                      if (val === 'by_friend') {
+                        updated.splitMode = 'by_friend';
+                        updated.type = 'by_friend';
+                        updated.whoPaid = 'other';
                         updated.myShare = updated.amount;
                         updated.friendShare = 0;
-                      }
-                    }
-                    setActiveDraft(updated);
-                  }}
-                  size="small"
-                  fullWidth
-                  sx={{
-                    display: 'flex',
-                    gap: 0.5,
-                    bgcolor: 'var(--surface)',
-                    p: 0.5,
-                    borderRadius: '8px',
-                    border: '1px solid var(--border)',
-                    '& .MuiToggleButton-root': {
-                      flex: 1,
-                      borderRadius: '6px !important',
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '12px',
-                      py: 0.65,
-                      color: 'var(--text-2)',
-                      border: 'none !important',
-                      '&.Mui-selected': {
-                        bgcolor: 'var(--accent)',
-                        color: 'var(--accent-contrast) !important',
-                        boxShadow: '0 2px 6px var(--accent-soft)',
-                      },
-                    },
-                  }}
-                >
-                  <ToggleButton value="me">
-                    <User size={13} style={{ marginRight: 4 }} /> I Paid
-                  </ToggleButton>
-                  <ToggleButton value="friend">
-                    <Users size={13} style={{ marginRight: 4 }} /> Friend Paid
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
-
-              {activeDraft.whoPaid !== 'other' && activeDraft.type !== 'by_friend' && activeDraft.splitMode !== 'by_friend' && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
-                    Split Options
-                  </Typography>
-                  <ToggleButtonGroup
-                    value={activeDraft.splitMode || 'just_me'}
-                    exclusive
-                    onChange={(_, newMode) => {
-                      if (!newMode) return;
-                      const updated = { ...activeDraft };
-                      const selectedFriendCount = (updated.friendNames && updated.friendNames.length > 0) ? updated.friendNames.length : 1;
-
-                      if (newMode === 'equal_split') {
+                      } else if (val === 'equal_split') {
                         updated.splitMode = 'equal_split';
                         updated.type = 'for_friend';
                         updated.whoPaid = 'me';
-                        const share = Math.round((updated.amount / (selectedFriendCount + 1)) * 100) / 100;
+                        const share = Math.round((updated.amount / (friendCount + 1)) * 100) / 100;
                         updated.myShare = share;
                         updated.friendShare = Math.round((updated.amount - share) * 100) / 100;
-                      } else if (newMode === 'for_friend') {
+                      } else if (val === 'for_friend') {
                         updated.splitMode = 'for_friend';
                         updated.type = 'for_friend';
                         updated.whoPaid = 'me';
@@ -1606,67 +1540,45 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                       }
                       setActiveDraft(updated);
                     }}
-                    size="small"
-                    fullWidth
-                    sx={{
-                      display: 'flex',
-                      gap: 0.5,
-                      bgcolor: 'var(--surface)',
-                      p: 0.5,
-                      borderRadius: '8px',
-                      border: '1px solid var(--border)',
-                      '& .MuiToggleButton-root': {
-                        flex: 1,
-                        borderRadius: '6px !important',
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        fontSize: '11.5px',
-                        py: 0.65,
-                        px: 0.5,
-                        color: 'var(--text-2)',
-                        border: 'none !important',
-                        '&.Mui-selected': {
-                          bgcolor: 'var(--accent)',
-                          color: 'var(--accent-contrast, #ffffff) !important',
-                          boxShadow: '0 2px 6px var(--accent-soft)',
-                        },
-                      },
-                    }}
+                    sx={{ borderRadius: '8px', bgcolor: 'var(--surface)' }}
                   >
-                    <ToggleButton value="just_me">
-                      <User size={13} style={{ marginRight: 4 }} /> Just Me
-                    </ToggleButton>
-                    <ToggleButton value="equal_split">
-                      <Users size={13} style={{ marginRight: 4 }} /> I Paid & Split
-                    </ToggleButton>
-                    <ToggleButton value="for_friend">
-                      <CreditCard size={13} style={{ marginRight: 4 }} /> 100% For Friend
-                    </ToggleButton>
-                  </ToggleButtonGroup>
-                </Box>
-              )}
-            </Box>
-          )}
+                    <MenuItem value="just_me">Personal (Just Me)</MenuItem>
+                    <MenuItem value="equal_split">Split Equally (I Paid)</MenuItem>
+                    <MenuItem value="for_friend">100% Paid for Friend</MenuItem>
+                    <MenuItem value="by_friend">Friend Paid for Me</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
+          </Box>
 
-          {/* Form Inputs */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+          {/* Form Inputs Grid */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              gap: 1.5,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '8px',
+                bgcolor: 'var(--surface)',
+              },
+            }}
+          >
             <TextField
-              label="Item Name (Description)"
+              label="Item Name"
               size="small"
               fullWidth
               value={activeDraft.description}
               onChange={(e) => setActiveDraft({ ...activeDraft, description: e.target.value })}
               placeholder="e.g. Coffee"
-              InputProps={{ sx: { borderRadius: '8px' } }}
             />
 
             <TextField
-              label={`Total Amount (${currency})`}
+              label={`Amount (${currency})`}
               type="number"
               size="small"
               fullWidth
               value={activeDraft.amount != null && !isNaN(activeDraft.amount) ? activeDraft.amount : ''}
-              InputProps={{ sx: { borderRadius: '8px' } }}
               onChange={(e) => {
                 const newAmt = Number(e.target.value) || 0;
                 const mode = activeDraft.splitMode || 'just_me';
@@ -1727,7 +1639,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                       size="small"
                       {...getTagProps({ index })}
                       key={option}
-                      sx={{ borderRadius: '6px' }}
+                      sx={{ borderRadius: '6px', fontSize: '11.5px' }}
                     />
                   ))
                 }
@@ -1739,8 +1651,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                         ? "Paid By (Friend / Contact)"
                         : "Friends / Contacts"
                     }
-                    placeholder="Select or type..."
-                    InputProps={{ ...params.InputProps, sx: { borderRadius: '8px' } }}
+                    placeholder="Select friend..."
                   />
                 )}
               />
@@ -1754,7 +1665,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   size="small"
                   fullWidth
                   value={activeDraft.myShare != null && !isNaN(activeDraft.myShare) ? activeDraft.myShare : ''}
-                  InputProps={{ sx: { borderRadius: '8px' } }}
                   onChange={(e) => {
                     const my = Number(e.target.value) || 0;
                     const fr = Math.max(0, activeDraft.amount - my);
@@ -1767,7 +1677,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   size="small"
                   fullWidth
                   value={activeDraft.friendShare != null && !isNaN(activeDraft.friendShare) ? activeDraft.friendShare : ''}
-                  InputProps={{ sx: { borderRadius: '8px' } }}
                   onChange={(e) => {
                     const fr = Number(e.target.value) || 0;
                     const my = Math.max(0, activeDraft.amount - fr);
@@ -1782,12 +1691,16 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               <Select
                 value={activeDraft.category}
                 label="Category"
-                sx={{ borderRadius: '8px' }}
                 onChange={(e) => setActiveDraft({ ...activeDraft, category: e.target.value })}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CategoryBadge category={selected} size={14} showLabel={true} />
+                  </Box>
+                )}
               >
                 {categories.map((cat) => (
                   <MenuItem key={cat} value={cat}>
-                    {cat}
+                    <CategoryBadge category={cat} size={14} showLabel={true} />
                   </MenuItem>
                 ))}
               </Select>
@@ -1798,7 +1711,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               <Select
                 value={activeDraft.walletName}
                 label="Wallet / Account"
-                sx={{ borderRadius: '8px' }}
                 onChange={(e) => setActiveDraft({ ...activeDraft, walletName: e.target.value })}
               >
                 {wallets.map((w) => (
@@ -1817,17 +1729,16 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               value={activeDraft.date}
               onChange={(e) => setActiveDraft({ ...activeDraft, date: e.target.value })}
               InputLabelProps={{ shrink: true }}
-              InputProps={{ sx: { borderRadius: '8px' } }}
             />
           </Box>
 
-          {/* Action buttons */}
+          {/* Action Buttons */}
           <Box sx={{ display: 'flex', gap: 1.25, justifyContent: 'flex-end', alignItems: 'center', mt: 0.5 }}>
             <Button
               size="small"
               color="inherit"
               onClick={() => setActiveDraft(null)}
-              sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, px: 2 }}
+              sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, px: 2, color: 'var(--text-3)' }}
             >
               Discard
             </Button>
@@ -1838,16 +1749,14 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               onClick={handleConfirmDraft}
               sx={{
                 borderRadius: '8px',
-                fontWeight: 600,
+                fontWeight: 650,
                 px: 2.5,
-                py: 0.75,
+                py: 0.7,
+                fontSize: '13px',
                 textTransform: 'none',
                 bgcolor: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--accent)',
                 color: activeDraft.flow === 'in' ? '#ffffff' : 'var(--accent-contrast, #ffffff)',
                 boxShadow: '0 2px 8px var(--accent-soft)',
-                '&:hover': {
-                  bgcolor: activeDraft.flow === 'in' ? '#15803d' : 'var(--accent-dark)',
-                },
               }}
             >
               {activeDraft.flow === 'in'

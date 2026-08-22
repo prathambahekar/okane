@@ -142,57 +142,68 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
     }
   };
 
-  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    const inputTarget = e.target;
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        let text = (ev.target?.result as string) || '';
-        if (text.charCodeAt(0) === 0xFEFF) {
-          text = text.slice(1);
-        }
-        text = text.trim();
 
-        if (!text) {
-          showToast('Selected file is empty.');
-          return;
-        }
-
-        if (text.startsWith('SQLite format 3')) {
-          showToast('Binary SQLite file detected. Please import an Okane .db/.sql text dump or .json backup.');
-          return;
-        }
-
-        if (text.startsWith('{') || text.startsWith('[')) {
-          try {
-            const data = JSON.parse(text) as Record<string, unknown>;
-            const friendsList = Array.isArray(data.friends) ? data.friends : (Array.isArray(data.contacts) ? data.contacts : []);
-            if (data.expenses || data.settings || data.wallets) {
-              data.friends = friendsList;
-              restoreDB(data as unknown as AppDB);
-              refreshTableCounts();
-              runQuery(`SELECT * FROM ${activeTable} LIMIT 20`);
-              showToast('JSON database backup restored successfully!');
-              return;
-            }
-          } catch (jsonErr) {
-            console.warn('JSON parse attempt failed:', jsonErr);
-          }
-        }
-
-        const restored = importSQLDumpString(text);
-        restoreDB(restored);
-        refreshTableCounts();
-        runQuery(`SELECT * FROM ${activeTable} LIMIT 20`);
-        showToast('SQL Database restored from file successfully!');
-      } catch (err) {
-        console.error(err);
-        showToast('Invalid SQL/DB file format');
+    try {
+      let text = '';
+      if (typeof file.text === 'function') {
+        try { text = await file.text(); } catch { /* ignore */ }
       }
-    };
-    reader.readAsText(file);
-    if (e.target) e.target.value = '';
+      if (!text) {
+        text = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve((ev.target?.result as string) || '');
+          reader.onerror = (err) => reject(err);
+          reader.readAsText(file);
+        });
+      }
+
+      if (text.charCodeAt(0) === 0xFEFF) {
+        text = text.slice(1);
+      }
+      text = text.trim();
+
+      if (!text) {
+        showToast('Selected file is empty.');
+        return;
+      }
+
+      if (text.startsWith('SQLite format 3')) {
+        showToast('Binary SQLite file detected. Please import an Okane .db/.sql text dump or .json backup.');
+        return;
+      }
+
+      if (text.startsWith('{') || text.startsWith('[')) {
+        try {
+          const data = JSON.parse(text) as Record<string, unknown>;
+          const friendsList = Array.isArray(data.friends) ? data.friends : (Array.isArray(data.contacts) ? data.contacts : []);
+          if (data.expenses || data.settings || data.wallets) {
+            data.friends = friendsList;
+            restoreDB(data as unknown as AppDB);
+            refreshTableCounts();
+            runQuery(`SELECT * FROM ${activeTable} LIMIT 20`);
+            showToast('JSON database backup restored successfully!');
+            return;
+          }
+        } catch (jsonErr) {
+          console.warn('JSON parse attempt failed:', jsonErr);
+        }
+      }
+
+      const restored = importSQLDumpString(text);
+      restoreDB(restored);
+      refreshTableCounts();
+      runQuery(`SELECT * FROM ${activeTable} LIMIT 20`);
+      showToast('SQL Database restored from file successfully!');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to read or import file.');
+    } finally {
+      if (inputTarget) inputTarget.value = '';
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

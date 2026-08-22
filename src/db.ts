@@ -522,7 +522,7 @@ export function defaultDB(): AppDB {
       enableAutopay: false,
       defaultAiEngine: 'offline',
       devMode: false,
-      enableDevSQLConsole: true,
+      enableDevSQLConsole: false,
       enableSplitTrips: false,
       enableSampleData: false,
       enableUserGuide: false,
@@ -1052,7 +1052,7 @@ export function loadDBFromSQLTables(): AppDB {
       enableEnvelopes: false,
       enableAutopay: false,
       defaultAiEngine: 'offline',
-      devMode: false,
+      devMode: true,
       enableDevSQLConsole: true,
       enableSplitTrips: false,
       enableSampleData: false,
@@ -1075,10 +1075,6 @@ export function loadDBFromSQLTables(): AppDB {
         settingsObj[keyStr] = valStr === 'true' ? true : valStr === 'false' ? false : valStr;
       }
     });
-
-    if (localStorage.getItem('dev_mode_user_set') !== 'true') {
-      settingsObj.devMode = false;
-    }
 
     if (settingsObj._active_trip !== undefined) {
       const val = typeof settingsObj._active_trip === 'string' ? settingsObj._active_trip : JSON.stringify(settingsObj._active_trip);

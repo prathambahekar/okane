@@ -685,107 +685,141 @@ export default function Settings({
     }
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const processImportText = (textToImport: string): boolean => {
+    let text = textToImport;
+    // Strip UTF-8 BOM if present
+    if (text.charCodeAt(0) === 0xFEFF) {
+      text = text.slice(1);
+    }
+    text = text.trim();
+
+    if (!text) {
+      showToast('Backup data is empty.');
+      return false;
+    }
+
+    // Check for raw binary SQLite header
+    if (text.startsWith('SQLite format 3')) {
+      showToast('Selected file is a binary SQLite database. Okane expects an Okane .db/.sql text dump or .json backup file.');
+      return false;
+    }
+
+    // 1. Try parsing JSON first if content looks like JSON
+    if (text.startsWith('{') || text.startsWith('[')) {
+      try {
+        const data = JSON.parse(text) as Record<string, unknown>;
+        const friendsList = Array.isArray(data.friends)
+          ? data.friends
+          : (Array.isArray(data.contacts) ? data.contacts : []);
+
+        if (Array.isArray(data.contacts) && (!Array.isArray(data.friends) || data.friends.length === 0)) {
+          data.friends = data.contacts;
+        }
+
+        if (data.expenses || data.settings || data.wallets) {
+          data.friends = friendsList;
+          restoreDB(data as unknown as AppDB);
+          showToast('Database backup imported successfully!');
+          return true;
+        }
+      } catch (jsonErr) {
+        console.warn('JSON parse attempt failed, trying SQL dump format...', jsonErr);
+      }
+    }
+
+    // 2. Try SQL dump parse if content contains SQL keywords
+    const isSqlSyntax =
+      text.includes('CREATE TABLE') ||
+      text.includes('INSERT INTO') ||
+      text.includes('DELETE FROM') ||
+      text.startsWith('--');
+
+    if (isSqlSyntax) {
+      try {
+        const restoredDB = importSQLDumpString(text);
+        restoreDB(restoredDB);
+        showToast('Database backup imported successfully!');
+        return true;
+      } catch (sqlErr) {
+        console.warn('Primary SQL dump import failed, attempting fallback...', sqlErr);
+      }
+    }
+
+    // 3. Fallback: Try regex extraction for JSON object if prefixed with comments or headers
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+        if (data.expenses || data.settings || data.wallets) {
+          restoreDB(data as unknown as AppDB);
+          showToast('Database backup imported successfully!');
+          return true;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // 4. Last fallback: Force SQL dump import
+    try {
+      const restoredDB = importSQLDumpString(text);
+      restoreDB(restoredDB);
+      showToast('Database backup imported successfully!');
+      return true;
+    } catch (finalSqlErr) {
+      console.error('Final SQL import attempt failed:', finalSqlErr);
+    }
+
+    showToast('Invalid backup format. Please select a valid Okane .db, .sql, or .json backup.');
+    return false;
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        let text = (ev.target?.result as string) || '';
+    try {
+      let text = '';
 
-        // Strip UTF-8 BOM if present
-        if (text.charCodeAt(0) === 0xFEFF) {
-          text = text.slice(1);
-        }
-        text = text.trim();
-
-        if (!text) {
-          showToast('Selected backup file is empty.');
-          return;
-        }
-
-        // Check for raw binary SQLite header
-        if (text.startsWith('SQLite format 3')) {
-          showToast('Selected file is a binary SQLite database. Okane expects an Okane .db/.sql text dump or .json backup file.');
-          return;
-        }
-
-        // 1. Try parsing JSON first if content looks like JSON
-        if (text.startsWith('{') || text.startsWith('[')) {
-          try {
-            const data = JSON.parse(text) as Record<string, unknown>;
-            const friendsList = Array.isArray(data.friends)
-              ? data.friends
-              : (Array.isArray(data.contacts) ? data.contacts : []);
-
-            if (Array.isArray(data.contacts) && (!Array.isArray(data.friends) || data.friends.length === 0)) {
-              data.friends = data.contacts;
-            }
-
-            if (data.expenses || data.settings || data.wallets) {
-              data.friends = friendsList;
-              restoreDB(data as unknown as AppDB);
-              showToast('JSON database backup imported successfully!');
-              return;
-            }
-          } catch (jsonErr) {
-            console.warn('JSON parse attempt failed, trying SQL dump format...', jsonErr);
-          }
-        }
-
-        // 2. Try SQL dump parse if content contains SQL keywords
-        const isSqlSyntax =
-          text.includes('CREATE TABLE') ||
-          text.includes('INSERT INTO') ||
-          text.includes('DELETE FROM') ||
-          text.startsWith('--');
-
-        if (isSqlSyntax) {
-          try {
-            const restoredDB = importSQLDumpString(text);
-            restoreDB(restoredDB);
-            showToast('SQL database dump (.db) imported successfully!');
-            return;
-          } catch (sqlErr) {
-            console.warn('Primary SQL dump import failed, attempting fallback...', sqlErr);
-          }
-        }
-
-        // 3. Fallback: Try regex extraction for JSON object if prefixed with comments or headers
+      // Method 1: Modern Blob.prototype.text() Promise API
+      if (typeof file.text === 'function') {
         try {
-          const jsonMatch = text.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const data = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
-            if (data.expenses || data.settings || data.wallets) {
-              restoreDB(data as unknown as AppDB);
-              showToast('Database backup imported successfully!');
-              return;
-            }
-          }
-        } catch {
-          // ignore
+          text = await file.text();
+        } catch (textErr) {
+          console.warn('file.text() read attempt failed, trying FileReader fallback...', textErr);
         }
-
-        // 4. Last fallback: Force SQL dump import
-        try {
-          const restoredDB = importSQLDumpString(text);
-          restoreDB(restoredDB);
-          showToast('SQL database dump imported successfully!');
-          return;
-        } catch (finalSqlErr) {
-          console.error('Final SQL import attempt failed:', finalSqlErr);
-        }
-
-        showToast('Invalid file format. Please select a valid Okane .db, .sql, or .json backup file.');
-      } catch (err) {
-        console.error('Import error:', err);
-        showToast('Failed to import database file.');
       }
-    };
 
-    reader.readAsText(file);
-    if (fileRef.current) fileRef.current.value = '';
+      // Method 2: FileReader readAsText fallback
+      if (!text) {
+        text = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve((ev.target?.result as string) || '');
+          reader.onerror = (err) => reject(err);
+          reader.readAsText(file);
+        });
+      }
+
+      // Method 3: FileReader readAsArrayBuffer + TextDecoder fallback
+      if (!text) {
+        const buf = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve((ev.target?.result as ArrayBuffer) || new ArrayBuffer(0));
+          reader.onerror = (err) => reject(err);
+          reader.readAsArrayBuffer(file);
+        });
+        if (buf && buf.byteLength > 0) {
+          text = new TextDecoder('utf-8').decode(buf);
+        }
+      }
+
+      processImportText(text);
+    } catch (err) {
+      console.error('Import error:', err);
+      showToast('Failed to read or import database file.');
+    } finally {
+      if (fileRef.current) fileRef.current.value = '';
+    }
   };
 
   const handleReset = () => {
@@ -1999,7 +2033,7 @@ export default function Settings({
                   <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Save or share backup</span>
                 </button>
 
-                <button type="button" className="data-action-card" onClick={() => fileRef.current?.click()}>
+                <button type="button" className="data-action-card" onClick={() => { setShowDataSheet(false); fileRef.current?.click(); }}>
                   <Upload size={24} />
                   <span className="data-action-label" style={{ fontWeight: 600 }}>Import</span>
                   <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Restore from backup</span>
@@ -2012,7 +2046,6 @@ export default function Settings({
                     <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Load Demo</span>
                   </button>
                 )}
-                <input ref={fileRef} type="file" accept="*/*" style={{ display: 'none' }} onChange={handleImport} />
               </div>
 
               <div className="data-reset-row" onClick={() => { setShowDataSheet(false); setShowReset(true); }} role="button" tabIndex={0}>
@@ -3694,6 +3727,22 @@ export default function Settings({
         document.body
       )}
 
+      {/* Permanently mounted hidden file input (outside of any conditional portal) */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".db,.sql,.json,text/plain,application/json,application/sql,application/octet-stream,*/*"
+        style={{
+          position: 'fixed',
+          top: -10000,
+          left: -10000,
+          opacity: 0,
+          width: 1,
+          height: 1,
+          pointerEvents: 'none'
+        }}
+        onChange={handleImport}
+      />
 
     </div>
   );
