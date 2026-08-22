@@ -813,7 +813,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
             type === 'subscription'
               ? ['Family plan share', 'Annual renewal', 'Card auto-debit', 'Shared with roomies', 'Free trial active']
               : type === 'vendor'
-              ? ['Daily tiffin', 'UPI payment preferred', 'Monthly billing', 'Shop contact']
+              ? ['Monthly supply', 'UPI payment preferred', 'Monthly billing', 'Shop contact', 'Frequent vendor']
               : ['Roommate', 'Family', 'Office colleague', 'Splitwise friend', 'UPI ID']
           }
         />

@@ -304,7 +304,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 {isEditing ? `Edit ${isSubscription ? 'Subscription' : 'Custom'}` : (isSubscription ? 'New Subscription' : 'Custom')}
               </h2>
               <p style={{ fontSize: 11, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
-                {isSubscription ? 'Track recurring bills and due reminders' : 'Quick 1-tap repetitive logs (milk, tiffin, maid, etc.)'}
+                {isSubscription ? 'Track recurring bills and due reminders' : 'Quick 1-tap repetitive logs (milk, groceries, maid, etc.)'}
               </p>
             </div>
           </div>

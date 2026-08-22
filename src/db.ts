@@ -537,6 +537,68 @@ export function defaultDB(): AppDB {
   };
 }
 
+export function sanitizeLoadedDB(rawDB: unknown): AppDB {
+  const d = defaultDB();
+  if (!rawDB || typeof rawDB !== 'object') {
+    return d;
+  }
+  const parsed = rawDB as Partial<AppDB>;
+
+  const wallets = Array.isArray(parsed.wallets) && parsed.wallets.length > 0
+    ? parsed.wallets.filter(w => w && typeof w === 'object' && w.id && w.name)
+    : d.wallets;
+  const safeWallets = wallets.length > 0 ? wallets : d.wallets;
+
+  const rawCategories = parsed.settings?.categories;
+  const categories = Array.isArray(rawCategories) && rawCategories.length > 0
+    ? rawCategories.filter(c => c && typeof c === 'object' && c.name)
+    : d.settings.categories;
+  const safeCategories = categories.length > 0 ? categories : d.settings.categories;
+
+  const friends = Array.isArray(parsed.friends)
+    ? parsed.friends.filter(f => f && typeof f === 'object' && f.id && f.name)
+    : [];
+
+  const expenses = Array.isArray(parsed.expenses)
+    ? parsed.expenses.filter(e => e && typeof e === 'object' && e.id && e.description !== undefined)
+    : [];
+
+  const settlements = Array.isArray(parsed.settlements)
+    ? parsed.settlements.filter(s => s && typeof s === 'object' && s.id)
+    : [];
+
+  const recurringRules = Array.isArray(parsed.recurringRules)
+    ? parsed.recurringRules.filter(r => r && typeof r === 'object' && r.id && r.title)
+    : [];
+
+  const envelopes = Array.isArray(parsed.envelopes)
+    ? parsed.envelopes.filter(env => env && typeof env === 'object' && env.id && env.name)
+    : d.envelopes;
+
+  const settings = {
+    ...d.settings,
+    ...(parsed.settings || {}),
+    categories: safeCategories,
+    currency: parsed.settings?.currency || 'INR',
+    defaultWalletId: parsed.settings?.defaultWalletId || safeWallets[0].id,
+    defaultCategory: parsed.settings?.defaultCategory || safeCategories[0].name,
+  };
+
+  return {
+    version: 3,
+    friends,
+    wallets: safeWallets,
+    expenses,
+    settlements,
+    recurringRules,
+    envelopes,
+    settings,
+    activeTrip: parsed.activeTrip ?? null,
+    tripHistory: Array.isArray(parsed.tripHistory) ? parsed.tripHistory : [],
+    presetGroups: Array.isArray(parsed.presetGroups) ? parsed.presetGroups : [],
+  };
+}
+
 export function defaultSampleExpenses(walletId: string): Expense[] {
   const d = (offsetDays: number): string => {
     const dt = new Date();
@@ -1066,7 +1128,7 @@ export function loadDBFromSQLTables(): AppDB {
       presetGroups: parsedPresetGroups,
     };
 
-    return db;
+    return sanitizeLoadedDB(db);
   } catch (err) {
     console.error('Error loading DB from SQL tables:', err);
     return defaultDB();
@@ -1088,18 +1150,7 @@ export function loadDB(): AppDB {
       try {
         const parsed = JSON.parse(legacyRaw) as Partial<AppDB>;
         if (parsed && typeof parsed === 'object') {
-          const d = defaultDB();
-          const merged: AppDB = {
-            ...d,
-            ...parsed,
-            settings: { ...d.settings, ...(parsed.settings || {}) },
-            wallets: Array.isArray(parsed.wallets) && parsed.wallets.length > 0 ? parsed.wallets : d.wallets,
-            friends: Array.isArray(parsed.friends) ? parsed.friends : [],
-            expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
-            settlements: Array.isArray(parsed.settlements) ? parsed.settlements : [],
-            recurringRules: Array.isArray(parsed.recurringRules) ? parsed.recurringRules : [],
-            envelopes: Array.isArray(parsed.envelopes) ? parsed.envelopes : d.envelopes,
-          };
+          const merged = sanitizeLoadedDB(parsed);
           cachedAppDB = merged;
 
           // Defer SQL table hydration so it doesn't block the initial Android Webview render frame
@@ -1234,7 +1285,7 @@ export function loadDB(): AppDB {
           });
         }
 
-        const loaded = loadDBFromSQLTables();
+        const loaded = sanitizeLoadedDB(loadDBFromSQLTables());
         cachedAppDB = loaded;
         return loaded;
       }

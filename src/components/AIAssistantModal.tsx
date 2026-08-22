@@ -3,15 +3,6 @@ import Dialog from '@mui/material/Dialog';
 import Fade from '@mui/material/Fade';
 import type { TransitionProps } from '@mui/material/transitions';
 import SwipeableDrawer from '@mui/material/SwipeableDrawer';
-
-const ModalFadeTransition = React.forwardRef(function Transition(
-  props: TransitionProps & {
-    children: React.ReactElement;
-  },
-  ref: React.Ref<unknown>,
-) {
-  return <Fade ref={ref} {...props} timeout={180} />;
-});
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -30,6 +21,7 @@ import Tooltip from '@mui/material/Tooltip';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { Capacitor } from '@capacitor/core';
 import {
   Mic,
   MicOff,
@@ -43,12 +35,26 @@ import {
   TrendingDown,
   TrendingUp,
   Sparkles,
+  Utensils,
+  Coffee,
+  ShoppingBag,
+  Banknote,
+  Clock,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { currencySymbol } from '../utils';
 import { parseLocallyClient } from '../nlp';
 import { uid, todayISO, friendBalance } from '../db';
 import type { ExpenseType, ExpenseFlow } from '../types';
+
+const ModalFadeTransition = React.forwardRef(function Transition(
+  props: TransitionProps & {
+    children: React.ReactElement;
+  },
+  ref: React.Ref<unknown>,
+) {
+  return <Fade ref={ref} {...props} timeout={180} />;
+});
 
 interface ISpeechRecognition {
   continuous: boolean;
@@ -65,7 +71,6 @@ interface ISpeechRecognition {
 function AudioWaveVisualizer({ volume, isListening }: { volume: number; isListening: boolean }) {
   if (!isListening) return null;
 
-  // 6 vertical bars with varied height multipliers for a natural, reactive audio wave
   const barConfigs = [
     { mult: 0.55 },
     { mult: 0.95 },
@@ -91,7 +96,6 @@ function AudioWaveVisualizer({ volume, isListening }: { volume: number; isListen
       }}
     >
       {barConfigs.map((cfg, idx) => {
-        // Base min height 4px, height expands up to 22px depending on live volume
         const computedHeight = Math.max(4, Math.min(22, 4 + volume * cfg.mult * 26));
         return (
           <Box
@@ -173,6 +177,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     setDragOffsetY(0);
     touchStartYRef.current = null;
   };
+
   const [aiEngineMode, setAiEngineMode] = useState<'offline' | 'online'>(() => {
     return (localStorage.getItem('ai_engine_mode') as 'offline' | 'online') || 'online';
   });
@@ -256,7 +261,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           sum += dataArray[i];
         }
         const average = sum / dataArray.length;
-        // Normalizing average amplitude into a smooth [0, 1] range
         const norm = Math.min(1, Math.max(0, average / 65));
         setVolumeLevel(norm);
 
@@ -274,10 +278,11 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     return `msg_${msgCounterRef.current}`;
   };
 
-  const categories = db.settings.categories.map(c => c.name);
-  const wallets = db.wallets;
-  const friends = db.friends;
-  const currency = db.settings.currency;
+  const categories = (db.settings?.categories || []).map(c => c.name);
+  const wallets = db.wallets || [];
+  const friends = db.friends || [];
+  const currency = db.settings?.currency || 'INR';
+  const currSym = currencySymbol(currency);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -320,15 +325,10 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       (window as unknown as { SpeechRecognition?: new () => ISpeechRecognition; webkitSpeechRecognition?: new () => ISpeechRecognition }).SpeechRecognition ||
       (window as unknown as { webkitSpeechRecognition?: new () => ISpeechRecognition }).webkitSpeechRecognition;
 
-    if (!SpeechRecognitionClass) {
-      showToast('Voice input is not supported in this browser. Please type your command.');
-      return;
-    }
-
     let activeStream: MediaStream | null = null;
 
     try {
-      // Prompt user for microphone permission explicitly via getUserMedia first (works on Web & Capacitor Android)
+      // 1. Request Native / OS microphone permission via getUserMedia
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
           activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -336,15 +336,27 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           console.warn('Microphone permission check failed:', mediaErr);
           const errName = (mediaErr as Error)?.name;
           if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
-            showToast('Microphone access denied. Please allow microphone permission in your app/device settings.');
+            showToast('Microphone access denied. Please grant microphone permission in device/app settings.');
           } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
-            showToast('No microphone detected on this device.');
+            showToast('No microphone found on this device.');
           } else {
             showToast('Unable to access microphone. Please check app permissions.');
           }
           setIsListening(false);
           return;
         }
+      }
+
+      if (!SpeechRecognitionClass) {
+        if (Capacitor.isNativePlatform()) {
+          showToast('Speech recognition service is not enabled on this mobile device. Please use text input or install Google Speech Services.');
+        } else {
+          showToast('Voice input is not supported in this browser. Please type your command.');
+        }
+        if (activeStream) {
+          activeStream.getTracks().forEach(t => t.stop());
+        }
+        return;
       }
 
       const recognition = new SpeechRecognitionClass();
@@ -387,9 +399,9 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           showToast('Microphone access blocked. Please allow mic permission in app settings.');
         } else if (event.error === 'audio-capture') {
-          showToast('No microphone found on your device.');
+          showToast('No microphone detected.');
         } else if (event.error === 'network') {
-          showToast('Network error during speech recognition.');
+          showToast('Network issue during speech recognition.');
         } else if (event.error !== 'no-speech') {
           showToast(`Mic error: ${event.error}`);
         }
@@ -445,7 +457,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
 
     if (aiEngineMode === 'offline') {
       setTimeout(() => {
-        const localResult = parseLocallyClient(query, categories, friends, wallets, currency);
+        const localResult = parseLocallyClient(query, categories, friends, wallets, currency, db);
         const botMsg: Message = {
           id: generateMsgId(),
           sender: 'bot',
@@ -485,9 +497,10 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     }
 
     try {
-      const recentExpenses = db.expenses.slice(0, 25).map(e => {
+      const recentExpenses = db.expenses.slice(0, 60).map(e => {
         const w = db.wallets.find(wallet => wallet.id === e.walletId);
         const f = db.friends.find(friend => friend.id === e.friendId);
+        const v = db.friends.find(friend => friend.id === e.vendorId);
         return {
           description: e.description,
           amount: e.amount,
@@ -497,19 +510,64 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           flow: e.flow,
           walletName: w ? w.name : undefined,
           friendName: f ? f.name : undefined,
-          splitMode: (e as unknown as { splitMode?: string }).splitMode,
+          vendorName: v ? v.name : undefined,
+          status: e.status,
+          settled: e.settled,
         };
       });
+
+      const currentMonthPrefix = new Date().toISOString().slice(0, 7);
+      const thisMonthExpenses = db.expenses.filter(e => e.flow !== 'in' && e.date.startsWith(currentMonthPrefix));
+      const thisMonthIncome = db.expenses.filter(e => e.flow === 'in' && e.date.startsWith(currentMonthPrefix));
+      const thisMonthSpent = thisMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const thisMonthIncomeTotal = thisMonthIncome.reduce((sum, e) => sum + e.amount, 0);
 
       const totalSpent = db.expenses
         .filter(e => e.flow !== 'in')
         .reduce((sum, e) => sum + e.amount, 0);
 
+      const monthlySpending = {
+        month: currentMonthPrefix,
+        totalSpentThisMonth: thisMonthSpent,
+        totalIncomeThisMonth: thisMonthIncomeTotal,
+        netCashflow: thisMonthIncomeTotal - thisMonthSpent,
+        transactionsCount: thisMonthExpenses.length + thisMonthIncome.length,
+      };
+
+      const walletsData = db.wallets.map(w => ({
+        id: w.id,
+        name: w.name,
+        balance: walletBalance(db, w.id),
+        openingBalance: w.openingBalance,
+        isDefault: w.id === db.settings.defaultWalletId,
+      }));
+
+      const friendsData = db.friends.map(f => {
+        const bal = friendBalance(db, f.id);
+        return {
+          id: f.id,
+          name: f.name,
+          type: f.type || 'friend',
+          category: f.category,
+          defaultAmount: f.defaultAmount,
+          owedToMe: bal.owedToMe,
+          owedByMe: bal.owedByMe,
+          net: bal.net,
+        };
+      });
+
+      const recurringRulesData = (db.recurringRules || []).map(r => ({
+        title: r.title,
+        amount: r.amount,
+        kind: r.kind,
+        frequency: r.frequency,
+        category: r.category,
+      }));
+
       const summaryStats = {
         totalSpent,
         totalExpensesCount: db.expenses.length,
-        walletsOverview: db.wallets.map(w => ({ name: w.name, balance: w.currentBalance ?? w.openingBalance })),
-        friendsOverview: db.friends.map(f => ({ name: f.name, balance: friendBalance(db, f.id).net })),
+        totalWalletBalance: totalWalletBalance(db),
       };
 
       const chatHistory = messages.slice(-10).map(m => ({
@@ -524,36 +582,53 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           prompt: query,
           chatHistory,
           categories,
-          wallets: wallets.map(w => ({ id: w.id, name: w.name })),
-          friends: friends.map(f => ({ id: f.id, name: f.name, type: f.type })),
+          wallets: walletsData,
+          totalWalletBalance: totalWalletBalance(db),
+          friends: friendsData,
           currentDraft: activeDraft,
           recentExpenses,
+          monthlySpending,
           summaryStats,
+          recurringRules: recurringRulesData,
           currency,
         }),
       });
 
-      let data: { reply?: string; draft?: DraftExpense } | null = null;
+      let data: { reply?: string | null; draft?: DraftExpense | null; fallbackToOffline?: boolean } | null = null;
       const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.includes('application/json')) {
+      if (contentType.includes('application/json')) {
         data = await res.json().catch(() => null);
       }
-      if (!data) {
-        throw new Error('Non-JSON or error response from AI backend');
+
+      if (!data || data.fallbackToOffline || !data.reply) {
+        // Smoothly fall back to client-side local NLP engine
+        const localResult = parseLocallyClient(query, categories, friends, wallets, currency, db);
+        const botMsg: Message = {
+          id: generateMsgId(),
+          sender: 'bot',
+          text: localResult.reply,
+          timestamp: timeStr,
+          draft: localResult.draft || null,
+        };
+        setMessages(prev => [...prev, botMsg]);
+        if (localResult.draft) {
+          setActiveDraft(localResult.draft as DraftExpense);
+        }
+        return;
       }
 
       const botMsg: Message = {
         id: generateMsgId(),
         sender: 'bot',
-        text: data.reply || "I've processed your request.",
+        text: data.reply,
         timestamp: timeStr,
         draft: data.draft || null,
       };
 
       setMessages(prev => [...prev, botMsg]);
 
+
       if (data.draft) {
-        // Ensure default calculations and split mode setup
         const d = data.draft as DraftExpense;
         if (d.whoPaid === 'other' || d.type === 'by_friend' || d.splitMode === 'by_friend') {
           d.whoPaid = 'other';
@@ -564,7 +639,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           else d.splitMode = 'just_me';
         }
 
-        // Sync friendName and friendNames
         if (d.friendName && (!d.friendNames || d.friendNames.length === 0)) {
           d.friendNames = [d.friendName];
         } else if (d.friendNames && d.friendNames.length > 0 && !d.friendName) {
@@ -605,7 +679,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       w => w.name.toLowerCase() === (activeDraft.walletName || '').toLowerCase()
     ) || wallets[0];
 
-    // Determine list of friends from draft
     let friendList: string[] = [];
     if (activeDraft.friendNames && activeDraft.friendNames.length > 0) {
       friendList = activeDraft.friendNames;
@@ -632,7 +705,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     const mode = isFriendPaid ? 'by_friend' : (activeDraft.splitMode || (activeDraft.type === 'personal' ? 'just_me' : 'equal_split'));
 
     if (itemFlow === 'in') {
-      // Record Income
       addExpense({
         description: itemDesc,
         amount: totalAmt,
@@ -645,9 +717,8 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         status: 'paid',
         notes: activeDraft.notes || 'Added via Max',
       });
-      showToast(`Recorded Income: ${itemDesc} (${currencySymbol(currency)}${totalAmt})`);
+      showToast(`Recorded Income: ${itemDesc} (${currSym}${totalAmt})`);
     } else if (mode === 'equal_split' || mode === 'custom_split') {
-      // Split Expense between me and friend(s)
       const numFriends = Math.max(1, resolvedFriends.length);
       const perPersonDefault = Math.round((totalAmt / (numFriends + 1)) * 100) / 100;
 
@@ -656,7 +727,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       const eachFriendShare = Math.round((totalFriendSharesAmt / numFriends) * 100) / 100;
       const groupId = uid('grp');
 
-      // Add expense for each friend
       resolvedFriends.forEach((fObj) => {
         if (!fObj) return;
         if (eachFriendShare > 0) {
@@ -676,7 +746,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         }
       });
 
-      // Add my share (paid out of wallet)
       if (myShareAmt > 0) {
         addExpense({
           groupId,
@@ -695,7 +764,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
 
       showToast(`Added split: ${itemDesc} with ${resolvedFriends.map(f => f?.name).join(', ') || 'Friend'}`);
     } else if (mode === 'for_friend' || activeDraft.type === 'for_friend') {
-      // 100% Paid for Friend(s)
       const numFriends = Math.max(1, resolvedFriends.length);
       const perFriendAmt = Math.round((totalAmt / numFriends) * 100) / 100;
       const groupId = uid('grp');
@@ -718,7 +786,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       });
       showToast(`Added expense for ${resolvedFriends.map(f => f?.name).join(', ') || 'Friend'}`);
     } else if (activeDraft.whoPaid === 'other' || activeDraft.type === 'by_friend') {
-      // Friend paid for me
       const myOwedAmt = activeDraft.myShare ?? totalAmt;
       const fObj = resolvedFriends[0];
       addExpense({
@@ -735,7 +802,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       });
       showToast(`Recorded debt owed to ${fObj?.name || 'Friend'}`);
     } else {
-      // Personal Expense
       addExpense({
         description: itemDesc,
         amount: totalAmt,
@@ -748,7 +814,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         status: 'paid',
         notes: activeDraft.notes || 'Added via Max',
       });
-      showToast(`Added ${itemDesc} (${currencySymbol(currency)}${totalAmt})`);
+      showToast(`Added ${itemDesc} (${currSym}${totalAmt})`);
     }
 
     setMessages(prev => [
@@ -756,7 +822,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       {
         id: generateMsgId(),
         sender: 'bot',
-        text: `Success! Recorded "${itemDesc}" (${currencySymbol(currency)}${totalAmt}).`,
+        text: `Success! Recorded "${itemDesc}" (${currSym}${totalAmt}).`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
     ]);
@@ -764,134 +830,319 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     setActiveDraft(null);
   };
 
-  const hasData = db.expenses.length > 0 || db.friends.length > 0;
+  // Dynamically compute frequent actions and quick query shortcuts learned from ledger
+  const { frequentActions, otherActions } = useMemo(() => {
+    const frequent: Array<{
+      icon: React.ReactNode;
+      label: string;
+      subText?: string;
+      prompt: string;
+    }> = [];
 
-  const dynamicQuickPills = useMemo(() => {
-    if (!hasData) return [];
+    const others: Array<{
+      icon: React.ReactNode;
+      label: string;
+      prompt: string;
+    }> = [];
 
-    const pills: string[] = [];
+    const defaultWallet = db.wallets.find(w => w.id === db.settings.defaultWalletId) || db.wallets[0] || { name: 'Cash' };
 
-    // 1. Friend-based pill if friends exist
-    const topFriend = db.friends[0]?.name;
-    if (topFriend) {
-      pills.push(`Split dinner with ${topFriend}`);
-      pills.push(`Paid 100 for ${topFriend}`);
+    // 1. Calculate most frequent expenses by item name / description first, then category
+    const itemFreq: Record<string, { count: number; amounts: number[]; category: string; latestAmount: number }> = {};
+
+    // Scan recurring rules first
+    (db.recurringRules || []).forEach(r => {
+      if (r.title && r.amount > 0) {
+        const normDesc = r.title.trim().charAt(0).toUpperCase() + r.title.trim().slice(1).toLowerCase();
+        if (!itemFreq[normDesc]) {
+          itemFreq[normDesc] = { count: 3, amounts: [r.amount], category: r.category || 'General', latestAmount: r.amount };
+        }
+      }
+    });
+
+    db.expenses.forEach(e => {
+      if (e.flow !== 'in') {
+        const descKey = (e.description || '').trim();
+        if (descKey && descKey.length >= 2) {
+          const normDesc = descKey.charAt(0).toUpperCase() + descKey.slice(1).toLowerCase();
+          if (!itemFreq[normDesc]) {
+            itemFreq[normDesc] = { count: 0, amounts: [], category: e.category || 'General', latestAmount: e.amount };
+          }
+          itemFreq[normDesc].count += 1;
+          itemFreq[normDesc].amounts.push(e.amount);
+          itemFreq[normDesc].latestAmount = e.amount;
+        }
+      }
+    });
+
+    // Helper to get mode / accurate price
+    const getExactPrice = (name: string, data?: { amounts: number[]; latestAmount: number }) => {
+      const lower = name.toLowerCase();
+      // Check if recurring rule exists
+      const rec = (db.recurringRules || []).find(r => r.title.toLowerCase().includes(lower));
+      if (rec && rec.amount > 0) return rec.amount;
+
+      if (data && data.amounts && data.amounts.length > 0) {
+        // Calculate mode (most frequent exact price)
+        const priceCounts: Record<number, number> = {};
+        data.amounts.forEach(a => {
+          priceCounts[a] = (priceCounts[a] || 0) + 1;
+        });
+        const sortedPrices = Object.entries(priceCounts).sort((a, b) => b[1] - a[1]);
+        if (sortedPrices.length > 0 && sortedPrices[0][1] >= 2) {
+          return Number(sortedPrices[0][0]);
+        }
+        return data.latestAmount || data.amounts[0];
+      }
+
+      if (lower.includes('tiffin')) return 75;
+      if (lower.includes('tea') || lower.includes('chai')) return 15;
+      if (lower.includes('coffee')) return 30;
+      if (lower.includes('poha')) return 25;
+      if (lower.includes('lunch')) return 120;
+      if (lower.includes('dinner')) return 250;
+      if (lower.includes('fuel') || lower.includes('petrol')) return 500;
+      return 50;
+    };
+
+    // Helpers to pick appropriate icon
+    const getIconForName = (name: string) => {
+      const lower = name.toLowerCase();
+      if (lower.includes('coffee') || lower.includes('tea') || lower.includes('chai') || lower.includes('cafe')) return <Coffee size={14} />;
+      if (lower.includes('food') || lower.includes('dinner') || lower.includes('lunch') || lower.includes('meal') || lower.includes('snack') || lower.includes('tiffin') || lower.includes('burger')) return <Utensils size={14} />;
+      if (lower.includes('groc') || lower.includes('mart') || lower.includes('store') || lower.includes('shop')) return <ShoppingBag size={14} />;
+      if (lower.includes('salary') || lower.includes('income') || lower.includes('pay')) return <TrendingUp size={14} />;
+      if (lower.includes('bill') || lower.includes('util') || lower.includes('rent') || lower.includes('wifi')) return <CreditCard size={14} />;
+      if (lower.includes('auto') || lower.includes('uber') || lower.includes('cab') || lower.includes('fuel') || lower.includes('petrol')) return <Zap size={14} />;
+      return <TrendingDown size={14} />;
+    };
+
+    const sortedItems = Object.entries(itemFreq).sort((a, b) => b[1].count - a[1].count);
+
+    // Build top frequent spending actions
+    sortedItems.slice(0, 4).forEach(([name, stats]) => {
+      const price = getExactPrice(name, stats);
+      frequent.push({
+        icon: getIconForName(name),
+        label: name,
+        subText: `${currSym}${price}`,
+        prompt: `Spent ${currSym}${price} on ${name} with ${defaultWallet.name}`,
+      });
+    });
+
+    // If less than 2, provide intelligent staple fallbacks
+    if (frequent.length === 0) {
+      frequent.push(
+        {
+          icon: <Utensils size={14} />,
+          label: 'Tiffin',
+          subText: `${currSym}75`,
+          prompt: `Spent ${currSym}75 on Tiffin with ${defaultWallet.name}`,
+        },
+        {
+          icon: <Coffee size={14} />,
+          label: 'Coffee',
+          subText: `${currSym}30`,
+          prompt: `Spent ${currSym}30 on Coffee with ${defaultWallet.name}`,
+        },
+        {
+          icon: <Utensils size={14} />,
+          label: 'Lunch',
+          subText: `${currSym}120`,
+          prompt: `Spent ${currSym}120 on Lunch with ${defaultWallet.name}`,
+        },
+        {
+          icon: <ShoppingBag size={14} />,
+          label: 'Groceries',
+          subText: `${currSym}500`,
+          prompt: `Spent ${currSym}500 on Groceries with ${defaultWallet.name}`,
+        }
+      );
+    } else if (frequent.length === 1) {
+      if (!frequent.some(f => f.label.toLowerCase().includes('tiffin'))) {
+        frequent.push({
+          icon: <Utensils size={14} />,
+          label: 'Tiffin',
+          subText: `${currSym}75`,
+          prompt: `Spent ${currSym}75 on Tiffin with ${defaultWallet.name}`,
+        });
+      } else {
+        frequent.push({
+          icon: <Coffee size={14} />,
+          label: 'Coffee',
+          subText: `${currSym}30`,
+          prompt: `Spent ${currSym}30 on Coffee with ${defaultWallet.name}`,
+        });
+      }
     }
 
-    // 2. Category / Expense pill
-    const recentExpenses = [...db.expenses].reverse();
-    const lastExpense = recentExpenses.find((e) => e.flow !== 'in');
-    if (lastExpense) {
-      pills.push(`Paid 150 for ${lastExpense.category || lastExpense.description}`);
-    }
+    // 2. Other actions (Insights, Balances, Debts, History)
+    others.push({
+      icon: <Banknote size={14} />,
+      label: 'Account balances',
+      prompt: 'What are my account balances?',
+    });
 
-    // 3. Income pill
-    const incomeExpense = recentExpenses.find((e) => e.flow === 'in');
-    if (incomeExpense) {
-      pills.push(`Received ${incomeExpense.amount} ${incomeExpense.description || 'income'}`);
-    }
+    others.push({
+      icon: <Users size={14} />,
+      label: 'Who owes me',
+      prompt: 'Who owes me money right now?',
+    });
 
-    // 4. Monthly summary query pill
-    pills.push(`How much did I spend this month?`);
+    others.push({
+      icon: <Clock size={14} />,
+      label: 'Monthly spend',
+      prompt: 'How much did I spend this month?',
+    });
 
-    return pills.slice(0, 5);
-  }, [hasData, db.expenses, db.friends]);
+    others.push({
+      icon: <TrendingDown size={14} />,
+      label: 'Recent expenses',
+      prompt: 'Show my recent transactions',
+    });
 
+    return { frequentActions: frequent.slice(0, 4), otherActions: others.slice(0, 4) };
+  }, [db, currSym]);
+
+
+  // Header without any horizontal divider lines
   const headerContent = (
     <Box
       sx={{
-        px: { xs: 2.5, sm: 3.5 },
-        pt: isMobile ? 0.5 : { xs: 2.5, sm: 3 },
-        pb: 1,
+        px: { xs: 2, sm: 3 },
+        pt: isMobile ? 0.75 : 2.5,
+        pb: 1.25,
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'space-between',
         bgcolor: 'var(--surface)',
+        gap: 1,
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
         <Box
           sx={{
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            background: 'var(--accent-gradient)',
-            color: 'var(--accent-contrast, #ffffff)',
+            width: 36,
+            height: 36,
+            borderRadius: '8px',
+            bgcolor: 'var(--surface2)',
+            border: '1px solid var(--border)',
+            color: 'var(--accent)',
             display: 'grid',
             placeItems: 'center',
             flexShrink: 0,
-            boxShadow: '0 4px 14px var(--accent-soft)',
           }}
         >
-          <Sparkles size={22} color="currentColor" />
+          <Sparkles size={17} color="currentColor" />
         </Box>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 700,
-              fontSize: { xs: '18px', sm: '20px' },
-              letterSpacing: '-0.01em',
-              color: 'var(--text)',
-              lineHeight: 1.2,
-            }}
-          >
-            Max Assistant
-          </Typography>
-          <Box
-            onClick={() => {
-              const next = aiEngineMode === 'offline' ? 'online' : 'offline';
-              setAiEngineMode(next);
-              localStorage.setItem('ai_engine_mode', next);
-              showToast(next === 'offline' ? '⚡ Switched to Offline AI (100% local)' : '✨ Switched to Gemini Cloud AI');
-            }}
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              width: 'fit-content',
-              px: 1.2,
-              py: 0.35,
-              borderRadius: '8px',
-              bgcolor: 'var(--surface2)',
-              border: '1px solid',
-              borderColor: 'var(--border2)',
-              color: 'var(--text-2)',
-              fontSize: '11px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              userSelect: 'none',
-              transition: 'all 0.15s ease',
-              '&:hover': {
-                borderColor: 'var(--accent)',
+        <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'nowrap' }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                fontSize: { xs: '15.5px', sm: '17px' },
                 color: 'var(--text)',
-              },
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Max Assistant
+            </Typography>
+            <Box
+              onClick={() => {
+                const next = aiEngineMode === 'offline' ? 'online' : 'offline';
+                setAiEngineMode(next);
+                localStorage.setItem('ai_engine_mode', next);
+                showToast(next === 'offline' ? '⚡ Switched to Offline AI (100% local)' : '✨ Switched to Gemini Cloud AI');
+              }}
+              title="Click to toggle AI mode (Cloud / Offline)"
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.6,
+                px: 0.9,
+                py: 0.25,
+                borderRadius: '6px',
+                bgcolor: aiEngineMode === 'online' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(234, 179, 8, 0.12)',
+                border: '1px solid',
+                borderColor: aiEngineMode === 'online' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)',
+                color: aiEngineMode === 'online' ? '#22c55e' : '#eab308',
+                fontSize: '10.5px',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  bgcolor: aiEngineMode === 'online' ? 'rgba(34, 197, 94, 0.22)' : 'rgba(234, 179, 8, 0.22)',
+                  transform: 'translateY(-1px)',
+                },
+                '&:active': {
+                  transform: 'translateY(0)',
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  width: 5.5,
+                  height: 5.5,
+                  borderRadius: '50%',
+                  bgcolor: aiEngineMode === 'online' ? '#22c55e' : '#eab308',
+                  boxShadow: aiEngineMode === 'online' ? '0 0 5px rgba(34, 197, 94, 0.6)' : '0 0 5px rgba(234, 179, 8, 0.6)',
+                  flexShrink: 0,
+                }}
+              />
+              {aiEngineMode === 'online' ? 'Gemini AI' : 'Offline AI'}
+            </Box>
+          </Box>
+          <Typography
+            variant="caption"
+            sx={{
+              color: 'var(--text-3)',
+              fontSize: { xs: '11px', sm: '12px' },
+              mt: 0.25,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
-            Financial Assistant / {aiEngineMode === 'offline' ? 'Offline AI' : 'Gemini Cloud'}
-          </Box>
+            Voice & text financial intelligence
+          </Typography>
         </Box>
       </Box>
-      <IconButton
-        size="small"
-        onClick={onClose}
-        sx={{
-          display: { xs: 'none', md: 'inline-flex' },
-          color: 'var(--text-2)',
-          p: 0.75,
-          borderRadius: '50%',
-          '&:hover': { bgcolor: 'var(--surface2)', color: 'var(--text)' },
-        }}
-      >
-        <X size={20} />
-      </IconButton>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+        <IconButton
+          size="small"
+          onClick={onClose}
+          sx={{
+            color: 'var(--text-2)',
+            p: 0.75,
+            width: 32,
+            height: 32,
+            borderRadius: '8px',
+            bgcolor: 'var(--surface2)',
+            border: '1px solid var(--border)',
+            display: 'grid',
+            placeItems: 'center',
+            transition: 'all 0.15s ease',
+            '&:hover': { bgcolor: 'var(--surface3)', color: 'var(--text)' },
+          }}
+        >
+          <X size={16} />
+        </IconButton>
+      </Box>
     </Box>
   );
 
+  // Main body without splitting lines
   const mainBodyContent = (
     <Box
       sx={{
-        px: { xs: 2.5, sm: 3.5 },
-        py: 1.5,
+        px: { xs: 2, sm: 3 },
+        py: 1,
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
@@ -900,105 +1151,167 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         bgcolor: 'var(--surface)',
       }}
     >
-      {/* Empty State / Suggestions shown on clean start */}
+      {/* Empty State: Minimal, Clean Actions */}
       {messages.length === 0 && !activeDraft && (
-        <>
-          {!hasData ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, my: 'auto', py: 1.5 }}>
+          {/* Frequent Actions */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: 'var(--text-3)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                fontSize: '11px',
+                px: 0.25,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.6,
+              }}
+            >
+              <Sparkles size={12} color="var(--accent)" />
+              Frequent Actions
+            </Typography>
+
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr' },
+                gap: 0.85,
+              }}
+            >
+              {frequentActions.map((item, idx) => (
+                <Box
+                  key={idx}
+                  onClick={() => handleSend(item.prompt)}
+                  sx={{
+                    px: 1.25,
+                    py: 1,
+                    borderRadius: '8px',
+                    bgcolor: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 0.75,
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      bgcolor: 'var(--surface3)',
+                      borderColor: 'var(--accent)',
+                      transform: 'translateY(-1px)',
+                    },
+                    '&:active': {
+                      transform: 'translateY(0)',
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.85, minWidth: 0 }}>
+                    <Box
+                      sx={{
+                        color: 'var(--accent)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {item.icon}
+                    </Box>
+                    <Typography
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: '12.5px',
+                        color: 'var(--text)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {item.label}
+                    </Typography>
+                  </Box>
+
+                  {item.subText && (
+                    <Typography
+                      sx={{
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: 'var(--text-3)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {item.subText}
+                    </Typography>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Other Quick Actions & Queries */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: 'var(--text-3)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                fontSize: '11px',
+                px: 0.25,
+              }}
+            >
+              Quick Insights & Actions
+            </Typography>
+
             <Box
               sx={{
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                py: 4,
-                px: 2,
-                gap: 1.75,
-                my: 'auto',
+                flexWrap: 'wrap',
+                gap: 0.75,
               }}
             >
-              <Box
-                sx={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: '20px',
-                  bgcolor: 'var(--surface2)',
-                  border: '1px solid var(--border2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--accent)',
-                  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.05)',
-                }}
-              >
-                <Sparkles size={28} color="currentColor" />
-              </Box>
-              <Box sx={{ maxWidth: 290 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'var(--text)', mb: 0.5, fontSize: '15px' }}>
-                  No Data Found
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '13px', lineHeight: 1.5 }}>
-                  Import or log your financial data to see quick prompts, or type/speak below to log your first transaction!
-                </Typography>
-              </Box>
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, my: 0.5 }}>
-              <Typography
-                variant="body1"
-                sx={{
-                  fontStyle: 'italic',
-                  color: 'var(--text-2)',
-                  fontSize: { xs: '14px', sm: '15px' },
-                  lineHeight: 1.6,
-                }}
-              >
-                "Speak or type what you spent, received, or split in plain Hindi, Hinglish, or English. I'll take care of the details for you."
-              </Typography>
-
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 1.25,
-                }}
-              >
-                {dynamicQuickPills.map((pill) => (
-                  <Box
-                    key={pill}
-                    onClick={() => handleSend(pill)}
-                    sx={{
-                      px: 2,
-                      py: 1,
-                      borderRadius: '99px',
-                      bgcolor: 'var(--surface2)',
+              {otherActions.map((item, idx) => (
+                <Box
+                  key={idx}
+                  onClick={() => handleSend(item.prompt)}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    px: 1.25,
+                    py: 0.7,
+                    borderRadius: '8px',
+                    bgcolor: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-2)',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      bgcolor: 'var(--surface3)',
+                      borderColor: 'var(--accent)',
                       color: 'var(--text)',
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      border: '1px solid',
-                      borderColor: 'var(--border2)',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      transition: 'all 0.15s cubic-bezier(0.2, 0, 0, 1)',
-                      '&:hover': {
-                        bgcolor: 'var(--surface3)',
-                        borderColor: 'var(--accent)',
-                        color: 'var(--accent)',
-                        transform: 'translateY(-1px)',
-                        boxShadow: '0 2px 8px var(--accent-soft)',
-                      },
-                      '&:active': {
-                        transform: 'translateY(0)',
-                      },
-                    }}
-                  >
-                    {pill}
+                      transform: 'translateY(-1px)',
+                    },
+                    '&:active': {
+                      transform: 'translateY(0)',
+                    },
+                  }}
+                >
+                  <Box sx={{ color: 'var(--text-3)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                    {item.icon}
                   </Box>
-                ))}
-              </Box>
+                  <span>{item.label}</span>
+                </Box>
+              ))}
             </Box>
-          )}
-        </>
+          </Box>
+        </Box>
       )}
 
       {/* Messages stream */}
@@ -1024,36 +1337,37 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               {m.sender === 'bot' && (
                 <Box
                   sx={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '10px',
-                    background: 'var(--accent-gradient)',
-                    color: 'var(--accent-contrast, #ffffff)',
+                    width: 28,
+                    height: 28,
+                    borderRadius: '8px',
+                    bgcolor: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--accent)',
                     display: 'grid',
                     placeItems: 'center',
                     flexShrink: 0,
                     mt: 0.25,
                   }}
                 >
-                  <Sparkles size={16} color="currentColor" />
+                  <Sparkles size={14} color="currentColor" />
                 </Box>
               )}
 
               <Paper
                 elevation={0}
                 sx={{
-                  px: 2,
+                  px: 1.75,
                   py: 1.25,
-                  borderRadius: m.sender === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  borderRadius: '12px',
                   background: m.sender === 'user' ? 'var(--accent-gradient)' : 'var(--surface2)',
                   color: m.sender === 'user' ? 'var(--accent-contrast, #ffffff)' : 'var(--text)',
                   maxWidth: { xs: '90%', sm: '82%' },
                   whiteSpace: 'pre-line',
                   border: '1px solid',
-                  borderColor: m.sender === 'user' ? 'transparent' : 'var(--border2)',
+                  borderColor: m.sender === 'user' ? 'transparent' : 'var(--border)',
                 }}
               >
-                <Typography variant="body2" sx={{ lineHeight: 1.55, fontSize: '13.5px' }}>
+                <Typography variant="body2" sx={{ lineHeight: 1.55, fontSize: '13px' }}>
                   {m.text}
                 </Typography>
               </Paper>
@@ -1061,27 +1375,28 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               {m.sender === 'user' && (
                 <Box
                   sx={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '10px',
-                    background: 'var(--accent-gradient)',
-                    color: 'var(--accent-contrast, #ffffff)',
+                    width: 28,
+                    height: 28,
+                    borderRadius: '8px',
+                    bgcolor: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--accent)',
                     display: 'grid',
                     placeItems: 'center',
                     flexShrink: 0,
                     mt: 0.25,
                   }}
                 >
-                  <User size={16} color="currentColor" />
+                  <User size={14} color="currentColor" />
                 </Box>
               )}
             </Box>
           ))}
 
           {loading && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'var(--text-2)', p: 1, ml: 4 }}>
-              <CircularProgress size={16} sx={{ color: 'var(--accent)' }} />
-              <Typography variant="body2" sx={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-2)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, color: 'var(--text-2)', p: 1, ml: 4 }}>
+              <CircularProgress size={15} sx={{ color: 'var(--accent)' }} />
+              <Typography variant="body2" sx={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)' }}>
                 Extracting details...
               </Typography>
             </Box>
@@ -1097,37 +1412,35 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           elevation={0}
           sx={{
             p: { xs: 2, sm: 2.25 },
-            borderRadius: '16px',
-            border: '1px solid',
-            borderColor: 'var(--accent)',
-            bgcolor: 'var(--surface)',
+            borderRadius: '12px',
+            border: '1px solid var(--border)',
+            bgcolor: 'var(--surface2)',
             display: 'flex',
             flexDirection: 'column',
-            gap: 1.75,
-            boxShadow: 'var(--shadow)',
+            gap: 1.5,
             mt: 0.5,
           }}
         >
           {/* Header Row */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CheckCircle2 size={18} color="var(--credit)" />
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '14.5px', color: 'var(--text)' }}>
+              <CheckCircle2 size={17} color="var(--credit)" />
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>
                 Extracted Record Details
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Chip
-                label={`${currencySymbol(currency)} ${activeDraft.amount}`}
+                label={`${currSym} ${activeDraft.amount}`}
                 size="small"
-                sx={{ fontWeight: 700, fontSize: '13.5px', borderRadius: '99px', px: 0.75, bgcolor: 'var(--accent)', color: 'var(--accent-contrast)' }}
+                sx={{ fontWeight: 700, fontSize: '13px', borderRadius: '6px', px: 0.5, bgcolor: 'var(--accent)', color: 'var(--accent-contrast)' }}
               />
             </Box>
           </Box>
 
-          {/* Transaction Type Toggle: Expense vs Income */}
+          {/* Transaction Type Toggle */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
               Transaction Type
             </Typography>
             <ToggleButtonGroup
@@ -1149,12 +1462,13 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               sx={{
                 display: 'flex',
                 gap: 0.5,
-                bgcolor: 'var(--surface2)',
+                bgcolor: 'var(--surface)',
                 p: 0.5,
-                borderRadius: '99px',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
                 '& .MuiToggleButton-root': {
                   flex: 1,
-                  borderRadius: '99px !important',
+                  borderRadius: '6px !important',
                   textTransform: 'none',
                   fontWeight: 600,
                   fontSize: '12px',
@@ -1178,12 +1492,11 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             </ToggleButtonGroup>
           </Box>
 
-          {/* Who Paid & Split Mode Selector (Only if Expense) */}
+          {/* Who Paid & Split Mode Selector */}
           {activeDraft.flow !== 'in' && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {/* Primary Payer Selection: I Paid vs Friend Paid */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
                   Who Paid?
                 </Typography>
                 <ToggleButtonGroup
@@ -1228,12 +1541,13 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   sx={{
                     display: 'flex',
                     gap: 0.5,
-                    bgcolor: 'var(--surface2)',
+                    bgcolor: 'var(--surface)',
                     p: 0.5,
-                    borderRadius: '99px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
                     '& .MuiToggleButton-root': {
                       flex: 1,
-                      borderRadius: '99px !important',
+                      borderRadius: '6px !important',
                       textTransform: 'none',
                       fontWeight: 600,
                       fontSize: '12px',
@@ -1257,10 +1571,9 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                 </ToggleButtonGroup>
               </Box>
 
-              {/* Sub-options when I Paid: Just Me | I Paid & Split | 100% For Friend */}
               {activeDraft.whoPaid !== 'other' && activeDraft.type !== 'by_friend' && activeDraft.splitMode !== 'by_friend' && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '10.5px' }}>
                     Split Options
                   </Typography>
                   <ToggleButtonGroup
@@ -1298,15 +1611,16 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                     sx={{
                       display: 'flex',
                       gap: 0.5,
-                      bgcolor: 'var(--surface2)',
+                      bgcolor: 'var(--surface)',
                       p: 0.5,
-                      borderRadius: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
                       '& .MuiToggleButton-root': {
                         flex: 1,
-                        borderRadius: '8px !important',
+                        borderRadius: '6px !important',
                         textTransform: 'none',
                         fontWeight: 600,
-                        fontSize: { xs: '11px', sm: '11.5px' },
+                        fontSize: '11.5px',
                         py: 0.65,
                         px: 0.5,
                         color: 'var(--text-2)',
@@ -1334,7 +1648,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             </Box>
           )}
 
-          {/* Core Form Fields */}
+          {/* Form Inputs */}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
             <TextField
               label="Item Name (Description)"
@@ -1342,8 +1656,8 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               fullWidth
               value={activeDraft.description}
               onChange={(e) => setActiveDraft({ ...activeDraft, description: e.target.value })}
-              placeholder="e.g. Poha"
-              InputProps={{ sx: { borderRadius: '10px' } }}
+              placeholder="e.g. Coffee"
+              InputProps={{ sx: { borderRadius: '8px' } }}
             />
 
             <TextField
@@ -1352,7 +1666,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               size="small"
               fullWidth
               value={activeDraft.amount != null && !isNaN(activeDraft.amount) ? activeDraft.amount : ''}
-              InputProps={{ sx: { borderRadius: '10px' } }}
+              InputProps={{ sx: { borderRadius: '8px' } }}
               onChange={(e) => {
                 const newAmt = Number(e.target.value) || 0;
                 const mode = activeDraft.splitMode || 'just_me';
@@ -1376,7 +1690,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               }}
             />
 
-            {/* Friend / Contact Input with Autocomplete & Multi-Select */}
             {(activeDraft.splitMode !== 'just_me' || activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other') && activeDraft.flow !== 'in' && (
               <Autocomplete
                 multiple
@@ -1414,7 +1727,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                       size="small"
                       {...getTagProps({ index })}
                       key={option}
-                      sx={{ borderRadius: '99px' }}
+                      sx={{ borderRadius: '6px' }}
                     />
                   ))
                 }
@@ -1427,13 +1740,12 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                         : "Friends / Contacts"
                     }
                     placeholder="Select or type..."
-                    InputProps={{ ...params.InputProps, sx: { borderRadius: '10px' } }}
+                    InputProps={{ ...params.InputProps, sx: { borderRadius: '8px' } }}
                   />
                 )}
               />
             )}
 
-            {/* Shares if Equal / Custom Split */}
             {activeDraft.splitMode === 'equal_split' && activeDraft.flow !== 'in' && (
               <>
                 <TextField
@@ -1442,7 +1754,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   size="small"
                   fullWidth
                   value={activeDraft.myShare != null && !isNaN(activeDraft.myShare) ? activeDraft.myShare : ''}
-                  InputProps={{ sx: { borderRadius: '10px' } }}
+                  InputProps={{ sx: { borderRadius: '8px' } }}
                   onChange={(e) => {
                     const my = Number(e.target.value) || 0;
                     const fr = Math.max(0, activeDraft.amount - my);
@@ -1455,7 +1767,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                   size="small"
                   fullWidth
                   value={activeDraft.friendShare != null && !isNaN(activeDraft.friendShare) ? activeDraft.friendShare : ''}
-                  InputProps={{ sx: { borderRadius: '10px' } }}
+                  InputProps={{ sx: { borderRadius: '8px' } }}
                   onChange={(e) => {
                     const fr = Number(e.target.value) || 0;
                     const my = Math.max(0, activeDraft.amount - fr);
@@ -1470,7 +1782,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               <Select
                 value={activeDraft.category}
                 label="Category"
-                sx={{ borderRadius: '10px' }}
+                sx={{ borderRadius: '8px' }}
                 onChange={(e) => setActiveDraft({ ...activeDraft, category: e.target.value })}
               >
                 {categories.map((cat) => (
@@ -1486,7 +1798,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               <Select
                 value={activeDraft.walletName}
                 label="Wallet / Account"
-                sx={{ borderRadius: '10px' }}
+                sx={{ borderRadius: '8px' }}
                 onChange={(e) => setActiveDraft({ ...activeDraft, walletName: e.target.value })}
               >
                 {wallets.map((w) => (
@@ -1505,34 +1817,34 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               value={activeDraft.date}
               onChange={(e) => setActiveDraft({ ...activeDraft, date: e.target.value })}
               InputLabelProps={{ shrink: true }}
-              InputProps={{ sx: { borderRadius: '10px' } }}
+              InputProps={{ sx: { borderRadius: '8px' } }}
             />
           </Box>
 
           {/* Action buttons */}
-          <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end', alignItems: 'center', mt: 0.5 }}>
+          <Box sx={{ display: 'flex', gap: 1.25, justifyContent: 'flex-end', alignItems: 'center', mt: 0.5 }}>
             <Button
-              size="medium"
+              size="small"
               color="inherit"
               onClick={() => setActiveDraft(null)}
-              sx={{ borderRadius: '99px', textTransform: 'none', fontWeight: 600, px: 2 }}
+              sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, px: 2 }}
             >
               Discard
             </Button>
             <Button
-              size="medium"
+              size="small"
               variant="contained"
-              startIcon={<PlusCircle size={17} />}
+              startIcon={<PlusCircle size={15} />}
               onClick={handleConfirmDraft}
               sx={{
-                borderRadius: '99px',
+                borderRadius: '8px',
                 fontWeight: 600,
-                px: 3,
-                py: 1,
+                px: 2.5,
+                py: 0.75,
                 textTransform: 'none',
                 bgcolor: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--accent)',
                 color: activeDraft.flow === 'in' ? '#ffffff' : 'var(--accent-contrast, #ffffff)',
-                boxShadow: '0 4px 12px var(--accent-soft)',
+                boxShadow: '0 2px 8px var(--accent-soft)',
                 '&:hover': {
                   bgcolor: activeDraft.flow === 'in' ? '#15803d' : 'var(--accent-dark)',
                 },
@@ -1552,11 +1864,12 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     </Box>
   );
 
+  // Footer Actions without any dividing top border line
   const footerActions = (
     <Box
       sx={{
-        px: { xs: 2.5, sm: 3.5 },
-        pb: { xs: 2.5, sm: 3.5 },
+        px: { xs: 2, sm: 3 },
+        pb: { xs: 2, sm: 3 },
         pt: 1,
         display: 'flex',
         flexDirection: 'column',
@@ -1569,12 +1882,12 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           alignItems: 'center',
           gap: 1,
           width: '100%',
-          px: 2,
+          px: 1.75,
           py: 0.75,
           bgcolor: 'var(--surface2)',
-          borderRadius: '24px',
+          borderRadius: '12px',
           border: '1px solid',
-          borderColor: isListening ? 'var(--debit)' : 'var(--border2)',
+          borderColor: isListening ? 'var(--debit)' : 'var(--border)',
           transition: 'all 0.15s ease',
           '&:focus-within': {
             borderColor: 'var(--accent)',
@@ -1586,7 +1899,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         <AudioWaveVisualizer volume={volumeLevel} isListening={isListening} />
 
         <InputBase
-          placeholder={isListening ? 'Listening... Speak now...' : 'Tell Max something...'}
+          placeholder={isListening ? 'Listening... Speak now...' : 'Describe transaction or ask Max...'}
           fullWidth
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
@@ -1598,12 +1911,12 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           }}
           disabled={loading}
           sx={{
-            fontSize: '15px',
+            fontSize: '14px',
             color: 'var(--text)',
             fontFamily: 'inherit',
             '& input::placeholder': {
               color: 'var(--text-3)',
-              opacity: 0.85,
+              opacity: 0.9,
             },
           }}
         />
@@ -1615,13 +1928,14 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             sx={{
               color: isListening ? 'var(--debit)' : 'var(--text-2)',
               p: 0.75,
+              borderRadius: '8px',
               '&:hover': {
                 color: 'var(--text)',
-                bgcolor: 'var(--surface2)',
+                bgcolor: 'var(--surface3)',
               },
             }}
           >
-            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+            {isListening ? <MicOff size={18} /> : <Mic size={18} />}
           </IconButton>
         </Tooltip>
 
@@ -1632,17 +1946,18 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           sx={{
             color: inputText.trim() ? 'var(--accent)' : 'var(--text-3)',
             p: 0.75,
+            borderRadius: '8px',
             '&:hover': {
               color: 'var(--accent)',
-              bgcolor: 'var(--surface2)',
+              bgcolor: 'var(--surface3)',
             },
             '&.Mui-disabled': {
               color: 'var(--text-3)',
-              opacity: 0.5,
+              opacity: 0.4,
             },
           }}
         >
-          <Send size={18} />
+          <Send size={17} />
         </IconButton>
       </Box>
     </Box>
@@ -1668,8 +1983,8 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         }}
         PaperProps={{
           sx: {
-            borderTopLeftRadius: '28px',
-            borderTopRightRadius: '28px',
+            borderTopLeftRadius: '20px',
+            borderTopRightRadius: '20px',
             maxHeight: '90vh',
             width: '100%',
             display: 'flex',
@@ -1678,8 +1993,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             bgcolor: 'var(--surface)',
             color: 'var(--text)',
             border: 'none',
-            borderTop: 'none',
-            borderColor: 'transparent',
             transform: dragOffsetY > 0 ? `translateY(${dragOffsetY}px) !important` : undefined,
             transition: dragOffsetY > 0 ? 'none !important' : undefined,
           },
@@ -1704,11 +2017,11 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         >
           <Box
             sx={{
-              width: dragOffsetY > 0 ? 48 : 36,
+              width: dragOffsetY > 0 ? 44 : 36,
               height: 4,
               bgcolor: 'var(--text-3)',
-              opacity: 0.6,
-              borderRadius: 99,
+              opacity: 0.5,
+              borderRadius: '99px',
             }}
           />
         </Box>
@@ -1732,22 +2045,21 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         backdrop: {
           sx: {
             backdropFilter: 'blur(6px)',
-            backgroundColor: 'rgba(0,0,0,0.5)',
+            backgroundColor: 'rgba(0,0,0,0.55)',
           },
         },
       }}
       PaperProps={{
         sx: {
-          borderRadius: '28px',
+          borderRadius: '16px',
           overflow: 'hidden',
-          maxWidth: '540px',
+          maxWidth: '520px',
           width: '100%',
-          maxHeight: '82vh',
+          maxHeight: '84vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-          border: { xs: 'none', md: '1px solid' },
-          borderColor: { xs: 'transparent', md: 'var(--border2)' },
+          boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+          border: '1px solid var(--border)',
           bgcolor: 'var(--surface)',
           color: 'var(--text)',
           m: 2,

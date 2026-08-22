@@ -1,5 +1,6 @@
-import type { ExpenseType, ExpenseFlow } from './types';
+import type { ExpenseType, ExpenseFlow, AppDB, Friend, Wallet } from './types';
 import { currencySymbol } from './utils';
+import { friendBalance, walletBalance, totalWalletBalance } from './db';
 
 export interface DraftExpense {
   description: string;
@@ -29,20 +30,195 @@ export interface ParseResult {
 export function parseLocallyClient(
   prompt: string,
   categories: string[] = [],
-  friends: { id: string; name: string; type?: string }[] = [],
-  wallets: { id: string; name: string }[] = [],
-  currency: string = 'INR'
+  friends: Friend[] | { id: string; name: string; type?: string }[] = [],
+  wallets: Wallet[] | { id: string; name: string }[] = [],
+  currency: string = 'INR',
+  db?: AppDB
 ): ParseResult {
   const clean = prompt.trim();
   const lower = clean.toLowerCase();
   const sym = currencySymbol(currency);
 
-  // STEP 1: Flow Determination (Getting Money vs. Spending Money)
+  // Helper to format currency
+  const fmt = (n: number) => `${sym}${Math.abs(n).toLocaleString()}`;
+
+  // ==========================================
+  // 1. QUERY HANDLING: WALLET / ACCOUNT BALANCES
+  // ==========================================
+  const isBalanceQuery =
+    (lower.includes('balance') || lower.includes('how much money') || lower.includes('how much cash') || lower.includes('my funds') || lower.includes('total funds') || lower.includes('my accounts')) &&
+    !lower.includes('spent') && !lower.includes('spend');
+
+  if (isBalanceQuery && db) {
+    // Check if asking for a specific wallet
+    const matchedWallet = db.wallets.find(w => lower.includes(w.name.toLowerCase()));
+    if (matchedWallet) {
+      const bal = walletBalance(db, matchedWallet.id);
+      return {
+        reply: `Your ${matchedWallet.name} balance is ${fmt(bal)}.`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    // General balance across all wallets
+    const total = totalWalletBalance(db);
+    const walletLines = db.wallets.map(w => {
+      const b = walletBalance(db, w.id);
+      return `• ${w.name}: ${fmt(b)}`;
+    }).join('\n');
+
+    return {
+      reply: `Your total net balance is ${fmt(total)} across ${db.wallets.length} accounts:\n${walletLines}`,
+      actionType: 'general_query',
+      isOffline: true,
+    };
+  }
+
+  // ==========================================
+  // 2. QUERY HANDLING: FRIENDS, DEBTS & WHO OWES ME
+  // ==========================================
+  const isWhoOwesQuery =
+    lower.includes('who owes') || lower.includes('who owe') || lower.includes('owe me') ||
+    lower.includes('pending from friends') || lower.includes('debts and credits');
+
+  if (isWhoOwesQuery && db) {
+    const debtors = db.friends
+      .map(f => ({ friend: f, bal: friendBalance(db, f.id) }))
+      .filter(fb => fb.bal.net > 0);
+
+    if (debtors.length === 0) {
+      return {
+        reply: `Nobody owes you money right now! All your friend accounts are settled.`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    const totalOwed = debtors.reduce((sum, d) => sum + d.bal.net, 0);
+    const lines = debtors.map(d => `• ${d.friend.name}: owes you ${fmt(d.bal.net)}`).join('\n');
+    return {
+      reply: `You have ${fmt(totalOwed)} pending to collect from ${debtors.length} friend${debtors.length > 1 ? 's' : ''}:\n${lines}`,
+      actionType: 'general_query',
+      isOffline: true,
+    };
+  }
+
+  const isWhoIOweQuery =
+    lower.includes('who do i owe') || lower.includes('who i owe') || lower.includes('i owe') ||
+    lower.includes('my debts') || lower.includes('pending to pay');
+
+  if (isWhoIOweQuery && db) {
+    const creditors = db.friends
+      .map(f => ({ friend: f, bal: friendBalance(db, f.id) }))
+      .filter(fb => fb.bal.net < 0);
+
+    if (creditors.length === 0) {
+      return {
+        reply: `You don't owe anyone money right now. Your ledger is all clear!`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    const totalDebt = creditors.reduce((sum, c) => sum + Math.abs(c.bal.net), 0);
+    const lines = creditors.map(c => `• ${c.friend.name}: you owe ${fmt(c.bal.net)}`).join('\n');
+    return {
+      reply: `You owe a total of ${fmt(totalDebt)} across ${creditors.length} contact${creditors.length > 1 ? 's' : ''}:\n${lines}`,
+      actionType: 'general_query',
+      isOffline: true,
+    };
+  }
+
+  // Specific friend/vendor balance or query
+  if (db && (lower.includes('how much') || lower.includes('balance') || lower.includes('transactions with') || lower.includes('history') || lower.includes('ledger'))) {
+    const targetFriend = db.friends.find(f => lower.includes(f.name.toLowerCase()));
+    if (targetFriend) {
+      const bal = friendBalance(db, targetFriend.id);
+      const friendTxs = db.expenses.filter(e => e.friendId === targetFriend.id || e.vendorId === targetFriend.id);
+      const txCount = friendTxs.length;
+
+      let balStr = `You are all settled up with ${targetFriend.name}.`;
+      if (bal.net > 0) {
+        balStr = `${targetFriend.name} owes you ${fmt(bal.net)}.`;
+      } else if (bal.net < 0) {
+        balStr = `You owe ${targetFriend.name} ${fmt(bal.net)}.`;
+      }
+
+      return {
+        reply: `${targetFriend.name} (${targetFriend.type || 'contact'}):\n• Balance: ${balStr}\n• Total linked transactions: ${txCount}`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+  }
+
+  // ==========================================
+  // 3. QUERY HANDLING: SPENDING, MONTHLY, ANALYTICS
+  // ==========================================
+  const isSpendingQuery =
+    (lower.includes('how much did i spend') || lower.includes('how much i spent') || lower.includes('monthly spend') ||
+     lower.includes('total spend') || lower.includes('spending summary') || lower.includes('spending this month')) &&
+    !lower.match(/\b(spent|paid)\s+(\d+)/);
+
+  if (isSpendingQuery && db) {
+    const currentMonthPrefix = new Date().toISOString().slice(0, 7);
+    const thisMonthExpenses = db.expenses.filter(e => e.flow !== 'in' && e.date.startsWith(currentMonthPrefix));
+    const thisMonthTotal = thisMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    const catSpend: Record<string, number> = {};
+    thisMonthExpenses.forEach(e => {
+      catSpend[e.category] = (catSpend[e.category] || 0) + e.amount;
+    });
+
+    const topCats = Object.entries(catSpend)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([cat, amt]) => `• ${cat}: ${fmt(amt)}`)
+      .join('\n');
+
+    return {
+      reply: `This month you have spent ${fmt(thisMonthTotal)} across ${thisMonthExpenses.length} transactions.\n${topCats ? `Top Categories:\n${topCats}` : ''}`,
+      actionType: 'general_query',
+      isOffline: true,
+    };
+  }
+
+  const isRecentTxsQuery =
+    lower.includes('recent transaction') || lower.includes('last transaction') || lower.includes('last expense') ||
+    lower.includes('recent expense') || lower.includes('show transactions');
+
+  if (isRecentTxsQuery && db) {
+    const recent = db.expenses.slice(0, 4);
+    if (recent.length === 0) {
+      return {
+        reply: `You haven't logged any transactions yet. Try saying "Spent ${sym}75 on Tiffin via GPay"!`,
+        actionType: 'general_query',
+        isOffline: true,
+      };
+    }
+
+    const lines = recent.map(e => {
+      const flowSign = e.flow === 'in' ? '+' : '-';
+      return `• ${e.date}: ${e.description} (${flowSign}${fmt(e.amount)}) [${e.category}]`;
+    }).join('\n');
+
+    return {
+      reply: `Here are your most recent transactions:\n${lines}`,
+      actionType: 'general_query',
+      isOffline: true,
+    };
+  }
+
+  // ==========================================
+  // 4. TRANSACTION / LOGGING / SPLITTING PARSER
+  // ==========================================
+  // Flow Determination (Getting Money vs. Spending Money)
   const inKeywords = ['received', 'got', 'salary', 'cashback', 'income', 'earned', 'refund', 'deposit', 'credited', 'paid me', 'sent me', 'gave me'];
   const isIncome = inKeywords.some(k => lower.includes(k));
   const flow: ExpenseFlow = isIncome ? 'in' : 'out';
 
-  // STEP 2: Amount Extraction
+  // Amount Extraction
   let amount = 0;
   const numMatches = [
     ...lower.matchAll(/\b(?:rs\.?|rupees|inr|\$|₹)\s*(\d+(?:\.\d+)?)\b/gi),
@@ -57,7 +233,7 @@ export function parseLocallyClient(
     }
   }
 
-  // STEP 3: Identify Friends / Contacts & Who Paid
+  // Identify Friends / Contacts & Who Paid
   let foundFriendName: string | null = null;
   const matchedFriends: string[] = [];
 
@@ -72,7 +248,7 @@ export function parseLocallyClient(
 
   if (matchedFriends.length === 0) {
     const nameMatch = clean.match(/\b(?:for|with|by|from|to|and)\s+([A-Z][a-z]+)\b/);
-    if (nameMatch && nameMatch[1] && !['Me', 'My', 'Us', 'The', 'Cash', 'Bank', 'Card', 'Today', 'Yesterday'].includes(nameMatch[1])) {
+    if (nameMatch && nameMatch[1] && !['Me', 'My', 'Us', 'The', 'Cash', 'Bank', 'Card', 'Today', 'Yesterday', 'Tiffin', 'Coffee', 'Lunch'].includes(nameMatch[1])) {
       matchedFriends.push(nameMatch[1]);
     }
   }
@@ -95,7 +271,6 @@ export function parseLocallyClient(
   const repayPattern = /\b(repaid|pay\s*back|settled|debt)\b/i;
 
   if (isIncome && foundFriendName) {
-    // Friend paid or sent money to user
     whoPaid = 'other';
     type = 'by_friend';
     splitMode = 'pay_debt';
@@ -126,9 +301,9 @@ export function parseLocallyClient(
     friendShare = amount > 0 ? Math.round((amount / 2) * 100) / 100 : null;
   }
 
-  // 5. Category Keyword Matching
+  // Category Keyword Matching
   let category = 'Food & Dining';
-  const foodKeywords = ['poha', 'coffee', 'chai', 'tea', 'dinner', 'lunch', 'breakfast', 'food', 'restaurant', 'pizza', 'burger', 'swiggy', 'zomato', 'snack', 'cafe', 'bar', 'drinks'];
+  const foodKeywords = ['poha', 'tiffin', 'coffee', 'chai', 'tea', 'dinner', 'lunch', 'breakfast', 'food', 'restaurant', 'pizza', 'burger', 'swiggy', 'zomato', 'snack', 'cafe', 'bar', 'drinks'];
   const transportKeywords = ['uber', 'cab', 'auto', 'taxi', 'petrol', 'diesel', 'fuel', 'bus', 'train', 'flight', 'metro', 'parking', 'toll', 'rapido', 'ola'];
   const groceryKeywords = ['grocery', 'groceries', 'supermarket', 'mart', 'milk', 'vegetables', 'fruits', 'zepto', 'blinkit', 'instamart'];
   const entertainmentKeywords = ['movie', 'cinema', 'netflix', 'spotify', 'game', 'concert', 'show', 'bookmyshow'];
@@ -155,7 +330,7 @@ export function parseLocallyClient(
     else category = categories[0];
   }
 
-  // 6. Wallet Matching
+  // Wallet Matching
   let matchedWallet = wallets[0]?.name || 'Cash';
   for (const w of wallets) {
     if (lower.includes(w.name.toLowerCase())) {
@@ -164,7 +339,7 @@ export function parseLocallyClient(
     }
   }
 
-  // 7. Extract Clean Item Description (1-3 words max)
+  // Extract Clean Item Description (1-3 words max)
   let title = clean;
   if (foundFriendName) {
     title = title.replace(new RegExp(foundFriendName, 'gi'), '');
@@ -178,7 +353,8 @@ export function parseLocallyClient(
                .trim();
 
   if (!title || title.length < 2) {
-    if (lower.includes('poha')) title = 'Poha';
+    if (lower.includes('tiffin')) title = 'Tiffin';
+    else if (lower.includes('poha')) title = 'Poha';
     else if (lower.includes('coffee')) title = 'Coffee';
     else if (lower.includes('chai') || lower.includes('tea')) title = 'Tea';
     else if (lower.includes('dinner')) title = 'Dinner';
@@ -191,7 +367,21 @@ export function parseLocallyClient(
     title = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
   }
 
-  // 8. Dates
+  // If amount was not specified in the query, check if this title has a known exact recurring or past price (e.g. Tiffin = 75)
+  if (amount === 0 && db) {
+    const lowerTitle = title.toLowerCase();
+    const matchingRecurring = db.recurringRules.find(r => r.title.toLowerCase().includes(lowerTitle));
+    if (matchingRecurring && matchingRecurring.amount > 0) {
+      amount = matchingRecurring.amount;
+    } else {
+      const pastExpenses = db.expenses.filter(e => e.description.toLowerCase().includes(lowerTitle) && e.amount > 0);
+      if (pastExpenses.length > 0) {
+        amount = pastExpenses[0].amount;
+      }
+    }
+  }
+
+  // Dates
   const todayStr = new Date().toISOString().split('T')[0];
   let dateStr = todayStr;
   if (lower.includes('yesterday')) {
@@ -208,7 +398,7 @@ export function parseLocallyClient(
   const amtLabel = amount > 0 ? `${sym}${amount}` : 'amount';
 
   return {
-    reply: `⚡ Offline AI: Captured "${title}" for ${amtLabel} under ${category}${friendLabel}. Review draft below!`,
+    reply: `Captured "${title}" for ${amtLabel} under ${category}${friendLabel} using ${matchedWallet}. Review and confirm below!`,
     actionType: 'add_expense',
     isOffline: true,
     draft: {
@@ -226,7 +416,7 @@ export function parseLocallyClient(
       friendName: foundFriendName,
       friendNames: matchedFriends.length > 0 ? matchedFriends : (foundFriendName ? [foundFriendName] : []),
       status: type === 'personal' ? 'paid' : 'unsettled',
-      notes: 'Added via Offline AI Assistant',
+      notes: 'Added via Max Assistant',
     },
   };
 }

@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import App from './App';
+import { ErrorBoundary } from './ErrorBoundary';
 import { ColorModeContext, buildTheme, getAccentColors, type AccentPreset } from './theme';
 
 import '@fontsource/roboto/300.css';
@@ -135,6 +136,8 @@ function Root() {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Root />
+    <ErrorBoundary>
+      <Root />
+    </ErrorBoundary>
   </React.StrictMode>,
 );
