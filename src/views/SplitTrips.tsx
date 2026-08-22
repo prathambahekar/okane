@@ -42,7 +42,7 @@ export interface DebtTransaction {
   amount: number;
 }
 
-export function simplifyDebts(members: TripMember[], expenses: TripExpense[]) {
+function simplifyDebts(members: TripMember[], expenses: TripExpense[]) {
   const balances: Record<string, { paid: number; share: number; net: number }> = {};
   members.forEach(m => {
     balances[m.id] = { paid: 0, share: 0, net: 0 };
