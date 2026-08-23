@@ -5345,28 +5345,28 @@ body.no-animations *::after,
 /* Reusable Warning / Undo Action Button */
 .btn-undo {
   color: #d97706;
-  background: rgba(217, 119, 6, 0.08);
-  border: 1px solid rgba(217, 119, 6, 0.28);
-  border-radius: 6px;
+  background: rgba(217, 119, 6, 0.10);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  border-radius: 7px;
   font-weight: 600;
   transition: all 0.15s ease;
 }
 
 .btn-undo:hover {
-  background: rgba(217, 119, 6, 0.18);
-  border-color: rgba(217, 119, 6, 0.45);
+  background: rgba(217, 119, 6, 0.22);
+  border-color: rgba(217, 119, 6, 0.55);
   color: #b45309;
 }
 
 [data-color-scheme="dark"] .btn-undo {
   color: #fbbf24;
-  background: rgba(251, 191, 36, 0.12);
-  border-color: rgba(251, 191, 36, 0.32);
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.40);
 }
 
 [data-color-scheme="dark"] .btn-undo:hover {
-  background: rgba(251, 191, 36, 0.22);
-  border-color: rgba(251, 191, 36, 0.55);
+  background: rgba(251, 191, 36, 0.28);
+  border-color: rgba(251, 191, 36, 0.65);
   color: #fef08a;
 }
 

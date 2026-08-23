@@ -1559,8 +1559,10 @@ export function personalNetAmount(e: Expense): number {
 export function unsettledExpensesForFriend(db: AppDB, friendId: string): Expense[] {
   return db.expenses
     .filter(e => {
-      if (expenseFlow(e) !== 'out') return false;
-      // 1. Shared friend expenses (friend owes user)
+      const amt = Number(e.amount) || 0;
+      if (amt <= 0.0001) return false;
+
+      // 1. Shared friend expenses
       if (e.friendId === friendId && e.type !== 'personal') {
         return !e.settled;
       }
@@ -1578,7 +1580,7 @@ export function unsettledExpensesForFriend(db: AppDB, friendId: string): Expense
       }
       return false;
     })
-    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
+    .sort((a, b) => (b.originalDate || b.date).localeCompare(a.originalDate || a.date) || (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 export function contactTotalSpent(db: AppDB, contactId: string): number {
@@ -1723,8 +1725,10 @@ export function deleteExpense(db: AppDB, id: string): AppDB {
   }
 
   const targetSettlementId = target.settlementId;
-  const expenses = db.expenses.filter(x => x.id !== id);
+  let expenses = db.expenses.filter(x => x.id !== id);
 
+  // If this expense had a settlement, clean up the settlement reference on sibling expenses
+  // if the settlement is completely removed, or keep it consistent
   const settlements = (db.settlements || []).map(s => {
     if (s.expenseIds.includes(id)) {
       return { ...s, expenseIds: s.expenseIds.filter(x => x !== id) };
@@ -1732,24 +1736,47 @@ export function deleteExpense(db: AppDB, id: string): AppDB {
     return s;
   }).filter(s => s.expenseIds.length > 0 && s.id !== targetSettlementId);
 
+  const remainingSettlementIds = new Set(settlements.map(s => s.id));
+  if (targetSettlementId && !remainingSettlementIds.has(targetSettlementId)) {
+    // Sibling expenses that were in targetSettlementId should no longer point to deleted settlement
+    expenses = expenses.map(e => {
+      if (e.settlementId === targetSettlementId) {
+        return { ...e, settled: false, settlementId: null, originalAmount: undefined, originalDate: undefined, settledAmount: undefined };
+      }
+      return e;
+    });
+  }
+
   return { ...db, expenses, settlements };
 }
 
 export function deleteExpenseGroup(db: AppDB, groupId: string): AppDB {
   const groupExpenses = db.expenses.filter(x => x.groupId === groupId);
   if (groupExpenses.length === 0) {
-    return { ...db, expenses: db.expenses.filter(x => x.id !== groupId) };
+    return deleteExpense(db, groupId);
   }
 
   const groupExpenseIds = new Set(groupExpenses.map(x => x.id));
   const groupSettlementIds = new Set(groupExpenses.map(x => x.settlementId).filter(Boolean) as string[]);
 
-  const expenses = db.expenses.filter(x => x.groupId !== groupId && !groupExpenseIds.has(x.id));
+  let expenses = db.expenses.filter(x => x.groupId !== groupId && !groupExpenseIds.has(x.id));
 
   const settlements = (db.settlements || []).map(s => {
     const remainingIds = s.expenseIds.filter(id => !groupExpenseIds.has(id));
     return { ...s, expenseIds: remainingIds };
   }).filter(s => s.expenseIds.length > 0 && !groupSettlementIds.has(s.id));
+
+  const remainingSettlementIds = new Set(settlements.map(s => s.id));
+  groupSettlementIds.forEach(stlId => {
+    if (!remainingSettlementIds.has(stlId)) {
+      expenses = expenses.map(e => {
+        if (e.settlementId === stlId) {
+          return { ...e, settled: false, settlementId: null, originalAmount: undefined, originalDate: undefined, settledAmount: undefined };
+        }
+        return e;
+      });
+    }
+  });
 
   return { ...db, expenses, settlements };
 }
@@ -1973,7 +2000,6 @@ export function recordSettlement(
         settlementId: willSettleFriend ? '' : e.settlementId, // Will assign below
         vendorSettled: willSettleVendor ? true : e.vendorSettled,
         vendorSettlementId: isSettlingVendor ? '' : e.vendorSettlementId,
-        date: settlementDate,
       });
     } else if (remainingCover > 0) {
       const coveredPortion = Number(remainingCover.toFixed(2));
@@ -1998,7 +2024,6 @@ export function recordSettlement(
         settlementId: willSettleFriend ? '' : e.settlementId, // Will assign below
         vendorSettled: willSettleVendor ? true : e.vendorSettled,
         vendorSettlementId: isSettlingVendor ? '' : e.vendorSettlementId,
-        date: settlementDate,
       });
 
       const newChildId = uid('exp');
@@ -2008,6 +2033,7 @@ export function recordSettlement(
         parentExpenseId: e.id,
         originalAmount: origAmt,
         originalDate: e.originalDate || e.date,
+        date: e.date,
         amount: remainingPortion,
         description: e.description.includes('Remaining') ? e.description : `${e.description} (Remaining)`,
         status: e.status === 'unpaid' ? 'unpaid' : e.status,
@@ -2018,7 +2044,13 @@ export function recordSettlement(
         createdAt: Date.now() + 1,
       });
     } else {
-      updatedExpenses.push({ ...e, settled: false, settlementId: null });
+      updatedExpenses.push({
+        ...e,
+        settled: isSettlingFriend ? false : e.settled,
+        settlementId: isSettlingFriend ? null : e.settlementId,
+        vendorSettled: isSettlingVendor ? false : e.vendorSettled,
+        vendorSettlementId: isSettlingVendor ? null : e.vendorSettlementId,
+      });
     }
   });
 

@@ -101,7 +101,19 @@ export default function SettleExpensePickerModal({
   }, [expenses, friendsMap, isVendor, friend.id]);
 
   const isOwedToMe = useCallback((e: Expense) => {
-    return e.friendId === friend.id && e.type === 'for_friend' && expenseFlow(e) === 'out';
+    const isIncoming = expenseFlow(e) === 'in';
+    const isSettlingVendor = e.vendorId === friend.id;
+    const isSettlingFriend = e.friendId === friend.id;
+
+    if (isSettlingVendor) {
+      return isIncoming;
+    }
+    if (isSettlingFriend) {
+      if (e.type === 'for_friend') return !isIncoming;
+      if (e.type === 'by_friend') return isIncoming;
+      if (e.status === 'unpaid') return isIncoming;
+    }
+    return !isIncoming;
   }, [friend.id]);
 
   const hasMixedFlows = useMemo(() => {
@@ -186,15 +198,37 @@ export default function SettleExpensePickerModal({
     return expenses.filter(e => selectedSet.has(e.id));
   }, [expenses, selectedSet]);
 
-  const owedToMeAmt = selectedExpenses
-    .filter(isOwedToMe)
-    .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const { netTotal } = useMemo(() => {
+    let toMe = 0;
+    let byMe = 0;
+    selectedExpenses.forEach(e => {
+      const amt = Number(e.amount) || 0;
+      const isIncoming = expenseFlow(e) === 'in';
+      const isSettlingVendor = e.vendorId === friend.id;
+      const isSettlingFriend = e.friendId === friend.id;
 
-  const owedByMeAmt = selectedExpenses
-    .filter(e => !isOwedToMe(e))
-    .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      if (isSettlingVendor) {
+        if (isIncoming) toMe += amt;
+        else byMe += amt;
+      } else if (isSettlingFriend) {
+        if (e.type === 'for_friend') {
+          if (isIncoming) toMe -= amt;
+          else toMe += amt;
+        } else if (e.type === 'by_friend') {
+          if (isIncoming) byMe -= amt;
+          else byMe += amt;
+        } else if (e.status === 'unpaid') {
+          if (isIncoming) toMe += amt;
+          else byMe += amt;
+        }
+      } else {
+        if (isIncoming) toMe += amt;
+        else byMe += amt;
+      }
+    });
+    return { netTotal: toMe - byMe };
+  }, [selectedExpenses, friend.id]);
 
-  const netTotal = owedToMeAmt - owedByMeAmt;
   const absNet = Math.abs(netTotal);
 
   // Check selection state for current filtered view

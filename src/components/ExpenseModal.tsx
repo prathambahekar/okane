@@ -501,12 +501,12 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
           const amt = Number(item.amount) || 0;
           if (coverRemaining >= amt) {
             coverRemaining -= amt;
-            updateExpense(id, { settled: true, date: date || item.date });
+            updateExpense(id, { settled: true });
           } else if (coverRemaining > 0) {
             const covered = Math.round(coverRemaining * 100) / 100;
             const rem = Math.round((amt - covered) * 100) / 100;
             coverRemaining = 0;
-            updateExpense(id, { amount: covered, settled: true, date: date || item.date });
+            updateExpense(id, { amount: covered, settled: true });
             addExpense({
               ...item,
               amount: rem,

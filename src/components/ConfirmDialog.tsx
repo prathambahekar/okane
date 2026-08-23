@@ -72,10 +72,10 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
               fontSize: 13,
               border: 'none',
               background: danger ? 'var(--debit-gradient)' : 'var(--accent-gradient)',
-              color: '#ffffff',
+              color: danger ? '#ffffff' : 'var(--accent-contrast, #ffffff)',
               boxShadow: danger
                 ? '0 4px 14px rgba(239, 68, 68, 0.35)'
-                : '0 4px 14px rgba(30, 136, 229, 0.35)',
+                : '0 4px 14px var(--accent-soft)',
               cursor: 'pointer',
               transition: 'transform 0.15s ease, opacity 0.15s ease',
             }}

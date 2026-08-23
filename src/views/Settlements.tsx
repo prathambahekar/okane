@@ -869,11 +869,8 @@ export default function Settlements() {
                         borderRadius: 7,
                         display: 'grid',
                         placeItems: 'center',
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface3)',
-                        color: 'var(--text-2)',
                         cursor: 'pointer',
-                        transition: 'all 0.15s ease',
+                        flexShrink: 0,
                       }}
                     >
                       <RotateCcw size={12.5} strokeWidth={2} />

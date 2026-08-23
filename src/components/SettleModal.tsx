@@ -32,18 +32,37 @@ export default function SettleModal({ friend, onClose }: Props) {
 
   const selectedArr = unsettled.filter(e => selected.has(e.id));
 
-  const owedToMe = selectedArr.filter(e => {
-    if (e.friendId === friend.id && e.type === 'for_friend' && expenseFlow(e) === 'out') return true;
-    return false;
-  }).reduce((s, e) => s + Number(e.amount), 0);
+  const { owedToMe, owedByMe } = useMemo(() => {
+    let toMe = 0;
+    let byMe = 0;
+    selectedArr.forEach(e => {
+      const amt = Number(e.amount) || 0;
+      const isIncoming = expenseFlow(e) === 'in';
+      const isSettlingVendor = e.vendorId === friend.id;
+      const isSettlingFriend = e.friendId === friend.id;
 
-  const owedByMe = selectedArr.filter(e => {
-    if (e.friendId === friend.id && e.type === 'by_friend' && expenseFlow(e) === 'out') return true;
-    if (e.vendorId === friend.id && e.status === 'unpaid' && expenseFlow(e) === 'out') return true;
-    if (e.vendorId === friend.id && e.type === 'by_friend' && expenseFlow(e) === 'out') return true;
-    if (e.friendId === friend.id && e.status === 'unpaid' && expenseFlow(e) === 'out') return true;
-    return false;
-  }).reduce((s, e) => s + Number(e.amount), 0);
+      if (isSettlingVendor) {
+        if (isIncoming) toMe += amt;
+        else byMe += amt;
+      } else if (isSettlingFriend) {
+        if (e.type === 'for_friend') {
+          if (isIncoming) toMe -= amt;
+          else toMe += amt;
+        } else if (e.type === 'by_friend') {
+          if (isIncoming) byMe -= amt;
+          else byMe += amt;
+        } else if (e.status === 'unpaid') {
+          if (isIncoming) toMe += amt;
+          else byMe += amt;
+        }
+      } else {
+        if (isIncoming) toMe += amt;
+        else byMe += amt;
+      }
+    });
+    return { owedToMe: toMe, owedByMe: byMe };
+  }, [selectedArr, friend.id]);
+
   const net = owedToMe - owedByMe;
   const absNet = Math.abs(net);
 
