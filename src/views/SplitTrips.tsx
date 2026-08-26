@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { createPortal } from 'react-dom';
@@ -325,7 +325,7 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
 // Default initial groups if none saved
 const DEFAULT_PRESET_GROUPS: TripGroup[] = [];
 
-export default function SplitTrips() {
+export default function SplitTrips({ initialArg, onClearViewArg: _onClearViewArg }: { initialArg?: string; onClearViewArg?: () => void }) {
   const { db, showToast } = useStore();
   const currency = db.settings.currency || '₹';
 
@@ -348,6 +348,30 @@ export default function SplitTrips() {
       return 'home';
     }
   });
+
+  const handledArgRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!initialArg) {
+      handledArgRef.current = null;
+      return;
+    }
+    if (handledArgRef.current === initialArg) return;
+    handledArgRef.current = initialArg;
+
+    const timer = setTimeout(() => {
+      const allTrips: Trip[] = [
+        ...(db.tripHistory || []),
+        ...(db.activeTrip ? [db.activeTrip] : []),
+      ];
+      const foundTrip = allTrips.find(t => t.id === initialArg || t.name.toLowerCase().includes(initialArg.toLowerCase()));
+      if (foundTrip) {
+        setActiveTrip(foundTrip);
+        setSubView('expenses');
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [initialArg, db.tripHistory, db.activeTrip]);
 
   // Settle Tab Filter: 'who-pays' | 'breakdown'
   const [settleTab, setSettleTab] = useState<'who-pays' | 'breakdown'>('who-pays');

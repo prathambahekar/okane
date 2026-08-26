@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, ArrowLeftRight, Store } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, ArrowLeftRight, Store, ArrowRight } from 'lucide-react';
 import { useStore } from '../store';
 import { walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey, allFriendBalances } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses } from '../utils';
@@ -199,7 +199,10 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               <ReceiptText size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
               <h2 style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Recent Expenses</h2>
             </div>
-            <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('expenses')} style={{ fontSize: 12, padding: '2px 8px', flexShrink: 0 }}>View all →</button>
+            <button className="btn-view-all" onClick={() => onNavigate('expenses')}>
+              <span>View all</span>
+              <ArrowRight size={13} className="btn-view-all-arrow" />
+            </button>
           </div>
           {recentExpenses.length === 0 ? (
             <div className="empty-state" style={{ padding: '24px' }}>
@@ -291,7 +294,10 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               <Users size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
               <h2 style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Friends</h2>
             </div>
-            <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('friends')} style={{ fontSize: 12, padding: '2px 8px', flexShrink: 0 }}>View all →</button>
+            <button className="btn-view-all" onClick={() => onNavigate('friends')}>
+              <span>View all</span>
+              <ArrowRight size={13} className="btn-view-all-arrow" />
+            </button>
           </div>
           {balancedFriends.length === 0 ? (
             <div style={{ color: 'var(--text-3)', fontSize: 12.5, padding: '12px 0' }}>All settled up!</div>
@@ -322,7 +328,10 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               <Wallet size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
               <h2 style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Wallets</h2>
             </div>
-            <button className="btn-ghost btn-sm btn" onClick={() => onNavigate('wallets')} style={{ fontSize: 12, padding: '2px 8px', flexShrink: 0 }}>Manage →</button>
+            <button className="btn-view-all" onClick={() => onNavigate('wallets')}>
+              <span>Manage</span>
+              <ArrowRight size={13} className="btn-view-all-arrow" />
+            </button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', minWidth: 0 }}>
             {wallets.map(w => {

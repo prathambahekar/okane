@@ -9,9 +9,10 @@ import type { ViewName } from '../types';
 interface Props {
   onNavigate: (v: ViewName) => void;
   placement?: 'bottom-right' | 'bottom-left' | 'top-left' | 'top-right';
+  transparentBg?: boolean;
 }
 
-export default function NotificationBell({ onNavigate }: Props) {
+export default function NotificationBell({ onNavigate, transparentBg }: Props) {
   const { db, triggerAutopayDeduct, quickLogRecurringRule, availableUpdate } = useStore();
   const [open, setOpen] = useState(false);
 
@@ -53,8 +54,10 @@ export default function NotificationBell({ onNavigate }: Props) {
           width: 36,
           height: 36,
           borderRadius: 10,
-          background: open ? 'var(--surface3)' : 'var(--surface2)',
-          border: '1px solid var(--border)',
+          background: transparentBg
+            ? (open ? 'rgba(0, 0, 0, 0.08)' : 'transparent')
+            : (open ? 'var(--surface3)' : 'var(--surface2)'),
+          border: transparentBg ? 'none' : '1px solid var(--border)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',

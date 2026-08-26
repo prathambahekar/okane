@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Plus, Layers, ArrowUpRight, ArrowDownLeft, ReceiptText, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, GroupedExpense } from '../types';
@@ -28,7 +28,7 @@ function fmtDateWithDay(iso: string): string {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function Expenses() {
+export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: string; onClearViewArg?: () => void }) {
   const { db, deleteExpense, unsettleExpense, showToast } = useStore();
   const { expenses, settings: { currency } } = db;
 
@@ -43,6 +43,33 @@ export default function Expenses() {
 
   const [editExp, setEditExp] = useState<Expense | null>(null);
   const [selectedDetailGe, setSelectedDetailGe] = useState<GroupedExpense | null>(null);
+
+  const grouped = useMemo(() => groupExpenses(expenses, db.wallets, db.friends), [expenses, db.wallets, db.friends]);
+
+  const handledArgRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!initialArg) {
+      handledArgRef.current = null;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const foundExp = expenses.find(e => e.id === initialArg);
+      if (foundExp) {
+        const foundGe = grouped.find(ge => ge.id === foundExp.id || (foundExp.groupId && ge.groupId === foundExp.groupId) || ge.items?.some(it => it.id === foundExp.id));
+        if (foundGe) {
+          setSelectedDetailGe(foundGe);
+        } else {
+          setSearch(foundExp.description);
+        }
+      } else {
+        setSearch(initialArg);
+      }
+      onClearViewArg?.();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [initialArg, expenses, grouped, onClearViewArg]);
   const [showAdd, setShowAdd] = useState(false);
   const [delId, setDelId] = useState<string | null>(null);
   const [undoExpId, setUndoExpId] = useState<string | null>(null);
@@ -87,8 +114,6 @@ export default function Expenses() {
     setDelId(null);
     showToast('Expense deleted & money restored to wallet');
   };
-
-  const grouped = useMemo(() => groupExpenses(expenses, db.wallets, db.friends), [expenses, db.wallets, db.friends]);
 
   const filtered = useMemo(() => {
     let arr = [...grouped];

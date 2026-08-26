@@ -172,6 +172,14 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
     return 'all';
   }, [activeView]);
 
+  const orderedTabs = useMemo(() => {
+    if (defaultTab === 'all') return TABS;
+    const targetTab = TABS.find(t => t.id === defaultTab);
+    if (!targetTab) return TABS;
+    const otherTabs = TABS.filter(t => t.id !== defaultTab);
+    return [targetTab, ...otherTabs];
+  }, [defaultTab]);
+
   const [query, setQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<SearchTab | null>(null);
   const activeTab = selectedTab ?? defaultTab;
@@ -182,6 +190,18 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
     setSelectedTab(null);
     onClose();
   }, [onClose]);
+
+  // Reset state and focus input when modal opens
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => {
+        setQuery('');
+        setSelectedTab(null);
+        inputRef.current?.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   // Handle escape key
   useEffect(() => {
@@ -389,11 +409,10 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
         {/* Search Input Header */}
         <div
           style={{
-            padding: isMobile ? '8px 16px 6px 16px' : '14px 18px 8px 18px',
+            padding: isMobile ? '10px 16px 6px 16px' : '16px 20px 8px 20px',
             borderBottom: 'none',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
             backgroundColor: 'var(--surface)',
           }}
         >
@@ -403,15 +422,15 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
               flex: 1,
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
+              gap: '12px',
               backgroundColor: 'var(--surface2)',
               border: '1px solid var(--border)',
-              borderRadius: '12px',
-              padding: '8px 12px',
+              borderRadius: '14px',
+              padding: isMobile ? '10px 14px' : '12px 16px',
               minWidth: 0,
             }}
           >
-            <Search size={18} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+            <Search size={20} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
             <input
               ref={inputRef}
               type="text"
@@ -423,7 +442,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                fontSize: '14.5px',
+                fontSize: '15px',
                 fontWeight: 450,
                 color: 'var(--text)',
                 minWidth: 0,
@@ -443,8 +462,8 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                   border: 'none',
                   color: 'var(--text-2)',
                   cursor: 'pointer',
-                  width: '20px',
-                  height: '20px',
+                  width: '22px',
+                  height: '22px',
                   borderRadius: '50%',
                   display: 'grid',
                   placeItems: 'center',
@@ -453,40 +472,17 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                 }}
                 aria-label="Clear query"
               >
-                <X size={12} />
+                <X size={13} />
               </button>
             )}
           </div>
-
-          {/* Close button */}
-          <button
-            type="button"
-            onClick={handleClose}
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-2)',
-              cursor: 'pointer',
-              display: 'grid',
-              placeItems: 'center',
-              padding: 0,
-              flexShrink: 0,
-              transition: 'all 0.15s ease',
-            }}
-            aria-label="Close search"
-          >
-            <X size={18} />
-          </button>
         </div>
 
         {/* Dynamic Context Tabs */}
         <div
           className="search-tabs-scroll"
           style={{
-            padding: '4px 16px 10px 16px',
+            padding: '6px 16px 12px 16px',
             borderBottom: 'none',
             display: 'flex',
             alignItems: 'center',
@@ -497,7 +493,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          {TABS.map(tab => {
+          {orderedTabs.map(tab => {
             const Icon = tab.icon;
             const isSelected = activeTab === tab.id;
             return (
@@ -599,7 +595,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                           key={e.id}
                           onClick={() => {
                             handleClose();
-                            onNavigate('expenses');
+                            onNavigate('expenses', e.id);
                           }}
                           style={{
                             display: 'flex',
@@ -818,7 +814,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                           key={w.id}
                           onClick={() => {
                             handleClose();
-                            onNavigate('wallets');
+                            onNavigate('wallets', w.id);
                           }}
                           style={{
                             display: 'flex',
@@ -894,7 +890,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                           key={s.id}
                           onClick={() => {
                             handleClose();
-                            onNavigate('settlements');
+                            onNavigate('settlements', s.id);
                           }}
                           style={{
                             display: 'flex',
@@ -970,7 +966,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                         key={t.id}
                         onClick={() => {
                           handleClose();
-                          onNavigate('split-trips');
+                          onNavigate('split-trips', t.id);
                         }}
                         style={{
                           display: 'flex',
@@ -1040,7 +1036,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                         key={r.id}
                         onClick={() => {
                           handleClose();
-                          onNavigate('recurring');
+                          onNavigate('recurring', r.id);
                         }}
                         style={{
                           display: 'flex',
@@ -1116,7 +1112,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                           key={s.id}
                           onClick={() => {
                             handleClose();
-                            onNavigate('settings');
+                            onNavigate('settings', s.id);
                           }}
                           style={{
                             display: 'flex',

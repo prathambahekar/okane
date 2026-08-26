@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   RefreshCw,
@@ -21,9 +21,11 @@ import type { AutopayStatusFilter, AutopayFreqFilter, AutopaySortOption } from '
 
 interface Props {
   onNavigate?: (v: ViewName, arg?: string) => void;
+  initialArg?: string;
+  onClearViewArg?: () => void;
 }
 
-export default function Recurring({ onNavigate }: Props) {
+export default function Recurring({ onNavigate, initialArg }: Props) {
   const {
     db,
     triggerAutopayDeduct,
@@ -48,6 +50,27 @@ export default function Recurring({ onNavigate }: Props) {
   // Modals & Selection State
   const [showModal, setShowModal] = useState(false);
   const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
+
+  const handledArgRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!initialArg) {
+      handledArgRef.current = null;
+      return;
+    }
+    if (handledArgRef.current === initialArg) return;
+    handledArgRef.current = initialArg;
+
+    const timer = setTimeout(() => {
+      const rule = (db.recurringRules || []).find(r => r.id === initialArg);
+      if (rule) {
+        setEditingRule(rule);
+      } else {
+        setSearch(initialArg);
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [initialArg, db.recurringRules]);
   const [modalDefaultKind, setModalDefaultKind] = useState<RecurringKind>('autopay');
   const [deletingRule, setDeletingRule] = useState<RecurringRule | null>(null);
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   RotateCcw,
   Handshake,
@@ -25,7 +25,7 @@ import SettlementFilterDrawer from '../components/SettlementFilterDrawer';
 
 export type SettlementTimeframe = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_month' | 'last_3_months' | 'this_year' | 'all';
 
-export default function Settlements() {
+export default function Settlements({ initialArg, onClearViewArg: _onClearViewArg }: { initialArg?: string; onClearViewArg?: () => void }) {
   const { db, deleteSettlement, showToast } = useStore();
   const settlements = useMemo(() => db?.settlements || [], [db?.settlements]);
   const settings = db?.settings || {};
@@ -43,6 +43,33 @@ export default function Settlements() {
   const [searchQuery, setSearchQuery] = useState('');
   const [friendFilter, setFriendFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'received' | 'paid'>('all');
+
+  const handledArgRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!initialArg) {
+      handledArgRef.current = null;
+      return;
+    }
+    if (handledArgRef.current === initialArg) return;
+    handledArgRef.current = initialArg;
+
+    const timer = setTimeout(() => {
+      const foundS = settlements.find(s => s.id === initialArg);
+      if (foundS) {
+        setTimeframe('all');
+        setDetailSettlement(foundS);
+      } else {
+        const foundF = friends.find(f => f.id === initialArg);
+        if (foundF) {
+          setFriendFilter(foundF.id);
+        } else {
+          setSearchQuery(initialArg);
+        }
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [initialArg, settlements, friends]);
   const [showFilterDrawer, setShowFilterDrawer] = useState<boolean>(false);
   const [isPendingExpanded, setIsPendingExpanded] = useState<boolean>(true);
 

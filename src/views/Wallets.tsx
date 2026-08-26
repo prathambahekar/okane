@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Plus,
   Edit2,
@@ -36,7 +36,7 @@ import EnvelopeModal from '../components/EnvelopeModal';
 import { getEnvelopeIconComponent } from '../utils/envelopeUtils';
 import EnvelopeFundModal from '../components/EnvelopeFundModal';
 
-export default function Wallets() {
+export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: string; onClearViewArg?: () => void }) {
   const { db, deleteWallet, deleteSettlement, deleteEnvelope, showToast } = useStore();
   const { wallets, expenses, envelopes = [], settings } = db;
   const currency = settings?.currency || 'INR';
@@ -49,6 +49,23 @@ export default function Wallets() {
   const [undoStlId, setUndoStlId] = useState<string | null>(null);
   const [selectedWalletForTx, setSelectedWalletForTx] = useState<Wallet | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (!initialArg) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const targetW = wallets.find(w => w.id === initialArg || w.name.toLowerCase().includes(initialArg.toLowerCase()));
+      if (targetW) {
+        setSelectedWalletForTx(targetW);
+      } else {
+        setSearchQuery(initialArg);
+      }
+      onClearViewArg?.();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [initialArg, wallets, onClearViewArg]);
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferFromId, setTransferFromId] = useState<string | undefined>(undefined);
 

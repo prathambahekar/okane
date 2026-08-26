@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import AppBar from '@mui/material/AppBar';
@@ -66,6 +66,7 @@ const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'split-trips', 'recurrin
 function AppInner() {
   const { db, updateSettings } = useStore();
   const [view, setView] = useState<ViewName>('dashboard');
+  const [viewArg, setViewArg] = useState<string | undefined>(undefined);
   const [friendDetailId, setFriendDetailId] = useState<string>('');
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [addExpenseInitialData, setAddExpenseInitialData] = useState<ExpenseInitialData | null>(null);
@@ -168,15 +169,33 @@ function AppInner() {
   const friendDebt = useMemo(() => friends.reduce((s, f) => s + Math.max(0, -friendBalance(db, f.id).net), 0), [friends, db]);
   const totalBal = useMemo(() => totalWalletBalance(db), [db]);
 
-  const navigate = (v: ViewName, arg?: string) => {
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('collapsed_sections');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const navigate = useCallback((v: ViewName, arg?: string) => {
     setView(v);
+    setViewArg(arg);
     if (v === 'friend-detail' && arg) setFriendDetailId(arg);
     setMoreOpen(false);
 
     const targetView = v === 'friend-detail' ? 'friends' : v;
-    const sectionTitle = sidebarNavSections.find(sec => sec.items.some(item => item.id === targetView))?.title;
-    if (sectionTitle && collapsedSections[sectionTitle]) {
+    const sectionTitle = ['Main', 'Social', 'Insights', 'System', 'Developer'].find(sec => {
+      if (sec === 'Main' && ['dashboard', 'expenses', 'recurring', 'wallets'].includes(targetView)) return true;
+      if (sec === 'Social' && ['friends', 'settlements', 'split-trips'].includes(targetView)) return true;
+      if (sec === 'Insights' && ['analytics'].includes(targetView)) return true;
+      if (sec === 'System' && ['settings'].includes(targetView)) return true;
+      if (sec === 'Developer' && ['dev-sql'].includes(targetView)) return true;
+      return false;
+    });
+    if (sectionTitle) {
       setCollapsedSections(prev => {
+        if (!prev[sectionTitle]) return prev;
         const next = { ...prev, [sectionTitle]: false };
         try {
           localStorage.setItem('collapsed_sections', JSON.stringify(next));
@@ -186,16 +205,7 @@ function AppInner() {
         return next;
       });
     }
-  };
-
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
-    try {
-      const saved = localStorage.getItem('collapsed_sections');
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
+  }, []);
 
   const toggleSection = (title: string) => {
     setCollapsedSections(prev => {
@@ -285,21 +295,25 @@ function AppInner() {
   const activeView = view === 'friend-detail' ? 'friends' : view;
   const bottomNavValue = MORE_IDS.includes(activeView) ? 'more' : activeView;
 
+  const clearViewArg = useCallback(() => {
+    setViewArg(undefined);
+  }, []);
+
   const renderView = () => {
     switch (view) {
       case 'dashboard': return <Dashboard onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
-      case 'expenses': return <Expenses />;
-      case 'wallets': return <Wallets />;
+      case 'expenses': return <Expenses initialArg={viewArg} onClearViewArg={clearViewArg} />;
+      case 'wallets': return <Wallets initialArg={viewArg} onClearViewArg={clearViewArg} />;
       case 'friends': return <Friends onNavigate={navigate} />;
       case 'friend-detail': return <FriendDetail friendId={friendDetailId} onNavigate={navigate} />;
       case 'recurring':
-        return <Recurring onNavigate={navigate} />;
-      case 'settlements': return <Settlements />;
-      case 'split-trips': return <SplitTrips />;
+        return <Recurring onNavigate={navigate} initialArg={viewArg} onClearViewArg={clearViewArg} />;
+      case 'settlements': return <Settlements initialArg={viewArg} onClearViewArg={clearViewArg} />;
+      case 'split-trips': return <SplitTrips initialArg={viewArg} onClearViewArg={clearViewArg} />;
       case 'analytics': return <Analytics />;
       case 'settings':
         return (
-          <Settings onNavigate={navigate} onOpenGuide={() => setShowGuideModal(true)} onStartExpenseTutorial={handleStartExpenseTutorial} />
+          <Settings onNavigate={navigate} onOpenGuide={() => setShowGuideModal(true)} onStartExpenseTutorial={handleStartExpenseTutorial} initialArg={viewArg} onClearViewArg={clearViewArg} />
         );
       case 'dev-sql': return <DevSQLConsole onNavigate={navigate} />;
       default: return <Dashboard onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
@@ -688,7 +702,7 @@ function AppInner() {
                 </Box>
               )}
 
-              <NotificationBell onNavigate={navigate} />
+              <NotificationBell onNavigate={navigate} transparentBg />
             </Box>
           </Toolbar>
         </AppBar>

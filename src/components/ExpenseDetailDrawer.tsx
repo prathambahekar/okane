@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Users, User, Pencil, Trash2, X, Store, FileText, Calendar, Wallet as WalletIcon, Tag
+  Users, User, Pencil, Trash2, X, Store, FileText, Calendar, Wallet as WalletIcon, Tag, ReceiptText, ArrowUpRight, ArrowDownLeft, Repeat
 } from 'lucide-react';
 import CategoryIcon, { CategoryBadge } from './CategoryIcon';
 import {
@@ -75,65 +75,82 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
   const categoryColor = categoryObj?.color || 'var(--accent)';
   const isDebit = ge.flow === 'out';
   const flowSign = isDebit ? '-' : '+';
-  const flowColor = isDebit ? 'var(--debit)' : 'var(--credit)';
 
   return createPortal(
     <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div
         className="modal expense-drawer-modal"
         style={{
-          maxWidth: 440,
-          maxHeight: 'min(92vh, 92dvh)',
+          maxWidth: 410,
+          maxHeight: 'min(90vh, 90dvh)',
           display: 'flex',
           flexDirection: 'column',
           background: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: 20,
+          borderRadius: 18,
           overflow: 'hidden',
           animation: 'slidein 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+          boxShadow: 'var(--shadow-lg)',
+          color: 'var(--text)',
         }}
       >
         {/* Top Handle for bottom-sheet gesture visual cue */}
-        <div className="modal-handle-bar">
-          <div className="modal-handle" />
+        <div className="modal-handle-bar" style={{ padding: '6px 0 2px' }}>
+          <div className="modal-handle" style={{ width: 32, height: 4, background: 'var(--border)', borderRadius: 99 }} />
         </div>
 
         {/* Modal Header */}
         <div
           className="modal-header"
           style={{
-            padding: '14px 18px 10px',
+            padding: '6px 14px 4px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             borderBottom: 'none',
             flexShrink: 0,
+            background: 'var(--surface)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)' }}>
+            <div
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 6,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text)',
+              }}
+            >
+              <ReceiptText size={13} />
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
               Transaction Details
             </span>
           </div>
           <button
             type="button"
-            className="btn-icon"
+            className="compact-close-btn"
             onClick={onClose}
             aria-label="Close"
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              color: 'var(--text-3)',
+              width: 24,
+              height: 24,
+              borderRadius: 6,
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
+              color: 'var(--text-2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
             }}
           >
-            <X size={15} />
+            <X size={14} />
           </button>
         </div>
 
@@ -141,36 +158,38 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
         <div
           className="modal-body"
           style={{
-            padding: '4px 18px 16px',
+            padding: '2px 12px 10px',
             overflowY: 'auto',
             minHeight: 0,
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            gap: 14,
+            gap: 8,
+            background: 'var(--surface)',
           }}
         >
-          {/* Main Hero Header: Icon, Description & Prominent Amount */}
+          {/* Main Hero Card: Icon, Title & Amount */}
           <div
             style={{
-              padding: '16px',
+              padding: '12px 14px',
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
-              borderRadius: 16,
+              borderRadius: 14,
               display: 'flex',
               flexDirection: 'column',
-              gap: 12,
+              gap: 8,
               flexShrink: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                 <div
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    backgroundColor: categoryObj?.color ? `${categoryObj.color}1c` : 'var(--surface3)',
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
+                    backgroundColor: categoryObj?.color ? `${categoryObj.color}18` : 'var(--surface3)',
+                    border: `1px solid ${categoryObj?.color ? categoryObj.color + '30' : 'var(--border)'}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -178,21 +197,21 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     color: categoryColor,
                   }}
                 >
-                  <CategoryIcon category={ge.category} icon={categoryObj?.icon} size={22} style={{ color: categoryColor }} />
+                  <CategoryIcon category={ge.category} icon={categoryObj?.icon} size={18} style={{ color: categoryColor }} />
                 </div>
 
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', lineHeight: 1.3, wordBreak: 'break-word' }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', lineHeight: 1.2, wordBreak: 'break-word' }}>
                     {ge.description}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-3)', fontWeight: 500 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11.5, color: 'var(--text-2)', fontWeight: 500 }}>
                       {ge.category}
                     </span>
                     {friendsToShow.length > 0 && (
                       <>
-                        <span style={{ color: 'var(--text-3)', fontSize: 10 }}>•</span>
-                        <span style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 600 }}>
+                        <span style={{ color: 'var(--text-3)', fontSize: 9 }}>•</span>
+                        <span style={{ fontSize: 11.5, color: 'var(--text-2)', fontWeight: 600 }}>
                           {friendsToShow.map(f => f.name).join(', ')}
                         </span>
                       </>
@@ -205,41 +224,69 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
                 <span
                   style={{
-                    fontWeight: 750,
-                    fontSize: 18,
-                    color: flowColor,
+                    fontWeight: 800,
+                    fontSize: 17.5,
+                    color: isDebit ? 'var(--debit, #dc2626)' : 'var(--credit, #16a34a)',
                     fontVariantNumeric: 'tabular-nums',
-                    lineHeight: 1.2,
+                    letterSpacing: '-0.3px',
+                    lineHeight: 1.15,
                   }}
                 >
                   {flowSign}{fmtMoney(ge.totalAmount, currency)}
                 </span>
                 {ge.isSplit && ge.personalShare > 0 && (
-                  <span style={{ fontSize: 11.5, color: 'var(--text-3)', fontWeight: 500, marginTop: 3 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-2)', fontWeight: 500, marginTop: 2 }}>
                     You: {fmtMoney(ge.personalShare, currency)}
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Status & Quick Tags Row */}
+            {/* Badges & Status Row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingTop: 2 }}>
+              {/* Flow Pill */}
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  padding: '3px 8px',
+                  borderRadius: 99,
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  background: isTransfer ? 'var(--accent-soft)' : (isDebit ? 'var(--debit-bg)' : 'var(--credit-bg)'),
+                  border: `1px solid ${isTransfer ? 'var(--accent-border-soft, var(--border))' : (isDebit ? 'var(--debit-border)' : 'var(--credit-border)')}`,
+                  color: isTransfer ? 'var(--accent)' : (isDebit ? 'var(--debit)' : 'var(--credit)'),
+                }}
+              >
+                {isTransfer ? <Repeat size={10} /> : (isDebit ? <ArrowUpRight size={10} /> : <ArrowDownLeft size={10} />)}
+                <span>{isTransfer ? 'Transfer' : (isDebit ? 'Expense' : 'Income')}</span>
+              </span>
+
+              {/* Group / Settlement Status */}
               {groupStatus.statusKey !== 'none' && groupStatus.statusLabel && (
                 <span
-                  className={`tx-status-pill status-${groupStatus.statusKey}`}
                   style={{
-                    padding: '2.5px 8px',
+                    padding: '3px 8px',
                     fontSize: 10.5,
-                    fontWeight: 650,
+                    fontWeight: 600,
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 4,
+                    borderRadius: 99,
+                    background: groupStatus.statusKey === 'settled' ? 'var(--credit-bg)' : 'var(--debit-bg)',
+                    border: `1px solid ${groupStatus.statusKey === 'settled' ? 'var(--credit-border)' : 'var(--debit-border)'}`,
+                    color: groupStatus.statusKey === 'settled' ? 'var(--credit)' : 'var(--debit)',
                   }}
                 >
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: groupStatus.statusKey === 'settled' ? 'var(--credit)' : 'var(--debit)' }} />
                   {ge.isSplit && <Users size={10} />}
                   <span>{groupStatus.statusLabel}</span>
                 </span>
               )}
+
+              {/* Type pill */}
               <span
                 style={{
                   fontSize: 10.5,
@@ -247,8 +294,9 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                   color: 'var(--text-2)',
                   background: 'var(--surface3)',
                   border: '1px solid var(--border)',
-                  padding: '2.5px 8px',
-                  borderRadius: 6,
+                  padding: '3px 8px',
+                  borderRadius: 99,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {ge.isSplit ? 'Split Transaction' : typeLabel(primaryItem.type, undefined, primaryItem.category)}
@@ -256,66 +304,66 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             </div>
           </div>
 
-          {/* Details Overview Section */}
+          {/* Details Grid Section */}
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 12,
-              padding: '14px',
+              gap: 10,
+              padding: '12px 14px',
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
               borderRadius: 14,
             }}
           >
             {/* Wallet */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <WalletIcon size={11} style={{ opacity: 0.8 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <WalletIcon size={11} style={{ color: 'var(--text-3)' }} />
                 Wallet
               </span>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)', wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--text)', wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: 5 }}>
                 {walletObj ? (
                   <>
-                    {renderWalletIcon(walletObj.icon || walletObj.name, 13, walletObj.color)}
+                    {renderWalletIcon(walletObj.icon || walletObj.name, 12, walletObj.color)}
                     <span>{effectiveWalletName}</span>
                   </>
                 ) : (
-                  <span style={{ color: 'var(--text-3)' }}>{effectiveWalletName}</span>
+                  <span style={{ color: 'var(--text-2)' }}>{effectiveWalletName}</span>
                 )}
               </span>
             </div>
 
             {/* Date */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Calendar size={11} style={{ opacity: 0.8 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Calendar size={11} style={{ color: 'var(--text-3)' }} />
                 Date
               </span>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>
+              <span style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--text)' }}>
                 {fmtDate(ge.date)}
               </span>
             </div>
 
             {/* Category */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Tag size={11} style={{ opacity: 0.8 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Tag size={11} style={{ color: 'var(--text-3)' }} />
                 Category
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
-                <CategoryBadge category={ge.category} color={categoryObj?.color} icon={categoryObj?.icon} size={13} />
+                <CategoryBadge category={ge.category} color={categoryObj?.color} icon={categoryObj?.icon} size={12} />
               </div>
             </div>
 
             {/* Vendor / Store if exists */}
             {vendor && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Store size={11} style={{ opacity: 0.8 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Store size={11} style={{ color: 'var(--text-3)' }} />
                   Store / Vendor
                 </span>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>
+                <span style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--text)' }}>
                   {vendor.name}
                 </span>
               </div>
@@ -323,12 +371,20 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
 
             {/* Notes if exists */}
             {primaryItem.notes && (
-              <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 4 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <FileText size={11} style={{ opacity: 0.8 }} />
+              <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <FileText size={11} style={{ color: 'var(--text-3)' }} />
                   Notes
                 </span>
-                <span style={{ fontSize: 12.5, color: 'var(--text)', lineHeight: 1.4, wordBreak: 'break-word', fontWeight: 500 }}>
+                <span
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--text)',
+                    lineHeight: 1.45,
+                    fontWeight: 500,
+                    wordBreak: 'break-word',
+                  }}
+                >
                   {primaryItem.notes}
                 </span>
               </div>
@@ -342,19 +398,19 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 borderRadius: 14,
-                padding: '14px',
+                padding: '12px 14px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 10,
+                gap: 8,
               }}
             >
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  <Users size={13} style={{ color: 'var(--accent)' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <Users size={12} style={{ color: 'var(--text-2)' }} />
                   <span>{ge.isSettlementGroup ? 'Settlement Breakdown' : 'Split Breakdown'}</span>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 650, color: 'var(--text-3)' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', background: 'var(--surface3)', border: '1px solid var(--border)', padding: '3px 8px', borderRadius: 8 }}>
                   Total {fmtMoney(ge.totalAmount, currency)}
                 </span>
               </div>
@@ -371,7 +427,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     let primaryName = name;
                     let actionSubtitle = 'Split share';
                     let statusPill = (
-                      <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)' }}>
+                      <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 99, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', whiteSpace: 'nowrap' }}>
                         Settled ✓
                       </span>
                     );
@@ -382,7 +438,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       primaryName = itemDesc;
                       actionSubtitle = `Date: ${itemDateStr}`;
                       statusPill = (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 99, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', whiteSpace: 'nowrap' }}>
                           Settled ✓
                         </span>
                       );
@@ -390,7 +446,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       primaryName = 'You';
                       actionSubtitle = 'Your personal share';
                       statusPill = (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--surface3)', color: 'var(--text-3)', border: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 99, background: 'var(--surface3)', color: 'var(--text-2)', border: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
                           Personal
                         </span>
                       );
@@ -398,11 +454,11 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       primaryName = name;
                       actionSubtitle = item.settled ? 'Paid their share to you' : 'Owes you their share';
                       statusPill = item.settled ? (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 99, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', whiteSpace: 'nowrap' }}>
                           Settled ✓
                         </span>
                       ) : (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 99, background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.25)', whiteSpace: 'nowrap' }}>
                           Owes You
                         </span>
                       );
@@ -410,11 +466,11 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       primaryName = name;
                       actionSubtitle = item.settled ? 'Paid bill' : (vendor ? 'Vendor bill' : 'You owe them');
                       statusPill = item.settled ? (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 99, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', whiteSpace: 'nowrap' }}>
                           Settled ✓
                         </span>
                       ) : (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 99, background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)', whiteSpace: 'nowrap' }}>
                           Unpaid
                         </span>
                       );
@@ -422,7 +478,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
 
                     const isSubDebit = item.type === 'by_friend' || item.type === 'personal';
                     const subSign = isSubDebit ? '-' : '+';
-                    const subColor = isSubDebit ? 'var(--debit)' : 'var(--credit)';
+                    const subColor = isSubDebit ? 'var(--debit, #dc2626)' : 'var(--credit, #16a34a)';
 
                     return (
                       <div
@@ -433,16 +489,16 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                           alignItems: 'center',
                           padding: '8px 10px',
                           borderRadius: 10,
-                          background: 'var(--surface3)',
+                          background: 'var(--surface)',
                           border: '1px solid var(--border)',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                           {isMine ? (
                             <div
                               style={{
-                                width: 28,
-                                height: 28,
+                                width: 26,
+                                height: 26,
                                 borderRadius: '50%',
                                 background: 'var(--surface2)',
                                 border: '1px solid var(--border)',
@@ -453,16 +509,16 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                 flexShrink: 0,
                               }}
                             >
-                              <User size={13} />
+                              <User size={12} />
                             </div>
                           ) : (
                             <span
                               className="avatar avatar-sm"
                               style={{
                                 ...getAvatarStyle(itemFriend?.color),
-                                width: 28,
-                                height: 28,
-                                fontSize: 11,
+                                width: 26,
+                                height: 26,
+                                fontSize: 10,
                                 fontWeight: 700,
                                 flexShrink: 0,
                               }}
@@ -472,13 +528,13 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                           )}
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontWeight: 650, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {primaryName}
                               </span>
                               {statusPill}
                             </div>
-                            <span style={{ fontSize: 11, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: 11, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {actionSubtitle}
                             </span>
                           </div>
@@ -487,8 +543,8 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                         <span
                           style={{
                             fontWeight: 700,
-                            fontSize: 13.5,
-                            marginLeft: 10,
+                            fontSize: 13,
+                            marginLeft: 8,
                             color: subColor,
                             fontVariantNumeric: 'tabular-nums',
                             whiteSpace: 'nowrap',
@@ -505,15 +561,15 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
           )}
         </div>
 
-        {/* Modal Footer with Clean Buttons */}
+        {/* Modal Footer with Clean Action Buttons */}
         <div
           className="modal-footer"
           style={{
-            padding: '12px 18px calc(12px + env(safe-area-inset-bottom, 0px))',
+            padding: '8px 12px calc(8px + env(safe-area-inset-bottom, 0px))',
             background: 'var(--surface)',
             borderTop: 'none',
             display: 'flex',
-            gap: 10,
+            gap: 8,
             flexShrink: 0,
           }}
         >
@@ -522,25 +578,26 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             className="btn btn-secondary"
             style={{
               flex: 1,
-              height: 42,
+              height: 38,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 7,
-              fontSize: 13.5,
-              fontWeight: 650,
-              borderRadius: 12,
+              gap: 6,
+              fontSize: 13,
+              fontWeight: 700,
+              borderRadius: 10,
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
               color: 'var(--text)',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
             onClick={() => {
               onClose();
               onEdit(primaryItem);
             }}
           >
-            <Pencil size={15} />
+            <Pencil size={14} style={{ color: 'var(--text)' }} />
             <span>Edit</span>
           </button>
           <button
@@ -548,25 +605,26 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             className="btn"
             style={{
               flex: 1,
-              height: 42,
+              height: 38,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 7,
-              fontSize: 13.5,
-              fontWeight: 650,
-              borderRadius: 12,
+              gap: 6,
+              fontSize: 13,
+              fontWeight: 700,
+              borderRadius: 10,
               background: 'var(--debit-bg)',
               border: '1px solid var(--debit-border)',
               color: 'var(--debit)',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
             onClick={() => {
               onClose();
               onDelete(ge.id);
             }}
           >
-            <Trash2 size={15} />
+            <Trash2 size={14} style={{ color: 'var(--debit)' }} />
             <span>Delete</span>
           </button>
         </div>

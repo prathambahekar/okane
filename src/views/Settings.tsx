@@ -189,10 +189,14 @@ export default function Settings({
   onNavigate,
   onOpenGuide,
   onStartExpenseTutorial,
+  initialArg,
+  onClearViewArg: _onClearViewArg,
 }: {
-  onNavigate?: (v: ViewName) => void;
+  onNavigate?: (v: ViewName, arg?: string) => void;
   onOpenGuide?: () => void;
   onStartExpenseTutorial?: () => void;
+  initialArg?: string;
+  onClearViewArg?: () => void;
 }) {
   const {
     db, updateSettings, updateCategory, resetDB, restoreDB, loadSampleData, showToast,
@@ -292,6 +296,48 @@ export default function Settings({
   const [showFeedbackSheet, setShowFeedbackSheet] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const handledArgRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!initialArg) {
+      handledArgRef.current = null;
+      return;
+    }
+    if (handledArgRef.current === initialArg) return;
+    handledArgRef.current = initialArg;
+
+    const timer = setTimeout(() => {
+      if (initialArg === 'user-guide') {
+        onOpenGuide?.();
+        return;
+      }
+      if (initialArg === 'dev-mode') {
+        onNavigate?.('dev-sql');
+        return;
+      }
+
+      const sheetMap: Record<string, () => void> = {
+        'appearance': () => setShowAppearanceSheet(true),
+        'preferences': () => setShowPreferencesSheet(true),
+        'categories': () => setShowCategoriesSheet(true),
+        'data-backup': () => setShowDataSheet(true),
+        'advanced-features': () => setShowAdvancedSheet(true),
+        'performance': () => setShowPerformanceSheet(true),
+        'app-info': () => setShowVersionSheet(true),
+        'feedback': () => setShowFeedbackSheet(true),
+      };
+
+      if (sheetMap[initialArg]) {
+        sheetMap[initialArg]();
+      } else {
+        const el = document.getElementById(`setting-${initialArg}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [initialArg, onOpenGuide, onNavigate]);
 
   const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
     appName: "Okane",
