@@ -22,8 +22,6 @@ import {
   MoreHorizontal,
   Moon,
   Sun,
-  TrendingUp,
-  TrendingDown,
   RefreshCw,
   PanelLeftClose,
   PanelLeft,
@@ -411,15 +409,21 @@ function AppInner() {
             <button
               className="btn btn-primary btn-sm"
               style={{
-                margin: '4px 0 8px',
-                width: '100%',
-                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                padding: sidebarCollapsed ? '8px 0' : '8px 12px'
+                margin: sidebarCollapsed ? '4px auto 8px' : '4px 0 8px',
+                width: sidebarCollapsed ? 36 : '100%',
+                height: 36,
+                padding: sidebarCollapsed ? 0 : '8px 12px',
+                borderRadius: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: sidebarCollapsed ? 0 : 6,
+                flexShrink: 0,
               }}
               onClick={() => setShowAddExpense(true)}
               title={sidebarCollapsed ? "Add Expense" : undefined}
             >
-              <Plus size={16} />
+              <Plus size={18} />
               <span className="nav-item-label">Add Expense</span>
             </button>
           </div>
@@ -431,6 +435,8 @@ function AppInner() {
                 size="small"
                 onClick={handleToggleDark}
                 sx={{ 
+                  width: 36,
+                  height: 36,
                   color: 'text.secondary',
                   borderRadius: '10px',
                   border: '1px solid var(--border)',
@@ -555,43 +561,81 @@ function AppInner() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, flexShrink: 0 }}>
               {/* Quick financial summaries */}
               {view === 'expenses' && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                  <Box sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.2,
-                    px: 0.8, py: 0.25, borderRadius: 99,
-                    bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
-                    color: 'error.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
-                  }}>
-                    <TrendingDown size={11} /> -{fmtMoney(expOut, currency)}
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: { xs: 0.4, sm: 0.5 },
+                  maxWidth: { xs: '200px', sm: '320px', md: 'none' },
+                  overflowX: 'auto',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  '&::-webkit-scrollbar': { display: 'none' }
+                }}>
+                  <Box
+                    title={`-${fmtMoney(expOut, currency)}`}
+                    sx={{
+                      display: 'inline-flex', alignItems: 'center',
+                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
+                      bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
+                      color: 'error.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
+                    }}
+                  >
+                    -{fmtMoney(expOut, currency)}
                   </Box>
-                  <Box sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.2,
-                    px: 0.8, py: 0.25, borderRadius: 99,
-                    bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
-                    color: 'success.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
-                  }}>
-                    <TrendingUp size={11} /> +{fmtMoney(expIn, currency)}
+                  <Box
+                    title={`+${fmtMoney(expIn, currency)}`}
+                    sx={{
+                      display: 'inline-flex', alignItems: 'center',
+                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
+                      bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
+                      color: 'success.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
+                    }}
+                  >
+                    +{fmtMoney(expIn, currency)}
                   </Box>
                 </Box>
               )}
 
               {view === 'friends' && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                  <Box sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.2,
-                    px: 0.8, py: 0.25, borderRadius: 99,
-                    bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
-                    color: 'success.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
-                  }}>
-                    <TrendingUp size={11} /> +{fmtMoney(friendCredit, currency)}
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: { xs: 0.4, sm: 0.5 },
+                  maxWidth: { xs: '200px', sm: '320px', md: 'none' },
+                  overflowX: 'auto',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  '&::-webkit-scrollbar': { display: 'none' }
+                }}>
+                  <Box
+                    title={`+${fmtMoney(friendCredit, currency)}`}
+                    sx={{
+                      display: 'inline-flex', alignItems: 'center',
+                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
+                      bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
+                      color: 'success.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
+                    }}
+                  >
+                    +{fmtMoney(friendCredit, currency)}
                   </Box>
-                  <Box sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.2,
-                    px: 0.8, py: 0.25, borderRadius: 99,
-                    bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
-                    color: 'error.main', fontSize: { xs: '0.68rem', sm: '0.75rem' }, fontWeight: 600
-                  }}>
-                    <TrendingDown size={11} /> -{fmtMoney(friendDebt, currency)}
+                  <Box
+                    title={`-${fmtMoney(friendDebt, currency)}`}
+                    sx={{
+                      display: 'inline-flex', alignItems: 'center',
+                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
+                      bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
+                      color: 'error.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
+                    }}
+                  >
+                    -{fmtMoney(friendDebt, currency)}
                   </Box>
                 </Box>
               )}
@@ -616,27 +660,6 @@ function AppInner() {
       )}
 
       <main className={`main-content${isMobile ? ' mobile-layout' : ''}`}>
-        {!isMobile && view === 'friend-detail' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <IconButton
-              size="small"
-              onClick={() => setView('friends')}
-              sx={{
-                color: 'text.primary',
-                bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                p: 0.8,
-                borderRadius: '10px',
-                border: '1px solid var(--border)',
-                '&:hover': { bgcolor: 'action.hover' },
-                '&:active': { transform: 'scale(0.92)' }
-              }}
-              title="Back to Contacts"
-            >
-              <ArrowLeft size={18} />
-            </IconButton>
-            <span style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text-2)' }}>Back to Contacts</span>
-          </div>
-        )}
         <div key={view} className="view-page-animate">
           {renderView()}
         </div>

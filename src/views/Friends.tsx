@@ -51,7 +51,29 @@ export default function Friends({ onNavigate }: Props) {
   const [typeFilter, setTypeFilter] = useState<ContactType>('friend');
   const [statusFilter, setStatusFilter] = useState<FriendFilterStatus>('all');
   const [sortBy, setSortBy] = useState<SortOption>('owed_desc');
-  const [density, setDensity] = useState<DensityOption>('compact');
+  const [userDensityOverride, setUserDensityOverride] = useState<DensityOption | null>(null);
+  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 640;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth < 640);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const defaultDensity: DensityOption = isMobileScreen ? 'compact' : 'grid';
+  const density: DensityOption = userDensityOverride ?? defaultDensity;
+  const setDensity = (newDensity: DensityOption) => {
+    setUserDensityOverride(newDensity);
+  };
   const [showFilters, setShowFilters] = useState(false);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(() => {
     if (typeof document !== 'undefined') {
@@ -110,14 +132,36 @@ export default function Friends({ onNavigate }: Props) {
 
   const vendorAndSubSpend = useMemo(() => {
     let vendorTotal = 0;
+    let vendorOrdersCount = 0;
     let subTotal = 0;
+    let subMonthlyRecurring = 0;
+
     friends.forEach(f => {
       const fType = f.type || 'friend';
       const spent = contactTotalSpent(db, f.id);
-      if (fType === 'vendor') vendorTotal += spent;
-      if (fType === 'subscription') subTotal += spent;
+      const count = contactTransactionCount(db, f.id);
+
+      if (fType === 'vendor') {
+        vendorTotal += spent;
+        vendorOrdersCount += count;
+      } else if (fType === 'subscription') {
+        subTotal += spent;
+        const cycle = f.billingCycle || 'monthly';
+        const amt = f.defaultAmount || 0;
+        if (cycle === 'yearly') subMonthlyRecurring += amt / 12;
+        else if (cycle === 'weekly') subMonthlyRecurring += amt * 4.33;
+        else if (cycle === 'quarterly') subMonthlyRecurring += amt / 3;
+        else subMonthlyRecurring += amt;
+      }
     });
-    return { vendorTotal, subTotal, total: vendorTotal + subTotal };
+
+    return {
+      vendorTotal,
+      vendorOrdersCount,
+      subTotal,
+      subMonthlyRecurring,
+      total: vendorTotal + subTotal,
+    };
   }, [friends, db]);
 
   const counts = useMemo(() => {
@@ -137,15 +181,15 @@ export default function Friends({ onNavigate }: Props) {
     let count = 0;
     if (statusFilter !== 'all') count++;
     if (sortBy !== 'owed_desc') count++;
-    if (density !== 'compact') count++;
+    if (userDensityOverride !== null) count++;
     if (search.trim() !== '') count++;
     return count;
-  }, [statusFilter, sortBy, density, search]);
+  }, [statusFilter, sortBy, userDensityOverride, search]);
 
   const handleClearAll = () => {
     setStatusFilter('all');
     setSortBy('owed_desc');
-    setDensity('compact');
+    setUserDensityOverride(null);
     setSearch('');
   };
 
@@ -216,16 +260,13 @@ export default function Friends({ onNavigate }: Props) {
   return (
     <div className="view-container">
       {/* Header Title */}
-      <div className="page-header" style={{ marginBottom: 16 }}>
+      <div className="page-header" style={{ marginBottom: 12 }}>
         <h1 className="page-title">Contacts</h1>
-        <p className="page-subtitle desktop-only" style={{ fontSize: 13, color: 'var(--text-3)', margin: '2px 0 0' }}>
-          Track shared expenses with friends, spending at vendors, and active subscriptions.
-        </p>
       </div>
 
       {/* Clean Tab Segmented Switch & Filter Bar */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, width: '100%', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', gap: 6, width: '100%', minWidth: 0 }}>
           {/* Contact Type Segmented Switch */}
           <div className="contact-type-switch" style={{ flex: '1 1 auto', minWidth: 0 }}>
             <button
@@ -235,9 +276,11 @@ export default function Friends({ onNavigate }: Props) {
               title="Friends"
               aria-label="Friends"
             >
-              <User size={14} style={{ flexShrink: 0, color: typeFilter === 'friend' ? 'var(--accent)' : 'inherit' }} />
+              <div className="type-btn-top">
+                <User size={15} style={{ flexShrink: 0, color: typeFilter === 'friend' ? 'var(--accent)' : 'inherit' }} />
+                <span className="type-badge">{counts.friend}</span>
+              </div>
               <span className="type-label">Friends</span>
-              <span className="type-badge">{counts.friend}</span>
             </button>
 
             <button
@@ -247,9 +290,11 @@ export default function Friends({ onNavigate }: Props) {
               title="Vendors"
               aria-label="Vendors"
             >
-              <Store size={14} style={{ flexShrink: 0, color: typeFilter === 'vendor' ? 'var(--accent)' : 'inherit' }} />
+              <div className="type-btn-top">
+                <Store size={15} style={{ flexShrink: 0, color: typeFilter === 'vendor' ? 'var(--accent)' : 'inherit' }} />
+                <span className="type-badge">{counts.vendor}</span>
+              </div>
               <span className="type-label">Vendors</span>
-              <span className="type-badge">{counts.vendor}</span>
             </button>
 
             <button
@@ -259,24 +304,26 @@ export default function Friends({ onNavigate }: Props) {
               title="Subscriptions"
               aria-label="Subscriptions"
             >
-              <Tv size={14} style={{ flexShrink: 0, color: typeFilter === 'subscription' ? 'var(--accent)' : 'inherit' }} />
+              <div className="type-btn-top">
+                <Tv size={15} style={{ flexShrink: 0, color: typeFilter === 'subscription' ? 'var(--accent)' : 'inherit' }} />
+                <span className="type-badge">{counts.subscription}</span>
+              </div>
               <span className="type-label">Subscriptions</span>
-              <span className="type-badge">{counts.subscription}</span>
             </button>
           </div>
 
           {/* Right Action: Filter Button */}
           <button
             type="button"
+            className="contact-filter-btn"
             onClick={() => setShowFilters(true)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 5,
-              height: 38,
-              padding: '0 8px',
-              borderRadius: '10px',
+              padding: '0 10px',
+              borderRadius: '12px',
               fontSize: '12px',
               fontWeight: 600,
               backgroundColor: activeFilterCount > 0 ? 'var(--accent-soft)' : 'var(--surface2)',
@@ -289,23 +336,26 @@ export default function Friends({ onNavigate }: Props) {
             title="Filters & Sorting"
             aria-label="Open Filters"
           >
-            <SlidersHorizontal size={14} style={{ color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-2)' }} />
-            <span className="desktop-only">Filters</span>
-            {activeFilterCount > 0 && (
-              <span
-                style={{
-                  backgroundColor: 'var(--accent)',
-                  color: 'var(--accent-contrast, #ffffff)',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  borderRadius: '999px',
-                  padding: '1px 5px',
-                  lineHeight: 1.2,
-                }}
-              >
-                {activeFilterCount}
-              </span>
-            )}
+            <div className="filter-btn-top">
+              <SlidersHorizontal size={15} style={{ color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-2)' }} />
+              {activeFilterCount > 0 && (
+                <span
+                  className="type-badge"
+                  style={{
+                    backgroundColor: 'var(--accent)',
+                    color: 'var(--accent-contrast, #ffffff)',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    borderRadius: '999px',
+                    padding: '1px 5px',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {activeFilterCount}
+                </span>
+              )}
+            </div>
+            <span className="filter-btn-label">Filters</span>
           </button>
         </div>
 
@@ -417,7 +467,7 @@ export default function Friends({ onNavigate }: Props) {
               </span>
             )}
 
-            {density !== 'compact' && (
+            {userDensityOverride !== null && (
               <span
                 style={{
                   display: 'inline-flex',
@@ -432,10 +482,10 @@ export default function Friends({ onNavigate }: Props) {
                   fontWeight: 500,
                 }}
               >
-                Layout: {density === 'detailed' ? 'Detailed' : 'Grid'}
+                Layout: {density === 'detailed' ? 'Detailed' : density === 'grid' ? 'Grid' : 'Compact'}
                 <button
                   type="button"
-                  onClick={() => setDensity('compact')}
+                  onClick={() => setUserDensityOverride(null)}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -472,6 +522,73 @@ export default function Friends({ onNavigate }: Props) {
               Reset all
             </button>
           </div>
+        )}
+      </div>
+
+      {/* Top Summary Metric Bar (Below Tab Bar) */}
+      <div className="contacts-summary-bar">
+        {typeFilter === 'friend' ? (
+          <>
+            <div className="summary-metric-card">
+              <span className="metric-label">You are Owed</span>
+              <span className="metric-value credit">{fmtMoney(friendStats.credit, currency)}</span>
+            </div>
+            <div className="summary-metric-card">
+              <span className="metric-label">You Owe</span>
+              <span className="metric-value debit">{fmtMoney(friendStats.debit, currency)}</span>
+            </div>
+            <div className="summary-metric-card">
+              <span className="metric-label">Net Balance</span>
+              <span className={`metric-value ${friendStats.net > 0 ? 'credit' : friendStats.net < 0 ? 'debit' : 'neutral'}`}>
+                {friendStats.net > 0 ? `+${fmtMoney(friendStats.net, currency)}` : friendStats.net < 0 ? `-${fmtMoney(Math.abs(friendStats.net), currency)}` : fmtMoney(0, currency)}
+              </span>
+            </div>
+          </>
+        ) : typeFilter === 'vendor' ? (
+          <>
+            <div className="summary-metric-card">
+              <span className="metric-label">Vendor Orders Total</span>
+              <span className="metric-value">{fmtMoney(vendorAndSubSpend.vendorTotal, currency)}</span>
+            </div>
+            <div className="summary-metric-card">
+              <span className="metric-label">Total Vendors</span>
+              <span className="metric-value">{counts.vendor}</span>
+            </div>
+            <div className="summary-metric-card">
+              <span className="metric-label">Total Orders</span>
+              <span className="metric-value">{vendorAndSubSpend.vendorOrdersCount}</span>
+            </div>
+          </>
+        ) : typeFilter === 'subscription' ? (
+          <>
+            <div className="summary-metric-card">
+              <span className="metric-label">Subscriptions Spend</span>
+              <span className="metric-value">{fmtMoney(vendorAndSubSpend.subTotal, currency)}</span>
+            </div>
+            <div className="summary-metric-card">
+              <span className="metric-label">Est. Monthly Cost</span>
+              <span className="metric-value">{fmtMoney(vendorAndSubSpend.subMonthlyRecurring, currency)}</span>
+            </div>
+            <div className="summary-metric-card">
+              <span className="metric-label">Active Subscriptions</span>
+              <span className="metric-value">{counts.subscription}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="summary-metric-card">
+              <span className="metric-label">Vendor Orders Total</span>
+              <span className="metric-value">{fmtMoney(vendorAndSubSpend.vendorTotal, currency)}</span>
+            </div>
+            <div className="summary-metric-card">
+              <span className="metric-label">Subscriptions Spend</span>
+              <span className="metric-value">{fmtMoney(vendorAndSubSpend.subTotal, currency)}</span>
+            </div>
+            <div className="summary-metric-card">
+              <span className="metric-label">Combined Spend</span>
+              <span className="metric-value">{fmtMoney(vendorAndSubSpend.total, currency)}</span>
+            </div>
+          </>
         )}
       </div>
 
@@ -633,18 +750,6 @@ export default function Friends({ onNavigate }: Props) {
                         <span style={{ fontWeight: 600 }}>Settle</span>
                       </button>
                     )}
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAddExpFriend(f);
-                      }}
-                      style={{ padding: '4px 8px', fontSize: 11.5, gap: 3, borderRadius: 8, height: 28, background: 'var(--surface2)', border: '1px solid var(--border)' }}
-                      title="Add Expense"
-                    >
-                      <Plus size={13} />
-                    </button>
                   </div>
                 </div>
               </div>

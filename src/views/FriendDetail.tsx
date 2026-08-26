@@ -93,11 +93,18 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
   if (!friend) {
     return (
       <div className="view-container">
-        <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('friends')}>
-          <ArrowLeft size={16} /> Back to Contacts
-        </button>
         <div className="card" style={{ marginTop: 20 }}>
-          <div className="empty-state"><p>Contact not found.</p></div>
+          <div className="empty-state">
+            <p>Contact not found.</p>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              style={{ marginTop: 12 }}
+              onClick={() => onNavigate('friends')}
+            >
+              Return to Contacts
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -105,15 +112,29 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
   return (
     <div className="view-container">
-      {/* Top Breadcrumb / Back Button */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      {/* Top Desktop Back Button */}
+      <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <button
           type="button"
           className="btn btn-ghost btn-sm"
           onClick={() => onNavigate('friends')}
-          style={{ padding: '6px 10px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 8 }}
+          style={{
+            padding: '6px 12px',
+            fontSize: 13.5,
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            borderRadius: 10,
+            border: '1px solid var(--border)',
+            backgroundColor: 'var(--surface2)',
+            color: 'var(--text-1)',
+            cursor: 'pointer'
+          }}
+          title="Back to Contacts"
         >
-          <ArrowLeft size={16} /> <span>Back to Contacts</span>
+          <ArrowLeft size={16} />
+          <span>Back to Contacts</span>
         </button>
       </div>
 

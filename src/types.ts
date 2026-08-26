@@ -81,6 +81,30 @@ export interface SettlementPartialBreakdownItem {
   remainingAmount: number;
 }
 
+export interface GroupedExpense {
+  id: string;
+  groupId?: string | null;
+  description: string;
+  totalAmount: number;
+  date: string;
+  category: string;
+  walletId: string;
+  flow: ExpenseFlow;
+  createdAt: number;
+  items: Expense[];
+  isSplit: boolean;
+  personalShare: number;
+  friendShare: number;
+  friendIds: string[];
+  vendorId?: string | null;
+  isSettlementGroup?: boolean;
+  settlementItemCount?: number;
+  settlementId?: string | null;
+  settlementDateRange?: string;
+  fromWalletName?: string;
+  toWalletName?: string;
+}
+
 export interface Settlement {
   id: string;
   friendId: string;

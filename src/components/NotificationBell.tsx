@@ -52,7 +52,7 @@ export default function NotificationBell({ onNavigate }: Props) {
           position: 'relative',
           width: 36,
           height: 36,
-          borderRadius: 18,
+          borderRadius: 10,
           background: open ? 'var(--surface3)' : 'var(--surface2)',
           border: '1px solid var(--border)',
           cursor: 'pointer',
@@ -60,6 +60,7 @@ export default function NotificationBell({ onNavigate }: Props) {
           alignItems: 'center',
           justifyContent: 'center',
           color: totalCount > 0 ? 'var(--text)' : 'var(--text-2)',
+          flexShrink: 0,
         }}
         title="Notifications"
       >

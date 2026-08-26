@@ -12,11 +12,8 @@ import {
   PieChart,
   Calendar,
   ChevronDown,
-  ChevronUp,
   ChevronLeft,
   ChevronRight,
-  Wallet,
-  User,
   Award,
   Check,
   X
@@ -54,7 +51,6 @@ export default function Analytics() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [chartMode, setChartMode] = useState<'weekly' | 'monthly'>('weekly');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [selectedGroupExpense, setSelectedGroupExpense] = useState<GroupedExpense | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -531,16 +527,7 @@ export default function Analytics() {
       setSelectedDate(null);
     } else {
       setSelectedDate(dateStr);
-      setExpandedDates(prev => ({ ...prev, [dateStr]: true }));
     }
-  };
-
-  // Toggle inline row expansion in Daily Expenditure Log
-  const handleToggleExpand = (dateStr: string) => {
-    setExpandedDates(prev => ({
-      ...prev,
-      [dateStr]: !prev[dateStr],
-    }));
   };
 
   const handleDeleteExpense = (id: string) => {
@@ -1344,34 +1331,12 @@ export default function Analytics() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
+                className="btn btn-secondary btn-sm btn-mobile-icon-only mobile-only"
                 style={{
                   fontSize: 11,
                   padding: '3px 8px',
                   height: 26,
                   gap: 4,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  border: 'none',
-                  background: 'var(--surface2)',
-                  fontWeight: 600,
-                }}
-                onClick={() => setShowDailyBalanceDrawer(true)}
-                title="View daily wallet balances & cash movement history"
-              >
-                <Wallet size={13} style={{ color: 'var(--accent)' }} /> Wallet Balance
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                style={{
-                  fontSize: 11,
-                  padding: '3px 8px',
-                  height: 26,
-                  gap: 4,
-                  display: 'inline-flex',
                   alignItems: 'center',
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
@@ -1380,8 +1345,10 @@ export default function Analytics() {
                   fontWeight: 600,
                 }}
                 onClick={() => setShowCategoryDrawer(true)}
+                title="Categories - View category breakdown"
               >
-                <PieChart size={13} style={{ color: 'var(--accent)' }} /> Categories
+                <PieChart size={13} style={{ color: 'var(--accent)' }} />
+                <span className="btn-text-label">Categories</span>
               </button>
               {selectedDate && (
                 <button
@@ -1413,7 +1380,7 @@ export default function Analytics() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {perDayList.map(row => {
                 const catObj = db.settings.categories.find(c => c.name === row.topCategory);
-                const isExpanded = Boolean(expandedDates[row.dateStr] || selectedDate === row.dateStr);
+                const isSelected = selectedDate === row.dateStr;
 
                 return (
                   <div
@@ -1422,16 +1389,19 @@ export default function Analytics() {
                     style={{
                       width: '100%',
                       boxSizing: 'border-box',
-                      border: selectedDate === row.dateStr ? '1.5px solid var(--accent)' : undefined,
+                      border: isSelected ? '1.5px solid var(--accent)' : undefined,
                     }}
                   >
-                    {/* Day Row Header */}
+                    {/* Day Row Header - Opens Day Details Drawer directly */}
                     <button
                       type="button"
                       className="daily-expenditure-header"
-                      style={{ width: '100%', boxSizing: 'border-box' }}
-                      onClick={() => handleToggleExpand(row.dateStr)}
-                      aria-expanded={isExpanded}
+                      style={{ width: '100%', boxSizing: 'border-box', cursor: 'pointer' }}
+                      onClick={() => {
+                        setSelectedDate(row.dateStr);
+                        setShowDailyBalanceDrawer(true);
+                      }}
+                      title={`View balance details & movements for ${row.dayName}`}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                         <CategoryBadge category={row.topCategory} color={catObj?.color} icon={catObj?.icon} size={15} showLabel={false} />
@@ -1474,118 +1444,10 @@ export default function Analytics() {
                           );
                         })()}
                         <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                          {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                          <ChevronRight size={15} />
                         </div>
                       </div>
                     </button>
-
-                    {/* Expandable Itemized Transactions List */}
-                    {isExpanded && (
-                      <div className="daily-expenditure-items">
-                        {row.items.map(ge => {
-                          const isDebit = ge.flow === 'out';
-                          const itemCat = db.settings.categories.find(c => c.name === ge.category);
-                          const walletObj = wallets.find(w => w.id === ge.walletId);
-
-                          // Settlement status calculation
-                          const allSettled = ge.items.every(i => i.settled || i.status === 'paid');
-                          const someSettled = ge.items.some(i => i.settled || i.status === 'paid');
-
-                          return (
-                            <div
-                              key={ge.id}
-                              className="daily-expense-row-wrap"
-                              onClick={() => setSelectedGroupExpense(ge)}
-                              style={{ cursor: 'pointer' }}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  setSelectedGroupExpense(ge);
-                                }
-                              }}
-                            >
-                              <div className="daily-expense-row">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, flex: 1 }}>
-                                  <CategoryBadge category={ge.category} color={itemCat?.color} icon={itemCat?.icon} size={15} showLabel={false} />
-                                  <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {ge.description || 'Expense'}
-                                    </div>
-                                    <div style={{ fontSize: 11, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap', marginTop: 1, overflow: 'hidden' }}>
-                                      {ge.isSplit ? (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--accent)', fontWeight: 600, flexShrink: 0 }}>
-                                          <User size={11} /> Split
-                                        </span>
-                                      ) : (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '85px' }}>
-                                          <Wallet size={11} /> {walletObj?.name || 'Personal'}
-                                        </span>
-                                      )}
-                                      <span style={{ flexShrink: 0, opacity: 0.5 }}>·</span>
-                                      <span style={{
-                                        padding: '1px 5px',
-                                        borderRadius: 4,
-                                        fontSize: 9.5,
-                                        fontWeight: 650,
-                                        flexShrink: 0,
-                                        whiteSpace: 'nowrap',
-                                        background: allSettled ? 'rgba(16, 185, 129, 0.12)' : (someSettled ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)'),
-                                        color: allSettled ? '#10b981' : (someSettled ? '#f59e0b' : '#ef4444'),
-                                      }}>
-                                        {allSettled ? 'Settled' : (someSettled ? 'Partial' : 'Unsettled')}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                                  {(() => {
-                                    let displayAmount: string | null = null;
-                                    let displayColor = isDebit ? 'var(--debit)' : 'var(--credit)';
-
-                                    if (ge.flow === 'in' && ge.category !== 'Transfer') {
-                                      displayAmount = `+${fmtMoney(ge.totalAmount, currency)}`;
-                                      displayColor = 'var(--credit)';
-                                    } else if (ge.isSplit) {
-                                      if (allSettled) {
-                                        if (ge.personalShare > 0) {
-                                          displayAmount = `-${fmtMoney(ge.personalShare, currency)}`;
-                                          displayColor = 'var(--debit)';
-                                        } else {
-                                          displayAmount = null;
-                                        }
-                                      } else {
-                                        displayAmount = `-${fmtMoney(ge.totalAmount, currency)}`;
-                                        displayColor = 'var(--debit)';
-                                      }
-                                    } else {
-                                      displayAmount = `${isDebit ? '-' : '+'}${fmtMoney(ge.totalAmount, currency)}`;
-                                      displayColor = isDebit ? 'var(--debit)' : 'var(--credit)';
-                                    }
-
-                                    if (!displayAmount) return null;
-
-                                    return (
-                                      <div style={{
-                                        fontWeight: 700,
-                                        fontSize: 13.5,
-                                        color: displayColor,
-                                        whiteSpace: 'nowrap',
-                                        fontVariantNumeric: 'tabular-nums',
-                                      }}>
-                                        {displayAmount}
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -1593,6 +1455,173 @@ export default function Analytics() {
           )}
         </div>
 
+        {/* Category Distribution Desktop Card (Fills right side empty space on desktop) */}
+        <div className="card desktop-only" style={{ padding: '16px', overflow: 'hidden', width: '100%', maxWidth: '100%', boxSizing: 'border-box', height: 'fit-content' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'nowrap', gap: 8, width: '100%', minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
+              <PieChart size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.2px', flexShrink: 1 }}>
+                Category Distribution
+              </span>
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  color: 'var(--text-2)',
+                  background: 'var(--surface2)',
+                  padding: '2px 6px',
+                  borderRadius: 6,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  lineHeight: '1.2',
+                }}
+              >
+                {categoryBreakdown.length} {categoryBreakdown.length === 1 ? 'category' : 'categories'}
+              </span>
+            </div>
+            {selectedCategory && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  height: 26,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  border: 'none',
+                  background: 'var(--surface2)',
+                  fontWeight: 600,
+                }}
+                onClick={() => setSelectedCategory(null)}
+              >
+                Clear Category
+              </button>
+            )}
+          </div>
+
+          {/* Body */}
+          {categoryBreakdown.length === 0 ? (
+            <div style={{ fontSize: 12.5, color: 'var(--text-3)', padding: '28px 0', textAlign: 'center' }}>
+              No outflow expenses recorded for this timeframe
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Summary Bar */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '6px 10px',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  fontSize: 11.5,
+                  color: 'var(--text-2)',
+                  marginBottom: 2,
+                }}
+              >
+                <span>Total Spending</span>
+                <strong style={{ color: 'var(--text)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                  {fmtMoney(timeframeOutflowTotal, currency)}
+                </strong>
+              </div>
+
+              {/* Category Cards List */}
+              {categoryBreakdown.map(({ cat, amount, pct, count }) => {
+                const catObj = db.settings.categories.find(c => c.name === cat);
+                const catColor = catObj?.color ?? '#6B7280';
+                const isSelectedCat = selectedCategory === cat;
+
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    className={`category-dist-card ${isSelectedCat ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(isSelectedCat ? null : cat)}
+                    title={`Click to filter log by ${cat}`}
+                    style={{ textAlign: 'left', width: '100%' }}
+                  >
+                    {/* Top Info Row */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                        <CategoryBadge
+                          category={cat}
+                          color={catColor}
+                          icon={catObj?.icon}
+                          size={14}
+                          showLabel={false}
+                        />
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            fontSize: 13,
+                            color: isSelectedCat ? 'var(--accent)' : 'var(--text)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {cat}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            color: isSelectedCat ? 'var(--accent)' : 'var(--text-3)',
+                            background: isSelectedCat ? 'var(--accent-soft)' : 'var(--surface3)',
+                            padding: '1px 6px',
+                            borderRadius: 5,
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                            lineHeight: '1.4',
+                          }}
+                        >
+                          {count} {count === 1 ? 'item' : 'items'}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <span
+                          style={{
+                            color: isSelectedCat ? 'var(--accent)' : 'var(--text-3)',
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {Math.round(pct)}%
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 13.5,
+                            fontWeight: 700,
+                            color: 'var(--text)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {fmtMoney(amount, currency)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="category-dist-progress-track">
+                      <div
+                        className="category-dist-progress-fill"
+                        style={{
+                          width: `${Math.min(100, Math.max(1.5, pct))}%`,
+                          background: isSelectedCat ? 'var(--accent)' : catColor,
+                        }}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Category Distribution Modal Drawer */}
@@ -1604,11 +1633,6 @@ export default function Analytics() {
           }}
         >
           <div className="modal category-dist-modal">
-            {/* Drag Handle Bar for mobile bottom sheet */}
-            <div className="modal-handle-bar">
-              <div className="modal-handle" />
-            </div>
-
             {/* Header */}
             <div className="category-dist-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1703,18 +1727,19 @@ export default function Analytics() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '7px 12px',
+                      padding: '6px 12px',
                       background: 'var(--surface2)',
-                      borderRadius: 9,
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
                       fontSize: 11.5,
                       color: 'var(--text-2)',
-                      marginBottom: 2,
+                      marginBottom: 4,
                     }}
                   >
                     <span>{categoryBreakdown.length} {categoryBreakdown.length === 1 ? 'Category' : 'Categories'}</span>
                     <span>
                       Total:{' '}
-                      <strong style={{ color: 'var(--text)', fontWeight: 700 }}>
+                      <strong style={{ color: 'var(--text)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                         {fmtMoney(timeframeOutflowTotal, currency)}
                       </strong>
                     </span>
@@ -1735,19 +1760,19 @@ export default function Analytics() {
                         title={`Click to filter log by ${cat}`}
                       >
                         {/* Top Info Row */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, width: '100%' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, width: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
                             <CategoryBadge
                               category={cat}
                               color={catColor}
                               icon={catObj?.icon}
-                              size={15}
+                              size={14}
                               showLabel={false}
                             />
                             <span
                               style={{
-                                fontWeight: 650,
-                                fontSize: 14,
+                                fontWeight: 600,
+                                fontSize: 13,
                                 color: isSelectedCat ? 'var(--accent)' : 'var(--text)',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -1758,26 +1783,27 @@ export default function Analytics() {
                             </span>
                             <span
                               style={{
-                                fontSize: 11,
+                                fontSize: 10.5,
                                 color: isSelectedCat ? 'var(--accent)' : 'var(--text-3)',
                                 background: isSelectedCat ? 'var(--accent-soft)' : 'var(--surface3)',
-                                padding: '2px 7px',
-                                borderRadius: 6,
+                                padding: '1px 6px',
+                                borderRadius: 5,
                                 fontWeight: 500,
                                 whiteSpace: 'nowrap',
                                 flexShrink: 0,
+                                lineHeight: '1.4',
                               }}
                             >
                               {count} {count === 1 ? 'item' : 'items'}
                             </span>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                             <span
                               style={{
                                 color: isSelectedCat ? 'var(--accent)' : 'var(--text-3)',
-                                fontSize: 12,
-                                fontWeight: 650,
+                                fontSize: 11.5,
+                                fontWeight: 600,
                                 fontVariantNumeric: 'tabular-nums',
                               }}
                             >
@@ -1785,8 +1811,8 @@ export default function Analytics() {
                             </span>
                             <span
                               style={{
-                                fontSize: 14.5,
-                                fontWeight: 750,
+                                fontSize: 13.5,
+                                fontWeight: 700,
                                 color: 'var(--text)',
                                 fontVariantNumeric: 'tabular-nums',
                               }}

@@ -1,18 +1,22 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Plus, Layers, ArrowUpRight, ArrowDownLeft, ReceiptText, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useStore } from '../store';
-import type { Expense } from '../types';
+import type { Expense, GroupedExpense } from '../types';
 import { cleanExpenseDescription, getGroupSettlementStatus, groupExpenses, fmtMoney, fmtDate } from '../utils';
+import { todayISO } from '../db';
 import ExpenseModal from '../components/ExpenseModal';
+import ExpenseDetailDrawer from '../components/ExpenseDetailDrawer';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { ExpenseFilterBar } from '../components/expense/ExpenseFilterBar';
 import { ExpenseTableRow } from '../components/expenses/ExpenseTableRow';
 import { ExpenseMobileCard } from '../components/expenses/ExpenseMobileCard';
 
 function getRelativeDateLabel(dateStr: string): string | null {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   if (dateStr === today) return 'Today';
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  const yesterday = y.getFullYear() + '-' + String(y.getMonth() + 1).padStart(2, '0') + '-' + String(y.getDate()).padStart(2, '0');
   if (dateStr === yesterday) return 'Yesterday';
   return null;
 }
@@ -38,6 +42,7 @@ export default function Expenses() {
   const [showFilters, setShowFilters] = useState(false);
 
   const [editExp, setEditExp] = useState<Expense | null>(null);
+  const [selectedDetailGe, setSelectedDetailGe] = useState<GroupedExpense | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [delId, setDelId] = useState<string | null>(null);
   const [undoExpId, setUndoExpId] = useState<string | null>(null);
@@ -597,12 +602,12 @@ export default function Expenses() {
                         <table className="modern-tx-table">
                           <thead>
                             <tr>
-                              <th style={{ width: '22%', textAlign: 'left' }}>Transaction</th>
-                              <th style={{ width: '13%', textAlign: 'left' }}>Amount</th>
-                              <th style={{ width: '16%', textAlign: 'left' }}>Type</th>
-                              <th style={{ width: '18%', textAlign: 'left' }}>Wallet</th>
-                              <th style={{ width: '19%', textAlign: 'left' }}>Status</th>
-                              <th style={{ textAlign: 'right', width: '12%', minWidth: '100px' }}>Actions</th>
+                              <th style={{ width: '34%', textAlign: 'left' }}>Transaction</th>
+                              <th style={{ width: '15%', textAlign: 'left' }}>Amount</th>
+                              <th style={{ width: '13%', textAlign: 'left' }}>Type</th>
+                              <th style={{ width: '14%', textAlign: 'left' }}>Wallet</th>
+                              <th style={{ width: '13%', textAlign: 'left' }}>Status</th>
+                              <th style={{ textAlign: 'right', width: '11%', minWidth: '90px' }}>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -619,7 +624,6 @@ export default function Expenses() {
                                 return item.walletId ? walletsMap.get(item.walletId) : null;
                               }, null) || walletsMap.get(ge.walletId) || stlWallet;
 
-                              const isExpanded = !!expandedIds[ge.id];
                               const groupStatus = getGroupSettlementStatus(ge);
 
                               return (
@@ -627,8 +631,6 @@ export default function Expenses() {
                                   key={ge.id}
                                   ge={ge}
                                   currency={currency}
-                                  isExpanded={isExpanded}
-                                  onToggleExpand={toggleExpand}
                                   onEdit={setEditExp}
                                   onDelete={setDelId}
                                   onUndo={setUndoExpId}
@@ -638,6 +640,7 @@ export default function Expenses() {
                                   friendsMap={friendsMap}
                                   walletsMap={walletsMap}
                                   settlementObj={stl}
+                                  onSelectDetail={setSelectedDetailGe}
                                 />
                               );
                             })}
@@ -707,6 +710,25 @@ export default function Expenses() {
 
       {showAdd && <ExpenseModal onClose={() => setShowAdd(false)} />}
       {editExp && <ExpenseModal expense={editExp} onClose={() => setEditExp(null)} />}
+      {selectedDetailGe && (
+        <ExpenseDetailDrawer
+          ge={selectedDetailGe}
+          onClose={() => setSelectedDetailGe(null)}
+          onEdit={(exp) => {
+            setSelectedDetailGe(null);
+            setEditExp(exp);
+          }}
+          onDelete={(id) => {
+            setSelectedDetailGe(null);
+            setDelId(id);
+          }}
+          currency={currency}
+          friends={db.friends}
+          wallets={db.wallets}
+          categories={db.settings.categories}
+          settlements={db.settlements}
+        />
+      )}
       {delId && (
         <ConfirmDialog
           title="Delete Expense"

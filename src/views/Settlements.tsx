@@ -302,7 +302,7 @@ export default function Settlements() {
           </div>
 
           {isPendingExpanded && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <div className="pending-settlements-desktop-grid">
               {friendsWithUnsettled.map(f => {
                 if (!f) return null;
                 const unsettledCount = unsettledExpensesForFriend(db, f.id).length;

@@ -416,7 +416,7 @@ export function defaultSampleRecurringRules(walletId: string): RecurringRule[] {
 }
 
 export const DEFAULT_CATEGORIES = [
-  { name: 'Food', color: '#F97362', icon: 'food' },
+  { name: 'Food', color: '#F97316', icon: 'food' },
   { name: 'Groceries', color: '#4ADE80', icon: 'groceries' },
   { name: 'Transport', color: '#38BDF8', icon: 'transport' },
   { name: 'Rent', color: '#FBBF24', icon: 'rent' },

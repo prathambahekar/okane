@@ -15,6 +15,7 @@ import {
   type GroupedExpense
 } from '../utils';
 import type { Expense, Friend, Wallet, Category, Settlement } from '../types';
+import { renderWalletIcon } from './WalletIconRenderer';
 
 interface ExpenseDetailDrawerProps {
   ge: GroupedExpense;
@@ -101,7 +102,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
         <div
           className="modal-header"
           style={{
-            padding: '12px 18px 8px',
+            padding: '14px 18px 10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -125,10 +126,11 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               borderRadius: 8,
               color: 'var(--text-3)',
               background: 'var(--surface2)',
-              border: 'none',
+              border: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              cursor: 'pointer',
             }}
           >
             <X size={15} />
@@ -153,7 +155,8 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             style={{
               padding: '16px',
               background: 'var(--surface2)',
-              borderRadius: 14,
+              border: '1px solid var(--border)',
+              borderRadius: 16,
               display: 'flex',
               flexDirection: 'column',
               gap: 12,
@@ -167,7 +170,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     width: 44,
                     height: 44,
                     borderRadius: 12,
-                    backgroundColor: categoryObj?.color ? `${categoryObj.color}1c` : 'rgba(255,255,255,0.06)',
+                    backgroundColor: categoryObj?.color ? `${categoryObj.color}1c` : 'var(--surface3)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -226,7 +229,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                   className={`tx-status-pill status-${groupStatus.statusKey}`}
                   style={{
                     padding: '2.5px 8px',
-                    fontSize: 10,
+                    fontSize: 10.5,
                     fontWeight: 650,
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -241,8 +244,9 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 style={{
                   fontSize: 10.5,
                   fontWeight: 600,
-                  color: 'var(--text-3)',
-                  background: 'rgba(255,255,255,0.04)',
+                  color: 'var(--text-2)',
+                  background: 'var(--surface3)',
+                  border: '1px solid var(--border)',
                   padding: '2.5px 8px',
                   borderRadius: 6,
                 }}
@@ -257,9 +261,10 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 10,
+              gap: 12,
               padding: '14px',
               background: 'var(--surface2)',
+              border: '1px solid var(--border)',
               borderRadius: 14,
             }}
           >
@@ -269,8 +274,15 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 <WalletIcon size={11} style={{ opacity: 0.8 }} />
                 Wallet
               </span>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)', wordBreak: 'break-word' }}>
-                {effectiveWalletName}
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)', wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: 5 }}>
+                {walletObj ? (
+                  <>
+                    {renderWalletIcon(walletObj.icon || walletObj.name, 13, walletObj.color)}
+                    <span>{effectiveWalletName}</span>
+                  </>
+                ) : (
+                  <span style={{ color: 'var(--text-3)' }}>{effectiveWalletName}</span>
+                )}
               </span>
             </div>
 
@@ -328,6 +340,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             <div
               style={{
                 background: 'var(--surface2)',
+                border: '1px solid var(--border)',
                 borderRadius: 14,
                 padding: '14px',
                 display: 'flex',
@@ -358,7 +371,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     let primaryName = name;
                     let actionSubtitle = 'Split share';
                     let statusPill = (
-                      <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+                      <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)' }}>
                         Settled ✓
                       </span>
                     );
@@ -369,7 +382,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       primaryName = itemDesc;
                       actionSubtitle = `Date: ${itemDateStr}`;
                       statusPill = (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)' }}>
                           Settled ✓
                         </span>
                       );
@@ -377,7 +390,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       primaryName = 'You';
                       actionSubtitle = 'Your personal share';
                       statusPill = (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'rgba(255, 255, 255, 0.06)', color: 'var(--text-3)' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--surface3)', color: 'var(--text-3)', border: '1px solid var(--border)' }}>
                           Personal
                         </span>
                       );
@@ -385,11 +398,11 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       primaryName = name;
                       actionSubtitle = item.settled ? 'Paid their share to you' : 'Owes you their share';
                       statusPill = item.settled ? (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)' }}>
                           Settled ✓
                         </span>
                       ) : (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
                           Owes You
                         </span>
                       );
@@ -397,11 +410,11 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       primaryName = name;
                       actionSubtitle = item.settled ? 'Paid bill' : (vendor ? 'Vendor bill' : 'You owe them');
                       statusPill = item.settled ? (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)' }}>
                           Settled ✓
                         </span>
                       ) : (
-                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)' }}>
                           Unpaid
                         </span>
                       );
@@ -420,7 +433,8 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                           alignItems: 'center',
                           padding: '8px 10px',
                           borderRadius: 10,
-                          background: 'rgba(255, 255, 255, 0.03)',
+                          background: 'var(--surface3)',
+                          border: '1px solid var(--border)',
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
@@ -430,7 +444,8 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                 width: 28,
                                 height: 28,
                                 borderRadius: '50%',
-                                background: 'rgba(255, 255, 255, 0.08)',
+                                background: 'var(--surface2)',
+                                border: '1px solid var(--border)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -514,9 +529,9 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               gap: 7,
               fontSize: 13.5,
               fontWeight: 650,
-              borderRadius: 10,
+              borderRadius: 12,
               background: 'var(--surface2)',
-              border: 'none',
+              border: '1px solid var(--border)',
               color: 'var(--text)',
               cursor: 'pointer',
             }}
@@ -540,10 +555,10 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               gap: 7,
               fontSize: 13.5,
               fontWeight: 650,
-              borderRadius: 10,
-              background: 'rgba(239, 68, 68, 0.12)',
-              border: 'none',
-              color: '#ef4444',
+              borderRadius: 12,
+              background: 'var(--debit-bg)',
+              border: '1px solid var(--debit-border)',
+              color: 'var(--debit)',
               cursor: 'pointer',
             }}
             onClick={() => {

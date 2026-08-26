@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FileText, X, Check, Trash2 } from 'lucide-react';
 
@@ -58,17 +58,7 @@ function NoteEditorContent({
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    // Focus textarea on open
-    const t = setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        textareaRef.current.selectionStart = textareaRef.current.value.length;
-        textareaRef.current.selectionEnd = textareaRef.current.value.length;
-      }
-    }, 50);
-    return () => clearTimeout(t);
-  }, []);
+  // Removed auto-focus effect on open so keyboard does not auto-open on mobile
 
   const handleTagClick = (tag: string) => {
     if (!tempNote.trim()) {
@@ -286,23 +276,6 @@ function NoteEditorContent({
             <span>Clear</span>
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-2)',
-                borderRadius: 9,
-                padding: '8px 15px',
-                fontSize: 12.5,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              Cancel
-            </button>
             <button
               type="button"
               onClick={handleSave}
