@@ -204,7 +204,11 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
       : 'e.g. Alex, Priya, Rahul';
 
   return createPortal(
-    <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="modal-backdrop"
+      style={{ zIndex: 100050 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div className="modal friend-drawer-modal">
         {/* Drag Handle Indicator for Mobile Bottom Sheet */}
         <div className="modal-handle-bar">

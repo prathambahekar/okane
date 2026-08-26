@@ -35,7 +35,11 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
   );
 
   return createPortal(
-    <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="modal-backdrop"
+      style={{ zIndex: 100050 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div className="modal modal-lg" style={{ maxWidth: 620 }}>
         {/* Header */}
         <div className="modal-header">

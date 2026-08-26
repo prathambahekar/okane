@@ -16,16 +16,17 @@ import {
 } from '../utils';
 import type { Expense, Friend, Wallet, Category, Settlement } from '../types';
 import { renderWalletIcon } from './WalletIconRenderer';
+import { useStore } from '../store';
 
 interface ExpenseDetailDrawerProps {
   ge: GroupedExpense;
   onClose: () => void;
   onEdit: (expense: Expense) => void;
   onDelete: (id: string) => void;
-  currency: string;
-  friends: Friend[];
-  wallets: Wallet[];
-  categories: Category[];
+  currency?: string;
+  friends?: Friend[];
+  wallets?: Wallet[];
+  categories?: Category[];
   settlements?: Settlement[];
 }
 
@@ -34,16 +35,23 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
   onClose,
   onEdit,
   onDelete,
-  currency,
-  friends,
-  wallets,
-  categories,
-  settlements = [],
+  currency: currencyProp,
+  friends: friendsProp,
+  wallets: walletsProp,
+  categories: categoriesProp,
+  settlements: settlementsProp,
 }) => {
-  const friendsMap = useMemo(() => new Map(friends.map(f => [f.id, f])), [friends]);
-  const walletsMap = useMemo(() => new Map(wallets.map(w => [w.id, w])), [wallets]);
-  const categoriesMap = useMemo(() => new Map(categories.map(c => [c.name, c])), [categories]);
-  const settlementsMap = useMemo(() => new Map(settlements.map(s => [s.id, s])), [settlements]);
+  const { db } = useStore();
+  const friends = friendsProp || db.friends;
+  const wallets = walletsProp || db.wallets;
+  const categories = categoriesProp || db.settings.categories;
+  const settlements = settlementsProp || db.settlements;
+  const currency = currencyProp || db.settings.currency || 'INR';
+
+  const friendsMap = useMemo(() => new Map((friends || []).map(f => [f.id, f])), [friends]);
+  const walletsMap = useMemo(() => new Map((wallets || []).map(w => [w.id, w])), [wallets]);
+  const categoriesMap = useMemo(() => new Map((categories || []).map(c => [c.name, c])), [categories]);
+  const settlementsMap = useMemo(() => new Map((settlements || []).map(s => [s.id, s])), [settlements]);
 
   const primaryItem = ge.items[0] || (ge as unknown as Expense);
   const categoryObj = categoriesMap.get(ge.category);
@@ -77,7 +85,11 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
   const flowSign = isDebit ? '-' : '+';
 
   return createPortal(
-    <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="modal-backdrop"
+      style={{ zIndex: 100050 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div
         className="modal expense-drawer-modal"
         style={{

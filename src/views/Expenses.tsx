@@ -73,7 +73,6 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
   const [showAdd, setShowAdd] = useState(false);
   const [delId, setDelId] = useState<string | null>(null);
   const [undoExpId, setUndoExpId] = useState<string | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const [displayLimit, setDisplayLimit] = useState(60);
 
@@ -84,10 +83,6 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
   const friendsMap = useMemo(() => new Map(db.friends.map(f => [f.id, f])), [db.friends]);
   const categoriesMap = useMemo(() => new Map(db.settings.categories.map(c => [c.name, c])), [db.settings.categories]);
   const settlementsMap = useMemo(() => new Map((db.settlements || []).map(s => [s.id, s])), [db.settlements]);
-
-  const toggleExpand = useCallback((id: string) => {
-    setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
-  }, []);
 
   const toggleDateCollapse = useCallback((dateStr: string) => {
     setCollapsedDates(prev => ({ ...prev, [dateStr]: !prev[dateStr] }));
@@ -688,7 +683,6 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
                             return item.walletId ? walletsMap.get(item.walletId) : null;
                           }, null) || walletsMap.get(ge.walletId) || stlWallet;
 
-                          const isExpanded = !!expandedIds[ge.id];
                           const groupStatus = getGroupSettlementStatus(ge);
 
                           return (
@@ -696,8 +690,7 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
                               key={ge.id}
                               ge={ge}
                               currency={currency}
-                              isExpanded={isExpanded}
-                              onToggleExpand={toggleExpand}
+                              onSelectDetail={setSelectedDetailGe}
                               onEdit={setEditExp}
                               onDelete={setDelId}
                               onUndo={setUndoExpId}

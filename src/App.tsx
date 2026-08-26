@@ -1032,7 +1032,7 @@ function AppInner() {
           onClick={() => setShowAIAssistant(true)}
           sx={{
             position: 'fixed',
-            bottom: { xs: 80, sm: 24 },
+            bottom: { xs: 'calc(76px + env(safe-area-inset-bottom, 0px))', sm: 24 },
             right: { xs: 16, sm: 24 },
             width: 50,
             height: 50,

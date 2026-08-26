@@ -2,10 +2,13 @@ import { useState, useMemo } from 'react';
 import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, ArrowLeftRight, Store, ArrowRight } from 'lucide-react';
 import { useStore } from '../store';
 import { walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey, allFriendBalances } from '../db';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses } from '../utils';
-import type { Friend, ViewName } from '../types';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, type GroupedExpense } from '../utils';
+import type { Friend, ViewName, Expense } from '../types';
 import { CategoryBadge } from '../components/CategoryIcon';
 import TransferModal from '../components/TransferModal';
+import { ExpenseDetailDrawer } from '../components/ExpenseDetailDrawer';
+import ExpenseModal from '../components/ExpenseModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface Props {
   onNavigate: (v: ViewName, arg?: string) => void;
@@ -13,9 +16,12 @@ interface Props {
 }
 
 export default function Dashboard({ onNavigate, onAddExpense }: Props) {
-  const { db } = useStore();
+  const { db, deleteExpense, showToast } = useStore();
   const { expenses, wallets, settings: { currency } } = db;
   const [showTransfer, setShowTransfer] = useState(false);
+  const [selectedDetailGe, setSelectedDetailGe] = useState<GroupedExpense | null>(null);
+  const [editExp, setEditExp] = useState<Expense | null>(null);
+  const [delId, setDelId] = useState<string | null>(null);
 
   const now = new Date();
   const thisKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
@@ -217,17 +223,30 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 const vendorId = ge.vendorId || ge.items.find(i => i.vendorId)?.vendorId;
                 const vendor = vendorId ? db.friends.find(f => f.id === vendorId) : null;
                 return (
-                  <div key={ge.id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '9px 0',
-                    borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
-                    gap: 10,
-                    width: '100%',
-                    minWidth: 0,
-                    boxSizing: 'border-box',
-                  }}>
+                  <div
+                    key={ge.id}
+                    onClick={() => setSelectedDetailGe(ge)}
+                    role="button"
+                    tabIndex={0}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '9px 0',
+                      borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
+                      gap: 10,
+                      width: '100%',
+                      minWidth: 0,
+                      boxSizing: 'border-box',
+                      cursor: 'pointer',
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedDetailGe(ge);
+                      }
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
                       <CategoryBadge category={ge.category} color={cat?.color} icon={cat?.icon} size={14} showLabel={false} />
                       <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
@@ -380,6 +399,42 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         isOpen={showTransfer}
         onClose={() => setShowTransfer(false)}
       />
+
+      {selectedDetailGe && (
+        <ExpenseDetailDrawer
+          ge={selectedDetailGe}
+          currency={currency}
+          onClose={() => setSelectedDetailGe(null)}
+          onEdit={(exp) => {
+            setSelectedDetailGe(null);
+            setEditExp(exp);
+          }}
+          onDelete={(id) => {
+            setSelectedDetailGe(null);
+            setDelId(id);
+          }}
+        />
+      )}
+
+      {editExp && (
+        <ExpenseModal
+          expense={editExp}
+          onClose={() => setEditExp(null)}
+        />
+      )}
+
+      {delId && (
+        <ConfirmDialog
+          title="Delete Expense"
+          message="Are you sure you want to delete this expense? Any amount deducted from your wallet will be added back automatically."
+          onConfirm={() => {
+            deleteExpense(delId);
+            setDelId(null);
+            showToast('Expense deleted & balance updated');
+          }}
+          onClose={() => setDelId(null)}
+        />
+      )}
     </div>
   );
 }

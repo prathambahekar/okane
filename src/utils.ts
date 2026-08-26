@@ -224,7 +224,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
         flow,
         createdAt: maxCreatedAt,
         items,
-        isSplit: true,
+        isSplit: false,
         isSettlementGroup: true,
         settlementItemCount: items.length,
         settlementDateRange: dateRangeStr,

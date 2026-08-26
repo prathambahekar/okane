@@ -24,11 +24,14 @@ import {
   MessageSquarePlus,
 } from 'lucide-react';
 import { useStore } from '../store';
-import type { ViewName, Trip } from '../types';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle } from '../utils';
-import { friendBalance, walletBalance, expenseFlow } from '../db';
+import type { ViewName, Trip, Expense } from '../types';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, resolveCategoryMeta, type GroupedExpense } from '../utils';
+import { friendBalance, walletBalance } from '../db';
 import CategoryIcon from './CategoryIcon';
 import { CURRENT_APP_VERSION } from '../utils/updateManager';
+import { ExpenseDetailDrawer } from './ExpenseDetailDrawer';
+import ExpenseModal from './ExpenseModal';
+import ConfirmDialog from './ConfirmDialog';
 
 interface Props {
   open: boolean;
@@ -161,6 +164,10 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
   }, [db.tripHistory, db.activeTrip]);
   const currency = settings?.currency || 'INR';
 
+  const friendsMap = useMemo(() => new Map(friends.map(f => [f.id, f])), [friends]);
+  const walletsMap = useMemo(() => new Map(wallets.map(w => [w.id, w])), [wallets]);
+  const categoriesMap = useMemo(() => new Map((settings?.categories || []).map(c => [c.name, c])), [settings?.categories]);
+
   const defaultTab: SearchTab = useMemo(() => {
     if (activeView === 'expenses') return 'expenses';
     if (activeView === 'friends' || activeView === 'friend-detail') return 'contacts';
@@ -184,6 +191,10 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
   const [selectedTab, setSelectedTab] = useState<SearchTab | null>(null);
   const activeTab = selectedTab ?? defaultTab;
   const inputRef = useRef<HTMLInputElement>(null);
+  const [selectedDetailGe, setSelectedDetailGe] = useState<GroupedExpense | null>(null);
+  const [editExp, setEditExp] = useState<Expense | null>(null);
+  const [delExpId, setDelExpId] = useState<string | null>(null);
+  const { deleteExpense, showToast } = useStore();
 
   const handleClose = React.useCallback(() => {
     setQuery('');
@@ -216,23 +227,31 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
 
   const q = query.trim().toLowerCase();
 
+  // All grouped expenses for clean split representation
+  const allGroupedExpenses = useMemo(() => {
+    return groupExpenses(expenses, wallets, friends);
+  }, [expenses, wallets, friends]);
+
   // Search Expenses
   const matchingExpenses = useMemo(() => {
     if (activeTab !== 'all' && activeTab !== 'expenses') return [];
     if (!q) {
-      return expenses.slice(0, 8);
+      return allGroupedExpenses.slice(0, 12);
     }
-    return expenses.filter(e => {
-      const descMatch = (e.description || '').toLowerCase().includes(q);
-      const catMatch = (e.category || '').toLowerCase().includes(q);
-      const notesMatch = (e.notes || '').toLowerCase().includes(q);
-      const amtMatch = String(e.amount).includes(q);
-      const dateMatch = (e.date || '').toLowerCase().includes(q);
-      const friendMatch = e.friendId ? (friends.find(f => f.id === e.friendId)?.name || '').toLowerCase().includes(q) : false;
-      const vendorMatch = e.vendorId ? (friends.find(f => f.id === e.vendorId)?.name || '').toLowerCase().includes(q) : false;
-      return descMatch || catMatch || notesMatch || amtMatch || dateMatch || friendMatch || vendorMatch;
+    return allGroupedExpenses.filter(ge => {
+      const descMatch = (ge.description || '').toLowerCase().includes(q);
+      const catMatch = (ge.category || '').toLowerCase().includes(q);
+      const amtMatch = String(ge.totalAmount).includes(q) || ge.items.some(i => String(i.amount).includes(q));
+      const dateMatch = (ge.date || '').toLowerCase().includes(q);
+      const notesMatch = ge.items.some(i => (i.notes || '').toLowerCase().includes(q));
+      const friendMatch = ge.friendIds.some(fid => (friendsMap.get(fid)?.name || '').toLowerCase().includes(q));
+      const vendorMatch = ge.vendorId ? (friendsMap.get(ge.vendorId)?.name || '').toLowerCase().includes(q) : false;
+      const walletMatch = ge.walletId ? (walletsMap.get(ge.walletId)?.name || '').toLowerCase().includes(q) : false;
+      const splitMatch = ge.isSplit && ('split'.includes(q) || 'share'.includes(q) || 'bill'.includes(q));
+
+      return descMatch || catMatch || amtMatch || dateMatch || notesMatch || friendMatch || vendorMatch || walletMatch || splitMatch;
     }).slice(0, 30);
-  }, [expenses, friends, q, activeTab]);
+  }, [allGroupedExpenses, friendsMap, walletsMap, q, activeTab]);
 
   // Search Contacts (Friends, Vendors, Subscriptions)
   const matchingContacts = useMemo(() => {
@@ -587,26 +606,38 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                     {!q && <span style={{ fontSize: '10px', fontWeight: 500, opacity: 0.8 }}>Recent</span>}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {matchingExpenses.map(e => {
-                      const isOut = expenseFlow(e) === 'out';
-                      const friend = e.friendId ? friends.find(f => f.id === e.friendId) : null;
+                    {matchingExpenses.map(ge => {
+                      const isTransfer = ge.category === 'Transfer' || ge.items.some(i => i.category === 'Transfer');
+                      const isIn = (ge.flow === 'in' && !isTransfer) || (ge.isSettlementGroup && ge.flow === 'in');
+                      const rawFriends = ge.friendIds.map(fid => friendsMap.get(fid)).filter(Boolean) as typeof friends;
+                      const vendorId = ge.vendorId || ge.items.find(i => i.vendorId)?.vendorId;
+                      const vendor = vendorId ? friendsMap.get(vendorId) : null;
+                      const friendsToShow = vendor ? rawFriends.filter(f => f.id !== vendor.id) : rawFriends;
+                      const isSplit = ge.isSplit && !ge.isSettlementGroup;
+                      const catMeta = resolveCategoryMeta(ge.category, categoriesMap.get(ge.category), ge.isSettlementGroup);
+
                       return (
                         <div
-                          key={e.id}
-                          onClick={() => {
-                            handleClose();
-                            onNavigate('expenses', e.id);
-                          }}
+                          key={ge.id}
+                          onClick={() => setSelectedDetailGe(ge)}
+                          role="button"
+                          tabIndex={0}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '11px 13px',
+                            padding: '10px 12px',
                             background: 'var(--surface2)',
                             border: '1px solid var(--border)',
                             borderRadius: '12px',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedDetailGe(ge);
+                            }
                           }}
                           onMouseEnter={ev => {
                             ev.currentTarget.style.borderColor = 'var(--accent)';
@@ -615,66 +646,138 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                             ev.currentTarget.style.borderColor = 'var(--border)';
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
+                            {/* Clean Category Icon */}
                             <div
                               style={{
                                 width: '36px',
                                 height: '36px',
                                 borderRadius: '10px',
-                                backgroundColor: 'var(--surface3)',
+                                backgroundColor: catMeta.bg,
+                                border: `1px solid ${catMeta.border}`,
                                 display: 'grid',
                                 placeItems: 'center',
                                 flexShrink: 0,
+                                color: catMeta.color,
                               }}
                             >
-                              <CategoryIcon category={e.category} size={17} />
+                              <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={18} style={{ color: catMeta.color }} />
                             </div>
-                            <div style={{ minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: '13.5px',
-                                  fontWeight: 600,
-                                  color: 'var(--text)',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {e.description}
-                              </div>
+
+                            {/* Info */}
+                            <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
+                              {/* Title line */}
                               <div
                                 style={{
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: '6px',
+                                  minWidth: 0,
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontSize: '13.5px',
+                                    fontWeight: 600,
+                                    color: 'var(--text)',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {ge.description}
+                                </span>
+                                {isSplit && (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                      fontSize: '10px',
+                                      fontWeight: 600,
+                                      backgroundColor: 'var(--accent-soft)',
+                                      color: 'var(--accent)',
+                                      whiteSpace: 'nowrap',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <Users size={10} />
+                                    <span>Split</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Subtitle line */}
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
                                   fontSize: '11.5px',
                                   color: 'var(--text-3)',
                                   marginTop: '2px',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
                                 }}
                               >
-                                <span>{e.category}</span>
-                                <span>•</span>
-                                <span>{fmtDate(e.date)}</span>
-                                {friend && (
+                                <span style={{ flexShrink: 0 }}>{ge.category}</span>
+                                <span style={{ flexShrink: 0 }}>•</span>
+                                <span style={{ flexShrink: 0 }}>{fmtDate(ge.date)}</span>
+                                {vendor && (
                                   <>
-                                    <span>•</span>
-                                    <span style={{ color: 'var(--accent)', fontWeight: 500 }}>{friend.name}</span>
+                                    <span style={{ flexShrink: 0 }}>•</span>
+                                    <span
+                                      style={{
+                                        color: 'var(--text-2)',
+                                        fontWeight: 500,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                    >
+                                      {vendor.name}
+                                    </span>
+                                  </>
+                                )}
+                                {friendsToShow.length > 0 && !vendor && (
+                                  <>
+                                    <span style={{ flexShrink: 0 }}>•</span>
+                                    <span
+                                      style={{
+                                        color: 'var(--text-2)',
+                                        fontWeight: 500,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                    >
+                                      with {friendsToShow.map(f => f.name).join(', ')}
+                                    </span>
                                   </>
                                 )}
                               </div>
                             </div>
                           </div>
 
+                          {/* Right Amount */}
                           <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: '10px' }}>
                             <div
                               style={{
                                 fontSize: '14px',
                                 fontWeight: 700,
-                                color: isOut ? 'var(--debit, #ef4444)' : 'var(--credit, #22c55e)',
+                                color: isIn ? 'var(--credit, #22c55e)' : (ge.flow === 'out' ? 'var(--debit, #ef4444)' : 'var(--text)'),
                               }}
                             >
-                              {isOut ? '-' : '+'}{fmtMoney(Number(e.amount), currency)}
+                              {isIn ? '+' : (ge.flow === 'out' ? '-' : '')}{fmtMoney(ge.totalAmount, currency)}
                             </div>
+                            {isSplit && ge.personalShare > 0 && ge.personalShare !== ge.totalAmount && (
+                              <div style={{ fontSize: '10.5px', color: 'var(--text-3)', fontWeight: 500, marginTop: '1px' }}>
+                                You: {fmtMoney(ge.personalShare, currency)}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -1195,6 +1298,48 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
           )}
         </div>
       </div>
+
+      {/* Expense Detail Drawer */}
+      {selectedDetailGe && (
+        <ExpenseDetailDrawer
+          ge={selectedDetailGe}
+          currency={currency}
+          onClose={() => setSelectedDetailGe(null)}
+          onEdit={(exp) => {
+            setSelectedDetailGe(null);
+            setEditExp(exp);
+          }}
+          onDelete={(id) => {
+            setSelectedDetailGe(null);
+            setDelExpId(id);
+          }}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {editExp && (
+        <ExpenseModal
+          expense={editExp}
+          onClose={() => setEditExp(null)}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      {delExpId && (
+        <ConfirmDialog
+          title="Delete Expense"
+          message="Are you sure you want to delete this expense? This action cannot be undone."
+          confirmLabel="Delete"
+          onConfirm={() => {
+            if (delExpId) {
+              deleteExpense(delExpId);
+              showToast('Expense deleted');
+              setDelExpId(null);
+            }
+          }}
+          onClose={() => setDelExpId(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Handshake, Plus, ChevronDown, ChevronUp, Edit2, Trash2, Store, Tv, ExternalLink, RefreshCw, Zap, Play } from 'lucide-react';
+import { ArrowLeft, Handshake, Plus, Edit2, Trash2, Store, Tv, ExternalLink, RefreshCw, Zap, Play } from 'lucide-react';
 import { useStore } from '../store';
 import { friendBalance, expenseFlow, contactTotalSpent } from '../db';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, cleanExpenseDescription, formatBillingCycleShort } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, cleanExpenseDescription, formatBillingCycleShort, groupExpenses, type GroupedExpense } from '../utils';
 import type { ViewName, Expense } from '../types';
 import FriendModal from '../components/FriendModal';
 import { renderBrandLogo } from '../components/BrandIcons';
@@ -11,6 +11,7 @@ import SettleModal from '../components/SettleModal';
 import ExpenseModal from '../components/ExpenseModal';
 import RecurringModal from '../components/RecurringModal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { ExpenseDetailDrawer } from '../components/ExpenseDetailDrawer';
 
 interface Props {
   friendId: string;
@@ -27,15 +28,21 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
   const [showAddExp, setShowAddExp] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
+  const [selectedDetailGe, setSelectedDetailGe] = useState<GroupedExpense | null>(null);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [tab, setTab] = useState<'active' | 'settled'>('active');
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
-
-  const toggleExpand = (id: string) => {
-    setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
-  };
 
   const contactType = friend?.type || 'friend';
+
+  const handleOpenDetail = (e: Expense) => {
+    const related = e.groupId
+      ? db.expenses.filter(x => x.groupId === e.groupId)
+      : [e];
+    const grouped = groupExpenses(related.length > 0 ? related : [e], db.wallets, db.friends);
+    if (grouped.length > 0) {
+      setSelectedDetailGe(grouped[0]);
+    }
+  };
 
   const bal = useMemo(() => friend ? friendBalance(db, friend.id) : { owedToMe: 0, owedByMe: 0, net: 0 }, [db, friend]);
   const allExps = useMemo(() =>
@@ -726,7 +733,12 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       : (isPartial ? 'Partially Settled' : (e.type === 'personal' && e.status === 'paid' ? 'Paid' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'))));
 
                   return (
-                    <tr key={e.id} className={rowClass}>
+                    <tr
+                      key={e.id}
+                      className={rowClass}
+                      onClick={() => handleOpenDetail(e)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <td style={{ fontWeight: 600, fontSize: 13 }}>{cleanExpenseDescription(e.description)}</td>
                       <td style={{ fontWeight: 650, color: contactType === 'friend' ? (isIn ? 'var(--credit)' : e.type === 'by_friend' ? 'var(--debit)' : undefined) : 'var(--text-1)' }}>
                         {contactType === 'friend' ? (isIn ? '+' : '') : ''}{fmtMoney(e.amount, currency)}
@@ -750,7 +762,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <span style={{ color: 'var(--text-3)', fontSize: 12 }}>—</span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right' }} onClick={(ev) => ev.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
                           <button className="btn-icon" onClick={() => setEditingExpense(e)} title="Edit"><Edit2 size={15} /></button>
                           <button className="btn-icon" onClick={() => setDeletingExpenseId(e.groupId || e.id)} title="Delete" style={{ color: 'var(--debit)' }}><Trash2 size={15} /></button>
@@ -763,13 +775,11 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             </table>
           </div>
 
-          {/* Mobile Expandable Floating Cards View (No Split Lines) */}
+          {/* Mobile Cards View - Click to open drawer */}
           <div className="mobile-expense-list mobile-only">
             {shown.map(e => {
               const cat = db.settings.categories.find(c => c.name === e.category);
-              const wallet = db.wallets.find(w => w.id === e.walletId);
               const isIn = expenseFlow(e) === 'in';
-              const isExpanded = !!expandedIds[e.id];
 
               const isVendorView = e.vendorId === friendId;
               const isIncome = expenseFlow(e) === 'in' && e.type === 'personal';
@@ -789,8 +799,21 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   : (isPartial ? 'Partially Settled' : (e.type === 'personal' && e.status === 'paid' ? 'Paid' : (e.status === 'unpaid' ? 'Unpaid' : 'Unsettled'))));
 
               return (
-                <div key={e.id} className={`mobile-expense-card ${isExpanded ? 'is-expanded' : ''}`}>
-                  <div className="mobile-expense-header" onClick={() => toggleExpand(e.id)}>
+                <div
+                  key={e.id}
+                  className="mobile-expense-card"
+                  onClick={() => handleOpenDetail(e)}
+                  role="button"
+                  tabIndex={0}
+                  style={{ cursor: 'pointer' }}
+                  onKeyDown={(ev) => {
+                    if (ev.key === 'Enter' || ev.key === ' ') {
+                      ev.preventDefault();
+                      handleOpenDetail(e);
+                    }
+                  }}
+                >
+                  <div className="mobile-expense-header">
                     <div className="mobile-expense-top">
                       <div className="mobile-expense-desc-wrap">
                         <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={14} showLabel={false} />
@@ -817,78 +840,29 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           </span>
                         )}
                       </div>
-                      <div className="mobile-expense-expand-btn">
-                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </div>
                     </div>
                   </div>
-
-                  {isExpanded && (
-                    <div className="mobile-expense-details">
-                      <div className="mobile-expense-detail-grid">
-                        <div className="mobile-expense-detail-item">
-                          <span className="mobile-expense-detail-label">Category</span>
-                          <span className="mobile-expense-detail-val">
-                            <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={13} />
-                          </span>
-                        </div>
-
-                        <div className="mobile-expense-detail-item">
-                          <span className="mobile-expense-detail-label">Wallet</span>
-                          <span className="mobile-expense-detail-val">{wallet?.name ?? '—'}</span>
-                        </div>
-
-                        <div className="mobile-expense-detail-item">
-                          <span className="mobile-expense-detail-label">Type</span>
-                          <span className="mobile-expense-detail-val">{typeLabel(e.type, contactType)}</span>
-                        </div>
-
-                        {statusKey !== 'none' && itemStatusLabel && (
-                          <div className="mobile-expense-detail-item">
-                            <span className="mobile-expense-detail-label">Status</span>
-                            <span className="mobile-expense-detail-val">
-                              <span className={`badge badge-${statusKey}`}>{itemStatusLabel}</span>
-                            </span>
-                          </div>
-                        )}
-
-                        {e.notes && (
-                          <div className="mobile-expense-detail-item" style={{ gridColumn: '1 / -1' }}>
-                            <span className="mobile-expense-detail-label">Notes</span>
-                            <span className="mobile-expense-detail-val" style={{ fontWeight: 400, fontStyle: 'italic' }}>{e.notes}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="mobile-expense-actions">
-                        <button
-                          type="button"
-                          className="mobile-action-btn action-edit"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            setEditingExpense(e);
-                          }}
-                        >
-                          <Edit2 size={14} /> Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="mobile-action-btn action-delete"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            setDeletingExpenseId(e.groupId || e.id);
-                          }}
-                        >
-                          <Trash2 size={14} /> Delete
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
         </>
+      )}
+
+      {selectedDetailGe && (
+        <ExpenseDetailDrawer
+          ge={selectedDetailGe}
+          currency={currency}
+          onClose={() => setSelectedDetailGe(null)}
+          onEdit={(exp) => {
+            setSelectedDetailGe(null);
+            setEditingExpense(exp);
+          }}
+          onDelete={(id) => {
+            setSelectedDetailGe(null);
+            setDeletingExpenseId(id);
+          }}
+        />
       )}
 
       {showEdit && <FriendModal friend={friend} onClose={() => setShowEdit(false)} />}

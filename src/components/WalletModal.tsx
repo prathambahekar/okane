@@ -65,6 +65,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
   return createPortal(
     <div
       className="modal-backdrop"
+      style={{ zIndex: 100050 }}
       onClick={e => {
         if (e.target === e.currentTarget) onClose();
       }}

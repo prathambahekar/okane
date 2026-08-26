@@ -14,7 +14,11 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
   const isDeleteAction = confirmLabel.toLowerCase().includes('delete') || confirmLabel.toLowerCase().includes('remove');
 
   return createPortal(
-    <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="modal-backdrop"
+      style={{ zIndex: 100070 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div className="modal confirm-modal" onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)' }}>
         <div className="modal-header" style={{ padding: '18px 20px 10px', borderBottom: 'none', background: 'transparent' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
