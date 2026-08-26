@@ -5,6 +5,7 @@ import { fmtMoney, groupExpenses, type GroupedExpense } from '../utils';
 import { CategoryBadge } from '../components/CategoryIcon';
 import ExpenseModal from '../components/ExpenseModal';
 import ExpenseDetailDrawer from '../components/ExpenseDetailDrawer';
+import DailyWalletBalanceDrawer from '../components/DailyWalletBalanceDrawer';
 import type { Expense } from '../types';
 import {
   BarChart2,
@@ -58,6 +59,7 @@ export default function Analytics() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showCategoryDrawer, setShowCategoryDrawer] = useState(false);
+  const [showDailyBalanceDrawer, setShowDailyBalanceDrawer] = useState(false);
 
   // Lock body scroll when Category Drawer is open
   useEffect(() => {
@@ -1356,6 +1358,27 @@ export default function Analytics() {
                   background: 'var(--surface2)',
                   fontWeight: 600,
                 }}
+                onClick={() => setShowDailyBalanceDrawer(true)}
+                title="View daily wallet balances & cash movement history"
+              >
+                <Wallet size={13} style={{ color: 'var(--accent)' }} /> Wallet Balance
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  height: 26,
+                  gap: 4,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  border: 'none',
+                  background: 'var(--surface2)',
+                  fontWeight: 600,
+                }}
                 onClick={() => setShowCategoryDrawer(true)}
               >
                 <PieChart size={13} style={{ color: 'var(--accent)' }} /> Categories
@@ -1822,6 +1845,14 @@ export default function Analytics() {
           onClose={() => setEditingExpense(null)}
         />
       )}
+
+      {/* Daily Wallet Balance Drawer */}
+      <DailyWalletBalanceDrawer
+        isOpen={showDailyBalanceDrawer}
+        onClose={() => setShowDailyBalanceDrawer(false)}
+        initialMonth={selectedMonth || undefined}
+        initialDate={selectedDate || undefined}
+      />
 
       {/* Confirmation Delete Dialog */}
       {deletingId && (
