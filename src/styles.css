@@ -6431,4 +6431,11 @@ body.no-animations *::after,
   box-sizing: border-box;
 }
 
+@media (max-width: 640px) {
+  .spending-mode-btn-text,
+  .top-bar-spending-badge-text {
+    display: none !important;
+  }
+}
+
 

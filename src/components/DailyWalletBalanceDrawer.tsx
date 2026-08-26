@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store';
 import { fmtMoney, cleanExpenseDescription } from '../utils';
-import { expenseFlow } from '../db';
+import { expenseFlow, expenseWalletDelta } from '../db';
 import type { Expense, Settlement, Wallet } from '../types';
 
 interface Props {
@@ -137,11 +137,12 @@ export default function DailyWalletBalanceDrawer({
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
     if (isOpen) {
-      if (initialMonth && /^\d{4}-\d{2}$/.test(initialMonth)) {
-        setSelectedMonth(initialMonth);
-      } else if (initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate)) {
+      if (initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate)) {
         setSelectedMonth(initialDate.slice(0, 7));
         setSelectedDayDate(initialDate);
+      } else if (initialMonth && /^\d{4}-\d{2}$/.test(initialMonth)) {
+        setSelectedMonth(initialMonth);
+        setSelectedDayDate(null);
       }
     }
   }
@@ -175,17 +176,6 @@ export default function DailyWalletBalanceDrawer({
     return map;
   }, [wallets]);
 
-  // Group has by_friend check (for splitting logic)
-  const groupHasByFriend = useMemo(() => {
-    const set = new Set<string>();
-    expenses.forEach(e => {
-      if (e.groupId && e.type === 'by_friend') {
-        set.add(e.groupId);
-      }
-    });
-    return set;
-  }, [expenses]);
-
   // Calculate daily balance records for the active selectedMonth
   const {
     dailyRecords,
@@ -207,6 +197,8 @@ export default function DailyWalletBalanceDrawer({
       : wallets.filter(w => w.id === selectedWalletId);
 
     const targetWalletIds = new Set(targetWallets.map(w => w.id));
+
+    const spendingMode = db.settings?.spendingMode || 'all';
 
     let openingBeforeMonth = 0;
     targetWallets.forEach(w => {
@@ -234,42 +226,52 @@ export default function DailyWalletBalanceDrawer({
 
     // Process expenses
     expenses.forEach(e => {
-      if (!e.walletId || e.status === 'unpaid' || e.type === 'by_friend') return;
-      const skipGroup = e.groupId ? groupHasByFriend.has(e.groupId) : false;
-      const skipVendorSettled = e.vendorId && e.vendorSettlementId;
-      if (skipGroup || skipVendorSettled) return;
-
       const amt = Number(e.amount) || 0;
       if (amt === 0) return;
-      const isIncoming = expenseFlow(e) === 'in';
-      const wObj = walletMap.get(e.walletId);
-      const wName = wObj?.name || 'Wallet';
+
+      const effectiveWId = e.walletId || db.settings?.defaultWalletId || (wallets[0]?.id || 'wal_cash');
+      const wObj = walletMap.get(effectiveWId);
+      const wName = wObj?.name || 'Cash / Default';
       const wColor = wObj?.color || 'var(--accent)';
 
+      const isIncoming = expenseFlow(e) === 'in';
+      const delta = expenseWalletDelta(e, db);
+
       let baseDesc = cleanExpenseDescription(e.description) || (isIncoming ? 'Income Received' : 'Expense');
-      if (e.type === 'for_friend' && e.friendId) {
+      if (e.status === 'unpaid') {
+        baseDesc = `${baseDesc} (Unpaid)`;
+      } else if (spendingMode !== 'me' && e.type === 'for_friend' && e.friendId) {
         const friend = db.friends?.find(f => f.id === e.friendId);
         const fName = friend ? friend.name : 'Friend';
         baseDesc = `${baseDesc} (${fName}'s share)`;
-      } else if (e.type === 'personal' && e.groupId) {
+      } else if (spendingMode !== 'me' && e.type === 'personal' && e.groupId) {
         const isSplitGroup = expenses.some(other => other.groupId === e.groupId && other.id !== e.id);
         if (isSplitGroup) {
           baseDesc = `${baseDesc} (My share)`;
         }
       }
 
-      if (e.date < monthStartIso) {
-        if (targetWalletIds.has(e.walletId)) {
-          openingBeforeMonth += (isIncoming ? amt : -amt);
+      if (delta !== 0) {
+        if (e.date < monthStartIso) {
+          if (targetWalletIds.has(effectiveWId)) {
+            openingBeforeMonth += delta;
+          }
+        }
+
+        const entry = getActivityEntry(e.date, effectiveWId);
+        if (delta > 0) {
+          entry.cashIn += delta;
+        } else {
+          entry.cashOut += Math.abs(delta);
         }
       }
 
-      const entry = getActivityEntry(e.date, e.walletId);
-      if (isIncoming) {
-        entry.cashIn += amt;
-      } else {
-        entry.cashOut += amt;
+      // If spendingMode === 'me', do not include items paid for friends in the transactions list
+      if (spendingMode === 'me' && e.type === 'for_friend') {
+        return;
       }
+
+      const entry = getActivityEntry(e.date, effectiveWId);
       entry.txs.push({
         id: e.id,
         type: 'expense',
@@ -277,7 +279,7 @@ export default function DailyWalletBalanceDrawer({
         category: e.category,
         amount: amt,
         flow: isIncoming ? 'in' : 'out',
-        walletId: e.walletId,
+        walletId: effectiveWId,
         walletName: wName,
         walletColor: wColor,
         rawExpense: e,
@@ -331,12 +333,9 @@ export default function DailyWalletBalanceDrawer({
     wallets.forEach(w => {
       let bal = Number(w.openingBalance) || 0;
       expenses.forEach(e => {
-        if (e.walletId === w.id && e.status !== 'unpaid' && e.type !== 'by_friend' && e.date < monthStartIso) {
-          const skipGroup = e.groupId ? groupHasByFriend.has(e.groupId) : false;
-          const skipVendorSettled = e.vendorId && e.vendorSettlementId;
-          if (!skipGroup && !skipVendorSettled) {
-            bal += (expenseFlow(e) === 'in' ? Number(e.amount) || 0 : -(Number(e.amount) || 0));
-          }
+        const effWId = e.walletId || db.settings?.defaultWalletId || (wallets[0]?.id || 'wal_cash');
+        if (effWId === w.id && e.date < monthStartIso) {
+          bal += expenseWalletDelta(e, db);
         }
       });
       settlements.forEach(s => {
@@ -451,7 +450,7 @@ export default function DailyWalletBalanceDrawer({
       monthDaysCount: eligibleRecords.length,
       activeDaysCount: activeDays,
     };
-  }, [selectedMonth, selectedWalletId, wallets, expenses, settlements, groupHasByFriend, walletMap, todayStr, yesterdayStr, db.friends]);
+  }, [selectedMonth, selectedWalletId, wallets, expenses, settlements, walletMap, todayStr, yesterdayStr, db]);
 
   // Max available month (current month or any future month containing transactions)
   const maxAvailableMonth = useMemo(() => {

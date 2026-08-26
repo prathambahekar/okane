@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../store';
-import { fmtMoney, groupExpenses, type GroupedExpense } from '../utils';
+import { fmtMoney, groupExpenses, getGroupedExpenseAmount, type GroupedExpense } from '../utils';
 import { CategoryBadge } from '../components/CategoryIcon';
 import ExpenseModal from '../components/ExpenseModal';
 import ExpenseDetailDrawer from '../components/ExpenseDetailDrawer';
@@ -16,7 +16,7 @@ import {
   ChevronRight,
   Award,
   Check,
-  X
+  X,
 } from 'lucide-react';
 
 function padZero(n: number): string {
@@ -44,6 +44,7 @@ function fmtCompactMoney(amount: number, currency: string): string {
 export default function Analytics() {
   const { db, deleteExpense, showToast } = useStore();
   const { expenses, wallets, settings: { currency } } = db;
+  const spendingMode = db.settings?.spendingMode || 'all';
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
@@ -117,13 +118,13 @@ export default function Analytics() {
 
   // Outflow total for filtered view
   const totalSpent = useMemo(() =>
-    filteredExpenses.filter(ge => ge.flow === 'out').reduce((sum, ge) => sum + Number(ge.totalAmount), 0),
-  [filteredExpenses]);
+    filteredExpenses.filter(ge => ge.flow === 'out').reduce((sum, ge) => sum + getGroupedExpenseAmount(ge, spendingMode), 0),
+  [filteredExpenses, spendingMode]);
 
   // Outflow total across the active timeframe (for category share % and summary)
   const timeframeOutflowTotal = useMemo(() =>
-    timeframeExpenses.filter(ge => ge.flow === 'out').reduce((sum, ge) => sum + Number(ge.totalAmount), 0),
-  [timeframeExpenses]);
+    timeframeExpenses.filter(ge => ge.flow === 'out').reduce((sum, ge) => sum + getGroupedExpenseAmount(ge, spendingMode), 0),
+  [timeframeExpenses, spendingMode]);
 
   // Days in selected timeframe or selected month / week
   const daysInPeriod = useMemo(() => {
@@ -241,7 +242,7 @@ export default function Analytics() {
       const isCurrentMonth = monthKey === currentMonthKey;
 
       const monthExps = baseList.filter(ge => ge.date.slice(0, 7) === monthKey);
-      const spend = monthExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + Number(ge.totalAmount), 0);
+      const spend = monthExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + getGroupedExpenseAmount(ge, spendingMode), 0);
       const count = monthExps.length;
 
       const daysInM = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
@@ -261,7 +262,7 @@ export default function Analytics() {
     }
 
     return months;
-  }, [groupedExpenses, selectedCategory, todayStr, now]);
+  }, [groupedExpenses, selectedCategory, todayStr, now, spendingMode]);
 
   const maxMonthlyVal = useMemo(() => {
     return Math.max(...monthlyMonths.map(m => m.spend), dailyAvgSpend, 10);
@@ -317,7 +318,7 @@ export default function Analytics() {
 
           const inSelectedMonth = dateStr.slice(0, 7) === selectedMonth;
           const dayExps = baseList.filter(ge => ge.date === dateStr && inSelectedMonth);
-          const spend = dayExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + Number(ge.totalAmount), 0);
+          const spend = dayExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + getGroupedExpenseAmount(ge, spendingMode), 0);
 
           weekTotal += spend;
 
@@ -400,7 +401,7 @@ export default function Analytics() {
         const dayName = cur.toLocaleDateString(undefined, { weekday: 'short' });
         const dayNum = cur.getDate();
         const dayExps = baseList.filter(ge => ge.date === dateStr);
-        const spend = dayExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + Number(ge.totalAmount), 0);
+        const spend = dayExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + getGroupedExpenseAmount(ge, spendingMode), 0);
 
         weekTotal += spend;
 
@@ -429,7 +430,7 @@ export default function Analytics() {
     }
 
     return weeks;
-  }, [groupedExpenses, selectedCategory, selectedMonth, todayStr, yesterdayStr]);
+  }, [groupedExpenses, selectedCategory, selectedMonth, todayStr, yesterdayStr, spendingMode]);
 
   // Selected Week details
   const selectedWeekObj = useMemo(() => {
@@ -469,12 +470,13 @@ export default function Analytics() {
         map[d] = { spend: 0, income: 0, items: [], categories: {} };
       }
       map[d].items.push(ge);
+      const amt = getGroupedExpenseAmount(ge, spendingMode);
       if (ge.flow === 'out') {
-        map[d].spend += Number(ge.totalAmount);
-        map[d].categories[ge.category] = (map[d].categories[ge.category] || 0) + Number(ge.totalAmount);
+        map[d].spend += amt;
+        map[d].categories[ge.category] = (map[d].categories[ge.category] || 0) + amt;
       } else {
-        map[d].income += Number(ge.totalAmount);
-        map[d].categories[ge.category] = (map[d].categories[ge.category] || 0) + Number(ge.totalAmount);
+        map[d].income += amt;
+        map[d].categories[ge.category] = (map[d].categories[ge.category] || 0) + amt;
       }
     });
 
@@ -499,15 +501,17 @@ export default function Analytics() {
         };
       })
       .sort((a, b) => b.dateStr.localeCompare(a.dateStr));
-  }, [filteredExpenses, todayStr, yesterdayStr]);
+  }, [filteredExpenses, todayStr, yesterdayStr, spendingMode]);
 
   // Category breakdown
   const categoryBreakdown = useMemo(() => {
     const map: Record<string, { amount: number; count: number }> = {};
     timeframeExpenses.forEach(ge => {
       if (ge.flow !== 'out') return;
+      const amt = getGroupedExpenseAmount(ge, spendingMode);
+      if (amt === 0) return;
       if (!map[ge.category]) map[ge.category] = { amount: 0, count: 0 };
-      map[ge.category].amount += Number(ge.totalAmount);
+      map[ge.category].amount += amt;
       map[ge.category].count += 1;
     });
 
@@ -519,7 +523,7 @@ export default function Analytics() {
         pct: timeframeOutflowTotal > 0 ? (data.amount / timeframeOutflowTotal) * 100 : 0,
       }))
       .sort((a, b) => b.amount - a.amount);
-  }, [timeframeExpenses, timeframeOutflowTotal]);
+  }, [timeframeExpenses, timeframeOutflowTotal, spendingMode]);
 
   // Toggle date selection from bar chart or list
   const handleToggleDate = (dateStr: string) => {
@@ -539,7 +543,7 @@ export default function Analytics() {
   return (
     <div className="view-container" style={{ paddingBottom: 24 }}>
       {/* Header */}
-      <div className="page-header" style={{ marginBottom: 12 }}>
+      <div className="page-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 className="page-title">Analytics</h1>
         </div>

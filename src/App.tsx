@@ -15,6 +15,7 @@ import {
   ReceiptText,
   Wallet,
   Users,
+  User,
   Handshake,
   BarChart3,
   Settings as SettingsIconLucide,
@@ -141,6 +142,8 @@ function AppInner() {
     toggleDark();
     updateSettings({ colorMode: nextMode });
   };
+
+  const spendingMode = db.settings?.spendingMode || 'all';
 
   const { expenses, friends, currency } = useMemo(() => ({
     expenses: db.expenses,
@@ -650,6 +653,38 @@ function AppInner() {
                   fontSize: { xs: '0.75rem', sm: '0.8rem' }, fontWeight: 700
                 }}>
                   {fmtMoney(totalBal, currency)}
+                </Box>
+              )}
+
+              {view === 'analytics' && (
+                <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextMode = spendingMode === 'all' ? 'me' : 'all';
+                      updateSettings({ spendingMode: nextMode });
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '5px 12px',
+                      borderRadius: 999,
+                      background: spendingMode === 'me' ? 'var(--accent-soft)' : 'var(--surface2)',
+                      color: spendingMode === 'me' ? 'var(--accent)' : 'var(--text)',
+                      border: '1px solid',
+                      borderColor: spendingMode === 'me' ? 'var(--accent)' : 'var(--border)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {spendingMode === 'me' ? <User size={14} style={{ color: 'var(--accent)' }} /> : <Users size={14} />}
+                    <span>{spendingMode === 'me' ? 'Just Me' : 'All Expenses'}</span>
+                  </button>
                 </Box>
               )}
 

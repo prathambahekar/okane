@@ -1,15 +1,18 @@
 import React from 'react';
 import {
   Users, User, CheckCircle2, RotateCcw, Edit2, Trash2,
-  Store, Wallet as WalletIcon
+  Store, Wallet as WalletIcon, ChevronDown, ChevronUp
 } from 'lucide-react';
 import CategoryIcon from '../CategoryIcon';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, cleanExpenseDescription, type GroupedExpense } from '../../utils';
+import { fmtMoney, friendInitial, getAvatarStyle, typeLabel, resolveCategoryMeta, type GroupedExpense } from '../../utils';
 import type { Expense, Friend, Wallet, Category, Settlement } from '../../types';
+import { renderWalletIcon } from '../WalletIconRenderer';
 
 interface Props {
   ge: GroupedExpense;
   currency: string;
+  isExpanded?: boolean;
+  onToggleExpand?: (id: string) => void;
   onEdit: (expense: Expense) => void;
   onDelete: (id: string) => void;
   onUndo: (id: string) => void;
@@ -25,6 +28,8 @@ interface Props {
 export const ExpenseTableRow: React.FC<Props> = React.memo(({
   ge,
   currency,
+  isExpanded = false,
+  onToggleExpand = () => {},
   onEdit,
   onDelete,
   onUndo,
@@ -34,7 +39,6 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
   friendsMap,
   walletsMap,
   settlementObj,
-  onSelectDetail,
 }) => {
   const primaryItem = ge.items[0];
 
@@ -69,11 +73,11 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
             <div
               className="tx-squircle-icon"
               style={{
-                background: categoryObj?.color && categoryObj.color.startsWith('#') ? `${categoryObj.color}20` : 'var(--accent-soft)',
-                color: categoryObj?.color || 'var(--accent)'
+                background: catMeta.bg || (categoryObj?.color && categoryObj.color.startsWith('#') ? `${categoryObj.color}20` : 'var(--accent-soft)'),
+                color: catMeta.color || categoryObj?.color || 'var(--accent)'
               }}
             >
-              <CategoryIcon category={ge.category} icon={categoryObj?.icon} size={20} />
+              <CategoryIcon category={ge.category} icon={catMeta.icon || categoryObj?.icon} size={20} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -192,65 +196,63 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
             )}
             <span>{effectiveWalletName}</span>
           </span>
-        ) : (
-          <span style={{ color: 'var(--text-3)', fontSize: 13, padding: '0 8px' }}>—</span>
-        )}
-      </td>
-      <td>
-        {groupStatus.statusKey !== 'none' && groupStatus.statusLabel ? (
-          ge.isSettlementGroup ? (
-            <span className="tx-status-pill status-settled">
-              <span>Settled ✓</span>
-            </span>
+        </td>
+        <td>
+          {groupStatus.statusKey !== 'none' && groupStatus.statusLabel ? (
+            ge.isSettlementGroup ? (
+              <span className="tx-status-pill status-settled">
+                <span>Settled ✓</span>
+              </span>
+            ) : (
+              <span className={`tx-status-pill status-${groupStatus.statusKey}`}>
+                <span>{groupStatus.statusLabel}</span>
+              </span>
+            )
           ) : (
-            <span className={`tx-status-pill status-${groupStatus.statusKey}`}>
-              <span>{groupStatus.statusLabel}</span>
-            </span>
-          )
-        ) : (
-          <span style={{ color: 'var(--text-3)', fontSize: 12 }}>—</span>
-        )}
-      </td>
-      <td style={{ textAlign: 'right' }}>
-        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-          {ge.items.some((i: Expense) => i.settled || i.settlementId) && (
+            <span style={{ color: 'var(--text-3)', fontSize: 12 }}>—</span>
+          )}
+        </td>
+        <td style={{ textAlign: 'right' }}>
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+            {ge.items.some((i: Expense) => i.settled || i.settlementId) && (
+              <button
+                type="button"
+                className="tx-action-btn action-undo"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const targetItem = ge.items.find((i: Expense) => i.settlementId) || ge.items.find((i: Expense) => i.settled) || primaryItem;
+                  onUndo(targetItem.settlementId || targetItem.id || ge.id);
+                }}
+                title="Undo Settlement (Restore money to wallet)"
+              >
+                <RotateCcw size={14} />
+              </button>
+            )}
             <button
               type="button"
-              className="tx-action-btn action-undo"
+              className="tx-action-btn"
               onClick={(e) => {
                 e.stopPropagation();
-                const targetItem = ge.items.find((i: Expense) => i.settlementId) || ge.items.find((i: Expense) => i.settled) || primaryItem;
-                onUndo(targetItem.settlementId || targetItem.id || ge.id);
+                onEdit(primaryItem);
               }}
-              title="Undo Settlement (Restore money to wallet)"
+              title="Edit"
             >
-              <RotateCcw size={14} />
+              <Edit2 size={14} />
             </button>
-          )}
-          <button
-            type="button"
-            className="tx-action-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(primaryItem);
-            }}
-            title="Edit"
-          >
-            <Edit2 size={14} />
-          </button>
-          <button
-            type="button"
-            className="tx-action-btn action-delete"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(ge.id);
-            }}
-            title="Delete"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      </td>
-    </tr>
+            <button
+              type="button"
+              className="tx-action-btn action-delete"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(ge.id);
+              }}
+              title="Delete"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </td>
+      </tr>
+    </React.Fragment>
   );
 });

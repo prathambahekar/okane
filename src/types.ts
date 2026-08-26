@@ -144,6 +144,7 @@ export interface Settings {
   sidebarCollapsed?: boolean;
   enableAnimations?: boolean;
   performanceMode?: boolean;
+  spendingMode?: 'all' | 'me';
   enableReportBugCard?: boolean;
   enablePerformanceCard?: boolean;
 }

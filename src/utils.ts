@@ -461,6 +461,33 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
   return result;
 }
 
+export type SpendingMode = 'all' | 'me';
+
+export function getGroupedExpenseAmount(ge: GroupedExpense, mode: SpendingMode = 'all'): number {
+  if (ge.isSettlementGroup) {
+    return mode === 'me' ? 0 : ge.totalAmount;
+  }
+  if (mode === 'me') {
+    if (ge.isSplit) {
+      return ge.personalShare;
+    }
+    const firstItem = ge.items[0];
+    if (firstItem) {
+      if (firstItem.type === 'for_friend') {
+        return 0;
+      }
+      if (firstItem.type === 'personal') {
+        return ge.totalAmount;
+      }
+      if (firstItem.type === 'by_friend') {
+        return ge.totalAmount;
+      }
+    }
+    return ge.personalShare > 0 ? ge.personalShare : ge.totalAmount;
+  }
+  return ge.totalAmount;
+}
+
 export function friendInitial(
   nameOrFriend?: string | { name?: string; avatarNumber?: string },
   avatarNumber?: string
