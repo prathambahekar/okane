@@ -4,7 +4,7 @@ import {
   ChevronDown, ChevronUp, Store, FileText
 } from 'lucide-react';
 import CategoryIcon, { CategoryBadge } from '../CategoryIcon';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, cleanExpenseDescription, type GroupedExpense } from '../../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, cleanExpenseDescription, resolveCategoryMeta, type GroupedExpense } from '../../utils';
 import type { Expense, Friend, Wallet, Category, Settlement } from '../../types';
 
 interface Props {
@@ -62,7 +62,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
   const vendor = vendorId ? friendsMap.get(vendorId) : null;
   const friendsToShow = vendor ? rawFriends.filter(f => f.id !== vendor.id) : rawFriends;
 
-  const categoryColor = categoryObj?.color || 'var(--accent)';
+  const catMeta = resolveCategoryMeta(ge.category, categoryObj, ge.isSettlementGroup);
   const cardClass = `mobile-expense-card ${isExpanded ? 'is-expanded' : ''}`;
 
   return (
@@ -76,16 +76,16 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
               width: 42,
               height: 42,
               borderRadius: 12,
-              backgroundColor: categoryObj?.color ? `${categoryObj.color}15` : 'var(--surface2)',
-              border: `1px solid ${categoryObj?.color ? `${categoryObj.color}25` : 'var(--border)'}`,
+              backgroundColor: catMeta.bg,
+              border: `1px solid ${catMeta.border}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              color: categoryColor,
+              color: catMeta.color,
             }}
           >
-            <CategoryIcon category={ge.category} icon={categoryObj?.icon} size={20} style={{ color: categoryColor }} />
+            <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={20} style={{ color: catMeta.color }} />
           </div>
 
           {/* Middle Info Column */}

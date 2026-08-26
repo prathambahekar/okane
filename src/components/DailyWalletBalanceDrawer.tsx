@@ -8,8 +8,6 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
   Search,
   ArrowUpRight,
   ArrowDownLeft,
@@ -130,8 +128,8 @@ export default function DailyWalletBalanceDrawer({
     setSortOrder('desc');
   };
 
-  // Expanded days state
-  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
+  // Expanded / Selected day state for detail modal
+  const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null);
 
   // Search query within the drawer
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -143,7 +141,7 @@ export default function DailyWalletBalanceDrawer({
         setSelectedMonth(initialMonth);
       } else if (initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate)) {
         setSelectedMonth(initialDate.slice(0, 7));
-        setExpandedDays({ [initialDate]: true });
+        setSelectedDayDate(initialDate);
       }
     }
   }
@@ -242,10 +240,23 @@ export default function DailyWalletBalanceDrawer({
       if (skipGroup || skipVendorSettled) return;
 
       const amt = Number(e.amount) || 0;
+      if (amt === 0) return;
       const isIncoming = expenseFlow(e) === 'in';
       const wObj = walletMap.get(e.walletId);
       const wName = wObj?.name || 'Wallet';
       const wColor = wObj?.color || 'var(--accent)';
+
+      let baseDesc = cleanExpenseDescription(e.description) || (isIncoming ? 'Income Received' : 'Expense');
+      if (e.type === 'for_friend' && e.friendId) {
+        const friend = db.friends?.find(f => f.id === e.friendId);
+        const fName = friend ? friend.name : 'Friend';
+        baseDesc = `${baseDesc} (${fName}'s share)`;
+      } else if (e.type === 'personal' && e.groupId) {
+        const isSplitGroup = expenses.some(other => other.groupId === e.groupId && other.id !== e.id);
+        if (isSplitGroup) {
+          baseDesc = `${baseDesc} (My share)`;
+        }
+      }
 
       if (e.date < monthStartIso) {
         if (targetWalletIds.has(e.walletId)) {
@@ -262,7 +273,7 @@ export default function DailyWalletBalanceDrawer({
       entry.txs.push({
         id: e.id,
         type: 'expense',
-        description: cleanExpenseDescription(e.description) || (isIncoming ? 'Income Received' : 'Expense'),
+        description: baseDesc,
         category: e.category,
         amount: amt,
         flow: isIncoming ? 'in' : 'out',
@@ -514,14 +525,545 @@ export default function DailyWalletBalanceDrawer({
 
   const isCurrentMonth = selectedMonth === todayStr.slice(0, 7);
 
-  const toggleDayExpansion = (dateStr: string) => {
-    setExpandedDays(prev => ({
-      ...prev,
-      [dateStr]: !prev[dateStr],
-    }));
+  const selectedDayRecord = useMemo(() => {
+    if (!selectedDayDate) return null;
+    return dailyRecords.find(r => r.dateStr === selectedDayDate) || null;
+  }, [dailyRecords, selectedDayDate]);
+
+  const selectedDayIndexInList = useMemo(() => {
+    if (!selectedDayDate) return -1;
+    return displayedRecords.findIndex(r => r.dateStr === selectedDayDate);
+  }, [displayedRecords, selectedDayDate]);
+
+  const handlePrevDayInDetail = () => {
+    if (selectedDayIndexInList > 0) {
+      setSelectedDayDate(displayedRecords[selectedDayIndexInList - 1].dateStr);
+    }
+  };
+
+  const handleNextDayInDetail = () => {
+    if (selectedDayIndexInList >= 0 && selectedDayIndexInList < displayedRecords.length - 1) {
+      setSelectedDayDate(displayedRecords[selectedDayIndexInList + 1].dateStr);
+    }
   };
 
   if (!isOpen) return null;
+
+  // If a day is selected, directly render the single clean Day Details Modal without any background drawer underneath
+  if (selectedDayRecord) {
+    return createPortal(
+      <div
+        className="modal-backdrop"
+        onClick={e => {
+          if (e.target === e.currentTarget) {
+            setSelectedDayDate(null);
+            onClose();
+          }
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="day-details-title"
+        style={{ zIndex: 100050 }}
+      >
+        <div
+          className="modal"
+          style={{
+            maxWidth: 500,
+            width: '100%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            borderRadius: 'var(--radius-xl, 16px)',
+            overflow: 'hidden',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.45)',
+          }}
+        >
+          {/* Day Details Header */}
+          <div
+            style={{
+              padding: '14px 18px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'var(--surface)',
+              flexShrink: 0,
+              borderBottom: 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  backgroundColor: selectedDayRecord.isToday ? 'var(--accent)' : 'var(--surface2)',
+                  color: selectedDayRecord.isToday ? 'var(--accent-contrast, #fff)' : 'var(--accent)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  border: selectedDayRecord.isToday ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                <Calendar size={18} strokeWidth={2.2} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <h3
+                    id="day-details-title"
+                    style={{
+                      fontSize: 15.5,
+                      fontWeight: 750,
+                      color: 'var(--text)',
+                      margin: 0,
+                      lineHeight: 1.2,
+                      letterSpacing: '-0.2px',
+                    }}
+                  >
+                    {selectedDayRecord.fullDateLabel}
+                  </h3>
+                  {selectedDayRecord.isToday && (
+                    <span
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        color: 'var(--accent)',
+                        background: 'var(--accent-soft)',
+                        padding: '1px 6px',
+                        borderRadius: 99,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      Today
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
+                  Daily balance details & movements
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="compact-close-btn"
+              onClick={() => {
+                setSelectedDayDate(null);
+                onClose();
+              }}
+              title="Close"
+              aria-label="Close"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Scrollable Day Details Content */}
+          <div
+            className="filter-drawer-content"
+            style={{
+              padding: '12px 18px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 14,
+              overflowY: 'auto',
+              flex: '1 1 auto',
+            }}
+          >
+            {/* Day Metrics Bento Card (Clean, no split lines) */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                background: 'var(--surface2)',
+                borderRadius: 12,
+                padding: '12px 14px',
+                gap: 8,
+                border: '1px solid var(--border)',
+              }}
+            >
+              {/* Start of Day Opening */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 650,
+                    color: 'var(--text-3)',
+                    letterSpacing: '0.2px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Opening
+                </span>
+                <span
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    marginTop: 3,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {fmtMoney(selectedDayRecord.previousBalance, currency)}
+                </span>
+                <span style={{ fontSize: 9.5, color: 'var(--text-3)', marginTop: 2 }}>Start of Day</span>
+              </div>
+
+              {/* Day Net Movement */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 650,
+                    color: 'var(--text-3)',
+                    letterSpacing: '0.2px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Day Flow
+                </span>
+                <span
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 750,
+                    color:
+                      selectedDayRecord.dayNetChange > 0
+                        ? 'var(--credit)'
+                        : selectedDayRecord.dayNetChange < 0
+                        ? 'var(--debit)'
+                        : 'var(--text-3)',
+                    marginTop: 3,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {selectedDayRecord.dayNetChange > 0
+                    ? `+${fmtMoney(selectedDayRecord.dayNetChange, currency)}`
+                    : selectedDayRecord.dayNetChange < 0
+                    ? `-${fmtMoney(Math.abs(selectedDayRecord.dayNetChange), currency)}`
+                    : fmtMoney(0, currency)}
+                </span>
+                {(selectedDayRecord.dayCashIn > 0 || selectedDayRecord.dayCashOut > 0) && (
+                  <span
+                    style={{
+                      fontSize: 9.5,
+                      marginTop: 2,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    <span style={{ color: 'var(--credit)', fontWeight: 600 }}>+{fmtMoney(selectedDayRecord.dayCashIn, currency)}</span>
+                    <span style={{ color: 'var(--text-3)', opacity: 0.5 }}>·</span>
+                    <span style={{ color: 'var(--debit)', fontWeight: 600 }}>-{fmtMoney(selectedDayRecord.dayCashOut, currency)}</span>
+                  </span>
+                )}
+              </div>
+
+              {/* End of Day Closing */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right' }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 650,
+                    color: 'var(--accent)',
+                    letterSpacing: '0.2px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {selectedDayRecord.isToday ? 'Current' : 'Closing'}
+                </span>
+                <span
+                  style={{
+                    fontSize: 13.5,
+                    fontWeight: 750,
+                    color: 'var(--text)',
+                    marginTop: 3,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {fmtMoney(selectedDayRecord.closingBalance, currency)}
+                </span>
+                <span style={{ fontSize: 9.5, color: 'var(--text-3)', marginTop: 2 }}>
+                  {selectedDayRecord.isToday ? 'As of now' : 'End of Day'}
+                </span>
+              </div>
+            </div>
+
+            {/* Account Balances at End of Day */}
+            {selectedWalletId === 'all' && wallets.length > 1 && (
+              <div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: 'var(--text-3)',
+                    marginBottom: 7,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.3px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>Accounts Breakdown</span>
+                  <span style={{ fontSize: 10, fontWeight: 500, textTransform: 'none', color: 'var(--text-3)' }}>
+                    End of Day
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {selectedDayRecord.walletBreakdown.map(wb => (
+                    <div
+                      key={wb.walletId}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '4px 9px',
+                        borderRadius: 8,
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        fontSize: 11.5,
+                        color: 'var(--text-2)',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 6.5,
+                          height: 6.5,
+                          borderRadius: '50%',
+                          backgroundColor: wb.walletColor,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span style={{ fontWeight: 500 }}>{wb.walletName}</span>
+                      <strong style={{ color: 'var(--text)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                        {fmtMoney(wb.closingBalance, currency)}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Transactions Section */}
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: 'var(--text-3)',
+                  marginBottom: 7,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.3px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span>Transactions</span>
+                <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'none', color: 'var(--text-3)' }}>
+                  {selectedDayRecord.transactions.length} {selectedDayRecord.transactions.length === 1 ? 'item' : 'items'}
+                </span>
+              </div>
+
+              {selectedDayRecord.transactions.length > 0 ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                  }}
+                >
+                  {selectedDayRecord.transactions.map(tx => {
+                    const isCredit = tx.flow === 'in';
+                    return (
+                      <div
+                        key={tx.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '9px 12px',
+                          borderRadius: 9,
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          gap: 10,
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 26,
+                              height: 26,
+                              borderRadius: '50%',
+                              background: isCredit
+                                ? 'var(--credit-soft, rgba(16, 185, 129, 0.12))'
+                                : 'var(--debit-soft, rgba(239, 68, 68, 0.12))',
+                              color: isCredit ? 'var(--credit)' : 'var(--debit)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {isCredit ? <ArrowDownLeft size={13} strokeWidth={2.5} /> : <ArrowUpRight size={13} strokeWidth={2.5} />}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontSize: 12.5,
+                                color: 'var(--text)',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                lineHeight: 1.3,
+                              }}
+                            >
+                              {tx.description}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 10.5,
+                                color: 'var(--text-3)',
+                                lineHeight: 1.2,
+                                marginTop: 2,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 5,
+                              }}
+                            >
+                              <span>{tx.category}</span>
+                              <span>·</span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3.5 }}>
+                                <span
+                                  style={{
+                                    width: 5,
+                                    height: 5,
+                                    borderRadius: '50%',
+                                    backgroundColor: tx.walletColor,
+                                    display: 'inline-block',
+                                  }}
+                                />
+                                <span>{tx.walletName}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 750,
+                            color: isCredit ? 'var(--credit)' : 'var(--debit)',
+                            fontVariantNumeric: 'tabular-nums',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isCredit ? `+${fmtMoney(tx.amount, currency)}` : `-${fmtMoney(tx.amount, currency)}`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '24px 16px',
+                    borderRadius: 10,
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    textAlign: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--text-2)' }}>No transactions on this date</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                    The balance carried forward without any inflows or outflows.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Day Details Drawer Footer with Quick Step Navigation */}
+          <div
+            style={{
+              padding: '10px 18px',
+              borderTop: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'var(--surface)',
+              flexShrink: 0,
+              gap: 8,
+            }}
+          >
+            <button
+              type="button"
+              onClick={handlePrevDayInDetail}
+              disabled={selectedDayIndexInList <= 0}
+              style={{
+                height: 34,
+                padding: '0 12px',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--surface2)',
+                color: selectedDayIndexInList <= 0 ? 'var(--text-3)' : 'var(--text-2)',
+                opacity: selectedDayIndexInList <= 0 ? 0.35 : 1,
+                cursor: selectedDayIndexInList <= 0 ? 'not-allowed' : 'pointer',
+                fontSize: 11.5,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <ChevronLeft size={14} />
+              <span>Prev Day</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNextDayInDetail}
+              disabled={selectedDayIndexInList < 0 || selectedDayIndexInList >= displayedRecords.length - 1}
+              style={{
+                height: 34,
+                padding: '0 10px',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--surface2)',
+                color:
+                  selectedDayIndexInList < 0 || selectedDayIndexInList >= displayedRecords.length - 1
+                    ? 'var(--text-3)'
+                    : 'var(--text-2)',
+                opacity: selectedDayIndexInList < 0 || selectedDayIndexInList >= displayedRecords.length - 1 ? 0.35 : 1,
+                cursor:
+                  selectedDayIndexInList < 0 || selectedDayIndexInList >= displayedRecords.length - 1
+                    ? 'not-allowed'
+                    : 'pointer',
+                fontSize: 11.5,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <span>Next Day</span>
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
 
   return createPortal(
     <div
@@ -548,16 +1090,11 @@ export default function DailyWalletBalanceDrawer({
           overflow: 'hidden',
         }}
       >
-        {/* Drag Handle Bar for mobile sheet */}
-        <div className="modal-handle-bar">
-          <div className="modal-handle" />
-        </div>
-
         {/* Header */}
         <div
           className="category-dist-header"
           style={{
-            padding: '12px 18px 6px',
+            padding: '12px 18px 8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -733,9 +1270,8 @@ export default function DailyWalletBalanceDrawer({
               onClick={onClose}
               title="Close"
               aria-label="Close"
-              style={{ width: 28, height: 28, borderRadius: 99 }}
             >
-              <X size={15} />
+              <X size={16} />
             </button>
           </div>
         </div>
@@ -760,55 +1296,127 @@ export default function DailyWalletBalanceDrawer({
               background: 'var(--surface2)',
               borderRadius: 12,
               padding: '12px 14px',
-              gap: 10,
+              gap: 8,
               border: '1px solid var(--border)',
             }}
           >
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', letterSpacing: '-0.1px' }}>
-                Month Opening
-              </div>
-              <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)', marginTop: 2 }}>
-                {fmtMoney(monthOpeningBalance, currency)}
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>
-                1st of {formattedMonthTitle.split(' ')[0]}
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', letterSpacing: '-0.1px' }}>
-                Net Cash Flow
-              </div>
-              <div
+            {/* Month Opening */}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span
                 style={{
-                  fontSize: 14.5,
-                  fontWeight: 750,
-                  color: monthNetChange > 0 ? 'var(--credit)' : monthNetChange < 0 ? 'var(--debit)' : 'var(--text-3)',
-                  marginTop: 2,
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  color: 'var(--text-3)',
+                  letterSpacing: '0.1px',
+                  textTransform: 'uppercase',
                 }}
               >
-                {monthNetChange > 0 ? `+${fmtMoney(monthNetChange, currency)}` : monthNetChange < 0 ? `-${fmtMoney(Math.abs(monthNetChange), currency)}` : fmtMoney(0, currency)}
-              </div>
+                Opening
+              </span>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                  marginTop: 3,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {fmtMoney(monthOpeningBalance, currency)}
+              </span>
+              <span
+                style={{
+                  fontSize: 10,
+                  color: 'var(--text-3)',
+                  marginTop: 2,
+                  opacity: 0.85,
+                }}
+              >
+                1st of {formattedMonthTitle.split(' ')[0]}
+              </span>
+            </div>
+
+            {/* Net Cash Flow */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  color: 'var(--text-3)',
+                  letterSpacing: '0.1px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Net Flow
+              </span>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 750,
+                  color: monthNetChange > 0 ? 'var(--credit)' : monthNetChange < 0 ? 'var(--debit)' : 'var(--text-3)',
+                  marginTop: 3,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {monthNetChange > 0
+                  ? `+${fmtMoney(monthNetChange, currency)}`
+                  : monthNetChange < 0
+                  ? `-${fmtMoney(Math.abs(monthNetChange), currency)}`
+                  : fmtMoney(0, currency)}
+              </span>
               {(monthTotalInflow > 0 || monthTotalOutflow > 0) && (
-                <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>
+                <span
+                  style={{
+                    fontSize: 9.5,
+                    marginTop: 2,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    fontVariantNumeric: 'tabular-nums',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   <span style={{ color: 'var(--credit)', fontWeight: 600 }}>+{fmtMoney(monthTotalInflow, currency)}</span>
-                  {' · '}
+                  <span style={{ color: 'var(--text-3)', opacity: 0.5 }}>·</span>
                   <span style={{ color: 'var(--debit)', fontWeight: 600 }}>-{fmtMoney(monthTotalOutflow, currency)}</span>
-                </div>
+                </span>
               )}
             </div>
 
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 11, fontWeight: 650, color: 'var(--accent)', letterSpacing: '-0.1px' }}>
-                {isCurrentMonth ? 'Current Balance' : 'Month Closing'}
-              </div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', marginTop: 2 }}>
+            {/* Current / Closing Balance */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right' }}>
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 650,
+                  color: 'var(--accent)',
+                  letterSpacing: '0.1px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {isCurrentMonth ? 'Balance' : 'Closing'}
+              </span>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 750,
+                  color: 'var(--text)',
+                  marginTop: 3,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
                 {fmtMoney(monthClosingBalance, currency)}
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>
+              </span>
+              <span
+                style={{
+                  fontSize: 10,
+                  color: 'var(--text-3)',
+                  marginTop: 2,
+                  opacity: 0.85,
+                }}
+              >
                 {isCurrentMonth ? 'End of Today' : 'End of Month'}
-              </div>
+              </span>
             </div>
           </div>
 
@@ -1059,298 +1667,181 @@ export default function DailyWalletBalanceDrawer({
               <div style={{ fontSize: 11.5, marginTop: 2 }}>Try clearing the search query or changing filters</div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {displayedRecords.map(dayRow => {
-                const isExpanded = Boolean(expandedDays[dayRow.dateStr]);
-                const hasTxs = dayRow.transactions.length > 0;
+                const isSelected = selectedDayDate === dayRow.dateStr;
 
                 return (
-                  <div
+                  <button
                     key={dayRow.dateStr}
+                    type="button"
+                    onClick={() => setSelectedDayDate(dayRow.dateStr)}
                     style={{
                       background: dayRow.isToday
-                        ? 'var(--accent-soft)'
+                        ? 'var(--accent-surface-gradient, var(--surface2))'
+                        : isSelected
+                        ? 'var(--surface3, var(--surface2))'
                         : 'var(--surface2)',
-                      borderRadius: 11,
+                      borderRadius: 10,
                       border: dayRow.isToday
-                        ? '1.5px solid var(--accent)'
+                        ? '1px solid var(--accent-border-soft, var(--accent))'
+                        : isSelected
+                        ? '1px solid var(--accent)'
                         : '1px solid var(--border)',
-                      overflow: 'hidden',
+                      padding: '10px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      gap: 10,
+                      textAlign: 'left',
+                      width: '100%',
                       transition: 'all 0.15s ease',
+                      outline: 'none',
                     }}
                   >
-                    {/* Day Row Header */}
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => toggleDayExpansion(dayRow.dateStr)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          toggleDayExpansion(dayRow.dateStr);
-                        }
-                      }}
-                      style={{
-                        padding: '11px 14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        cursor: 'pointer',
-                        gap: 12,
-                        userSelect: 'none',
-                      }}
-                    >
-                      {/* Left: Date & Subtitle */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                        {/* Day badge */}
-                        <div
+                    {/* Left: Date & Subtitle */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                      {/* Day badge */}
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 8,
+                          background: dayRow.isToday ? 'var(--accent)' : 'var(--surface)',
+                          color: dayRow.isToday ? 'var(--accent-contrast, #fff)' : 'var(--text)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          border: dayRow.isToday ? 'none' : '1px solid var(--border)',
+                        }}
+                      >
+                        <span style={{ fontSize: 13.5, fontWeight: 750, lineHeight: 1 }}>
+                          {dayRow.dayNumber}
+                        </span>
+                        <span
                           style={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: 8,
-                            background: dayRow.isToday ? 'var(--accent)' : 'var(--surface)',
-                            color: dayRow.isToday ? 'var(--accent-contrast, #fff)' : 'var(--text)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            border: dayRow.isToday ? 'none' : '1px solid var(--border)',
+                            fontSize: 8.5,
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            opacity: dayRow.isToday ? 0.9 : 0.65,
+                            marginTop: 1.5,
+                            letterSpacing: '0.2px',
                           }}
                         >
-                          <span style={{ fontSize: 14, fontWeight: 800, lineHeight: 1 }}>
-                            {dayRow.dayNumber}
-                          </span>
+                          {dayRow.dayName}
+                        </span>
+                      </div>
+
+                      {/* Title & Activity Note */}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
                           <span
                             style={{
-                              fontSize: 9,
-                              fontWeight: 700,
-                              textTransform: 'uppercase',
-                              opacity: 0.8,
-                              marginTop: 1,
+                              fontSize: 13,
+                              fontWeight: 650,
+                              color: dayRow.isToday ? 'var(--accent)' : 'var(--text)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
                             }}
                           >
-                            {dayRow.dayName}
+                            {dayRow.fullDateLabel}
                           </span>
+                          {dayRow.isToday && (
+                            <span
+                              style={{
+                                fontSize: 9.5,
+                                fontWeight: 700,
+                                color: 'var(--accent)',
+                                background: 'var(--accent-soft)',
+                                padding: '1px 6px',
+                                borderRadius: 99,
+                                flexShrink: 0,
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              Today
+                            </span>
+                          )}
                         </div>
 
-                        {/* Title & Activity Note */}
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
-                              {dayRow.fullDateLabel}
-                            </span>
-                            {dayRow.isToday && (
+                        <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+                          {dayRow.dayNetChange !== 0 ? (
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                fontSize: 11,
+                                lineHeight: 1.3,
+                              }}
+                            >
                               <span
                                 style={{
-                                  fontSize: 9.5,
-                                  fontWeight: 800,
-                                  color: 'var(--accent)',
-                                  background: 'var(--surface)',
-                                  padding: '1px 6px',
-                                  borderRadius: 4,
-                                  border: '1px solid var(--accent)',
-                                }}
-                              >
-                                TODAY
-                              </span>
-                            )}
-                          </div>
-
-                          <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {dayRow.dayNetChange !== 0 ? (
-                              <span
-                                style={{
-                                  fontSize: 11.5,
-                                  fontWeight: 700,
+                                  fontWeight: 650,
                                   color: dayRow.dayNetChange > 0 ? 'var(--credit)' : 'var(--debit)',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: 2,
+                                  fontVariantNumeric: 'tabular-nums',
                                 }}
                               >
                                 {dayRow.dayNetChange > 0 ? (
                                   <>
-                                    <TrendingUp size={12} /> +{fmtMoney(dayRow.dayNetChange, currency)}
+                                    <TrendingUp size={11} strokeWidth={2.5} /> +{fmtMoney(dayRow.dayNetChange, currency)}
                                   </>
                                 ) : (
                                   <>
-                                    <TrendingDown size={12} /> -{fmtMoney(Math.abs(dayRow.dayNetChange), currency)}
+                                    <TrendingDown size={11} strokeWidth={2.5} /> -{fmtMoney(Math.abs(dayRow.dayNetChange), currency)}
                                   </>
                                 )}
-                                <span style={{ fontSize: 10.5, color: 'var(--text-3)', fontWeight: 500, marginLeft: 2 }}>
-                                  ({dayRow.transactions.length} {dayRow.transactions.length === 1 ? 'event' : 'events'})
-                                </span>
                               </span>
-                            ) : (
-                              <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
-                                No cash movement
+                              <span style={{ color: 'var(--text-3)', fontSize: 10.5 }}>
+                                · {dayRow.transactions.length} {dayRow.transactions.length === 1 ? 'transaction' : 'transactions'}
                               </span>
-                            )}
-                          </div>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                              No transactions
+                            </span>
+                          )}
                         </div>
-                      </div>
-
-                      {/* Right: Closing Balance & Chevron */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 9.5, fontWeight: 650, color: 'var(--text-3)', textTransform: 'uppercase' }}>
-                            EOD Balance
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 14.5,
-                              fontWeight: 800,
-                              color: 'var(--text)',
-                              fontVariantNumeric: 'tabular-nums',
-                              marginTop: 1,
-                            }}
-                          >
-                            {fmtMoney(dayRow.closingBalance, currency)}
-                          </div>
-                        </div>
-
-                        <span
-                          style={{
-                            color: 'var(--text-3)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 20,
-                            height: 20,
-                          }}
-                        >
-                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </span>
                       </div>
                     </div>
 
-                    {/* Expanded Content */}
-                    {isExpanded && (
-                      <div
+                    {/* Right: Closing Balance & Arrow */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <div
+                          style={{
+                            fontSize: 13.5,
+                            fontWeight: 700,
+                            color: 'var(--text)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {fmtMoney(dayRow.closingBalance, currency)}
+                        </div>
+                      </div>
+
+                      <span
                         style={{
-                          padding: '10px 14px 12px',
+                          color: 'var(--text-3)',
                           display: 'flex',
-                          flexDirection: 'column',
-                          gap: 8,
-                          background: 'var(--surface)',
-                          borderTop: '1px solid var(--border)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 18,
+                          height: 18,
+                          opacity: 0.6,
                         }}
                       >
-                        {/* Per-Wallet Breakdown Chips */}
-                        {selectedWalletId === 'all' && wallets.length > 1 && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                            {dayRow.walletBreakdown.map(wb => (
-                              <div
-                                key={wb.walletId}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 5,
-                                  padding: '3px 8px',
-                                  borderRadius: 6,
-                                  background: 'var(--surface2)',
-                                  border: '1px solid var(--border)',
-                                  fontSize: 11,
-                                  color: 'var(--text-2)',
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    width: 6,
-                                    height: 6,
-                                    borderRadius: '50%',
-                                    backgroundColor: wb.walletColor,
-                                  }}
-                                />
-                                <span>{wb.walletName}:</span>
-                                <strong style={{ color: 'var(--text)', fontWeight: 700 }}>
-                                  {fmtMoney(wb.closingBalance, currency)}
-                                </strong>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* List of Transactions */}
-                        {hasTxs ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                              Transactions on this date
-                            </div>
-                            {dayRow.transactions.map(tx => {
-                              const isCredit = tx.flow === 'in';
-                              return (
-                                <div
-                                  key={tx.id}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '6px 10px',
-                                    borderRadius: 7,
-                                    background: 'var(--surface2)',
-                                    gap: 8,
-                                  }}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                                    <div
-                                      style={{
-                                        width: 22,
-                                        height: 22,
-                                        borderRadius: '50%',
-                                        background: isCredit ? 'var(--credit-soft, rgba(16, 185, 129, 0.12))' : 'var(--debit-soft, rgba(239, 68, 68, 0.12))',
-                                        color: isCredit ? 'var(--credit)' : 'var(--debit)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        flexShrink: 0,
-                                      }}
-                                    >
-                                      {isCredit ? <ArrowDownLeft size={12} /> : <ArrowUpRight size={12} />}
-                                    </div>
-                                    <div style={{ minWidth: 0 }}>
-                                      <div
-                                        style={{
-                                          fontSize: 12,
-                                          color: 'var(--text)',
-                                          fontWeight: 600,
-                                          whiteSpace: 'nowrap',
-                                          overflow: 'hidden',
-                                          textOverflow: 'ellipsis',
-                                        }}
-                                      >
-                                        {tx.description}
-                                      </div>
-                                      <div style={{ fontSize: 10, color: 'var(--text-3)' }}>
-                                        {tx.category} · {tx.walletName}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <span
-                                    style={{
-                                      fontSize: 12.5,
-                                      fontWeight: 750,
-                                      color: isCredit ? 'var(--credit)' : 'var(--debit)',
-                                      fontVariantNumeric: 'tabular-nums',
-                                      whiteSpace: 'nowrap',
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    {isCredit ? `+${fmtMoney(tx.amount, currency)}` : `-${fmtMoney(tx.amount, currency)}`}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div style={{ fontSize: 11.5, color: 'var(--text-3)', fontStyle: 'italic', padding: '4px 0' }}>
-                            No cash movements occurred on this date
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                        <ChevronRight size={15} />
+                      </span>
+                    </div>
+                  </button>
                 );
               })}
             </div>
@@ -1370,31 +1861,6 @@ export default function DailyWalletBalanceDrawer({
           aria-labelledby="daily-balance-filter-title"
         >
           <div className="filter-drawer-panel" style={{ maxWidth: 480 }}>
-            {/* Mobile Grab Handle */}
-            <div
-              className="mobile-only"
-              style={{
-                width: '100%',
-                paddingTop: '10px',
-                paddingBottom: '2px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'var(--surface)',
-              }}
-            >
-              <div
-                style={{
-                  width: '36px',
-                  height: '4px',
-                  borderRadius: '999px',
-                  backgroundColor: 'var(--text-3)',
-                  opacity: 0.4,
-                  margin: '0 auto',
-                }}
-              />
-            </div>
-
             {/* Drawer Header */}
             <div
               style={{
@@ -1466,7 +1932,6 @@ export default function DailyWalletBalanceDrawer({
                   onClick={() => setShowFilterPanel(false)}
                   title="Close"
                   aria-label="Close"
-                  style={{ width: 30, height: 30, borderRadius: 8 }}
                 >
                   <X size={16} />
                 </button>

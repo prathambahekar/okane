@@ -1,5 +1,5 @@
 import { CURRENCIES } from './db';
-import type { Expense, ExpenseFlow, ExpenseType, Wallet, Friend } from './types';
+import type { Expense, ExpenseFlow, ExpenseType, Wallet, Friend, Category } from './types';
 import { expenseFlow, personalNetAmount } from './db';
 
 export function currencySymbol(currency: string): string {
@@ -210,7 +210,7 @@ export function groupExpenses(expenses: Expense[], wallets?: Wallet[], friends?:
 
       const firstCat = first.category;
       const allSameCat = items.every(i => i.category === firstCat);
-      const category = allSameCat ? firstCat : 'Food';
+      const category = allSameCat && firstCat !== 'Food' ? firstCat : 'Settlement';
 
       result.push({
         id: gId,
@@ -758,5 +758,60 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
     statusLabel: isExplicitSettled ? 'Settled' : (primaryItem.status === 'unpaid' ? 'Unpaid' : 'Paid'),
     isAllSettled: isExplicitSettled,
     isPartiallySettled: false,
+  };
+}
+
+export function resolveCategoryMeta(
+  categoryName: string,
+  categoryObj?: Category | null,
+  isSettlementGroup?: boolean,
+  categoriesMap?: Map<string, Category>
+): { name: string; color: string; icon: string; bg: string; border: string } {
+  if (isSettlementGroup || categoryName === 'Settlement') {
+    return {
+      name: 'Settlement',
+      color: '#10B981',
+      icon: 'refund',
+      bg: 'rgba(16, 185, 129, 0.12)',
+      border: 'rgba(16, 185, 129, 0.25)',
+    };
+  }
+
+  if (categoryName === 'Transfer') {
+    return {
+      name: 'Transfer',
+      color: '#6366F1',
+      icon: 'transfer',
+      bg: 'rgba(99, 102, 241, 0.12)',
+      border: 'rgba(99, 102, 241, 0.25)',
+    };
+  }
+
+  let cat = categoryObj;
+  if (!cat && categoriesMap && categoryName) {
+    const norm = categoryName.trim().toLowerCase();
+    cat = Array.from(categoriesMap.values()).find(c => c.name.trim().toLowerCase() === norm);
+  }
+
+  let color = cat?.color;
+  let icon = cat?.icon;
+
+  // Upgrade legacy reddish-pink #F97362 food color to warm appetizing food orange #F97316
+  if (color === '#F97362' || (!color && categoryName?.trim().toLowerCase() === 'food')) {
+    color = '#F97316';
+    icon = icon || 'food';
+  }
+
+  if (!color) {
+    color = '#64748B';
+  }
+
+  const hex = color.startsWith('#') && color.length === 7 ? color : '#64748B';
+  return {
+    name: cat?.name || categoryName || 'Other',
+    color,
+    icon: icon || 'other',
+    bg: `${hex}18`,
+    border: `${hex}30`,
   };
 }

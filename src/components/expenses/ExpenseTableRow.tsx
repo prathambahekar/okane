@@ -4,7 +4,7 @@ import {
   ChevronDown, ChevronUp, Store, Wallet as WalletIcon
 } from 'lucide-react';
 import CategoryIcon from '../CategoryIcon';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, cleanExpenseDescription, type GroupedExpense } from '../../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, typeLabel, cleanExpenseDescription, resolveCategoryMeta, type GroupedExpense } from '../../utils';
 import type { Expense, Friend, Wallet, Category, Settlement } from '../../types';
 
 interface Props {
@@ -61,6 +61,8 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
   const vendorId = ge.vendorId || ge.items.find((i: Expense) => i.vendorId)?.vendorId;
   const vendor = vendorId ? friendsMap.get(vendorId) : null;
 
+  const catMeta = resolveCategoryMeta(ge.category, categoryObj, ge.isSettlementGroup);
+
   return (
     <React.Fragment>
       <tr className="modern-tx-row">
@@ -69,11 +71,14 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
             <div
               className="tx-squircle-icon"
               style={{
-                background: categoryObj?.color && categoryObj.color.startsWith('#') ? `${categoryObj.color}20` : 'var(--accent-soft)',
-                color: categoryObj?.color || 'var(--accent)'
+                background: catMeta.bg,
+                borderColor: catMeta.border,
+                borderStyle: 'solid',
+                borderWidth: 1,
+                color: catMeta.color
               }}
             >
-              <CategoryIcon category={ge.category} icon={categoryObj?.icon} size={20} />
+              <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={19} style={{ color: catMeta.color }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -112,11 +117,11 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                       borderRadius: 12,
                       fontSize: 11,
                       fontWeight: 600,
-                      background: 'var(--accent-soft)',
-                      color: 'var(--accent)',
+                      background: ge.isSettlementGroup ? 'rgba(16, 185, 129, 0.1)' : 'rgba(99, 102, 241, 0.1)',
+                      color: ge.isSettlementGroup ? '#059669' : '#4f46e5',
+                      border: `1px solid ${ge.isSettlementGroup ? 'rgba(16, 185, 129, 0.22)' : 'rgba(99, 102, 241, 0.22)'}`,
                       whiteSpace: 'nowrap',
                       flexShrink: 0,
-                      border: 'none',
                       cursor: 'pointer'
                     }}
                     title={isExpanded ? "Collapse breakdown" : "Expand breakdown"}
@@ -126,7 +131,7 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                 )}
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--text-3)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>{ge.category}</span>
+                <span>{catMeta.name}</span>
                 {ge.isSettlementGroup && <span>• {ge.settlementItemCount} item{ge.settlementItemCount! > 1 ? 's' : ''} settled</span>}
               </div>
               {friendsInGroup.length > 0 && (

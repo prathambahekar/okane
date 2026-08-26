@@ -597,12 +597,12 @@ export default function Expenses() {
                         <table className="modern-tx-table">
                           <thead>
                             <tr>
-                              <th style={{ width: '22%', textAlign: 'left' }}>Transaction</th>
-                              <th style={{ width: '13%', textAlign: 'left' }}>Amount</th>
-                              <th style={{ width: '16%', textAlign: 'left' }}>Type</th>
-                              <th style={{ width: '18%', textAlign: 'left' }}>Wallet</th>
-                              <th style={{ width: '19%', textAlign: 'left' }}>Status</th>
-                              <th style={{ textAlign: 'right', width: '12%', minWidth: '100px' }}>Actions</th>
+                              <th style={{ width: '34%', textAlign: 'left' }}>Transaction</th>
+                              <th style={{ width: '15%', textAlign: 'left' }}>Amount</th>
+                              <th style={{ width: '13%', textAlign: 'left' }}>Type</th>
+                              <th style={{ width: '14%', textAlign: 'left' }}>Wallet</th>
+                              <th style={{ width: '13%', textAlign: 'left' }}>Status</th>
+                              <th style={{ textAlign: 'right', width: '11%', minWidth: '90px' }}>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
