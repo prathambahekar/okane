@@ -4,6 +4,7 @@ import { useStore } from '../store';
 import type { Settlement, Expense } from '../types';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, cleanExpenseDescription } from '../utils';
 import CategoryIcon from './CategoryIcon';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface SettlementDetailModalProps {
   settlement: Settlement;
@@ -12,6 +13,8 @@ interface SettlementDetailModalProps {
 }
 
 export default function SettlementDetailModal({ settlement, onClose, onUndo }: SettlementDetailModalProps) {
+  useBackButtonModal(true, onClose, { priority: BackPriority.MODAL });
+
   const { db } = useStore();
   const settings = db?.settings || {};
   const currency = settings?.currency || 'INR';

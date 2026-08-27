@@ -6,6 +6,7 @@ import type { Envelope } from '../types';
 import { walletBalance, walletUnallocatedBalance } from '../db';
 import { fmtMoney } from '../utils';
 import { getEnvelopeIconComponent } from '../utils/envelopeUtils';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface Props {
   envelope: Envelope;
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export default function EnvelopeFundModal({ envelope, onClose }: Props) {
+  useBackButtonModal(true, onClose, { priority: BackPriority.MODAL });
+
   const { db, adjustEnvelopeBalance, showToast } = useStore();
   const { settings: { currency } } = db;
 

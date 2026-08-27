@@ -19,6 +19,7 @@ import { useStore } from '../store';
 import { fmtMoney, cleanExpenseDescription } from '../utils';
 import { expenseFlow, expenseWalletDelta } from '../db';
 import type { Expense, Settlement, Wallet } from '../types';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface Props {
   isOpen: boolean;
@@ -133,6 +134,10 @@ export default function DailyWalletBalanceDrawer({
 
   // Search query within the drawer
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  useBackButtonModal(isOpen, onClose, { priority: BackPriority.DRAWER });
+  useBackButtonModal(Boolean(selectedDayDate), () => setSelectedDayDate(null), { priority: BackPriority.DIALOG });
+  useBackButtonModal(showFilterPanel, () => setShowFilterPanel(false), { priority: BackPriority.DIALOG });
 
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { X, Users, Search, Plus, Store, Check } from 'lucide-react';
 import type { AppDB } from '../../types';
 import { fmtMoney, getAvatarStyle } from '../../utils';
+import { useBackButtonModal, BackPriority } from '../../utils/backHandler';
 
 interface FriendSplitModalProps {
   isOpen: boolean;
@@ -51,6 +52,8 @@ export function FriendSplitModal({
     setPickerSearch('');
     onClose();
   };
+
+  useBackButtonModal(isOpen, handleClose, { priority: BackPriority.DRAWER });
 
   const filteredFriendsList = useMemo(() => {
     let list = db.friends;

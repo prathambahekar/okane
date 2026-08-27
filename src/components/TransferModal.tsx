@@ -6,6 +6,7 @@ import { walletBalance, todayISO } from '../db';
 import { fmtMoney, currencySymbol } from '../utils';
 import { NoteEditorModal } from './common/NoteEditorModal';
 import { renderWalletIcon } from './WalletIconRenderer';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface Props {
   isOpen: boolean;
@@ -15,6 +16,8 @@ interface Props {
 }
 
 export default function TransferModal({ isOpen, onClose, defaultFromWalletId, defaultToWalletId }: Props) {
+  useBackButtonModal(isOpen, onClose, { priority: BackPriority.MODAL });
+
   const { db, transferFunds, showToast } = useStore();
   const { wallets, settings: { currency } } = db;
 
@@ -39,6 +42,8 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
   const [note, setNote] = useState<string>('');
   const [isNoteModalOpen, setIsNoteModalOpen] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+
+  useBackButtonModal(isNoteModalOpen, () => setIsNoteModalOpen(false), { priority: BackPriority.DIALOG });
 
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);

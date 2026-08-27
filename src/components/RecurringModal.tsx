@@ -21,6 +21,7 @@ import type { RecurringRule, RecurringKind, FrequencyType, ExpenseType } from '.
 import { todayISO, computeNextDueDate } from '../db';
 import { currencySymbol, getAvatarStyle, friendInitial } from '../utils';
 import { NoteEditorModal } from './common/NoteEditorModal';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface Props {
   rule?: RecurringRule | null;
@@ -32,6 +33,8 @@ interface Props {
 type SubPreset = 'monthly' | 'quarterly' | 'half_yearly' | 'yearly' | 'weekly' | 'bi_weekly' | 'custom_months' | 'custom_days';
 
 export default function RecurringModal({ rule, defaultKind = 'autopay', onClose }: Props) {
+  useBackButtonModal(true, onClose, { priority: BackPriority.MODAL });
+
   const { db, addRecurringRule, updateRecurringRule, addFriend, showToast } = useStore();
   const s = db.settings;
   const currSym = currencySymbol(s.currency);
@@ -51,6 +54,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
   const [showContactDrawer, setShowContactDrawer] = useState(false);
   const [pickerTypeFilter, setPickerTypeFilter] = useState<'all' | 'friend' | 'vendor'>('all');
   const [pickerSearch, setPickerSearch] = useState('');
+
+  useBackButtonModal(showContactDrawer, () => setShowContactDrawer(false), { priority: BackPriority.DRAWER });
 
   const filteredFriendsList = useMemo(() => {
     let list = db.friends;
@@ -94,6 +99,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
   const [notes, setNotes] = useState(rule?.notes || '');
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [error, setError] = useState('');
+
+  useBackButtonModal(isNoteModalOpen, () => setIsNoteModalOpen(false), { priority: BackPriority.DIALOG });
 
   const isSubscription = kind === 'autopay';
 

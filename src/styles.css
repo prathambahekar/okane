@@ -193,14 +193,26 @@
   animation: none !important;
 }
 
-/* Hide scrollbars across all browsers for elements with .no-scrollbar */
-.no-scrollbar::-webkit-scrollbar {
+/* Hide scrollbars across all browsers for elements with .no-scrollbar or when data-hide-scrollbars is enabled */
+.no-scrollbar::-webkit-scrollbar,
+[data-hide-scrollbars="true"]::-webkit-scrollbar,
+[data-hide-scrollbars="true"] *::-webkit-scrollbar,
+html.hide-scrollbars::-webkit-scrollbar,
+html.hide-scrollbars *::-webkit-scrollbar,
+body.hide-scrollbars::-webkit-scrollbar,
+body.hide-scrollbars *::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
 }
 
-.no-scrollbar {
+.no-scrollbar,
+[data-hide-scrollbars="true"],
+[data-hide-scrollbars="true"] *,
+html.hide-scrollbars,
+html.hide-scrollbars *,
+body.hide-scrollbars,
+body.hide-scrollbars * {
   -ms-overflow-style: none !important;  /* IE and Edge */
   scrollbar-width: none !important;  /* Firefox */
 }

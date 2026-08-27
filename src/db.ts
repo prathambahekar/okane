@@ -534,6 +534,7 @@ export function defaultDB(): AppDB {
       enableBiometricLock: false,
       securityPin: '',
       requireBiometricOnResume: true,
+      hideScrollbar: localStorage.getItem('hide_scrollbar') !== null ? localStorage.getItem('hide_scrollbar') === 'true' : true,
     },
     recurringRules: [],
   };
@@ -881,6 +882,7 @@ export function syncDBToSQLTables(db: AppDB): void {
       if (db.settings.accent) localStorage.setItem('accent-color', db.settings.accent);
       if (db.settings.customAccentColor) localStorage.setItem('custom-accent-color', db.settings.customAccentColor);
       if (db.settings.sidebarCollapsed !== undefined) localStorage.setItem('sidebar_collapsed', String(db.settings.sidebarCollapsed));
+      if (db.settings.hideScrollbar !== undefined) localStorage.setItem('hide_scrollbar', String(db.settings.hideScrollbar));
     }
 
     // Sync Trip and Split data into settings table and localStorage
@@ -1063,6 +1065,7 @@ export function loadDBFromSQLTables(): AppDB {
       sidebarCollapsed: localStorage.getItem('sidebar_collapsed') === 'true',
       enableAnimations: true,
       performanceMode: false,
+      hideScrollbar: localStorage.getItem('hide_scrollbar') !== null ? localStorage.getItem('hide_scrollbar') === 'true' : true,
     };
 
     sqlSettings.forEach(st => {

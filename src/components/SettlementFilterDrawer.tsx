@@ -16,6 +16,7 @@ import {
 import type { Friend } from '../types';
 import type { SettlementTimeframe } from '../views/Settlements';
 import { friendInitial, getAvatarStyle } from '../utils';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface Props {
   isOpen: boolean;
@@ -50,6 +51,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
   onResetFilters,
   activeFilterCount,
 }) => {
+  useBackButtonModal(isOpen, onClose, { priority: BackPriority.DRAWER });
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const [friendSearch, setFriendSearch] = useState('');

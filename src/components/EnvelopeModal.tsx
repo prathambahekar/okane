@@ -8,6 +8,7 @@ import { useStore } from '../store';
 import type { Envelope } from '../types';
 import { FRIEND_PALETTE } from '../db';
 import { ENVELOPE_ICONS, getEnvelopeIconComponent } from '../utils/envelopeUtils';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface Props {
   envelope?: Envelope | null;
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export default function EnvelopeModal({ envelope, defaultWalletId, onClose }: Props) {
+  useBackButtonModal(true, onClose, { priority: BackPriority.MODAL });
+
   const { db, addEnvelope, updateEnvelope, showToast } = useStore();
   const { wallets, settings: { currency } } = db;
 

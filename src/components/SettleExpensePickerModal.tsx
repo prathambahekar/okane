@@ -5,6 +5,7 @@ import CategoryIcon from './CategoryIcon';
 import type { Friend, Expense, AppDB } from '../types';
 import { expenseFlow } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, cleanExpenseDescription } from '../utils';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 export type ExpenseSortOption = 'date_desc' | 'date_asc' | 'friend_asc' | 'amount_desc' | 'amount_asc';
 
@@ -35,6 +36,7 @@ export default function SettleExpensePickerModal({
   db,
   title = 'Select Expenses to Settle',
 }: SettleExpensePickerModalProps) {
+  useBackButtonModal(isOpen, onClose, { priority: BackPriority.DIALOG });
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'owed_to_me' | 'owed_by_me'>('all');
   const [friendFilter, setFriendFilter] = useState<string>('all'); // 'all' | 'personal' | friendId

@@ -36,6 +36,7 @@ import EnvelopeFundModal from '../components/EnvelopeFundModal';
 import { ExpenseDetailDrawer } from '../components/ExpenseDetailDrawer';
 import SettlementDetailModal from '../components/SettlementDetailModal';
 import CategoryIcon from '../components/CategoryIcon';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: string; onClearViewArg?: () => void }) {
   const { db, deleteWallet, deleteSettlement, deleteEnvelope, deleteExpense, showToast } = useStore();
@@ -49,6 +50,8 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
   const [delId, setDelId] = useState<string | null>(null);
   const [undoStlId, setUndoStlId] = useState<string | null>(null);
   const [selectedWalletForTx, setSelectedWalletForTx] = useState<Wallet | null>(null);
+
+  useBackButtonModal(Boolean(selectedWalletForTx), () => setSelectedWalletForTx(null), { priority: BackPriority.SUBVIEW });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDetailGe, setSelectedDetailGe] = useState<GroupedExpense | null>(null);
   const [selectedSettlement, setSelectedSettlement] = useState<Settlement | null>(null);

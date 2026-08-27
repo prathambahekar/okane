@@ -12,6 +12,7 @@ import ExpenseModal from '../components/ExpenseModal';
 import RecurringModal from '../components/RecurringModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { ExpenseDetailDrawer } from '../components/ExpenseDetailDrawer';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface Props {
   friendId: string;
@@ -19,6 +20,8 @@ interface Props {
 }
 
 export default function FriendDetail({ friendId, onNavigate }: Props) {
+  useBackButtonModal(true, () => onNavigate('friends'), { priority: BackPriority.SUBVIEW });
+
   const { db, deleteExpense, triggerAutopayDeduct, quickLogRecurringRule, showToast } = useStore();
   const { settings: { currency } } = db;
   const friend = db.friends.find(f => f.id === friendId);

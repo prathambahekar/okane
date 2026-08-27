@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import type { Wallet } from '../types';
 import { WALLET_PRESETS, renderWalletIcon } from './WalletIconRenderer';
 import { currencySymbol } from '../utils';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface Props {
   wallet?: Wallet;
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export default function WalletModal({ wallet, onClose }: Props) {
+  useBackButtonModal(true, onClose, { priority: BackPriority.MODAL });
+
   const { addWallet, updateWallet, showToast, db } = useStore();
   const currency = db.settings?.currency || 'INR';
   const isCurrentlyDefault = wallet

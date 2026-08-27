@@ -150,6 +150,7 @@ export interface Settings {
   enableBiometricLock?: boolean; // Biometric (Fingerprint/Face) unlock
   securityPin?: string;
   requireBiometricOnResume?: boolean;
+  hideScrollbar?: boolean; // Hide visible scrollbars for clean mobile-native look
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';

@@ -62,15 +62,17 @@ import ContextualSearchModal from './components/ContextualSearchModal';
 import SecurityLockModal from './components/SecurityLockModal';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { useBackButtonModal, backHandler, BackPriority } from './utils/backHandler';
 import './styles.css';
 
 const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'split-trips', 'recurring', 'analytics', 'settings', 'dev-sql'];
 
 function AppInner() {
-  const { db, updateSettings } = useStore();
+  const { db, updateSettings, showToast } = useStore();
   const [view, setView] = useState<ViewName>('dashboard');
   const [viewArg, setViewArg] = useState<string | undefined>(undefined);
   const [friendDetailId, setFriendDetailId] = useState<string>('');
+  const [viewHistory, setViewHistory] = useState<Array<{ view: ViewName; arg?: string; friendDetailId?: string }>>([]);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [addExpenseInitialData, setAddExpenseInitialData] = useState<ExpenseInitialData | null>(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
@@ -78,6 +80,47 @@ function AppInner() {
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [isExpenseTutorial, setIsExpenseTutorial] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // Connect native exit confirmation toast callback
+  useEffect(() => {
+    backHandler.setExitToastCallback((msg) => showToast(msg));
+    return () => backHandler.setExitToastCallback(null);
+  }, [showToast]);
+
+  // Modal / Drawer back button handling
+  useBackButtonModal(moreOpen, () => setMoreOpen(false), { priority: BackPriority.DRAWER });
+  useBackButtonModal(showSearchModal, () => setShowSearchModal(false), { priority: BackPriority.MODAL });
+  useBackButtonModal(showAIAssistant, () => setShowAIAssistant(false), { priority: BackPriority.MODAL });
+  useBackButtonModal(showGuideModal, () => setShowGuideModal(false), { priority: BackPriority.MODAL });
+
+  // View navigation history back handler (Android back button navigates backwards through views before exiting)
+  useEffect(() => {
+    if (view === 'dashboard' && viewHistory.length === 0) return;
+
+    const unregister = backHandler.register({
+      id: 'app-view-history',
+      priority: BackPriority.VIEW_HISTORY,
+      name: 'View History Navigation',
+      action: () => {
+        if (viewHistory.length > 0) {
+          const prev = viewHistory[viewHistory.length - 1];
+          setViewHistory(h => h.slice(0, -1));
+          setView(prev.view);
+          setViewArg(prev.arg);
+          if (prev.friendDetailId) setFriendDetailId(prev.friendDetailId);
+          return true;
+        } else if (view !== 'dashboard') {
+          setView('dashboard');
+          setViewArg(undefined);
+          return true;
+        }
+        return false;
+      },
+    });
+
+    return () => unregister();
+  }, [view, viewHistory]);
+
   const isSecurityLockActive = Boolean(db.settings?.enableSecurityLock ?? db.settings?.enableBiometricLock);
   const [isAppLocked, setIsAppLocked] = useState<boolean>(() => {
     return isSecurityLockActive;
@@ -154,6 +197,16 @@ function AppInner() {
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
 
   const sidebarCollapsed = db.settings?.sidebarCollapsed ?? (localStorage.getItem('sidebar_collapsed') === 'true');
+
+  useEffect(() => {
+    const shouldHide = db.settings?.hideScrollbar ?? true;
+    document.documentElement.setAttribute('data-hide-scrollbars', String(shouldHide));
+    if (shouldHide) {
+      document.documentElement.classList.add('hide-scrollbars');
+    } else {
+      document.documentElement.classList.remove('hide-scrollbars');
+    }
+  }, [db.settings?.hideScrollbar]);
 
   useEffect(() => {
     if (db.settings?.colorMode && db.settings.colorMode !== mode) {
@@ -235,7 +288,12 @@ function AppInner() {
   });
 
   const navigate = useCallback((v: ViewName, arg?: string) => {
-    setView(v);
+    setView(prevView => {
+      if (prevView !== v) {
+        setViewHistory(h => [...h.slice(-15), { view: prevView, arg: viewArg, friendDetailId }]);
+      }
+      return v;
+    });
     setViewArg(arg);
     if (v === 'friend-detail' && arg) setFriendDetailId(arg);
     setMoreOpen(false);
@@ -261,7 +319,7 @@ function AppInner() {
         return next;
       });
     }
-  }, []);
+  }, [viewArg, friendDetailId]);
 
   const toggleSection = (title: string) => {
     setCollapsedSections(prev => {

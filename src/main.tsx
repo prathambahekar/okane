@@ -39,6 +39,8 @@ function getInitialCustomColor(): string {
 
     document.documentElement.setAttribute('data-color-scheme', initMode);
     document.documentElement.setAttribute('data-accent', initAccent);
+    const hideScroll = localStorage.getItem('hide_scrollbar');
+    document.documentElement.setAttribute('data-hide-scrollbars', hideScroll !== null ? hideScroll : 'true');
 
     const colors = getAccentColors(initAccent, initMode, initCustom);
     const style = document.documentElement.style;

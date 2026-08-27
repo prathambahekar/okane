@@ -7,6 +7,7 @@ import { expenseFlow, unsettledExpensesForFriend, todayISO } from '../db';
 import { fmtMoney, friendInitial, getAvatarStyle } from '../utils';
 import SettleExpensePickerModal from './SettleExpensePickerModal';
 import { NoteEditorModal } from './common/NoteEditorModal';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface Props {
   friend: Friend;
@@ -14,6 +15,8 @@ interface Props {
 }
 
 export default function SettleModal({ friend, onClose }: Props) {
+  useBackButtonModal(true, onClose, { priority: BackPriority.MODAL });
+
   const { db, recordSettlement, showToast } = useStore();
   const { wallets, settings: { currency } } = db;
 
@@ -21,6 +24,9 @@ export default function SettleModal({ friend, onClose }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set(unsettled.map(e => e.id)));
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+
+  useBackButtonModal(isPickerOpen, () => setIsPickerOpen(false), { priority: BackPriority.DIALOG });
+  useBackButtonModal(isNoteModalOpen, () => setIsNoteModalOpen(false), { priority: BackPriority.DIALOG });
   const [selectedWalletId, setSelectedWalletId] = useState<string>(
     db.settings.defaultWalletId || wallets[0]?.id || ''
   );

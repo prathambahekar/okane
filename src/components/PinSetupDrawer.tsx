@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { KeyRound, Delete, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface PinSetupDrawerProps {
   isOpen: boolean;
@@ -38,6 +39,8 @@ export default function PinSetupDrawer({
     setIsShaking(false);
     onClose();
   }, [hasExistingPin, onClose]);
+
+  useBackButtonModal(isOpen, handleClose, { priority: BackPriority.DRAWER });
 
   const triggerHaptic = useCallback((style: ImpactStyle = ImpactStyle.Light) => {
     if (Capacitor.isNativePlatform()) {

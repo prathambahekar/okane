@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -958,7 +958,7 @@ export default function Settings({
                     <div className="settings-card-text">
                       <h2 className="settings-card-title">Appearance & Theme</h2>
                       <p className="settings-card-sub">
-                        {isDark ? 'Dark Mode' : 'Light Mode'} • {accent === 'custom' ? 'Custom Accent' : (ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic Blue')}
+                        {isDark ? 'Dark Mode' : 'Light Mode'} • {accent === 'custom' ? 'Custom Accent' : (ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic Blue')} • {(settings.hideScrollbar ?? true) ? 'Hidden Scrollbars' : 'Visible Scrollbars'}
                       </p>
                     </div>
                   </div>
@@ -1086,7 +1086,7 @@ export default function Settings({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: 16
+                marginBottom: 12
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   {isDark ? <Moon size={18} style={{ color: 'var(--accent)' }} /> : <Sun size={18} style={{ color: 'var(--accent)' }} />}
@@ -1101,6 +1101,39 @@ export default function Settings({
                     const nextMode = isDark ? 'light' : 'dark';
                     toggleMode();
                     updateSettings({ colorMode: nextMode });
+                  }}
+                  color="primary"
+                />
+              </div>
+
+              {/* Hide Scrollbars Toggle Row */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 16
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {(settings.hideScrollbar ?? true) ? (
+                    <EyeOff size={18} style={{ color: 'var(--accent)' }} />
+                  ) : (
+                    <Eye size={18} style={{ color: 'var(--accent)' }} />
+                  )}
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Hide Scrollbars</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Hide visible scrollbar tracks for a clean mobile app look</div>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.hideScrollbar ?? true}
+                  onChange={(e) => {
+                    const hide = e.target.checked;
+                    updateSettings({ hideScrollbar: hide });
+                    showToast(hide ? 'Scrollbars hidden (Clean mobile style)' : 'Scrollbars visible');
                   }}
                   color="primary"
                 />
@@ -1683,7 +1716,7 @@ export default function Settings({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: 16
+                marginBottom: 12
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                   <Zap size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
@@ -1700,6 +1733,41 @@ export default function Settings({
                     const enabled = e.target.checked;
                     updateSettings({ performanceMode: enabled });
                     showToast(enabled ? 'Ultra Performance Mode enabled' : 'Standard Mode enabled');
+                  }}
+                  color="primary"
+                />
+              </div>
+
+              {/* Toggle 3: Hide Scrollbars */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 16
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                  {(settings.hideScrollbar ?? true) ? (
+                    <EyeOff size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                  ) : (
+                    <Eye size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                  )}
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Hide Scrollbars</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      Hide visible scrollbars for a clean, mobile-native interface
+                    </div>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.hideScrollbar ?? true}
+                  onChange={(e) => {
+                    const hide = e.target.checked;
+                    updateSettings({ hideScrollbar: hide });
+                    showToast(hide ? 'Scrollbars hidden (Clean mobile style)' : 'Scrollbars visible');
                   }}
                   color="primary"
                 />

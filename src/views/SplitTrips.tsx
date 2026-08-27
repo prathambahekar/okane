@@ -27,6 +27,7 @@ import { useStore } from '../store';
 import type { Trip, TripExpense, TripGroup, TripMember } from '../types';
 import { fmtMoney } from '../utils';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 // Storage keys
 const STORAGE_KEY_ACTIVE_TRIP = 'okane_active_trip_v1';
@@ -142,6 +143,8 @@ interface BottomDrawerProps {
 }
 
 function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: BottomDrawerProps) {
+  useBackButtonModal(isOpen, onClose, { priority: BackPriority.DRAWER });
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -348,6 +351,8 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
       return 'home';
     }
   });
+
+  useBackButtonModal(subView !== 'home', () => setSubView('home'), { priority: BackPriority.SUBVIEW });
 
   const handledArgRef = useRef<string | null>(null);
 

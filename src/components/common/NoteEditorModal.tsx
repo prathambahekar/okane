@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FileText, X, Check, Trash2 } from 'lucide-react';
+import { useBackButtonModal, BackPriority } from '../../utils/backHandler';
 
 export interface NoteEditorModalProps {
   isOpen: boolean;
@@ -21,6 +22,8 @@ export function NoteEditorModal({
   placeholder = 'Add optional notes or remarks...',
   quickTags = ['Roommate', 'Family', 'Office colleague', 'Splitwise friend', 'UPI ID'],
 }: NoteEditorModalProps) {
+  useBackButtonModal(isOpen, onClose, { priority: BackPriority.DIALOG });
+
   if (!isOpen) return null;
 
   return createPortal(
