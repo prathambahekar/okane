@@ -2,16 +2,18 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Capacitor } from "@capacitor/core";
+import { NativeBiometric } from 'capacitor-native-biometric';
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 
 import CategoryIcon, { AVAILABLE_ICONS } from '../components/CategoryIcon';
+import PinSetupDrawer from '../components/PinSetupDrawer';
 import { CURRENT_APP_VERSION } from '../utils/updateManager';
 
 function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeColor: (c: string) => void }) {
@@ -191,12 +193,14 @@ export default function Settings({
   onStartExpenseTutorial,
   initialArg,
   onClearViewArg: _onClearViewArg,
+  onTestLock,
 }: {
   onNavigate?: (v: ViewName, arg?: string) => void;
   onOpenGuide?: () => void;
   onStartExpenseTutorial?: () => void;
   initialArg?: string;
   onClearViewArg?: () => void;
+  onTestLock?: () => void;
 }) {
   const {
     db, updateSettings, updateCategory, resetDB, restoreDB, loadSampleData, showToast,
@@ -294,6 +298,60 @@ export default function Settings({
   const [showDataSheet, setShowDataSheet] = useState(false);
   const [showVersionSheet, setShowVersionSheet] = useState(false);
   const [showFeedbackSheet, setShowFeedbackSheet] = useState(false);
+  const [showSecuritySheet, setShowSecuritySheet] = useState(false);
+  const [isPinSetupActive, setIsPinSetupActive] = useState(false);
+
+  const isLockEnabled = Boolean(settings.enableSecurityLock ?? settings.enableBiometricLock);
+  const isBiometricEnabled = Boolean(settings.enableBiometricLock ?? false);
+
+  const handleToggleSecurityLock = (enabled: boolean) => {
+    if (enabled) {
+      if (!settings.securityPin) {
+        setIsPinSetupActive(true);
+        return;
+      }
+      updateSettings({ enableSecurityLock: true });
+      showToast('PIN Security Lock enabled!');
+    } else {
+      updateSettings({ enableSecurityLock: false, enableBiometricLock: false });
+      showToast('Security lock disabled.');
+    }
+  };
+
+  const handleToggleBiometricOnly = async (enabled: boolean) => {
+    if (enabled) {
+      if (!isLockEnabled) {
+        if (!settings.securityPin) {
+          setIsPinSetupActive(true);
+          return;
+        }
+        updateSettings({ enableSecurityLock: true, enableBiometricLock: true });
+      }
+
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const available = await NativeBiometric.isAvailable();
+          if (available.isAvailable) {
+            await NativeBiometric.verifyIdentity({
+              reason: 'Confirm Biometric Activation',
+              title: 'Okane Biometrics',
+              subtitle: 'Scan your fingerprint or face to enable',
+              description: 'Verify identity',
+            });
+          }
+        } catch {
+          showToast('Biometric authentication cancelled or failed.');
+          return;
+        }
+      }
+
+      updateSettings({ enableBiometricLock: true, enableSecurityLock: true });
+      showToast('Biometric unlock enabled!');
+    } else {
+      updateSettings({ enableBiometricLock: false });
+      showToast('Biometric unlock disabled. (PIN lock remains active)');
+    }
+  };
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const handledArgRef = useRef<string | null>(null);
@@ -346,7 +404,6 @@ export default function Settings({
     updateChannel: "release",
     autoCheckUpdates: true,
     enableAIAssistant: true,
-    defaultAiEngine: "offline",
     defaultCurrency: "INR",
     lastUpdated: "2026-08-05"
   });
@@ -2379,7 +2436,7 @@ export default function Settings({
                 <div className="settings-card-text">
                   <h2 className="settings-card-title">Advanced Features</h2>
                   <p className="settings-card-sub">
-                    {(settings.enableEnvelopes ?? false) ? 'Envelopes On' : 'Envelopes Off'} • {(settings.enableAutopay ?? false) ? 'Autopay On' : 'Autopay Off'} • {(settings.enableSplitTrips ?? false) ? 'Trips & Splits On' : 'Trips & Splits Off'}
+                    {(settings.enableAIAssistant ?? true) ? 'AI Assistant On' : 'AI Assistant Off'} • {(settings.enableAutopay ?? false) ? 'Autopay On' : 'Autopay Off'} • {(settings.enableSplitTrips ?? false) ? 'Trips & Splits On' : 'Trips & Splits Off'}
                   </p>
                 </div>
               </div>
@@ -2387,9 +2444,9 @@ export default function Settings({
               <div className="settings-card-right">
                 <span className="badge settings-card-badge">
                   {
-                    [settings.enableEnvelopes ?? false, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length === 0
+                    [settings.enableAIAssistant ?? true, settings.enableReportBugCard ?? true, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length === 0
                       ? 'Disabled'
-                      : `${[settings.enableEnvelopes ?? false, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length} Active`
+                      : `${[settings.enableAIAssistant ?? true, settings.enableReportBugCard ?? true, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length} Active`
                   }
                 </span>
                 <ChevronRight className="settings-card-arrow" size={18} />
@@ -2471,7 +2528,7 @@ export default function Settings({
                       Advanced Features
                     </h3>
                     <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
-                      Toggle envelopes, autopay & trip bill splitting
+                      Toggle AI assistant, report bug card, autopay & trip bill splitting
                     </p>
                   </div>
                 </div>
@@ -2498,7 +2555,46 @@ export default function Settings({
 
               {/* List of Advanced Features */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {/* 1. Goal-Based Envelopes */}
+                {/* 1. AI Assistant (Max) */}
+                <div style={{
+                  padding: '14px 16px',
+                  borderRadius: 14,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 8,
+                        background: (settings.enableAIAssistant ?? true) ? 'var(--accent-soft)' : 'var(--border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                      }}>
+                        <Sparkles size={18} style={{ color: (settings.enableAIAssistant ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>AI Assistant (Max)</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          Voice & floating AI trigger
+                        </div>
+                      </div>
+                    </div>
+
+                    <Switch
+                      checked={settings.enableAIAssistant ?? true}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({ enableAIAssistant: enabled });
+                        showToast(enabled ? 'AI Assistant enabled' : 'AI Assistant disabled');
+                      }}
+                      color="primary"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Report Bug & Feature Card */}
                 <div style={{
                   padding: '14px 16px',
                   borderRadius: 14,
@@ -2511,24 +2607,24 @@ export default function Settings({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: 8,
-                      background: (settings.enableEnvelopes ?? false) ? 'var(--accent-soft)' : 'var(--border)',
+                      background: (settings.enableReportBugCard ?? true) ? 'var(--accent-soft)' : 'var(--border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                     }}>
-                      <PiggyBank size={18} style={{ color: (settings.enableEnvelopes ?? false) ? 'var(--accent)' : 'var(--text-3)' }} />
+                      <MessageSquarePlus size={18} style={{ color: (settings.enableReportBugCard ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Envelopes</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Report Bug & Feature Card</div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
-                        Goal-based envelopes (e.g. Emergency reserve, Vacation) inside wallets
+                        Show feedback card in Settings
                       </div>
                     </div>
                   </div>
                   <Switch
-                    checked={settings.enableEnvelopes ?? false}
+                    checked={settings.enableReportBugCard ?? true}
                     onChange={(e) => {
                       const enabled = e.target.checked;
-                      updateSettings({ enableEnvelopes: enabled });
-                      showToast(enabled ? 'Envelopes enabled' : 'Envelopes disabled');
+                      updateSettings({ enableReportBugCard: enabled });
+                      showToast(enabled ? 'Report Bug Card enabled' : 'Report Bug Card disabled');
                     }}
                     color="primary"
                   />
@@ -2641,6 +2737,32 @@ export default function Settings({
         <div className="settings-section-group">
           <div className="settings-section-label">System & Info</div>
 
+          {/* Security & Privacy Card */}
+          <div className="card settings-summary-card" onClick={() => setShowSecuritySheet(true)}>
+            <div className="settings-card-inner">
+              <div className="settings-card-left">
+                <div className="settings-card-icon">
+                  <ShieldCheck size={19} />
+                </div>
+                <div className="settings-card-text">
+                  <h2 className="settings-card-title">Security & Privacy</h2>
+                  <p className="settings-card-sub">
+                    {isLockEnabled
+                      ? (isBiometricEnabled ? 'PIN & Native Biometric Lock active' : 'PIN Lock active (Biometrics off)')
+                      : 'PIN & Native Biometric protection'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="settings-card-right">
+                <span className="badge settings-card-badge">
+                  {isLockEnabled ? (isBiometricEnabled ? 'PIN + Biometric' : 'PIN Only') : 'Disabled'}
+                </span>
+                <ChevronRight className="settings-card-arrow" size={18} />
+              </div>
+            </div>
+          </div>
+
           {/* Developer Mode Card */}
           <div className="card settings-summary-card" onClick={() => setShowDevSheet(true)}>
             <div className="settings-card-inner">
@@ -2689,8 +2811,8 @@ export default function Settings({
             </div>
           </div>
 
-          {/* Report Bug / Suggest a Feature Card (Developer Mode) */}
-          {isDevMode && (settings.enableReportBugCard ?? true) && (
+          {/* Report Bug / Suggest a Feature Card */}
+          {(settings.enableReportBugCard ?? true) && (
             <div className="card settings-summary-card" onClick={() => setShowFeedbackSheet(true)}>
               <div className="settings-card-inner">
                 <div className="settings-card-left">
@@ -2845,90 +2967,44 @@ export default function Settings({
                   </div>
                 </div>
 
-                {/* 2. AI Assistant */}
+                {/* 2. Goal-Based Envelopes (Experimental) */}
                 <div style={{
                   padding: '12px 14px',
                   borderRadius: 12,
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                      <div style={{
-                        width: 36, height: 36, borderRadius: 8,
-                        background: (isDevMode && (settings.enableAIAssistant ?? true)) ? 'var(--accent-soft)' : 'var(--border)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                      }}>
-                        <Sparkles size={17} style={{ color: (isDevMode && (settings.enableAIAssistant ?? true)) ? 'var(--accent)' : 'var(--text-3)' }} />
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>AI Assistant (Max)</div>
-                        <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          Voice & floating AI trigger
-                        </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: (isDevMode && (settings.enableEnvelopes ?? false)) ? 'var(--accent-soft)' : 'var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <PiggyBank size={17} style={{ color: (isDevMode && (settings.enableEnvelopes ?? false)) ? 'var(--accent)' : 'var(--text-3)' }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>Envelopes (Goal-Based)</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        Goal-based envelopes inside wallets
                       </div>
                     </div>
-
-                    <Switch
-                      disabled={!isDevMode}
-                      checked={isDevMode && (settings.enableAIAssistant ?? true)}
-                      onChange={(e) => {
-                        const enabled = e.target.checked;
-                        updateSettings({ enableAIAssistant: enabled });
-                        showToast(enabled ? 'AI Assistant enabled' : 'AI Assistant disabled');
-                      }}
-                      color="primary"
-                      size="small"
-                    />
                   </div>
 
-                  {isDevMode && (settings.enableAIAssistant ?? true) && (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-                      paddingTop: 8, borderTop: '1px solid var(--border)'
-                    }}>
-                      <span style={{ fontSize: 11.5, color: 'var(--text-2)', fontWeight: 500 }}>Engine Mode</span>
-                      <div style={{ display: 'flex', gap: 3, background: 'var(--surface)', padding: 2, borderRadius: 6, border: '1px solid var(--border)' }}>
-                        <button
-                          type="button"
-                          disabled={!isDevMode}
-                          onClick={() => {
-                            updateSettings({ defaultAiEngine: 'offline' });
-                            localStorage.setItem('ai_engine_mode', 'offline');
-                            showToast('Set AI engine to Offline (Local)');
-                          }}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 4,
-                            fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
-                            background: (settings.defaultAiEngine ?? 'offline') === 'offline' ? 'var(--accent-soft)' : 'transparent',
-                            color: (settings.defaultAiEngine ?? 'offline') === 'offline' ? 'var(--accent)' : 'var(--text-3)'
-                          }}
-                        >
-                          <Zap size={11} /> Offline
-                        </button>
-                        <button
-                          type="button"
-                          disabled={!isDevMode}
-                          onClick={() => {
-                            updateSettings({ defaultAiEngine: 'online' });
-                            localStorage.setItem('ai_engine_mode', 'online');
-                            showToast('Set AI engine to Gemini Cloud');
-                          }}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 4,
-                            fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
-                            background: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--accent-soft)' : 'transparent',
-                            color: (settings.defaultAiEngine ?? 'offline') === 'online' ? 'var(--accent)' : 'var(--text-3)'
-                          }}
-                        >
-                          <Sparkles size={11} /> Gemini
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <Switch
+                    disabled={!isDevMode}
+                    checked={isDevMode && (settings.enableEnvelopes ?? false)}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      updateSettings({ enableEnvelopes: enabled });
+                      showToast(enabled ? 'Envelopes enabled' : 'Envelopes disabled');
+                    }}
+                    color="primary"
+                    size="small"
+                  />
                 </div>
 
                 {/* 3. Performance & Animations Card Switch */}
@@ -2981,46 +3057,6 @@ export default function Settings({
                       size="small"
                     />
                   </div>
-                </div>
-
-                {/* 4. Report Bug & Feature Request Card Switch */}
-                <div style={{
-                  padding: '12px 14px',
-                  borderRadius: 12,
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 8,
-                      background: (isDevMode && (settings.enableReportBugCard ?? true)) ? 'var(--accent-soft)' : 'var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                    }}>
-                      <MessageSquarePlus size={17} style={{ color: (isDevMode && (settings.enableReportBugCard ?? true)) ? 'var(--accent)' : 'var(--text-3)' }} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>Report Bug & Feature Card</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        Show feedback card in Settings
-                      </div>
-                    </div>
-                  </div>
-
-                  <Switch
-                    disabled={!isDevMode}
-                    checked={isDevMode && (settings.enableReportBugCard ?? true)}
-                    onChange={(e) => {
-                      const enabled = e.target.checked;
-                      updateSettings({ enableReportBugCard: enabled });
-                      showToast(enabled ? 'Report Bug Card enabled' : 'Report Bug Card disabled');
-                    }}
-                    color="primary"
-                    size="small"
-                  />
                 </div>
 
                 {/* 6. Sample Data Loader */}
@@ -3772,6 +3808,273 @@ export default function Settings({
         </div>,
         document.body
       )}
+
+      {/* Bottom Sheet Drawer Modal for Security & Privacy */}
+      {showSecuritySheet && createPortal(
+        <div className="sheet-backdrop" onClick={() => { setShowSecuritySheet(false); setIsPinSetupActive(false); }}>
+          <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Drag Handle */}
+            <div className="sheet-drag-handle" />
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                  display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                }}>
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                    Security & Privacy
+                  </h3>
+                  <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                    Native Android Biometric & PIN Protection
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="drawer-close-btn"
+                onClick={() => { setShowSecuritySheet(false); setIsPinSetupActive(false); }}
+                style={{
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: 'var(--text-2)',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Android/Mobile Indicator Tag */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 12px',
+              borderRadius: 10,
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              marginBottom: 14,
+              fontSize: 12,
+              color: 'var(--text-2)'
+            }}>
+              <Smartphone size={16} style={{ color: 'var(--accent)' }} />
+              <span>Targeted for <strong>Android / Mobile Native</strong> (Supports Fingerprint, Face ID & PIN)</span>
+            </div>
+
+            {/* Main Controls List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* 1. Master PIN Lock Switch */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: isLockEnabled ? 'var(--accent-soft)' : 'var(--border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <KeyRound size={18} style={{ color: isLockEnabled ? 'var(--accent)' : 'var(--text-3)' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                      PIN Passcode Lock
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      Require 4-digit PIN when opening Okane
+                    </div>
+                  </div>
+                </div>
+
+                <Switch
+                  checked={isLockEnabled}
+                  onChange={(e) => handleToggleSecurityLock(e.target.checked)}
+                  color="primary"
+                />
+              </div>
+
+              {/* 2. Biometric Unlock Switch (Only use PIN if toggled off) */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                opacity: isLockEnabled ? 1 : 0.65
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: isBiometricEnabled ? 'var(--accent-soft)' : 'var(--border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <Fingerprint size={18} style={{ color: isBiometricEnabled ? 'var(--accent)' : 'var(--text-3)' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                      Biometric Unlock
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      Prompt fingerprint or face scan before falling back to PIN
+                    </div>
+                  </div>
+                </div>
+
+                <Switch
+                  checked={isBiometricEnabled}
+                  onChange={(e) => handleToggleBiometricOnly(e.target.checked)}
+                  color="primary"
+                />
+              </div>
+
+              {/* 3. Require Lock on App Resume Switch */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                opacity: isLockEnabled ? 1 : 0.65
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: (settings.requireBiometricOnResume ?? true) && isLockEnabled ? 'var(--accent-soft)' : 'var(--border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <Lock size={18} style={{ color: (settings.requireBiometricOnResume ?? true) && isLockEnabled ? 'var(--accent)' : 'var(--text-3)' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                      Lock on Background Resume
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      Re-lock when switching back to Okane from another app
+                    </div>
+                  </div>
+                </div>
+
+                <Switch
+                  checked={settings.requireBiometricOnResume ?? true}
+                  disabled={!isLockEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    updateSettings({ requireBiometricOnResume: enabled });
+                    showToast(enabled ? 'Resume lock enabled' : 'Resume lock disabled');
+                  }}
+                  color="primary"
+                />
+              </div>
+
+              {/* Set / Change Backup Security PIN */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: settings.securityPin ? 'var(--accent-soft)' : 'var(--border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <KeyRound size={18} style={{ color: settings.securityPin ? 'var(--accent)' : 'var(--text-3)' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                      Passcode Security PIN
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      {settings.securityPin ? '4-Digit PIN Configured' : 'No custom PIN set'}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setIsPinSetupActive(true)}
+                  style={{ fontSize: 12, padding: '6px 14px', height: 34, fontWeight: 600, borderRadius: 10 }}
+                >
+                  {settings.securityPin ? 'Change PIN' : 'Set PIN'}
+                </button>
+              </div>
+
+              {/* Test Security Lock Button */}
+              {isLockEnabled && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowSecuritySheet(false);
+                    onTestLock?.();
+                  }}
+                  style={{
+                    width: '100%',
+                    marginTop: 4,
+                    padding: '12px',
+                    borderRadius: 12,
+                    fontWeight: 600,
+                    fontSize: 13,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    border: '1px solid var(--accent-border-soft)',
+                    color: 'var(--accent)',
+                    background: 'var(--accent-soft)'
+                  }}
+                >
+                  <ShieldCheck size={18} />
+                  <span>Test Security Lock Screen</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Dedicated Clean PIN Setup & Change Drawer Menu */}
+      <PinSetupDrawer
+        key={isPinSetupActive ? 'active' : 'inactive'}
+        isOpen={isPinSetupActive}
+        onClose={() => setIsPinSetupActive(false)}
+        hasExistingPin={Boolean(settings.securityPin)}
+        currentPin={settings.securityPin || ''}
+        onSavePin={(newPin) => {
+          updateSettings({ securityPin: newPin, enableSecurityLock: true });
+          showToast('4-Digit Passcode saved!');
+        }}
+      />
 
       {/* Permanently mounted hidden file input (outside of any conditional portal) */}
       <input

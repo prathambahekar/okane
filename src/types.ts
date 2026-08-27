@@ -136,7 +136,6 @@ export interface Settings {
   enableAutoUpdate?: boolean;
   installedVersion?: string;
   lastUpdateCheck?: string;
-  defaultAiEngine?: 'offline' | 'online';
   devMode?: boolean;
   colorMode?: 'light' | 'dark';
   accent?: string;
@@ -147,6 +146,10 @@ export interface Settings {
   spendingMode?: 'all' | 'me';
   enableReportBugCard?: boolean;
   enablePerformanceCard?: boolean;
+  enableSecurityLock?: boolean; // Master PIN/Passcode Lock
+  enableBiometricLock?: boolean; // Biometric (Fingerprint/Face) unlock
+  securityPin?: string;
+  requireBiometricOnResume?: boolean;
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';

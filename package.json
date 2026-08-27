@@ -29,6 +29,7 @@
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
     "alasql": "^4.17.3",
+    "capacitor-native-biometric": "^4.2.2",
     "framer-motion": "^12.42.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",

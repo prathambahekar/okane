@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export const BackPriority = {
   ROOT: 0,
@@ -205,15 +205,17 @@ export function useBackButtonModal(
   }
 ) {
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
-  const idRef = useRef(options?.id || `modal-${Math.random().toString(36).slice(2, 9)}`);
+  const [id] = useState(() => options?.id || `modal-${Math.random().toString(36).slice(2, 9)}`);
 
   useEffect(() => {
     if (!isOpen) return;
 
     const unregister = backHandler.register({
-      id: idRef.current,
+      id,
       priority: options?.priority ?? BackPriority.MODAL,
       name: options?.name,
       pushHistory: options?.pushHistory ?? false,
@@ -226,5 +228,5 @@ export function useBackButtonModal(
     return () => {
       unregister();
     };
-  }, [isOpen, options?.priority, options?.name, options?.pushHistory]);
+  }, [isOpen, options?.priority, options?.name, options?.pushHistory, id]);
 }

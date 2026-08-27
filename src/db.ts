@@ -520,7 +520,6 @@ export function defaultDB(): AppDB {
       enableAIAssistant: true,
       enableEnvelopes: false,
       enableAutopay: false,
-      defaultAiEngine: 'offline',
       devMode: false,
       enableDevSQLConsole: false,
       enableSplitTrips: false,
@@ -532,6 +531,9 @@ export function defaultDB(): AppDB {
       sidebarCollapsed: localStorage.getItem('sidebar_collapsed') === 'true',
       enableAnimations: true,
       performanceMode: false,
+      enableBiometricLock: false,
+      securityPin: '',
+      requireBiometricOnResume: true,
     },
     recurringRules: [],
   };
@@ -879,7 +881,6 @@ export function syncDBToSQLTables(db: AppDB): void {
       if (db.settings.accent) localStorage.setItem('accent-color', db.settings.accent);
       if (db.settings.customAccentColor) localStorage.setItem('custom-accent-color', db.settings.customAccentColor);
       if (db.settings.sidebarCollapsed !== undefined) localStorage.setItem('sidebar_collapsed', String(db.settings.sidebarCollapsed));
-      if (db.settings.defaultAiEngine) localStorage.setItem('ai_engine_mode', db.settings.defaultAiEngine);
     }
 
     // Sync Trip and Split data into settings table and localStorage
@@ -1051,7 +1052,6 @@ export function loadDBFromSQLTables(): AppDB {
       enableAIAssistant: true,
       enableEnvelopes: false,
       enableAutopay: false,
-      defaultAiEngine: 'offline',
       devMode: true,
       enableDevSQLConsole: true,
       enableSplitTrips: false,

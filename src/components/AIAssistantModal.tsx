@@ -40,13 +40,17 @@ import {
   Banknote,
   Clock,
   Zap,
+  RotateCcw,
+  Store,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { currencySymbol } from '../utils';
 import { parseLocallyClient } from '../nlp';
-import { uid, todayISO, friendBalance, walletBalance, totalWalletBalance } from '../db';
+import { uid, todayISO } from '../db';
 import type { ExpenseType, ExpenseFlow } from '../types';
 import { CategoryBadge } from './CategoryIcon';
+import type { ExpenseInitialData } from './ExpenseModal';
+import { getFrequentTasks, type FrequentTaskItem } from '../utils/frequentTasks';
 
 const ModalFadeTransition = React.forwardRef(function Transition(
   props: TransitionProps & {
@@ -127,9 +131,10 @@ interface DraftExpense {
   splitMode?: 'just_me' | 'equal_split' | 'custom_split' | 'for_friend' | 'pay_debt' | 'by_friend';
   myShare?: number | null;
   friendShare?: number | null;
-  walletName: string;
+  walletName?: string;
   friendName?: string | null;
   friendNames?: string[];
+  vendorName?: string | null;
   date: string;
   status?: string;
   notes?: string;
@@ -143,12 +148,281 @@ interface Message {
   draft?: DraftExpense | null;
 }
 
+interface ParsedBullet {
+  raw: string;
+  label: string;
+  subText?: string;
+  amount?: string;
+  badgeType?: 'credit' | 'debit' | 'neutral';
+  badgeText?: string;
+}
+
+function renderFormattedText(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*|₹[\d,.]+|\$[\d,.]+)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <span key={i} style={{ fontWeight: 700, color: 'var(--text)' }}>
+          {part.slice(2, -2)}
+        </span>
+      );
+    }
+    if (part.match(/^(?:₹|\$)[\d,.]+/)) {
+      return (
+        <span key={i} style={{ fontWeight: 700, color: 'var(--accent)' }}>
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
+function parseBulletLine(line: string): ParsedBullet {
+  const clean = line.replace(/^[•\-*\d.]+\s*/, '').trim();
+
+  // Pattern 1: Debt/Friend: e.g. "Hrishi: owes you ₹975" or "Hrishi: you owe ₹200" or "Hrishi owes you ₹975"
+  const owesMatch = clean.match(/^([^:-]+)[:-]?\s*(owes you|you owe|owes|is owed)\s*(?:₹|\$|INR)?\s*([\d,.]+)/i);
+  if (owesMatch) {
+    const name = owesMatch[1].trim();
+    const relation = owesMatch[2].toLowerCase();
+    const amtStr = owesMatch[3];
+    const isOwedToMe = relation.includes('owes you') || relation === 'owes';
+    return {
+      raw: clean,
+      label: name,
+      badgeText: isOwedToMe ? `Owes you ₹${amtStr}` : `You owe ₹${amtStr}`,
+      badgeType: isOwedToMe ? 'credit' : 'debit',
+    };
+  }
+
+  // Pattern 2: Wallet / Account e.g. "Google Pay: ₹1,403.52" or "Cash: ₹0"
+  const accountMatch = clean.match(/^([^:-]+)[:-]\s*(?:₹|\$|INR)?\s*([\d,.]+)/i);
+  if (accountMatch) {
+    const accountName = accountMatch[1].trim();
+    const amtStr = accountMatch[2];
+    return {
+      raw: clean,
+      label: accountName,
+      amount: `₹${amtStr}`,
+      badgeType: 'neutral',
+    };
+  }
+
+  // Pattern 3: Expense format e.g. "Coffee - ₹30 (Food, Cash)"
+  const expMatch = clean.match(/^([^-:]+)(?:[-:]\s*(?:₹|\$|INR)?\s*([\d,.]+))?\s*(?:\((.*?)\))?/i);
+  if (expMatch && expMatch[2]) {
+    return {
+      raw: clean,
+      label: expMatch[1].trim(),
+      amount: `₹${expMatch[2]}`,
+      subText: expMatch[3] ? expMatch[3].trim() : undefined,
+      badgeType: 'neutral',
+    };
+  }
+
+  return {
+    raw: clean,
+    label: clean,
+  };
+}
+
+function BotMessageBubble({ text }: { text: string }) {
+  const lines = text.split('\n');
+  const blocks: Array<{ type: 'text'; content: string } | { type: 'bullets'; items: ParsedBullet[] }> = [];
+  let currentBullets: ParsedBullet[] = [];
+
+  const flushBullets = () => {
+    if (currentBullets.length > 0) {
+      blocks.push({ type: 'bullets', items: [...currentBullets] });
+      currentBullets = [];
+    }
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushBullets();
+      continue;
+    }
+
+    if (trimmed.match(/^[•\-*]/) || trimmed.match(/^\d+[.)]/)) {
+      currentBullets.push(parseBulletLine(trimmed));
+    } else {
+      flushBullets();
+      blocks.push({ type: 'text', content: trimmed });
+    }
+  }
+  flushBullets();
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        px: 2,
+        py: 1.5,
+        borderRadius: '14px',
+        bgcolor: 'var(--surface2)',
+        color: 'var(--text)',
+        maxWidth: { xs: '92%', sm: '85%' },
+        border: '1px solid var(--border)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1.25,
+      }}
+    >
+      {blocks.map((block, idx) => {
+        if (block.type === 'text') {
+          return (
+            <Typography
+              key={idx}
+              variant="body2"
+              sx={{
+                lineHeight: 1.55,
+                fontSize: '13px',
+                color: 'var(--text)',
+                fontWeight: 500,
+              }}
+            >
+              {renderFormattedText(block.content)}
+            </Typography>
+          );
+        }
+
+        return (
+          <Box
+            key={idx}
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 0.75,
+              my: 0.25,
+            }}
+          >
+            {block.items.map((bullet, bIdx) => {
+              return (
+                <Box
+                  key={bIdx}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1.5,
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: '10px',
+                    bgcolor: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      borderColor: 'var(--accent)',
+                      bgcolor: 'var(--surface3)',
+                    },
+                  }}
+                >
+                  {/* Left Label */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: 1 }}>
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '6px',
+                        bgcolor: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--accent)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {bullet.badgeType === 'credit' || bullet.badgeType === 'debit' ? (
+                        <User size={12} />
+                      ) : bullet.amount ? (
+                        <CreditCard size={12} />
+                      ) : (
+                        <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: 'var(--accent)' }} />
+                      )}
+                    </Box>
+
+                    <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                      <Typography
+                        variant="body2"
+                        noWrap
+                        sx={{
+                          fontSize: '12.5px',
+                          fontWeight: 600,
+                          color: 'var(--text)',
+                        }}
+                      >
+                        {bullet.label}
+                      </Typography>
+                      {bullet.subText && (
+                        <Typography
+                          variant="caption"
+                          noWrap
+                          sx={{
+                            fontSize: '10.5px',
+                            color: 'var(--text-3)',
+                          }}
+                        >
+                          {bullet.subText}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+
+                  {/* Right Badge / Value */}
+                  {bullet.badgeText ? (
+                    <Chip
+                      label={bullet.badgeText}
+                      size="small"
+                      sx={{
+                        height: 24,
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        bgcolor: bullet.badgeType === 'credit' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                        color: bullet.badgeType === 'credit' ? '#10b981' : '#ef4444',
+                        border: '1px solid',
+                        borderColor: bullet.badgeType === 'credit' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : bullet.amount ? (
+                    <Box
+                      sx={{
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: '6px',
+                        bgcolor: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text)',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {bullet.amount}
+                    </Box>
+                  ) : null}
+                </Box>
+              );
+            })}
+          </Box>
+        );
+      })}
+    </Paper>
+  );
+}
+
 interface AIAssistantModalProps {
   open: boolean;
   onClose: () => void;
+  onOpenAddExpense?: (initialData?: ExpenseInitialData) => void;
 }
 
-export default function AIAssistantModal({ open, onClose }: AIAssistantModalProps) {
+export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AIAssistantModalProps) {
   const isMobile = useMediaQuery('(max-width: 640px)');
 
   const { db, addExpense, addFriend, showToast } = useStore();
@@ -179,12 +453,15 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     touchStartYRef.current = null;
   };
 
-  const [aiEngineMode, setAiEngineMode] = useState<'offline' | 'online'>(() => {
-    return (localStorage.getItem('ai_engine_mode') as 'offline' | 'online') || 'online';
-  });
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeDraft, setActiveDraft] = useState<DraftExpense | null>(null);
+
+  const handleRestartChat = useCallback(() => {
+    setMessages([]);
+    setActiveDraft(null);
+    setInputText('');
+    showToast('Chat restarted');
+  }, [showToast]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const contentEndRef = useRef<HTMLDivElement>(null);
@@ -456,181 +733,20 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     setInputText('');
     setLoading(true);
 
-    if (aiEngineMode === 'offline') {
-      setTimeout(() => {
-        const localResult = parseLocallyClient(query, categories, friends, wallets, currency, db);
-        const botMsg: Message = {
-          id: generateMsgId(),
-          sender: 'bot',
-          text: localResult.reply,
-          timestamp: timeStr,
-          draft: localResult.draft || null,
-        };
-
-        setMessages(prev => [...prev, botMsg]);
-
-        if (localResult.draft) {
-          const d = localResult.draft as DraftExpense;
-          if (d.whoPaid === 'other' || d.type === 'by_friend' || d.splitMode === 'by_friend') {
-            d.whoPaid = 'other';
-            d.type = 'by_friend';
-            d.splitMode = 'by_friend';
-          } else if (!d.splitMode) {
-            if (d.type === 'for_friend') d.splitMode = 'equal_split';
-            else d.splitMode = 'just_me';
-          }
-
-          if (d.friendName && (!d.friendNames || d.friendNames.length === 0)) {
-            d.friendNames = [d.friendName];
-          } else if (d.friendNames && d.friendNames.length > 0 && !d.friendName) {
-            d.friendName = d.friendNames.join(', ');
-          }
-
-          if (d.splitMode === 'equal_split') {
-            if (d.myShare == null) d.myShare = Math.round((d.amount / 2) * 100) / 100;
-            if (d.friendShare == null) d.friendShare = Math.round((d.amount / 2) * 100) / 100;
-          }
-          setActiveDraft(d);
-        }
-        setLoading(false);
-      }, 150);
-      return;
-    }
-
-    try {
-      const recentExpenses = db.expenses.slice(0, 60).map(e => {
-        const w = db.wallets.find(wallet => wallet.id === e.walletId);
-        const f = db.friends.find(friend => friend.id === e.friendId);
-        const v = db.friends.find(friend => friend.id === e.vendorId);
-        return {
-          description: e.description,
-          amount: e.amount,
-          category: e.category,
-          date: e.date,
-          type: e.type,
-          flow: e.flow,
-          walletName: w ? w.name : undefined,
-          friendName: f ? f.name : undefined,
-          vendorName: v ? v.name : undefined,
-          status: e.status,
-          settled: e.settled,
-        };
-      });
-
-      const currentMonthPrefix = new Date().toISOString().slice(0, 7);
-      const thisMonthExpenses = db.expenses.filter(e => e.flow !== 'in' && e.date.startsWith(currentMonthPrefix));
-      const thisMonthIncome = db.expenses.filter(e => e.flow === 'in' && e.date.startsWith(currentMonthPrefix));
-      const thisMonthSpent = thisMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
-      const thisMonthIncomeTotal = thisMonthIncome.reduce((sum, e) => sum + e.amount, 0);
-
-      const totalSpent = db.expenses
-        .filter(e => e.flow !== 'in')
-        .reduce((sum, e) => sum + e.amount, 0);
-
-      const monthlySpending = {
-        month: currentMonthPrefix,
-        totalSpentThisMonth: thisMonthSpent,
-        totalIncomeThisMonth: thisMonthIncomeTotal,
-        netCashflow: thisMonthIncomeTotal - thisMonthSpent,
-        transactionsCount: thisMonthExpenses.length + thisMonthIncome.length,
-      };
-
-      const walletsData = db.wallets.map(w => ({
-        id: w.id,
-        name: w.name,
-        balance: walletBalance(db, w.id),
-        openingBalance: w.openingBalance,
-        isDefault: w.id === db.settings.defaultWalletId,
-      }));
-
-      const friendsData = db.friends.map(f => {
-        const bal = friendBalance(db, f.id);
-        return {
-          id: f.id,
-          name: f.name,
-          type: f.type || 'friend',
-          category: f.category,
-          defaultAmount: f.defaultAmount,
-          owedToMe: bal.owedToMe,
-          owedByMe: bal.owedByMe,
-          net: bal.net,
-        };
-      });
-
-      const recurringRulesData = (db.recurringRules || []).map(r => ({
-        title: r.title,
-        amount: r.amount,
-        kind: r.kind,
-        frequency: r.frequency,
-        category: r.category,
-      }));
-
-      const summaryStats = {
-        totalSpent,
-        totalExpensesCount: db.expenses.length,
-        totalWalletBalance: totalWalletBalance(db),
-      };
-
-      const chatHistory = messages.slice(-10).map(m => ({
-        sender: m.sender,
-        text: m.text,
-      }));
-
-      const res = await fetch('/api/assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: query,
-          chatHistory,
-          categories,
-          wallets: walletsData,
-          totalWalletBalance: totalWalletBalance(db),
-          friends: friendsData,
-          currentDraft: activeDraft,
-          recentExpenses,
-          monthlySpending,
-          summaryStats,
-          recurringRules: recurringRulesData,
-          currency,
-        }),
-      });
-
-      let data: { reply?: string | null; draft?: DraftExpense | null; fallbackToOffline?: boolean } | null = null;
-      const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        data = await res.json().catch(() => null);
-      }
-
-      if (!data || data.fallbackToOffline || !data.reply) {
-        // Smoothly fall back to client-side local NLP engine
-        const localResult = parseLocallyClient(query, categories, friends, wallets, currency, db);
-        const botMsg: Message = {
-          id: generateMsgId(),
-          sender: 'bot',
-          text: localResult.reply,
-          timestamp: timeStr,
-          draft: localResult.draft || null,
-        };
-        setMessages(prev => [...prev, botMsg]);
-        if (localResult.draft) {
-          setActiveDraft(localResult.draft as DraftExpense);
-        }
-        return;
-      }
-
+    setTimeout(() => {
+      const localResult = parseLocallyClient(query, categories, friends, wallets, currency, db);
       const botMsg: Message = {
         id: generateMsgId(),
         sender: 'bot',
-        text: data.reply,
+        text: localResult.reply,
         timestamp: timeStr,
-        draft: data.draft || null,
+        draft: localResult.draft || null,
       };
 
       setMessages(prev => [...prev, botMsg]);
 
-
-      if (data.draft) {
-        const d = data.draft as DraftExpense;
+      if (localResult.draft) {
+        const d = localResult.draft as DraftExpense;
         if (d.whoPaid === 'other' || d.type === 'by_friend' || d.splitMode === 'by_friend') {
           d.whoPaid = 'other';
           d.type = 'by_friend';
@@ -650,27 +766,29 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
           if (d.myShare == null) d.myShare = Math.round((d.amount / 2) * 100) / 100;
           if (d.friendShare == null) d.friendShare = Math.round((d.amount / 2) * 100) / 100;
         }
-        setActiveDraft(d);
-      }
-    } catch (err) {
-      console.error('Online AI call failed, using local offline fallback:', err);
-      const localResult = parseLocallyClient(query, categories, friends, wallets, currency);
-      setMessages(prev => [
-        ...prev,
-        {
-          id: generateMsgId(),
-          sender: 'bot',
-          text: localResult.reply,
-          timestamp: timeStr,
-          draft: localResult.draft || null,
+
+        if (onOpenAddExpense) {
+          const matchedWallet = wallets.find(w => w.name.toLowerCase() === (d.walletName || '').toLowerCase()) || wallets[0];
+          const matchedFriend = friends.find(f => f.name.toLowerCase() === (d.friendName || '').toLowerCase());
+          onOpenAddExpense({
+            description: d.description,
+            amount: d.amount,
+            category: d.category,
+            type: d.type,
+            flow: d.flow,
+            whoPaid: d.whoPaid === 'other' || d.type === 'by_friend' || d.splitMode === 'by_friend' ? 'other' : (d.whoPaid || 'me'),
+            splitMode: (d.splitMode === 'for_friend' || d.splitMode === 'equal_split' || d.splitMode === 'custom_split') ? 'for_friend' : (d.splitMode === 'pay_debt' ? 'pay_debt' : 'just_me'),
+            walletId: matchedWallet?.id,
+            friendId: matchedFriend?.id,
+            date: d.date || todayISO(),
+            notes: d.notes || 'Added via Max Assistant',
+          });
+        } else {
+          setActiveDraft(d);
         }
-      ]);
-      if (localResult.draft) {
-        setActiveDraft(localResult.draft as DraftExpense);
       }
-    } finally {
       setLoading(false);
-    }
+    }, 120);
   };
 
   const handleConfirmDraft = () => {
@@ -838,6 +956,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       label: string;
       subText?: string;
       prompt: string;
+      taskItem?: FrequentTaskItem;
     }> = [];
 
     const others: Array<{
@@ -846,71 +965,11 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       prompt: string;
     }> = [];
 
-    const defaultWallet = db.wallets.find(w => w.id === db.settings.defaultWalletId) || db.wallets[0] || { name: 'Cash' };
-
-    // 1. Calculate most frequent expenses by item name / description first, then category
-    const itemFreq: Record<string, { count: number; amounts: number[]; category: string; latestAmount: number }> = {};
-
-    // Scan recurring rules first
-    (db.recurringRules || []).forEach(r => {
-      if (r.title && r.amount > 0) {
-        const normDesc = r.title.trim().charAt(0).toUpperCase() + r.title.trim().slice(1).toLowerCase();
-        if (!itemFreq[normDesc]) {
-          itemFreq[normDesc] = { count: 3, amounts: [r.amount], category: r.category || 'General', latestAmount: r.amount };
-        }
-      }
-    });
-
-    db.expenses.forEach(e => {
-      if (e.flow !== 'in') {
-        const descKey = (e.description || '').trim();
-        if (descKey && descKey.length >= 2) {
-          const normDesc = descKey.charAt(0).toUpperCase() + descKey.slice(1).toLowerCase();
-          if (!itemFreq[normDesc]) {
-            itemFreq[normDesc] = { count: 0, amounts: [], category: e.category || 'General', latestAmount: e.amount };
-          }
-          itemFreq[normDesc].count += 1;
-          itemFreq[normDesc].amounts.push(e.amount);
-          itemFreq[normDesc].latestAmount = e.amount;
-        }
-      }
-    });
-
-    // Helper to get mode / accurate price
-    const getExactPrice = (name: string, data?: { amounts: number[]; latestAmount: number }) => {
-      const lower = name.toLowerCase();
-      // Check if recurring rule exists
-      const rec = (db.recurringRules || []).find(r => r.title.toLowerCase().includes(lower));
-      if (rec && rec.amount > 0) return rec.amount;
-
-      if (data && data.amounts && data.amounts.length > 0) {
-        // Calculate mode (most frequent exact price)
-        const priceCounts: Record<number, number> = {};
-        data.amounts.forEach(a => {
-          priceCounts[a] = (priceCounts[a] || 0) + 1;
-        });
-        const sortedPrices = Object.entries(priceCounts).sort((a, b) => b[1] - a[1]);
-        if (sortedPrices.length > 0 && sortedPrices[0][1] >= 2) {
-          return Number(sortedPrices[0][0]);
-        }
-        return data.latestAmount || data.amounts[0];
-      }
-
-      if (lower.includes('tiffin')) return 75;
-      if (lower.includes('tea') || lower.includes('chai')) return 15;
-      if (lower.includes('coffee')) return 30;
-      if (lower.includes('poha')) return 25;
-      if (lower.includes('lunch')) return 120;
-      if (lower.includes('dinner')) return 250;
-      if (lower.includes('fuel') || lower.includes('petrol')) return 500;
-      return 50;
-    };
-
-    // Helpers to pick appropriate icon
-    const getIconForName = (name: string) => {
-      const lower = name.toLowerCase();
+    const getIconForTask = (task: FrequentTaskItem) => {
+      if (task.vendorId || task.vendorName) return <Store size={14} />;
+      const lower = task.description.toLowerCase();
       if (lower.includes('coffee') || lower.includes('tea') || lower.includes('chai') || lower.includes('cafe')) return <Coffee size={14} />;
-      if (lower.includes('food') || lower.includes('dinner') || lower.includes('lunch') || lower.includes('meal') || lower.includes('snack') || lower.includes('tiffin') || lower.includes('burger')) return <Utensils size={14} />;
+      if (lower.includes('food') || lower.includes('dinner') || lower.includes('lunch') || lower.includes('meal') || lower.includes('snack') || lower.includes('tiffin') || lower.includes('burger') || lower.includes('poha')) return <Utensils size={14} />;
       if (lower.includes('groc') || lower.includes('mart') || lower.includes('store') || lower.includes('shop')) return <ShoppingBag size={14} />;
       if (lower.includes('salary') || lower.includes('income') || lower.includes('pay')) return <TrendingUp size={14} />;
       if (lower.includes('bill') || lower.includes('util') || lower.includes('rent') || lower.includes('wifi')) return <CreditCard size={14} />;
@@ -918,64 +977,16 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       return <TrendingDown size={14} />;
     };
 
-    const sortedItems = Object.entries(itemFreq).sort((a, b) => b[1].count - a[1].count);
-
-    // Build top frequent spending actions
-    sortedItems.slice(0, 4).forEach(([name, stats]) => {
-      const price = getExactPrice(name, stats);
+    const frequentTasksList = getFrequentTasks(db);
+    frequentTasksList.forEach(task => {
       frequent.push({
-        icon: getIconForName(name),
-        label: name,
-        subText: `${currSym}${price}`,
-        prompt: `Spent ${currSym}${price} on ${name} with ${defaultWallet.name}`,
+        icon: getIconForTask(task),
+        label: task.label,
+        subText: task.subText,
+        prompt: task.prompt,
+        taskItem: task,
       });
     });
-
-    // If less than 2, provide intelligent staple fallbacks
-    if (frequent.length === 0) {
-      frequent.push(
-        {
-          icon: <Utensils size={14} />,
-          label: 'Tiffin',
-          subText: `${currSym}75`,
-          prompt: `Spent ${currSym}75 on Tiffin with ${defaultWallet.name}`,
-        },
-        {
-          icon: <Coffee size={14} />,
-          label: 'Coffee',
-          subText: `${currSym}30`,
-          prompt: `Spent ${currSym}30 on Coffee with ${defaultWallet.name}`,
-        },
-        {
-          icon: <Utensils size={14} />,
-          label: 'Lunch',
-          subText: `${currSym}120`,
-          prompt: `Spent ${currSym}120 on Lunch with ${defaultWallet.name}`,
-        },
-        {
-          icon: <ShoppingBag size={14} />,
-          label: 'Groceries',
-          subText: `${currSym}500`,
-          prompt: `Spent ${currSym}500 on Groceries with ${defaultWallet.name}`,
-        }
-      );
-    } else if (frequent.length === 1) {
-      if (!frequent.some(f => f.label.toLowerCase().includes('tiffin'))) {
-        frequent.push({
-          icon: <Utensils size={14} />,
-          label: 'Tiffin',
-          subText: `${currSym}75`,
-          prompt: `Spent ${currSym}75 on Tiffin with ${defaultWallet.name}`,
-        });
-      } else {
-        frequent.push({
-          icon: <Coffee size={14} />,
-          label: 'Coffee',
-          subText: `${currSym}30`,
-          prompt: `Spent ${currSym}30 on Coffee with ${defaultWallet.name}`,
-        });
-      }
-    }
 
     // 2. Other actions (Insights, Balances, Debts, History)
     others.push({
@@ -1003,7 +1014,7 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
     });
 
     return { frequentActions: frequent.slice(0, 4), otherActions: others.slice(0, 4) };
-  }, [db, currSym]);
+  }, [db]);
 
 
   // Header without any horizontal divider lines
@@ -1050,53 +1061,6 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
             >
               Max Assistant
             </Typography>
-            <Box
-              onClick={() => {
-                const next = aiEngineMode === 'offline' ? 'online' : 'offline';
-                setAiEngineMode(next);
-                localStorage.setItem('ai_engine_mode', next);
-                showToast(next === 'offline' ? '⚡ Switched to Offline AI (100% local)' : '✨ Switched to Gemini Cloud AI');
-              }}
-              title="Click to toggle AI mode (Cloud / Offline)"
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.6,
-                px: 0.9,
-                py: 0.25,
-                borderRadius: '6px',
-                bgcolor: aiEngineMode === 'online' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(234, 179, 8, 0.12)',
-                border: '1px solid',
-                borderColor: aiEngineMode === 'online' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)',
-                color: aiEngineMode === 'online' ? '#22c55e' : '#eab308',
-                fontSize: '10.5px',
-                fontWeight: 700,
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                cursor: 'pointer',
-                userSelect: 'none',
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: aiEngineMode === 'online' ? 'rgba(34, 197, 94, 0.22)' : 'rgba(234, 179, 8, 0.22)',
-                  transform: 'translateY(-1px)',
-                },
-                '&:active': {
-                  transform: 'translateY(0)',
-                },
-              }}
-            >
-              <Box
-                sx={{
-                  width: 5.5,
-                  height: 5.5,
-                  borderRadius: '50%',
-                  bgcolor: aiEngineMode === 'online' ? '#22c55e' : '#eab308',
-                  boxShadow: aiEngineMode === 'online' ? '0 0 5px rgba(34, 197, 94, 0.6)' : '0 0 5px rgba(234, 179, 8, 0.6)',
-                  flexShrink: 0,
-                }}
-              />
-              {aiEngineMode === 'online' ? 'Gemini AI' : 'Offline AI'}
-            </Box>
           </Box>
           <Typography
             variant="caption"
@@ -1109,12 +1073,36 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
               textOverflow: 'ellipsis',
             }}
           >
-            Voice & text financial intelligence
+            Voice & text financial assistant
           </Typography>
         </Box>
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+        {messages.length > 0 && (
+          <Tooltip title="Restart chat & clear history">
+            <IconButton
+              size="small"
+              onClick={handleRestartChat}
+              sx={{
+                color: 'var(--text-2)',
+                p: 0.75,
+                width: 32,
+                height: 32,
+                borderRadius: '8px',
+                bgcolor: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'grid',
+                placeItems: 'center',
+                transition: 'all 0.15s ease',
+                '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' },
+              }}
+            >
+              <RotateCcw size={15} />
+            </IconButton>
+          </Tooltip>
+        )}
+
         <IconButton
           size="small"
           onClick={onClose}
@@ -1156,100 +1144,152 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
       {messages.length === 0 && !activeDraft && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, my: 'auto', py: 1.5 }}>
           {/* Frequent Actions */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 700,
-                color: 'var(--text-3)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                fontSize: '11px',
-                px: 0.25,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.6,
-              }}
-            >
-              <Sparkles size={12} color="var(--accent)" />
-              Frequent Actions
-            </Typography>
+          {frequentActions.length > 0 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: 'var(--text-3)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  fontSize: '11px',
+                  px: 0.25,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.6,
+                }}
+              >
+                <Sparkles size={12} color="var(--accent)" />
+                Frequent Actions
+              </Typography>
 
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr' },
-                gap: 0.85,
-              }}
-            >
-              {frequentActions.map((item, idx) => (
-                <Box
-                  key={idx}
-                  onClick={() => handleSend(item.prompt)}
-                  sx={{
-                    px: 1.25,
-                    py: 1,
-                    borderRadius: '8px',
-                    bgcolor: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 0.75,
-                    transition: 'all 0.15s ease',
-                    '&:hover': {
-                      bgcolor: 'var(--surface3)',
-                      borderColor: 'var(--accent)',
-                      transform: 'translateY(-1px)',
-                    },
-                    '&:active': {
-                      transform: 'translateY(0)',
-                    },
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.85, minWidth: 0 }}>
-                    <Box
-                      sx={{
-                        color: 'var(--accent)',
-                        display: 'grid',
-                        placeItems: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {item.icon}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr' },
+                  gap: 0.85,
+                }}
+              >
+                {frequentActions.map((item, idx) => (
+                  <Box
+                    key={idx}
+                    onClick={() => {
+                      if (item.taskItem) {
+                        const t = item.taskItem;
+                        if (onOpenAddExpense) {
+                          onOpenAddExpense({
+                            description: t.description,
+                            amount: t.amount,
+                            category: t.category,
+                            flow: t.flow,
+                            whoPaid: t.whoPaid,
+                            type: t.type,
+                            splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' ? 'for_friend' : 'just_me'),
+                            friendId: t.friendId || undefined,
+                            vendorId: t.vendorId || undefined,
+                            status: t.status,
+                            walletId: t.walletId || undefined,
+                            date: todayISO(),
+                          });
+                          onClose();
+                        } else {
+                          const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                          const walletNameVal = (t.walletId && db.wallets.find(w => w.id === t.walletId)?.name) || db.wallets[0]?.name || 'Cash';
+                          const d: DraftExpense = {
+                            description: t.description,
+                            amount: t.amount,
+                            category: t.category,
+                            flow: t.flow,
+                            whoPaid: t.whoPaid,
+                            type: t.type,
+                            splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' ? 'for_friend' : 'just_me'),
+                            friendName: t.friendName || undefined,
+                            vendorName: t.vendorName || undefined,
+                            walletName: walletNameVal,
+                            date: todayISO(),
+                          };
+                          setActiveDraft(d);
+                          setMessages(prev => [
+                            ...prev,
+                            {
+                              id: generateMsgId(),
+                              sender: 'bot',
+                              text: `Prepared quick entry for ${t.label} (${currencySymbol(currency)}${t.amount}). Review and confirm below:`,
+                              timestamp: nowTimeStr,
+                              draft: d,
+                            },
+                          ]);
+                        }
+                      } else {
+                        handleSend(item.prompt);
+                      }
+                    }}
+                    sx={{
+                      px: 1.25,
+                      py: 1,
+                      borderRadius: '8px',
+                      bgcolor: 'var(--surface2)',
+                      border: '1px solid var(--border)',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 0.75,
+                      transition: 'all 0.15s ease',
+                      '&:hover': {
+                        bgcolor: 'var(--surface3)',
+                        borderColor: 'var(--accent)',
+                        transform: 'translateY(-1px)',
+                      },
+                      '&:active': {
+                        transform: 'translateY(0)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.85, minWidth: 0 }}>
+                      <Box
+                        sx={{
+                          color: 'var(--accent)',
+                          display: 'grid',
+                          placeItems: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {item.icon}
+                      </Box>
+                      <Typography
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: '12.5px',
+                          color: 'var(--text)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {item.label}
+                      </Typography>
                     </Box>
-                    <Typography
-                      sx={{
-                        fontWeight: 600,
-                        fontSize: '12.5px',
-                        color: 'var(--text)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {item.label}
-                    </Typography>
-                  </Box>
 
-                  {item.subText && (
-                    <Typography
-                      sx={{
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        color: 'var(--text-3)',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {item.subText}
-                    </Typography>
-                  )}
-                </Box>
-              ))}
+                    {item.subText && (
+                      <Typography
+                        sx={{
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          color: 'var(--text-3)',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {item.subText}
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Box>
             </Box>
-          </Box>
+          )}
 
           {/* Other Quick Actions & Queries */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1354,24 +1394,27 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
                 </Box>
               )}
 
-              <Paper
-                elevation={0}
-                sx={{
-                  px: 1.75,
-                  py: 1.25,
-                  borderRadius: '12px',
-                  background: m.sender === 'user' ? 'var(--accent-gradient)' : 'var(--surface2)',
-                  color: m.sender === 'user' ? 'var(--accent-contrast, #ffffff)' : 'var(--text)',
-                  maxWidth: { xs: '90%', sm: '82%' },
-                  whiteSpace: 'pre-line',
-                  border: '1px solid',
-                  borderColor: m.sender === 'user' ? 'transparent' : 'var(--border)',
-                }}
-              >
-                <Typography variant="body2" sx={{ lineHeight: 1.55, fontSize: '13px' }}>
-                  {m.text}
-                </Typography>
-              </Paper>
+              {m.sender === 'bot' ? (
+                <BotMessageBubble text={m.text} />
+              ) : (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    px: 1.75,
+                    py: 1.25,
+                    borderRadius: '12px',
+                    background: 'var(--accent-gradient)',
+                    color: 'var(--accent-contrast, #ffffff)',
+                    maxWidth: { xs: '90%', sm: '82%' },
+                    whiteSpace: 'pre-line',
+                    border: '1px solid transparent',
+                  }}
+                >
+                  <Typography variant="body2" sx={{ lineHeight: 1.55, fontSize: '13px' }}>
+                    {m.text}
+                  </Typography>
+                </Paper>
+              )}
 
               {m.sender === 'user' && (
                 <Box
@@ -1785,6 +1828,98 @@ export default function AIAssistantModal({ open, onClose }: AIAssistantModalProp
         bgcolor: 'var(--surface)',
       }}
     >
+      {messages.length > 0 && frequentActions.length > 0 && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.75,
+            overflowX: 'auto',
+            pb: 1,
+            mb: 0.5,
+            width: '100%',
+            WebkitOverflowScrolling: 'touch',
+            '&::-webkit-scrollbar': { display: 'none' },
+            msOverflowStyle: 'none',
+            scrollbarWidth: 'none',
+          }}
+        >
+          {frequentActions.map((item, idx) => (
+            <Chip
+              key={idx}
+              label={`${item.label} ${item.subText ? `(${item.subText})` : ''}`}
+              size="small"
+              onClick={() => {
+                if (item.taskItem) {
+                  const t = item.taskItem;
+                  if (onOpenAddExpense) {
+                    onOpenAddExpense({
+                      description: t.description,
+                      amount: t.amount,
+                      category: t.category,
+                      flow: t.flow,
+                      whoPaid: t.whoPaid,
+                      type: t.type,
+                      splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' ? 'for_friend' : 'just_me'),
+                      friendId: t.friendId || undefined,
+                      vendorId: t.vendorId || undefined,
+                      status: t.status,
+                      walletId: t.walletId || undefined,
+                      date: todayISO(),
+                    });
+                    onClose();
+                  } else {
+                    const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const walletNameVal = (t.walletId && db.wallets.find(w => w.id === t.walletId)?.name) || db.wallets[0]?.name || 'Cash';
+                    const d: DraftExpense = {
+                      description: t.description,
+                      amount: t.amount,
+                      category: t.category,
+                      flow: t.flow,
+                      whoPaid: t.whoPaid,
+                      type: t.type,
+                      splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' ? 'for_friend' : 'just_me'),
+                      friendName: t.friendName || undefined,
+                      vendorName: t.vendorName || undefined,
+                      walletName: walletNameVal,
+                      date: todayISO(),
+                    };
+                    setActiveDraft(d);
+                    setMessages(prev => [
+                      ...prev,
+                      {
+                        id: generateMsgId(),
+                        sender: 'bot',
+                        text: `Prepared quick entry for ${t.label} (${currencySymbol(currency)}${t.amount}). Review and confirm below:`,
+                        timestamp: nowTimeStr,
+                        draft: d,
+                      },
+                    ]);
+                  }
+                } else {
+                  handleSend(item.prompt);
+                }
+              }}
+              sx={{
+                fontSize: '11px',
+                fontWeight: 600,
+                bgcolor: 'var(--surface2)',
+                color: 'var(--text-2)',
+                border: '1px solid var(--border)',
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  bgcolor: 'var(--surface3)',
+                  color: 'var(--text)',
+                  borderColor: 'var(--accent)',
+                },
+              }}
+            />
+          ))}
+        </Box>
+      )}
+
       <Box
         sx={{
           display: 'flex',

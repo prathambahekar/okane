@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, TrendingDown, TrendingUp, User, Users, HeartHandshake, FileText, Sparkles } from 'lucide-react';
+import { X, TrendingDown, TrendingUp, User, Users, HeartHandshake, FileText, Sparkles, Store } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types';
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
@@ -13,6 +13,7 @@ import {
   VendorQuickAdd,
 } from './expense';
 import { NoteEditorModal } from './common/NoteEditorModal';
+import { getFrequentTasks } from '../utils/frequentTasks';
 
 export interface ExpenseInitialData {
   description?: string;
@@ -283,45 +284,9 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
     return rawList;
   }, [db, friendId, flow, splitMode]);
 
-  const mostUsedDescriptions = useMemo(() => {
-    const counts: Record<string, number> = {};
-    db.expenses.forEach(e => {
-      const d = e.description?.trim();
-      if (
-        d &&
-        d.length > 1 &&
-        !d.toLowerCase().startsWith('debt repayment') &&
-        !d.toLowerCase().startsWith('repaid') &&
-        !d.toLowerCase().startsWith('paying') &&
-        !d.toLowerCase().startsWith('settling') &&
-        !d.toLowerCase().startsWith('full debt')
-      ) {
-        counts[d] = (counts[d] || 0) + 1;
-      }
-    });
-
-    const sorted = Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .map(([d]) => d);
-
-    // Dynamically adjust item count based on description lengths to fit cleanly without overflowing
-    const selected: string[] = [];
-    let accumulatedChars = 0;
-    const MAX_TOTAL_CHARS = 28; // budget for clean single-line fit on mobile
-
-    for (const desc of sorted) {
-      if (selected.length >= 5) break;
-      const effectiveLength = Math.min(desc.length, 14) + 3; // text length + padding/gap allowance
-      // Stop adding more if we already have at least 2 items and would exceed visual budget
-      if (selected.length >= 2 && accumulatedChars + effectiveLength > MAX_TOTAL_CHARS) {
-        break;
-      }
-      selected.push(desc);
-      accumulatedChars += effectiveLength;
-    }
-
-    return selected;
-  }, [db.expenses]);
+  const frequentTasksList = useMemo(() => {
+    return getFrequentTasks(db);
+  }, [db]);
 
   const toggleSelectExpense = (expId: string) => {
     const isSelected = selectedExpenseIds.includes(expId);
@@ -974,17 +939,19 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                         </button>
                       </div>
                     )}
-                    {mostUsedDescriptions.length > 0 && (
+                    {frequentTasksList.length > 0 && (
                       <div
                         style={{
                           display: 'flex',
                           gap: 5,
                           overflowX: 'auto',
                           whiteSpace: 'nowrap',
-                          marginTop: 4,
+                          marginTop: 6,
                           alignItems: 'center',
                           scrollbarWidth: 'none',
-                          paddingBottom: 1,
+                          msOverflowStyle: 'none',
+                          paddingBottom: 2,
+                          maxWidth: '100%',
                         }}
                       >
                         <span
@@ -1001,24 +968,28 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                         >
                           <Sparkles size={10} style={{ color: 'var(--accent)' }} /> Frequent:
                         </span>
-                        {mostUsedDescriptions.map(suggestion => {
-                          const isSelected = desc.trim().toLowerCase() === suggestion.trim().toLowerCase();
+                        {frequentTasksList.map((task, idx) => {
+                          const isSelected = desc.trim().toLowerCase() === task.description.trim().toLowerCase();
+                          const hasVendor = Boolean(task.vendorId || task.vendorName);
                           return (
                             <button
-                              key={suggestion}
+                              key={`${task.label}-${idx}`}
                               type="button"
-                              title={suggestion}
+                              title={`${task.label} (${currencySymbol(s.currency)}${task.amount})`}
                               style={{
                                 fontSize: 10.5,
                                 fontWeight: isSelected ? 650 : 500,
-                                padding: '2px 8px',
+                                padding: '3px 9px',
                                 borderRadius: 999,
                                 border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border2)',
                                 background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
                                 color: isSelected ? 'var(--accent)' : 'var(--text-2)',
                                 boxShadow: isSelected ? '0 1px 4px var(--accent-soft)' : 'none',
                                 flexShrink: 0,
-                                maxWidth: 120,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                maxWidth: 170,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
@@ -1026,9 +997,52 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                                 transition: 'all 0.15s ease',
                                 lineHeight: 1.35,
                               }}
-                              onClick={() => handleDescriptionChange(suggestion)}
+                              onClick={() => {
+                                handleDescriptionChange(task.description);
+                                if (task.amount) setAmount(String(task.amount));
+                                if (task.category) setCategory(task.category);
+                                if (task.flow) setFlow(task.flow);
+
+                                if (task.type === 'by_friend' || task.whoPaid === 'other') {
+                                  setWhoPaid('other');
+                                  setSplitMode('just_me');
+                                } else if (task.type === 'for_friend') {
+                                  setWhoPaid('me');
+                                  setSplitMode('for_friend');
+                                } else if (task.splitMode === 'pay_debt') {
+                                  setWhoPaid('me');
+                                  setSplitMode('pay_debt');
+                                } else {
+                                  setWhoPaid('me');
+                                  setSplitMode('just_me');
+                                }
+
+                                if (task.friendId) {
+                                  setFriendId(task.friendId);
+                                  setSelectedFriendIds([task.friendId]);
+                                } else {
+                                  setFriendId('');
+                                  setSelectedFriendIds([]);
+                                }
+
+                                if (task.vendorId) {
+                                  setVendorId(task.vendorId);
+                                } else {
+                                  setVendorId('');
+                                }
+
+                                if (task.status) {
+                                  setStatus(task.status);
+                                } else if (task.isDebt) {
+                                  setStatus('unpaid');
+                                }
+
+                                if (task.walletId) setWalletId(task.walletId);
+                              }}
                             >
-                              {suggestion}
+                              {hasVendor && <Store size={10} style={{ flexShrink: 0, opacity: 0.8 }} />}
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.label}</span>
+                              <span style={{ opacity: 0.75, fontSize: '9.5px', fontWeight: 600, flexShrink: 0 }}>{task.subText}</span>
                             </button>
                           );
                         })}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import AppBar from '@mui/material/AppBar';
@@ -59,6 +59,9 @@ import Toast from './components/Toast';
 import NotificationBell from './components/NotificationBell';
 import FloatingSearchButton from './components/FloatingSearchButton';
 import ContextualSearchModal from './components/ContextualSearchModal';
+import SecurityLockModal from './components/SecurityLockModal';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import './styles.css';
 
 const MORE_IDS: ViewName[] = ['wallets', 'settlements', 'split-trips', 'recurring', 'analytics', 'settings', 'dev-sql'];
@@ -75,6 +78,59 @@ function AppInner() {
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [isExpenseTutorial, setIsExpenseTutorial] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const isSecurityLockActive = Boolean(db.settings?.enableSecurityLock ?? db.settings?.enableBiometricLock);
+  const [isAppLocked, setIsAppLocked] = useState<boolean>(() => {
+    return isSecurityLockActive;
+  });
+
+  const lastUnlockTimeRef = useRef<number>(0);
+  const backgroundTimestampRef = useRef<number>(0);
+
+  const handleUnlock = useCallback(() => {
+    lastUnlockTimeRef.current = Date.now();
+    setIsAppLocked(false);
+  }, []);
+
+  // Re-lock on background app resume if setting enabled
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let handle: { remove: () => void } | null = null;
+    CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      const now = Date.now();
+      if (!isActive) {
+        // App went to background
+        backgroundTimestampRef.current = now;
+      } else {
+        // App resumed / gained focus
+        const timeSinceUnlock = now - lastUnlockTimeRef.current;
+        const timeInBackground = backgroundTimestampRef.current > 0 ? (now - backgroundTimestampRef.current) : 0;
+
+        // Reset background timestamp
+        backgroundTimestampRef.current = 0;
+
+        // If unlocked within the last 3.5 seconds (e.g. system Biometric dialog dismissal),
+        // or app was backgrounded for less than 1.2 seconds, DO NOT trigger a spurious re-lock.
+        if (timeSinceUnlock < 3500 || timeInBackground < 1200) {
+          return;
+        }
+
+        if (isSecurityLockActive && (db.settings?.requireBiometricOnResume ?? true)) {
+          setIsAppLocked(true);
+        }
+      }
+    }).then(h => {
+      handle = h;
+    }).catch(err => {
+      console.warn('Failed to register appStateChange listener:', err);
+    });
+
+    return () => {
+      if (handle) {
+        handle.remove();
+      }
+    };
+  }, [isSecurityLockActive, db.settings?.requireBiometricOnResume]);
 
   // Global Ctrl+K / Cmd+K shortcut
   useEffect(() => {
@@ -113,7 +169,7 @@ function AppInner() {
 
   const isDevMode = db.settings?.devMode ?? true;
   const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
-  const enableAIAssistant = isDevMode && (db.settings?.enableAIAssistant ?? true);
+  const enableAIAssistant = db.settings?.enableAIAssistant ?? true;
   const enableSplitTrips = db.settings?.enableSplitTrips ?? false;
   const enableAutopay = db.settings?.enableAutopay ?? false;
   const enableUserGuide = isDevMode && (db.settings?.enableUserGuide ?? true);
@@ -313,7 +369,7 @@ function AppInner() {
       case 'analytics': return <Analytics />;
       case 'settings':
         return (
-          <Settings onNavigate={navigate} onOpenGuide={() => setShowGuideModal(true)} onStartExpenseTutorial={handleStartExpenseTutorial} initialArg={viewArg} onClearViewArg={clearViewArg} />
+          <Settings onNavigate={navigate} onOpenGuide={() => setShowGuideModal(true)} onStartExpenseTutorial={handleStartExpenseTutorial} initialArg={viewArg} onClearViewArg={clearViewArg} onTestLock={() => setIsAppLocked(true)} />
         );
       case 'dev-sql': return <DevSQLConsole onNavigate={navigate} />;
       default: return <Dashboard onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
@@ -1026,41 +1082,11 @@ function AppInner() {
         </Box>
       </Drawer>
 
-      {/* Floating Voice Assistant Trigger */}
-      {enableAIAssistant && (
-        <IconButton
-          onClick={() => setShowAIAssistant(true)}
-          sx={{
-            position: 'fixed',
-            bottom: { xs: 'calc(76px + env(safe-area-inset-bottom, 0px))', sm: 24 },
-            right: { xs: 16, sm: 24 },
-            width: 50,
-            height: 50,
-            borderRadius: '50%',
-            bgcolor: 'primary.main',
-            color: 'primary.contrastText',
-            boxShadow: '0 6px 20px var(--accent-soft)',
-            zIndex: 1000,
-            transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease',
-            '&:hover': {
-              bgcolor: 'primary.dark',
-              transform: 'scale(1.1) rotate(10deg)',
-              boxShadow: '0 8px 25px var(--accent-soft)',
-            },
-            '&:active': {
-              transform: 'scale(0.95)',
-            }
-          }}
-          title="Ask Max Assistant"
-        >
-          <Sparkles size={22} />
-        </IconButton>
-      )}
-
-      {/* Floating Search Button */}
+      {/* Floating Action Buttons (Search & AI Assistant) */}
       <FloatingSearchButton
         onClick={() => setShowSearchModal(true)}
         hasAIAssistant={enableAIAssistant}
+        onAIClick={() => setShowAIAssistant(true)}
       />
 
       {/* Contextual & Universal Search Modal */}
@@ -1086,6 +1112,11 @@ function AppInner() {
         <AIAssistantModal
           open={showAIAssistant}
           onClose={() => setShowAIAssistant(false)}
+          onOpenAddExpense={(initialData) => {
+            setAddExpenseInitialData(initialData || null);
+            setShowAddExpense(true);
+            setShowAIAssistant(false);
+          }}
         />
       )}
       {showGuideModal && (
@@ -1095,6 +1126,13 @@ function AppInner() {
           onNavigate={navigate}
           onAddExpense={() => setShowAddExpense(true)}
           onStartExpenseTutorial={handleStartExpenseTutorial}
+        />
+      )}
+      {isAppLocked && isSecurityLockActive && (
+        <SecurityLockModal
+          onUnlock={handleUnlock}
+          savedPin={db.settings?.securityPin || ''}
+          enableBiometricLock={db.settings?.enableBiometricLock ?? false}
         />
       )}
       <Toast />

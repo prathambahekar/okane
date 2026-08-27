@@ -128,10 +128,10 @@ const SETTINGS_SEARCH_ITEMS: SettingsSearchItem[] = [
   {
     id: 'dev-mode',
     title: 'Developer Mode & SQL Console',
-    subtitle: 'Experimental tools, SQL query console, Max AI assistant & engine settings',
+    subtitle: 'Experimental tools, SQL query console & Max AI assistant settings',
     category: 'System',
     icon: FlaskConical,
-    tags: ['dev', 'developer', 'sql', 'console', 'query', 'ai', 'assistant', 'gemini', 'engine', 'experimental', 'database', 'tools', 'debug', 'terminal']
+    tags: ['dev', 'developer', 'sql', 'console', 'query', 'ai', 'assistant', 'engine', 'experimental', 'database', 'tools', 'debug', 'terminal']
   },
   {
     id: 'app-info',

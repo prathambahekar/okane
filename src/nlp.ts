@@ -361,9 +361,15 @@ export function parseLocallyClient(
   let myShare: number | null = null;
   let friendShare: number | null = null;
 
+  const isGenericFriendPaid = /\b(friend|frnd|someone|he|she|other|others)\s+(paid|pay|pays|bought|spent|gave|sent)\b|\b(pay|paid)\s+by\s+(friend|frnd|someone|other|\w+)\b|\b(friend|frnd)\s+pay\s+(for\s+it)?\b|\bfrnd\s+pay\b/i.test(lower);
+
+  if (!foundFriendName && isGenericFriendPaid && friends.length > 0) {
+    foundFriendName = friends[0].name;
+  }
+
   const friendPaidPattern = foundFriendName
-    ? new RegExp(`\\b(${foundFriendName}|friend|someone|he|she)\\s+(paid|bought|spent|gave|sent)\\b|\\bpaid\\s+by\\s+(${foundFriendName}|friend)\\b|\\b(${foundFriendName})\\s+paid\\s+my\\b`, 'i')
-    : /\b(alex|arman|friend|someone|he|she)\s+(paid|bought|spent|gave|sent)\b|\bpaid\s+by\s+\w+\b/i;
+    ? new RegExp(`\\b(${foundFriendName}|friend|frnd|someone|he|she)\\s+(paid|pay|pays|bought|spent|gave|sent)\\b|\\bpaid\\s+by\\s+(${foundFriendName}|friend|frnd)\\b|\\b(${foundFriendName}|friend|frnd)\\s+pay\\s+(for\\s+it)?\\b|\\b(${foundFriendName})\\s+paid\\s+my\\b`, 'i')
+    : /\b(alex|arman|friend|frnd|someone|he|she)\s+(paid|pay|pays|bought|spent|gave|sent)\b|\bpaid\s+by\s+\w+\b|\b(friend|frnd)\s+pay\s+(for\s+it)?\b/i;
 
   const splitPattern = /\b(split|me\s+and|both\s+of\s+us|equal\s+split|half\s+half)\b/i;
   const repayPattern = /\b(repaid|pay\s*back|settled|debt)\b/i;
@@ -372,7 +378,7 @@ export function parseLocallyClient(
     whoPaid = 'other';
     type = 'by_friend';
     splitMode = 'pay_debt';
-  } else if (friendPaidPattern.test(lower)) {
+  } else if (friendPaidPattern.test(lower) || isGenericFriendPaid) {
     whoPaid = 'other';
     type = 'by_friend';
     splitMode = 'by_friend';
