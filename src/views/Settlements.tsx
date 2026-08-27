@@ -25,7 +25,7 @@ import SettlementFilterDrawer from '../components/SettlementFilterDrawer';
 
 export type SettlementTimeframe = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_month' | 'last_3_months' | 'this_year' | 'all';
 
-export default function Settlements({ initialArg, onClearViewArg: _onClearViewArg }: { initialArg?: string; onClearViewArg?: () => void }) {
+export default function Settlements({ initialArg }: { initialArg?: string; onClearViewArg?: () => void }) {
   const { db, deleteSettlement, showToast } = useStore();
   const settlements = useMemo(() => db?.settlements || [], [db?.settlements]);
   const settings = db?.settings || {};

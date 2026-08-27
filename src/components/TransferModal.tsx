@@ -320,15 +320,13 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                     style={{
                       width: 32,
                       height: 32,
-                      borderRadius: 8,
-                      background: 'var(--surface2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}
                   >
-                    {fromWallet ? renderWalletIcon(fromWallet.icon || 'wallet', 22, fromWallet.color) : <WalletIcon size={16} />}
+                    {fromWallet ? renderWalletIcon(fromWallet.icon || 'wallet', 32, fromWallet.color) : <WalletIcon size={18} />}
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -429,15 +427,13 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                     style={{
                       width: 32,
                       height: 32,
-                      borderRadius: 8,
-                      background: 'var(--surface2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}
                   >
-                    {toWallet ? renderWalletIcon(toWallet.icon || 'wallet', 22, toWallet.color) : <WalletIcon size={16} />}
+                    {toWallet ? renderWalletIcon(toWallet.icon || 'wallet', 32, toWallet.color) : <WalletIcon size={18} />}
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>

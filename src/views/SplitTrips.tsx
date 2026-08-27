@@ -325,7 +325,7 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
 // Default initial groups if none saved
 const DEFAULT_PRESET_GROUPS: TripGroup[] = [];
 
-export default function SplitTrips({ initialArg, onClearViewArg: _onClearViewArg }: { initialArg?: string; onClearViewArg?: () => void }) {
+export default function SplitTrips({ initialArg }: { initialArg?: string; onClearViewArg?: () => void }) {
   const { db, showToast } = useStore();
   const currency = db.settings.currency || '₹';
 

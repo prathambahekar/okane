@@ -26,7 +26,7 @@ import type { Wallet, Envelope, Expense, Settlement } from '../types';
 import { walletBalance, walletEnvelopeAllocated, walletUnallocatedBalance, expenseFlow, monthKey } from '../db';
 import { fmtMoney, fmtDate, typeLabel, statusLabel, groupExpenses, resolveCategoryMeta, type GroupedExpense } from '../utils';
 import WalletModal from '../components/WalletModal';
-import { renderWalletIcon, WALLET_PRESETS } from '../components/WalletIconRenderer';
+import { renderWalletIcon } from '../components/WalletIconRenderer';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ExpenseModal from '../components/ExpenseModal';
 import TransferModal from '../components/TransferModal';
@@ -341,15 +341,13 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                       style={{
                         width: 44,
                         height: 44,
-                        borderRadius: 12,
-                        background: WALLET_PRESETS.find(p => p.id === w.icon)?.bgLight || (w.color ? `${w.color}18` : '#fef3c7'),
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0,
                       }}
                     >
-                      {renderWalletIcon(w.icon || 'wallet', 24, w.color || '#d97706')}
+                      {renderWalletIcon(w.icon || 'wallet', 44, w.color || '#d97706')}
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -978,17 +976,15 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div
                     style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 12,
-                      backgroundColor: `${activeWallet.color}18`,
-                      border: `1px solid ${activeWallet.color}33`,
-                      display: 'grid',
-                      placeItems: 'center',
+                      width: 40,
+                      height: 40,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       flexShrink: 0,
                     }}
                   >
-                    {renderWalletIcon(activeWallet.icon, 22, activeWallet.color)}
+                    {renderWalletIcon(activeWallet.icon, 40, activeWallet.color)}
                   </div>
                   <div>
                     <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>

@@ -25,6 +25,7 @@ export interface ExpenseInitialData {
   splitMode?: 'just_me' | 'for_friend' | 'pay_debt';
   walletId?: string;
   friendId?: string;
+  friendIds?: string[];
   vendorId?: string;
   date?: string;
   status?: ExpenseStatus;
@@ -118,6 +119,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
 
   // Multi-friend selection state for splitting expenses
   const initialFriendIdsList = (() => {
+    if (initialData?.friendIds && initialData.friendIds.length > 0) return initialData.friendIds;
     if (initialData?.friendId) return [initialData.friendId];
     if (expense?.groupId) {
       const items = db.expenses.filter(e => e.groupId === expense.groupId && e.type === 'for_friend');
@@ -138,15 +140,14 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
       init[forFriendItem.friendId] = String(forFriendItem.amount);
     } else if (expense?.friendId && expense.type === 'for_friend') {
       init[expense.friendId] = String(expense.amount);
-    } else if (initialFriendShare && initialFriendId) {
-      init[initialFriendId] = initialFriendShare;
     }
     return init;
   })();
 
   // Infer previous split rule so that editing an expense preserves its exact mode (Equal, Friends Only, or Custom)
   const { inferredSplitCalcMode, inferredIncludeYou } = (() => {
-    if (!expense && !initialData) {
+    // For any new expense (even with initialData), always default to Equal split with You included
+    if (!expense) {
       return { inferredSplitCalcMode: 'equal_all' as const, inferredIncludeYou: true };
     }
 
@@ -748,6 +749,10 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                           setSplitMode('for_friend');
                           setSelectedExpenseIds([]);
                           if (!friendShare && amount) setFriendShare(amount);
+                          if (!expense) {
+                            setSplitCalcMode('equal_all');
+                            setIncludeYouInCustom(true);
+                          }
                           setError('');
                         }}
                       >
@@ -943,15 +948,12 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                       <div
                         style={{
                           display: 'flex',
-                          gap: 5,
-                          overflowX: 'auto',
-                          whiteSpace: 'nowrap',
-                          marginTop: 6,
                           alignItems: 'center',
-                          scrollbarWidth: 'none',
-                          msOverflowStyle: 'none',
-                          paddingBottom: 2,
-                          maxWidth: '100%',
+                          gap: 6,
+                          marginTop: 6,
+                          width: '100%',
+                          minWidth: 0,
+                          boxSizing: 'border-box',
                         }}
                       >
                         <span
@@ -961,91 +963,143 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                             color: 'var(--text-3)',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 3,
+                            gap: 3.5,
                             flexShrink: 0,
+                            height: 24,
+                            lineHeight: 1,
                             letterSpacing: '0.2px',
                           }}
                         >
-                          <Sparkles size={10} style={{ color: 'var(--accent)' }} /> Frequent:
+                          <Sparkles size={11} style={{ color: 'var(--accent)' }} /> Frequent:
                         </span>
-                        {frequentTasksList.map((task, idx) => {
-                          const isSelected = desc.trim().toLowerCase() === task.description.trim().toLowerCase();
-                          const hasVendor = Boolean(task.vendorId || task.vendorName);
-                          return (
-                            <button
-                              key={`${task.label}-${idx}`}
-                              type="button"
-                              title={`${task.label} (${currencySymbol(s.currency)}${task.amount})`}
-                              style={{
-                                fontSize: 10.5,
-                                fontWeight: isSelected ? 650 : 500,
-                                padding: '3px 9px',
-                                borderRadius: 999,
-                                border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border2)',
-                                background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
-                                color: isSelected ? 'var(--accent)' : 'var(--text-2)',
-                                boxShadow: isSelected ? '0 1px 4px var(--accent-soft)' : 'none',
-                                flexShrink: 0,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                maxWidth: 170,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                                lineHeight: 1.35,
-                              }}
-                              onClick={() => {
-                                handleDescriptionChange(task.description);
-                                if (task.amount) setAmount(String(task.amount));
-                                if (task.category) setCategory(task.category);
-                                if (task.flow) setFlow(task.flow);
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            overflowX: 'auto',
+                            whiteSpace: 'nowrap',
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                            flex: 1,
+                            minWidth: 0,
+                            paddingBottom: 2,
+                          }}
+                        >
+                          {frequentTasksList.slice(0, 4).map((task, idx) => {
+                            const isSelected = desc.trim().toLowerCase() === task.description.trim().toLowerCase();
+                            const hasVendor = Boolean(task.vendorId || task.vendorName);
+                            const hasFriends = Boolean((task.friendNames && task.friendNames.length > 0) || task.friendName);
+                            const friendNamesList = task.friendNames && task.friendNames.length > 0 ? task.friendNames : (task.friendName ? [task.friendName] : []);
+                            
+                            return (
+                              <button
+                                key={`${task.label}-${idx}`}
+                                type="button"
+                                title={`${task.description} (${currencySymbol(s.currency)}${task.amount})${friendNamesList.length > 0 ? ` • ${friendNamesList.join(', ')}` : ''}`}
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: isSelected ? 650 : 500,
+                                  height: 24,
+                                  padding: '0 8px',
+                                  borderRadius: 999,
+                                  border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border2)',
+                                  background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                                  color: isSelected ? 'var(--accent)' : 'var(--text-2)',
+                                  boxShadow: isSelected ? '0 1px 4px var(--accent-soft)' : 'none',
+                                  flexShrink: 0,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  maxWidth: 190,
+                                  overflow: 'hidden',
+                                  whiteSpace: 'nowrap',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                  lineHeight: 1,
+                                  boxSizing: 'border-box',
+                                }}
+                                onClick={() => {
+                                  handleDescriptionChange(task.description);
+                                  if (task.amount) setAmount(String(task.amount));
+                                  if (task.category) setCategory(task.category);
+                                  if (task.flow) setFlow(task.flow);
 
-                                if (task.type === 'by_friend' || task.whoPaid === 'other') {
-                                  setWhoPaid('other');
-                                  setSplitMode('just_me');
-                                } else if (task.type === 'for_friend') {
-                                  setWhoPaid('me');
-                                  setSplitMode('for_friend');
-                                } else if (task.splitMode === 'pay_debt') {
-                                  setWhoPaid('me');
-                                  setSplitMode('pay_debt');
-                                } else {
-                                  setWhoPaid('me');
-                                  setSplitMode('just_me');
-                                }
+                                  if (task.type === 'by_friend' || task.whoPaid === 'other') {
+                                    setWhoPaid('other');
+                                    setSplitMode('just_me');
+                                  } else if (task.type === 'for_friend' || (task.friendIds && task.friendIds.length > 0) || task.friendId) {
+                                    setWhoPaid('me');
+                                    setSplitMode('for_friend');
+                                    setSplitCalcMode('equal_all');
+                                    setIncludeYouInCustom(true);
+                                  } else if (task.splitMode === 'pay_debt') {
+                                    setWhoPaid('me');
+                                    setSplitMode('pay_debt');
+                                  } else {
+                                    setWhoPaid('me');
+                                    setSplitMode('just_me');
+                                  }
 
-                                if (task.friendId) {
-                                  setFriendId(task.friendId);
-                                  setSelectedFriendIds([task.friendId]);
-                                } else {
-                                  setFriendId('');
-                                  setSelectedFriendIds([]);
-                                }
+                                  const allFriendIds = task.friendIds && task.friendIds.length > 0
+                                    ? task.friendIds
+                                    : (task.friendId ? [task.friendId] : []);
 
-                                if (task.vendorId) {
-                                  setVendorId(task.vendorId);
-                                } else {
-                                  setVendorId('');
-                                }
+                                  if (allFriendIds.length > 0) {
+                                    setFriendId(allFriendIds[0]);
+                                    setSelectedFriendIds(allFriendIds);
+                                  } else {
+                                    setFriendId('');
+                                    setSelectedFriendIds([]);
+                                  }
 
-                                if (task.status) {
-                                  setStatus(task.status);
-                                } else if (task.isDebt) {
-                                  setStatus('unpaid');
-                                }
+                                  if (task.vendorId) {
+                                    setVendorId(task.vendorId);
+                                  } else {
+                                    setVendorId('');
+                                  }
 
-                                if (task.walletId) setWalletId(task.walletId);
-                              }}
-                            >
-                              {hasVendor && <Store size={10} style={{ flexShrink: 0, opacity: 0.8 }} />}
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.label}</span>
-                              <span style={{ opacity: 0.75, fontSize: '9.5px', fontWeight: 600, flexShrink: 0 }}>{task.subText}</span>
-                            </button>
-                          );
-                        })}
+                                  if (task.status) {
+                                    setStatus(task.status);
+                                  } else if (task.isDebt) {
+                                    setStatus('unpaid');
+                                  }
+
+                                  if (task.walletId) setWalletId(task.walletId);
+                                }}
+                              >
+                                {hasVendor && <Store size={10} style={{ flexShrink: 0, opacity: 0.8 }} />}
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.description}</span>
+                                
+                                {hasFriends && (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 2,
+                                      padding: '1px 4.5px',
+                                      borderRadius: 999,
+                                      fontSize: '9px',
+                                      fontWeight: 650,
+                                      background: 'rgba(99, 102, 241, 0.16)',
+                                      color: 'var(--accent)',
+                                      border: '1px solid rgba(99, 102, 241, 0.25)',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {friendNamesList.length === 1 ? (
+                                      friendNamesList[0]
+                                    ) : (
+                                      `${friendNamesList.map(n => n.charAt(0).toUpperCase()).join('+')}`
+                                    )}
+                                  </span>
+                                )}
+
+                                <span style={{ opacity: 0.75, fontSize: '9.5px', fontWeight: 600, flexShrink: 0 }}>{task.subText}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>

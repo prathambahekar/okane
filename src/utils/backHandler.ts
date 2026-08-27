@@ -57,8 +57,8 @@ class BackHandlerManager {
     }
 
     // 2. Web & Mobile Browser / PWA History Popstate Listener
-    window.addEventListener('popstate', (e) => {
-      this.handlePopState(e);
+    window.addEventListener('popstate', () => {
+      this.handlePopState();
     });
 
     // 3. Desktop Keyboard Escape Fallback
@@ -140,7 +140,7 @@ class BackHandlerManager {
     return true;
   }
 
-  private handlePopState(_e: PopStateEvent) {
+  private handlePopState() {
     this.isProcessingHistoryPop = true;
     try {
       const topModalOrDrawer = this.stack

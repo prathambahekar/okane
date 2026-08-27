@@ -192,7 +192,6 @@ export default function Settings({
   onOpenGuide,
   onStartExpenseTutorial,
   initialArg,
-  onClearViewArg: _onClearViewArg,
   onTestLock,
 }: {
   onNavigate?: (v: ViewName, arg?: string) => void;

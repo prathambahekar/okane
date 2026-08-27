@@ -24,12 +24,20 @@ export const POPULAR_SUBSCRIPTIONS: SubscriptionPreset[] = [
   { id: 'gym', name: 'Gym / Cult.fit', color: '#FF3278', category: 'Health', defaultAmount: 1500, billingCycle: 'monthly', logoKey: 'gym' },
 ];
 
+const brandSvgProps = {
+  fill: 'none',
+  xmlns: 'http://www.w3.org/2000/svg',
+  preserveAspectRatio: 'xMidYMid meet',
+  shapeRendering: 'geometricPrecision' as const,
+  style: { display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 },
+};
+
 export function renderBrandLogo(logoKey: string, size = 20): React.ReactNode {
   const key = logoKey.toLowerCase();
 
   if (key.includes('netflix')) {
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width={size} height={size} viewBox="0 0 24 24" {...brandSvgProps}>
         <path d="M5.5 2V22L10.5 12V22L18.5 21.5V2L13.5 12V2H5.5Z" fill="#E50914" />
         <path d="M5.5 2L13.5 22H18.5L10.5 2H5.5Z" fill="#B81D24" />
       </svg>
@@ -38,10 +46,11 @@ export function renderBrandLogo(logoKey: string, size = 20): React.ReactNode {
 
   if (key.includes('prime') || key.includes('amazon')) {
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width={size} height={size} viewBox="0 0 24 24" {...brandSvgProps}>
         <path d="M3 17.5C7 20 15 20.5 21 16" stroke="#00A8E1" strokeWidth="2.2" strokeLinecap="round" />
         <path d="M18.5 14.5L21.5 16.5L19 19.5" stroke="#00A8E1" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        <text x="3" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif">prime</text>
+        {/* Crisp vector 'p' badge for Prime */}
+        <path d="M4 6h4.5c2.2 0 3.5 1.2 3.5 3s-1.3 3-3.5 3H6.5v3.5H4V6zm2.5 4h1.8c.8 0 1.2-.4 1.2-1s-.4-1-1.2-1H6.5v2z" fill="#00A8E1" />
       </svg>
     );
   }
@@ -76,8 +85,8 @@ export function renderBrandLogo(logoKey: string, size = 20): React.ReactNode {
 
   if (key.includes('apple') || key.includes('icloud')) {
     return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M18.7 17.1C17.8 18.4 16.8 19.8 15.3 19.8C13.9 19.8 13.4 18.9 11.8 18.9C10.2 18.9 9.7 19.8 8.3 19.8C6.8 19.8 5.7 18.2 4.8 16.9C3 14.3 1.6 9.6 3.5 6.3C4.4 4.7 6 3.7 7.7 3.7C9.2 3.7 10.1 4.7 11.3 4.7C12.4 4.7 13.1 3.7 14.8 3.7C16.3 3.7 17.7 4.5 18.6 5.8C15.3 7.8 15.8 12.6 18.9 13.9C18.2 15.2 17.5 16.3 18.7 17.1ZM14.3 3.6C15 2.7 15.5 1.5 15.3 0.2C14.2 0.3 12.8 1 12.1 1.9C11.5 2.6 11 3.9 11.2 5.1C12.5 5.2 13.7 4.4 14.3 3.6Z" fill="#FFFFFF" />
+      <svg width={size} height={size} viewBox="0 0 24 24" {...brandSvgProps}>
+        <path d="M18.7 17.1C17.8 18.4 16.8 19.8 15.3 19.8C13.9 19.8 13.4 18.9 11.8 18.9C10.2 18.9 9.7 19.8 8.3 19.8C6.8 19.8 5.7 18.2 4.8 16.9C3 14.3 1.6 9.6 3.5 6.3C4.4 4.7 6 3.7 7.7 3.7C9.2 3.7 10.1 4.7 11.3 4.7C12.4 4.7 13.1 3.7 14.8 3.7C16.3 3.7 17.7 4.5 18.6 5.8C15.3 7.8 15.8 12.6 18.9 13.9C18.2 15.2 17.5 16.3 18.7 17.1ZM14.3 3.6C15 2.7 15.5 1.5 15.3 0.2C14.2 0.3 12.8 1 12.1 1.9C11.5 2.6 11 3.9 11.2 5.1C12.5 5.2 13.7 4.4 14.3 3.6Z" fill="currentColor" />
       </svg>
     );
   }

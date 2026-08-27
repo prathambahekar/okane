@@ -42,6 +42,12 @@ import {
   Zap,
   RotateCcw,
   Store,
+  Smartphone,
+  Landmark,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Wallet,
+  QrCode,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { currencySymbol } from '../utils';
@@ -150,11 +156,91 @@ interface Message {
 
 interface ParsedBullet {
   raw: string;
+  kind: 'friend_debt' | 'wallet' | 'category_spending' | 'transaction' | 'generic';
   label: string;
   subText?: string;
   amount?: string;
   badgeType?: 'credit' | 'debit' | 'neutral';
   badgeText?: string;
+  isOwedToMe?: boolean;
+  category?: string;
+}
+
+const AVATAR_PALETTES = [
+  { bg: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', text: '#ffffff' },
+  { bg: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', text: '#ffffff' },
+  { bg: 'linear-gradient(135deg, #10b981 0%, #047857 100%)', text: '#ffffff' },
+  { bg: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)', text: '#ffffff' },
+  { bg: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', text: '#ffffff' },
+  { bg: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', text: '#ffffff' },
+  { bg: 'linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)', text: '#ffffff' },
+];
+
+function getAvatarStyle(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const idx = Math.abs(hash) % AVATAR_PALETTES.length;
+  return AVATAR_PALETTES[idx];
+}
+
+function getWalletTheme(name: string) {
+  const lower = name.toLowerCase();
+  if (lower.includes('cash')) {
+    return {
+      icon: <Banknote size={15} strokeWidth={2.2} />,
+      bg: 'rgba(34, 197, 94, 0.14)',
+      border: 'rgba(34, 197, 94, 0.28)',
+      color: '#22c55e',
+    };
+  }
+  if (lower.includes('gpay') || lower.includes('google')) {
+    return {
+      icon: <Smartphone size={15} strokeWidth={2.2} />,
+      bg: 'rgba(59, 130, 246, 0.14)',
+      border: 'rgba(59, 130, 246, 0.28)',
+      color: '#3b82f6',
+    };
+  }
+  if (lower.includes('phonepe') || lower.includes('phone pe')) {
+    return {
+      icon: <Zap size={15} strokeWidth={2.2} />,
+      bg: 'rgba(168, 85, 247, 0.14)',
+      border: 'rgba(168, 85, 247, 0.28)',
+      color: '#a855f7',
+    };
+  }
+  if (lower.includes('paytm')) {
+    return {
+      icon: <QrCode size={15} strokeWidth={2.2} />,
+      bg: 'rgba(6, 182, 212, 0.14)',
+      border: 'rgba(6, 182, 212, 0.28)',
+      color: '#06b6d4',
+    };
+  }
+  if (lower.includes('bank') || lower.includes('sbi') || lower.includes('hdfc') || lower.includes('icici') || lower.includes('axis')) {
+    return {
+      icon: <Landmark size={15} strokeWidth={2.2} />,
+      bg: 'rgba(14, 165, 233, 0.14)',
+      border: 'rgba(14, 165, 233, 0.28)',
+      color: '#0ea5e9',
+    };
+  }
+  if (lower.includes('card') || lower.includes('credit')) {
+    return {
+      icon: <CreditCard size={15} strokeWidth={2.2} />,
+      bg: 'rgba(245, 158, 11, 0.14)',
+      border: 'rgba(245, 158, 11, 0.28)',
+      color: '#f59e0b',
+    };
+  }
+  return {
+    icon: <Wallet size={15} strokeWidth={2.2} />,
+    bg: 'var(--accent-soft)',
+    border: 'rgba(99, 102, 241, 0.28)',
+    color: 'var(--accent)',
+  };
 }
 
 function renderFormattedText(text: string) {
@@ -169,7 +255,17 @@ function renderFormattedText(text: string) {
     }
     if (part.match(/^(?:₹|\$)[\d,.]+/)) {
       return (
-        <span key={i} style={{ fontWeight: 700, color: 'var(--accent)' }}>
+        <span
+          key={i}
+          style={{
+            fontWeight: 700,
+            color: 'var(--accent)',
+            backgroundColor: 'var(--accent-soft)',
+            padding: '2px 6px',
+            borderRadius: '6px',
+            display: 'inline-block',
+          }}
+        >
           {part}
         </span>
       );
@@ -190,30 +286,55 @@ function parseBulletLine(line: string): ParsedBullet {
     const isOwedToMe = relation.includes('owes you') || relation === 'owes';
     return {
       raw: clean,
+      kind: 'friend_debt',
       label: name,
+      amount: `₹${amtStr}`,
       badgeText: isOwedToMe ? `Owes you ₹${amtStr}` : `You owe ₹${amtStr}`,
       badgeType: isOwedToMe ? 'credit' : 'debit',
+      isOwedToMe,
     };
   }
 
-  // Pattern 2: Wallet / Account e.g. "Google Pay: ₹1,403.52" or "Cash: ₹0"
+  // Pattern 2: Transaction item e.g. "2026-08-27: Tiffin (+₹75) [Food & Dining]"
+  const txMatch = clean.match(/^([\d-]+)[:-]\s*(.*?)\s*\(([+-]?)(?:₹|\$|INR)?([\d,.]+)\)\s*(?:\[(.*?)\])?/i);
+  if (txMatch) {
+    const date = txMatch[1];
+    const desc = txMatch[2];
+    const sign = txMatch[3] || '-';
+    const amt = txMatch[4];
+    const cat = txMatch[5];
+    const isCredit = sign === '+';
+    return {
+      raw: clean,
+      kind: 'transaction',
+      label: desc,
+      subText: `${date}${cat ? ` • ${cat}` : ''}`,
+      amount: `${sign}₹${amt}`,
+      badgeType: isCredit ? 'credit' : 'neutral',
+      category: cat,
+    };
+  }
+
+  // Pattern 3: Wallet / Account e.g. "Google Pay: ₹1,403.52" or "Cash: ₹0"
   const accountMatch = clean.match(/^([^:-]+)[:-]\s*(?:₹|\$|INR)?\s*([\d,.]+)/i);
   if (accountMatch) {
     const accountName = accountMatch[1].trim();
     const amtStr = accountMatch[2];
     return {
       raw: clean,
+      kind: 'wallet',
       label: accountName,
       amount: `₹${amtStr}`,
       badgeType: 'neutral',
     };
   }
 
-  // Pattern 3: Expense format e.g. "Coffee - ₹30 (Food, Cash)"
+  // Pattern 4: Expense format e.g. "Coffee - ₹30 (Food, Cash)"
   const expMatch = clean.match(/^([^-:]+)(?:[-:]\s*(?:₹|\$|INR)?\s*([\d,.]+))?\s*(?:\((.*?)\))?/i);
   if (expMatch && expMatch[2]) {
     return {
       raw: clean,
+      kind: 'generic',
       label: expMatch[1].trim(),
       amount: `₹${expMatch[2]}`,
       subText: expMatch[3] ? expMatch[3].trim() : undefined,
@@ -223,6 +344,7 @@ function parseBulletLine(line: string): ParsedBullet {
 
   return {
     raw: clean,
+    kind: 'generic',
     label: clean,
   };
 }
@@ -259,17 +381,17 @@ function BotMessageBubble({ text }: { text: string }) {
     <Paper
       elevation={0}
       sx={{
-        px: 2,
-        py: 1.5,
-        borderRadius: '14px',
+        px: { xs: 2, sm: 2.25 },
+        py: 1.75,
+        borderRadius: '16px',
         bgcolor: 'var(--surface2)',
         color: 'var(--text)',
-        maxWidth: { xs: '92%', sm: '85%' },
+        maxWidth: { xs: '95%', sm: '88%' },
         border: '1px solid var(--border)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 1.25,
+        gap: 1.5,
       }}
     >
       {blocks.map((block, idx) => {
@@ -279,8 +401,8 @@ function BotMessageBubble({ text }: { text: string }) {
               key={idx}
               variant="body2"
               sx={{
-                lineHeight: 1.55,
-                fontSize: '13px',
+                lineHeight: 1.6,
+                fontSize: '13.5px',
                 color: 'var(--text)',
                 fontWeight: 500,
               }}
@@ -296,11 +418,209 @@ function BotMessageBubble({ text }: { text: string }) {
             sx={{
               display: 'flex',
               flexDirection: 'column',
-              gap: 0.75,
+              gap: 1,
               my: 0.25,
             }}
           >
             {block.items.map((bullet, bIdx) => {
+              if (bullet.kind === 'friend_debt') {
+                const avatar = getAvatarStyle(bullet.label);
+                const initial = bullet.label.trim().charAt(0).toUpperCase() || 'F';
+                const isPositive = bullet.isOwedToMe;
+
+                return (
+                  <Box
+                    key={bIdx}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1.5,
+                      px: 1.5,
+                      py: 1.15,
+                      borderRadius: '12px',
+                      bgcolor: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                      transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+                      '&:hover': {
+                        borderColor: isPositive ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)',
+                        bgcolor: 'var(--surface3)',
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                      },
+                    }}
+                  >
+                    {/* Left: Avatar & Name */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background: avatar.bg,
+                          color: avatar.text,
+                          display: 'grid',
+                          placeItems: 'center',
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          flexShrink: 0,
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                        }}
+                      >
+                        {initial}
+                      </Box>
+
+                      <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          noWrap
+                          sx={{
+                            fontSize: '13.5px',
+                            fontWeight: 650,
+                            color: 'var(--text)',
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {bullet.label}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: '11px',
+                            color: 'var(--text-3)',
+                            fontWeight: 500,
+                          }}
+                        >
+                          Friend
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Right: Vibrant Pill Badge */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.6,
+                        px: 1.3,
+                        py: 0.5,
+                        borderRadius: '99px',
+                        bgcolor: isPositive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                        border: '1px solid',
+                        borderColor: isPositive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)',
+                        color: isPositive ? '#10b981' : '#ef4444',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        letterSpacing: '0.01em',
+                        flexShrink: 0,
+                        boxShadow: isPositive ? '0 1px 4px rgba(16, 185, 129, 0.15)' : '0 1px 4px rgba(239, 68, 68, 0.15)',
+                      }}
+                    >
+                      {isPositive ? (
+                        <ArrowDownLeft size={13} strokeWidth={2.6} />
+                      ) : (
+                        <ArrowUpRight size={13} strokeWidth={2.6} />
+                      )}
+                      <span>{bullet.badgeText}</span>
+                    </Box>
+                  </Box>
+                );
+              }
+
+              if (bullet.kind === 'wallet') {
+                const theme = getWalletTheme(bullet.label);
+                const isZero = bullet.amount === '₹0' || bullet.amount === '$0' || bullet.amount === '0';
+
+                return (
+                  <Box
+                    key={bIdx}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1.5,
+                      px: 1.5,
+                      py: 1.15,
+                      borderRadius: '12px',
+                      bgcolor: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                      transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+                      '&:hover': {
+                        borderColor: theme.color,
+                        bgcolor: 'var(--surface3)',
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                      },
+                    }}
+                  >
+                    {/* Left: Themed Icon & Account Name */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '8px',
+                          bgcolor: theme.bg,
+                          border: `1px solid ${theme.border}`,
+                          color: theme.color,
+                          display: 'grid',
+                          placeItems: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {theme.icon}
+                      </Box>
+
+                      <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          noWrap
+                          sx={{
+                            fontSize: '13.5px',
+                            fontWeight: 650,
+                            color: 'var(--text)',
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {bullet.label}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: '11px',
+                            color: 'var(--text-3)',
+                            fontWeight: 500,
+                          }}
+                        >
+                          Account
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Right: Clean Balance Pill */}
+                    <Box
+                      sx={{
+                        px: 1.25,
+                        py: 0.45,
+                        borderRadius: '8px',
+                        bgcolor: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        color: isZero ? 'var(--text-3)' : 'var(--text)',
+                        fontSize: '13px',
+                        fontWeight: isZero ? 600 : 750,
+                        letterSpacing: '0.01em',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {bullet.amount}
+                    </Box>
+                  </Box>
+                );
+              }
+
+              // Fallback / Transaction / Generic Item
               return (
                 <Box
                   key={bIdx}
@@ -310,39 +630,39 @@ function BotMessageBubble({ text }: { text: string }) {
                     justifyContent: 'space-between',
                     gap: 1.5,
                     px: 1.5,
-                    py: 1,
-                    borderRadius: '10px',
+                    py: 1.15,
+                    borderRadius: '12px',
                     bgcolor: 'var(--surface)',
                     border: '1px solid var(--border)',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                    transition: 'all 0.15s ease',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                    transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
                     '&:hover': {
                       borderColor: 'var(--accent)',
                       bgcolor: 'var(--surface3)',
+                      transform: 'translateY(-1px)',
                     },
                   }}
                 >
-                  {/* Left Label */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
                     <Box
                       sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '6px',
-                        bgcolor: 'var(--surface2)',
+                        width: 30,
+                        height: 30,
+                        borderRadius: '8px',
+                        bgcolor: bullet.badgeType === 'credit' ? 'rgba(34, 197, 94, 0.12)' : 'var(--surface2)',
                         border: '1px solid var(--border)',
-                        color: 'var(--accent)',
+                        color: bullet.badgeType === 'credit' ? 'var(--credit)' : 'var(--accent)',
                         display: 'grid',
                         placeItems: 'center',
                         flexShrink: 0,
                       }}
                     >
-                      {bullet.badgeType === 'credit' || bullet.badgeType === 'debit' ? (
-                        <User size={12} />
+                      {bullet.badgeType === 'credit' ? (
+                        <TrendingUp size={14} />
                       ) : bullet.amount ? (
-                        <CreditCard size={12} />
+                        <CreditCard size={14} />
                       ) : (
-                        <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: 'var(--accent)' }} />
+                        <Sparkles size={14} />
                       )}
                     </Box>
 
@@ -351,7 +671,7 @@ function BotMessageBubble({ text }: { text: string }) {
                         variant="body2"
                         noWrap
                         sx={{
-                          fontSize: '12.5px',
+                          fontSize: '13px',
                           fontWeight: 600,
                           color: 'var(--text)',
                         }}
@@ -363,7 +683,7 @@ function BotMessageBubble({ text }: { text: string }) {
                           variant="caption"
                           noWrap
                           sx={{
-                            fontSize: '10.5px',
+                            fontSize: '11px',
                             color: 'var(--text-3)',
                           }}
                         >
@@ -373,39 +693,23 @@ function BotMessageBubble({ text }: { text: string }) {
                     </Box>
                   </Box>
 
-                  {/* Right Badge / Value */}
-                  {bullet.badgeText ? (
-                    <Chip
-                      label={bullet.badgeText}
-                      size="small"
-                      sx={{
-                        height: 24,
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        bgcolor: bullet.badgeType === 'credit' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                        color: bullet.badgeType === 'credit' ? '#10b981' : '#ef4444',
-                        border: '1px solid',
-                        borderColor: bullet.badgeType === 'credit' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)',
-                        flexShrink: 0,
-                      }}
-                    />
-                  ) : bullet.amount ? (
+                  {bullet.amount && (
                     <Box
                       sx={{
-                        px: 1,
-                        py: 0.25,
-                        borderRadius: '6px',
+                        px: 1.25,
+                        py: 0.45,
+                        borderRadius: '8px',
                         bgcolor: 'var(--surface2)',
                         border: '1px solid var(--border)',
-                        color: 'var(--text)',
-                        fontSize: '12px',
+                        color: bullet.badgeType === 'credit' ? 'var(--credit)' : 'var(--text)',
+                        fontSize: '12.5px',
                         fontWeight: 700,
                         flexShrink: 0,
                       }}
                     >
                       {bullet.amount}
                     </Box>
-                  ) : null}
+                  )}
                 </Box>
               );
             })}
@@ -460,8 +764,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
     setMessages([]);
     setActiveDraft(null);
     setInputText('');
-    showToast('Chat restarted');
-  }, [showToast]);
+  }, []);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const contentEndRef = useRef<HTMLDivElement>(null);
@@ -769,7 +1072,22 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
 
         if (onOpenAddExpense) {
           const matchedWallet = wallets.find(w => w.name.toLowerCase() === (d.walletName || '').toLowerCase()) || wallets[0];
+          
+          let resolvedFriendIds: string[] = [];
+          if (d.friendNames && d.friendNames.length > 0) {
+            resolvedFriendIds = d.friendNames
+              .map(name => friends.find(f => f.name.toLowerCase() === name.trim().toLowerCase())?.id)
+              .filter((id): id is string => Boolean(id));
+          } else if (d.friendName) {
+            const splitted = d.friendName.split(',').map(s => s.trim().toLowerCase());
+            resolvedFriendIds = splitted
+              .map(name => friends.find(f => f.name.toLowerCase() === name)?.id)
+              .filter((id): id is string => Boolean(id));
+          }
+
           const matchedFriend = friends.find(f => f.name.toLowerCase() === (d.friendName || '').toLowerCase());
+          const primaryFriendId = resolvedFriendIds[0] || matchedFriend?.id;
+
           onOpenAddExpense({
             description: d.description,
             amount: d.amount,
@@ -779,7 +1097,8 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             whoPaid: d.whoPaid === 'other' || d.type === 'by_friend' || d.splitMode === 'by_friend' ? 'other' : (d.whoPaid || 'me'),
             splitMode: (d.splitMode === 'for_friend' || d.splitMode === 'equal_split' || d.splitMode === 'custom_split') ? 'for_friend' : (d.splitMode === 'pay_debt' ? 'pay_debt' : 'just_me'),
             walletId: matchedWallet?.id,
-            friendId: matchedFriend?.id,
+            friendId: primaryFriendId,
+            friendIds: resolvedFriendIds.length > 0 ? resolvedFriendIds : (primaryFriendId ? [primaryFriendId] : undefined),
             date: d.date || todayISO(),
             notes: d.notes || 'Added via Max Assistant',
           });
@@ -1167,8 +1486,9 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr' },
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
                   gap: 0.85,
+                  width: '100%',
                 }}
               >
                 {frequentActions.map((item, idx) => (
@@ -1185,8 +1505,9 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                             flow: t.flow,
                             whoPaid: t.whoPaid,
                             type: t.type,
-                            splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' ? 'for_friend' : 'just_me'),
-                            friendId: t.friendId || undefined,
+                            splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' || (t.friendIds && t.friendIds.length > 0) ? 'for_friend' : 'just_me'),
+                            friendId: t.friendId || (t.friendIds && t.friendIds[0]) || undefined,
+                            friendIds: t.friendIds && t.friendIds.length > 0 ? t.friendIds : (t.friendId ? [t.friendId] : undefined),
                             vendorId: t.vendorId || undefined,
                             status: t.status,
                             walletId: t.walletId || undefined,
@@ -1196,6 +1517,10 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                         } else {
                           const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                           const walletNameVal = (t.walletId && db.wallets.find(w => w.id === t.walletId)?.name) || db.wallets[0]?.name || 'Cash';
+                          const resolvedFriendName = (t.friendNames && t.friendNames.length > 0)
+                            ? t.friendNames.join(', ')
+                            : (t.friendName || undefined);
+
                           const d: DraftExpense = {
                             description: t.description,
                             amount: t.amount,
@@ -1203,8 +1528,8 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                             flow: t.flow,
                             whoPaid: t.whoPaid,
                             type: t.type,
-                            splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' ? 'for_friend' : 'just_me'),
-                            friendName: t.friendName || undefined,
+                            splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' || (t.friendIds && t.friendIds.length > 0) ? 'for_friend' : 'just_me'),
+                            friendName: resolvedFriendName,
                             vendorName: t.vendorName || undefined,
                             walletName: walletNameVal,
                             date: todayISO(),
@@ -1248,7 +1573,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                       },
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.85, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.85, minWidth: 0, flex: 1 }}>
                       <Box
                         sx={{
                           color: 'var(--accent)',
@@ -1259,18 +1584,61 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                       >
                         {item.icon}
                       </Box>
-                      <Typography
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: '12.5px',
-                          color: 'var(--text)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {item.label}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                        <Typography
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: '12.5px',
+                            color: 'var(--text)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {item.taskItem?.description || item.label}
+                        </Typography>
+
+                        {/* Friend Badge (Name badge if 1 friend, initials badge if multiple friends) */}
+                        {item.taskItem && ((item.taskItem.friendNames && item.taskItem.friendNames.length > 0) || item.taskItem.friendName) && (() => {
+                          const names = item.taskItem.friendNames && item.taskItem.friendNames.length > 0
+                            ? item.taskItem.friendNames
+                            : (item.taskItem.friendName ? [item.taskItem.friendName] : []);
+                          if (names.length === 0) return null;
+                          const isByOther = item.taskItem.whoPaid === 'other' || item.taskItem.type === 'by_friend';
+                          
+                          return (
+                            <Box
+                              sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 0.35,
+                                px: 0.75,
+                                py: 0.15,
+                                borderRadius: '999px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                flexShrink: 0,
+                                background: isByOther
+                                  ? 'rgba(16, 185, 129, 0.12)'
+                                  : 'rgba(99, 102, 241, 0.14)',
+                                color: isByOther
+                                  ? '#10b981'
+                                  : 'var(--accent)',
+                                border: isByOther
+                                  ? '1px solid rgba(16, 185, 129, 0.25)'
+                                  : '1px solid rgba(99, 102, 241, 0.25)',
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              {names.length === 1 ? (
+                                <span>{isByOther ? `by ${names[0]}` : names[0]}</span>
+                              ) : (
+                                <span>{names.map(n => n.charAt(0).toUpperCase()).join('+')}</span>
+                              )}
+                            </Box>
+                          );
+                        })()}
+                      </Box>
                     </Box>
 
                     {item.subText && (
@@ -1844,79 +2212,92 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             scrollbarWidth: 'none',
           }}
         >
-          {frequentActions.map((item, idx) => (
-            <Chip
-              key={idx}
-              label={`${item.label} ${item.subText ? `(${item.subText})` : ''}`}
-              size="small"
-              onClick={() => {
-                if (item.taskItem) {
-                  const t = item.taskItem;
-                  if (onOpenAddExpense) {
-                    onOpenAddExpense({
-                      description: t.description,
-                      amount: t.amount,
-                      category: t.category,
-                      flow: t.flow,
-                      whoPaid: t.whoPaid,
-                      type: t.type,
-                      splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' ? 'for_friend' : 'just_me'),
-                      friendId: t.friendId || undefined,
-                      vendorId: t.vendorId || undefined,
-                      status: t.status,
-                      walletId: t.walletId || undefined,
-                      date: todayISO(),
-                    });
-                    onClose();
+          {frequentActions.map((item, idx) => {
+            const t = item.taskItem;
+            const names = t ? (t.friendNames && t.friendNames.length > 0 ? t.friendNames : (t.friendName ? [t.friendName] : [])) : [];
+            const friendBadgeStr = names.length === 1 ? names[0] : (names.length > 1 ? names.map(n => n.charAt(0).toUpperCase()).join('+') : '');
+            const chipLabel = t
+              ? `${t.description}${friendBadgeStr ? ` • ${friendBadgeStr}` : ''} ${item.subText ? `(${item.subText})` : ''}`
+              : `${item.label} ${item.subText ? `(${item.subText})` : ''}`;
+
+            return (
+              <Chip
+                key={idx}
+                label={chipLabel}
+                size="small"
+                onClick={() => {
+                  if (t) {
+                    if (onOpenAddExpense) {
+                      onOpenAddExpense({
+                        description: t.description,
+                        amount: t.amount,
+                        category: t.category,
+                        flow: t.flow,
+                        whoPaid: t.whoPaid,
+                        type: t.type,
+                        splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' || (t.friendIds && t.friendIds.length > 0) ? 'for_friend' : 'just_me'),
+                        friendId: t.friendId || (t.friendIds && t.friendIds[0]) || undefined,
+                        friendIds: t.friendIds && t.friendIds.length > 0 ? t.friendIds : (t.friendId ? [t.friendId] : undefined),
+                        vendorId: t.vendorId || undefined,
+                        status: t.status,
+                        walletId: t.walletId || undefined,
+                        date: todayISO(),
+                      });
+                      onClose();
+                    } else {
+                      const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      const walletNameVal = (t.walletId && db.wallets.find(w => w.id === t.walletId)?.name) || db.wallets[0]?.name || 'Cash';
+                      const resolvedFriendName = (t.friendNames && t.friendNames.length > 0)
+                        ? t.friendNames.join(', ')
+                        : (t.friendName || undefined);
+
+                      const d: DraftExpense = {
+                        description: t.description,
+                        amount: t.amount,
+                        category: t.category,
+                        flow: t.flow,
+                        whoPaid: t.whoPaid,
+                        type: t.type,
+                        splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' || (t.friendIds && t.friendIds.length > 0) ? 'for_friend' : 'just_me'),
+                        friendName: resolvedFriendName,
+                        vendorName: t.vendorName || undefined,
+                        walletName: walletNameVal,
+                        date: todayISO(),
+                      };
+                      setActiveDraft(d);
+                      setMessages(prev => [
+                        ...prev,
+                        {
+                          id: generateMsgId(),
+                          sender: 'bot',
+                          text: `Prepared quick entry for ${t.description} (${currencySymbol(currency)}${t.amount}). Review and confirm below:`,
+                          timestamp: nowTimeStr,
+                          draft: d,
+                        },
+                      ]);
+                    }
                   } else {
-                    const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const walletNameVal = (t.walletId && db.wallets.find(w => w.id === t.walletId)?.name) || db.wallets[0]?.name || 'Cash';
-                    const d: DraftExpense = {
-                      description: t.description,
-                      amount: t.amount,
-                      category: t.category,
-                      flow: t.flow,
-                      whoPaid: t.whoPaid,
-                      type: t.type,
-                      splitMode: t.splitMode === 'pay_debt' ? 'pay_debt' : (t.type === 'for_friend' ? 'for_friend' : 'just_me'),
-                      friendName: t.friendName || undefined,
-                      vendorName: t.vendorName || undefined,
-                      walletName: walletNameVal,
-                      date: todayISO(),
-                    };
-                    setActiveDraft(d);
-                    setMessages(prev => [
-                      ...prev,
-                      {
-                        id: generateMsgId(),
-                        sender: 'bot',
-                        text: `Prepared quick entry for ${t.label} (${currencySymbol(currency)}${t.amount}). Review and confirm below:`,
-                        timestamp: nowTimeStr,
-                        draft: d,
-                      },
-                    ]);
+                    handleSend(item.prompt);
                   }
-                } else {
-                  handleSend(item.prompt);
-                }
-              }}
-              sx={{
-                fontSize: '11px',
-                fontWeight: 600,
-                bgcolor: 'var(--surface2)',
-                color: 'var(--text-2)',
-                border: '1px solid var(--border)',
-                cursor: 'pointer',
-                flexShrink: 0,
-                transition: 'all 0.15s ease',
-                '&:hover': {
-                  bgcolor: 'var(--surface3)',
-                  color: 'var(--text)',
-                  borderColor: 'var(--accent)',
-                },
-              }}
-            />
-          ))}
+                }}
+                sx={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  bgcolor: 'var(--surface2)',
+                  color: 'var(--text-2)',
+                  border: '1px solid var(--border)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    bgcolor: 'var(--surface3)',
+                    color: 'var(--text)',
+                    borderColor: 'var(--accent)',
+                  },
+                }}
+              />
+            );
+          })}
         </Box>
       )}
 

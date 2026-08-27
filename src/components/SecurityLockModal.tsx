@@ -18,7 +18,7 @@ export default function SecurityLockModal({
   const [pinInput, setPinInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isShaking, setIsShaking] = useState(false);
-  const [_isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+  const [, setIsBiometricAvailable] = useState(false);
   const [biometricType, setBiometricType] = useState<string>('Biometric');
   const isBiometricRunningRef = useRef(false);
 

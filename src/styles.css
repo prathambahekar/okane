@@ -64,6 +64,98 @@
   --shadow-lg: 0 12px 40px rgba(0,0,0,.6);
 }
 
+/* ==========================================================================
+   Adaptive Wallet & Payment Brand Icons (Light & Dark Mode)
+   ========================================================================== */
+
+/* 1. Google Pay */
+.wallet-icon-gpay-bg { fill: #ffffff; }
+.wallet-icon-gpay-border { stroke: #e2e8f0; }
+
+[data-color-scheme="dark"] .wallet-icon-gpay-bg { fill: #1e293b; }
+[data-color-scheme="dark"] .wallet-icon-gpay-border { stroke: #334155; }
+
+/* 2. PhonePe */
+.wallet-icon-phonepe-bg { fill: #5f259f; }
+.wallet-icon-phonepe-border { stroke: rgba(95, 37, 159, 0.25); }
+
+[data-color-scheme="dark"] .wallet-icon-phonepe-bg { fill: #5b21b6; }
+[data-color-scheme="dark"] .wallet-icon-phonepe-border { stroke: rgba(167, 139, 250, 0.3); }
+
+/* 3. Amazon Pay */
+.wallet-icon-amazon-bg { fill: #ffffff; }
+.wallet-icon-amazon-border { stroke: #e5e7eb; }
+.wallet-icon-amazon-glyph { fill: #232f3e; }
+
+[data-color-scheme="dark"] .wallet-icon-amazon-bg { fill: #1e293b; }
+[data-color-scheme="dark"] .wallet-icon-amazon-border { stroke: #374151; }
+[data-color-scheme="dark"] .wallet-icon-amazon-glyph { fill: #ffffff; }
+
+/* 4. Paytm */
+.wallet-icon-paytm-bg { fill: #ffffff; }
+.wallet-icon-paytm-border { stroke: #00baf2; stroke-opacity: 0.4; }
+.wallet-icon-paytm-pay { fill: #002970; }
+.wallet-icon-paytm-tm { fill: #00baf2; }
+
+[data-color-scheme="dark"] .wallet-icon-paytm-bg { fill: #002970; }
+[data-color-scheme="dark"] .wallet-icon-paytm-border { stroke: #00baf2; stroke-opacity: 0.45; }
+[data-color-scheme="dark"] .wallet-icon-paytm-pay { fill: #ffffff; }
+[data-color-scheme="dark"] .wallet-icon-paytm-tm { fill: #00baf2; }
+
+/* 5. Other UPI / BHIM NPCI */
+.wallet-icon-upi-bg { fill: #ffffff; }
+.wallet-icon-upi-border { stroke: #e2e8f0; }
+.wallet-icon-upi-chevron-g { fill: #097939; }
+.wallet-icon-upi-chevron-o { fill: #ea580c; }
+
+[data-color-scheme="dark"] .wallet-icon-upi-bg { fill: #1e293b; }
+[data-color-scheme="dark"] .wallet-icon-upi-border { stroke: #334155; }
+[data-color-scheme="dark"] .wallet-icon-upi-chevron-g { fill: #10b981; }
+[data-color-scheme="dark"] .wallet-icon-upi-chevron-o { fill: #f97316; }
+
+/* 6. Bank Account */
+.wallet-icon-bank-bg { fill: #0d9488; }
+.wallet-icon-bank-border { stroke: rgba(13, 148, 136, 0.25); }
+
+[data-color-scheme="dark"] .wallet-icon-bank-bg { fill: #0f766e; }
+[data-color-scheme="dark"] .wallet-icon-bank-border { stroke: rgba(45, 212, 191, 0.3); }
+
+/* 7. Card / Debit */
+.wallet-icon-card-bg { fill: #4f46e5; }
+.wallet-icon-card-border { stroke: rgba(79, 70, 229, 0.25); }
+
+[data-color-scheme="dark"] .wallet-icon-card-bg { fill: #4338ca; }
+[data-color-scheme="dark"] .wallet-icon-card-border { stroke: rgba(129, 140, 248, 0.3); }
+
+/* 8. Cash */
+.wallet-icon-cash-bg { fill: #059669; }
+.wallet-icon-cash-border { stroke: rgba(5, 150, 105, 0.25); }
+
+[data-color-scheme="dark"] .wallet-icon-cash-bg { fill: #047857; }
+[data-color-scheme="dark"] .wallet-icon-cash-border { stroke: rgba(52, 211, 153, 0.3); }
+
+/* 9. CRED */
+.wallet-icon-cred-bg { fill: #ffffff; }
+.wallet-icon-cred-border { stroke: #e5e7eb; }
+.wallet-icon-cred-glyph { stroke: #111111; }
+
+[data-color-scheme="dark"] .wallet-icon-cred-bg { fill: #121212; }
+[data-color-scheme="dark"] .wallet-icon-cred-border { stroke: #262626; }
+[data-color-scheme="dark"] .wallet-icon-cred-glyph { stroke: #ffffff; }
+
+/* 10. Apple Pay */
+.wallet-icon-apple-bg { fill: #ffffff; }
+.wallet-icon-apple-border { stroke: #e5e7eb; }
+.wallet-icon-apple-glyph { fill: #000000; }
+
+[data-color-scheme="dark"] .wallet-icon-apple-bg { fill: #000000; }
+[data-color-scheme="dark"] .wallet-icon-apple-border { stroke: #333333; }
+[data-color-scheme="dark"] .wallet-icon-apple-glyph { fill: #ffffff; }
+
+/* Fallback border */
+.wallet-icon-fallback-border { stroke: rgba(255, 255, 255, 0.25); }
+[data-color-scheme="dark"] .wallet-icon-fallback-border { stroke: rgba(255, 255, 255, 0.15); }
+
 /* Okane High-Fidelity Skeleton Loader Theme & Animations */
 @keyframes okane-shimmer {
   0% {
@@ -1817,16 +1909,25 @@ input[type="number"] {
 .form-grid {
   display: grid;
   gap: 16px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 14px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .form-label {
   font-size: 12px;
@@ -1986,20 +2087,30 @@ input[type="number"] {
 .modal.expense-drawer-modal .modal-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
   padding: 6px 14px 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .modal.expense-drawer-modal .modal-body::-webkit-scrollbar {
   display: none;
 }
 .modal.expense-drawer-modal .form-grid {
   gap: 7px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .modal.expense-drawer-modal .form-group {
   gap: 2px;
   margin-bottom: 4px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .modal.expense-drawer-modal .form-label {
   font-size: 11px;

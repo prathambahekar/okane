@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Wallet as WalletIcon, Plus, Check, Star } from 'lucide-react';
+import { X, Wallet as WalletIcon, Plus, Check, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../store';
 import type { Wallet } from '../types';
 import { WALLET_PRESETS, renderWalletIcon } from './WalletIconRenderer';
@@ -259,22 +259,20 @@ export default function WalletModal({ wallet, onClose }: Props) {
                   gap: 6,
                 }}
               >
-                {WALLET_PRESETS.map((preset, idx) => {
+                {WALLET_PRESETS.map((preset) => {
                   const isSelected = selectedPresetId === preset.id;
-                  const isLastItem = idx === WALLET_PRESETS.length - 1;
                   return (
                     <button
                       key={preset.id}
                       type="button"
                       onClick={() => handleSelectPreset(preset.id)}
                       style={{
-                        gridColumn: isLastItem ? 'span 2' : 'span 1',
                         display: 'flex',
-                        flexDirection: isLastItem ? 'row' : 'column',
+                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: isLastItem ? 8 : 4,
-                        padding: isLastItem ? '6px 10px' : '7px 4px',
+                        gap: 4,
+                        padding: '8px 4px 6px',
                         borderRadius: 10,
                         border: isSelected
                           ? '1.5px solid var(--accent)'
@@ -288,15 +286,15 @@ export default function WalletModal({ wallet, onClose }: Props) {
                     >
                       <div
                         style={{
-                          width: 26,
-                          height: 26,
+                          width: 28,
+                          height: 28,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexShrink: 0,
                         }}
                       >
-                        {renderWalletIcon(preset.iconKey, 24, preset.color)}
+                        {renderWalletIcon(preset.iconKey, 28, preset.color)}
                       </div>
                       <span
                         style={{
@@ -325,63 +323,78 @@ export default function WalletModal({ wallet, onClose }: Props) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '10px 14px',
-                borderRadius: 10,
+                padding: '11px 14px',
+                borderRadius: 12,
                 background: isDefault ? 'var(--accent-soft)' : 'var(--surface2)',
-                border: isDefault ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                border: isDefault ? '1px solid var(--accent)' : '1px solid var(--border)',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
+                transition: 'all 0.2s ease',
                 userSelect: 'none',
+                gap: 12,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, flex: 1 }}>
                 <div
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 7,
-                    background: isDefault ? 'var(--accent)' : 'var(--surface3, rgba(128, 128, 128, 0.1))',
+                    width: 34,
+                    height: 34,
+                    borderRadius: 9,
+                    background: isDefault ? 'var(--accent)' : 'var(--surface3)',
                     color: isDefault ? 'var(--accent-contrast, #ffffff)' : 'var(--text-3)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    transition: 'all 0.15s ease',
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0,
+                    boxShadow: isDefault ? '0 2px 6px rgba(0,0,0,0.12)' : 'none',
                   }}
                 >
-                  <Star size={14} fill={isDefault ? 'currentColor' : 'none'} />
+                  <CheckCircle2 size={18} strokeWidth={isDefault ? 2.4 : 1.8} style={{ color: 'inherit' }} />
                 </div>
-                <div style={{ textAlign: 'left' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: 13,
+                      fontSize: 13.5,
                       fontWeight: 650,
-                      color: isDefault ? 'var(--accent)' : 'var(--text)',
+                      color: 'var(--text)',
+                      lineHeight: 1.25,
                     }}
                   >
                     Set as Default Wallet
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, lineHeight: 1.25 }}>
                     Auto-selected for new transactions and settlements
                   </div>
                 </div>
               </div>
 
+              {/* Modern Toggle Switch */}
               <div
                 style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 6,
-                  border: isDefault ? '1.5px solid var(--accent)' : '1.5px solid var(--border)',
-                  background: isDefault ? 'var(--accent)' : 'transparent',
+                  width: 42,
+                  height: 24,
+                  borderRadius: 99,
+                  background: isDefault ? 'var(--accent)' : 'var(--surface3)',
+                  border: isDefault ? '1px solid var(--accent)' : '1px solid var(--border)',
+                  padding: 2,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                  transition: 'all 0.15s ease',
+                  transition: 'background-color 0.2s ease, border-color 0.2s ease',
                   flexShrink: 0,
+                  boxSizing: 'border-box',
                 }}
               >
-                {isDefault && <Check size={13} strokeWidth={3} />}
+                <div
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
+                    background: isDefault ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2, #a1a1aa)',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.28)',
+                    transform: isDefault ? 'translateX(18px)' : 'translateX(0px)',
+                    transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease',
+                  }}
+                />
               </div>
             </div>
 
