@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, ChevronDown, ChevronUp, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -18,171 +18,216 @@ import { CURRENT_APP_VERSION } from '../utils/updateManager';
 
 function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeColor: (c: string) => void }) {
   const isCustom = !FRIEND_PALETTE.includes(color);
-  const [showModal, setShowModal] = useState(false);
-  const [tempHex, setTempHex] = useState(color);
+  const colorInputRef = useRef<HTMLInputElement>(null);
+
+  const safeHex = useMemo(() => {
+    if (color && color.startsWith('#') && (color.length === 7 || color.length === 4)) {
+      if (color.length === 4) {
+        return `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`;
+      }
+      return color;
+    }
+    return '#6366F1';
+  }, [color]);
+
+  const handleCustomClick = () => {
+    const inputEl = colorInputRef.current;
+    if (inputEl) {
+      const elWithPicker = inputEl as HTMLInputElement & { showPicker?: () => void };
+      if (typeof elWithPicker.showPicker === 'function') {
+        try {
+          elWithPicker.showPicker();
+        } catch {
+          inputEl.click();
+        }
+      } else {
+        inputEl.click();
+      }
+    }
+  };
 
   return (
-    <div className="category-color-picker" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+    <div className="category-color-picker">
       {FRIEND_PALETTE.map(c => (
         <button
           key={c}
           type="button"
           className={`color-swatch-btn ${color === c ? 'selected' : ''}`}
-          style={{ background: c }}
+          style={{
+            background: c,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
           onClick={() => onChangeColor(c)}
           aria-label={`Select color ${c}`}
-        />
+        >
+          {color === c && (
+            <Check size={14} style={{ color: '#ffffff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
+          )}
+        </button>
       ))}
-      <button
-        type="button"
-        className={`color-swatch-btn ${isCustom ? 'selected' : ''}`}
-        onClick={() => {
-          setTempHex(color);
-          setShowModal(true);
-        }}
-        style={{
-          background: color,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          border: isCustom ? '2px solid #ffffff' : '1.5px dashed rgba(255,255,255,0.7)',
-          boxShadow: isCustom ? '0 0 0 2px var(--accent)' : 'none',
-          touchAction: 'manipulation',
-          WebkitTapHighlightColor: 'transparent',
-        }}
-        title="Choose Custom Color"
-      >
-        <Palette size={14} style={{ color: '#fff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />
-      </button>
+      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button
+          type="button"
+          className={`color-swatch-btn ${isCustom ? 'selected' : ''}`}
+          onClick={handleCustomClick}
+          style={{
+            background: isCustom ? color : 'var(--surface2, #2a2a32)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            border: isCustom ? 'none' : '1.5px dashed var(--border, rgba(255,255,255,0.4))',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+          title="Choose Custom Color"
+        >
+          {isCustom ? (
+            <Check size={14} style={{ color: '#ffffff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
+          ) : (
+            <Palette size={14} style={{ color: 'var(--text-2)' }} />
+          )}
+        </button>
+        <input
+          ref={colorInputRef}
+          type="color"
+          value={safeHex}
+          onChange={(e) => onChangeColor(e.target.value)}
+          onInput={(e) => onChangeColor((e.target as HTMLInputElement).value)}
+          aria-label="Custom color picker"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            opacity: 0,
+            cursor: 'pointer',
+            border: 'none',
+            padding: 0,
+            margin: 0,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
-      {showModal && createPortal(
-        <div className="sheet-backdrop" onClick={() => setShowModal(false)} style={{ zIndex: 11000 }}>
-          <div
-            className="sheet-modal"
-            onClick={e => e.stopPropagation()}
-            style={{
-              maxWidth: 400,
-              width: '90%',
-              borderRadius: 20,
-              padding: '20px',
-              background: 'var(--surface)',
-              border: 'none',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Palette size={18} style={{ color: 'var(--accent)' }} />
-                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Choose Color</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                style={{
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '50%',
-                  width: 32,
-                  height: 32,
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: 'var(--text-2)',
-                  cursor: 'pointer',
-                }}
-              >
-                <X size={16} />
-              </button>
-            </div>
+function FormattedReleaseNotes({ notes }: { notes: string }) {
+  if (!notes || notes.trim() === 'No release notes provided.') {
+    return null;
+  }
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(6, 1fr)',
-              gap: 10,
-              marginBottom: 16,
-              maxHeight: 200,
-              overflowY: 'auto',
-              padding: '4px',
-            }}>
-              {[
-                '#EF4444', '#F43F5E', '#EC4899', '#D946EF', '#A855F7', '#8B5CF6',
-                '#6366F1', '#3B82F6', '#0EA5E9', '#06B6D4', '#14B8A6', '#10B981',
-                '#22C55E', '#84CC16', '#EAB308', '#F97316', '#EA580C', '#64748B'
-              ].map(hex => (
-                <button
-                  key={hex}
-                  type="button"
-                  onClick={() => {
-                    setTempHex(hex);
-                    onChangeColor(hex);
-                  }}
-                  style={{
-                    width: '100%',
-                    aspectRatio: '1',
-                    borderRadius: '50%',
-                    background: hex,
-                    border: tempHex.toUpperCase() === hex ? '2.5px solid var(--text)' : '1px solid rgba(0,0,0,0.15)',
-                    boxShadow: tempHex.toUpperCase() === hex ? `0 0 0 2px ${hex}` : 'none',
-                    transform: tempHex.toUpperCase() === hex ? 'scale(1.12)' : 'scale(1)',
-                    transition: 'all 0.15s ease',
-                    cursor: 'pointer',
-                    display: 'grid',
-                    placeItems: 'center',
-                  }}
-                >
-                  {tempHex.toUpperCase() === hex && <Check size={14} style={{ color: '#fff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' }} />}
-                </button>
-              ))}
-            </div>
+  const items: Array<
+    | { type: 'text'; text: string }
+    | { type: 'bullet'; text: string }
+    | { type: 'image'; src: string; alt?: string }
+  > = [];
 
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: 10,
-              borderRadius: 12,
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              marginBottom: 16,
-            }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: tempHex, flexShrink: 0 }} />
-              <input
-                type="text"
-                value={tempHex}
-                onChange={e => {
-                  setTempHex(e.target.value);
-                  if (/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(e.target.value)) {
-                    onChangeColor(e.target.value);
-                  }
-                }}
-                placeholder="#3B82F6"
-                maxLength={7}
+  const lines = notes.split('\n');
+
+  lines.forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) return;
+
+    const imgRegex = /<img\s+[^>]*src=["']([^"']+)["'][^>]*\/?>/gi;
+    let match: RegExpExecArray | null;
+    let lastIdx = 0;
+
+    while ((match = imgRegex.exec(line)) !== null) {
+      const precedingText = line.substring(lastIdx, match.index).trim();
+      if (precedingText) {
+        if (precedingText.startsWith('- ') || precedingText.startsWith('* ')) {
+          items.push({ type: 'bullet', text: precedingText.substring(2).trim() });
+        } else {
+          items.push({ type: 'text', text: precedingText });
+        }
+      }
+
+      const src = match[1];
+      const altMatch = match[0].match(/alt=["']([^"']+)["']/i);
+      items.push({ type: 'image', src, alt: altMatch ? altMatch[1] : 'Release screenshot' });
+      lastIdx = imgRegex.lastIndex;
+    }
+
+    const rest = line.substring(lastIdx).trim();
+    if (rest) {
+      const mdMatch = rest.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+      if (mdMatch) {
+        items.push({ type: 'image', src: mdMatch[2], alt: mdMatch[1] || 'Release screenshot' });
+      } else if (rest.startsWith('- ') || rest.startsWith('* ')) {
+        items.push({ type: 'bullet', text: rest.substring(2).trim() });
+      } else {
+        items.push({ type: 'text', text: rest });
+      }
+    }
+  });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px', marginBottom: '6px' }}>
+      {items.map((item, idx) => {
+        if (item.type === 'image') {
+          return (
+            <a
+              key={idx}
+              href={item.src}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                marginTop: '4px',
+                marginBottom: '4px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+              }}
+            >
+              <img
+                src={item.src}
+                alt={item.alt || 'Release preview'}
+                loading="lazy"
                 style={{
                   width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  fontFamily: 'monospace',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  color: 'var(--text)',
-                  textTransform: 'uppercase',
+                  height: 'auto',
+                  maxHeight: '260px',
+                  objectFit: 'cover',
+                  display: 'block',
+                  borderRadius: '11px'
+                }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
                 }}
               />
-            </div>
+            </a>
+          );
+        }
 
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => setShowModal(false)}
-              style={{ width: '100%', height: 40, borderRadius: 10, fontWeight: 600, fontSize: 13 }}
-            >
-              Done
-            </button>
-          </div>
-        </div>,
-        document.body
-      )}
+        if (item.type === 'bullet') {
+          return (
+            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12.5px', color: 'var(--text-2)', lineHeight: 1.45 }}>
+              <span style={{
+                width: 5,
+                height: 5,
+                borderRadius: '50%',
+                background: 'var(--accent)',
+                marginTop: 6,
+                flexShrink: 0
+              }} />
+              <span>{item.text}</span>
+            </div>
+          );
+        }
+
+        return (
+          <p key={idx} style={{ fontSize: '12.5px', color: 'var(--text-2)', margin: 0, lineHeight: 1.45 }}>
+            {item.text}
+          </p>
+        );
+      })}
     </div>
   );
 }
@@ -218,71 +263,10 @@ export default function Settings({
   const [editColor, setEditColor] = useState('#F97362');
   const [editIcon, setEditIcon] = useState('other');
 
-  const { mode, toggleMode, accent, setAccent, customColor, setCustomColor } = useColorMode();
+  const { mode, toggleMode, accent, setAccent } = useColorMode();
   const isDark = mode === 'dark';
-
-  // Saved Custom Accent Colors
-  const [savedCustomColors, setSavedCustomColors] = useState<{ id: string; name: string; hex: string }[]>(() => {
-    try {
-      const saved = localStorage.getItem('saved_custom_accent_colors');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return [];
-  });
-  const [newColorName, setNewColorName] = useState('');
-  const [isCustomAccentCardExpanded, setIsCustomAccentCardExpanded] = useState(false);
-  const [showCustomColorPickerModal, setShowCustomColorPickerModal] = useState(false);
-
-  const handleSaveCustomColor = () => {
-    const hex = customColor.trim();
-    if (!/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(hex)) {
-      showToast('Invalid color hex code');
-      return;
-    }
-
-    const name = newColorName.trim() || hex.toUpperCase();
-    const id = 'custom_' + Date.now();
-    const newEntry = { id, name, hex };
-
-    const existingIdx = savedCustomColors.findIndex(c => c.hex.toLowerCase() === hex.toLowerCase());
-    let updated: { id: string; name: string; hex: string }[];
-    if (existingIdx >= 0) {
-      updated = [...savedCustomColors];
-      updated[existingIdx] = newEntry;
-    } else {
-      updated = [...savedCustomColors, newEntry];
-    }
-
-    setSavedCustomColors(updated);
-    try {
-      localStorage.setItem('saved_custom_accent_colors', JSON.stringify(updated));
-    } catch {
-      // ignore
-    }
-    setNewColorName('');
-    setAccent('custom');
-    setCustomColor(hex);
-    updateSettings({ accent: 'custom', customAccentColor: hex });
-    showToast('Saved custom color preset!');
-  };
-
-  const handleRemoveCustomColor = (id: string, hex: string) => {
-    const updated = savedCustomColors.filter(c => c.id !== id);
-    setSavedCustomColors(updated);
-    try {
-      localStorage.setItem('saved_custom_accent_colors', JSON.stringify(updated));
-    } catch {
-      // ignore
-    }
-    if (accent === 'custom' && customColor.toLowerCase() === hex.toLowerCase()) {
-      setAccent('blue');
-      updateSettings({ accent: 'blue' });
-    }
-    showToast('Removed custom accent preset');
-  };
-  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [appearanceSubView, setAppearanceSubView] = useState<'main' | 'more'>('main');
+  const [categorySubView, setCategorySubView] = useState<'list' | 'add'>('list');
   const isDevMode = settings.devMode ?? false;
   const displayReleaseHistory = useMemo(() => {
     if (isDevMode) return releaseHistory;
@@ -618,7 +602,7 @@ export default function Settings({
     updateSettings({ categories: [...settings.categories, { name: trimmed, color: newCatColor, icon: newCatIcon }] });
     setNewCatName('');
     setNewCatIcon('other');
-    setShowAddCategory(false);
+    setCategorySubView('list');
     showToast(`Category "${trimmed}" added!`);
   };
 
@@ -958,7 +942,7 @@ export default function Settings({
                     <div className="settings-card-text">
                       <h2 className="settings-card-title">Appearance & Theme</h2>
                       <p className="settings-card-sub">
-                        {isDark ? 'Dark Mode' : 'Light Mode'} • {accent === 'custom' ? 'Custom Accent' : (ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic Blue')} • {(settings.hideScrollbar ?? true) ? 'Hidden Scrollbars' : 'Visible Scrollbars'}
+                        {isDark ? 'Dark Mode' : 'Light Mode'} • {ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic Blue'} • {(settings.hideScrollbar ?? true) ? 'Hidden Scrollbars' : 'Visible Scrollbars'}
                       </p>
                     </div>
                   </div>
@@ -969,13 +953,11 @@ export default function Settings({
                         width: 10,
                         height: 10,
                         borderRadius: '50%',
-                        background: accent === 'custom'
-                          ? customColor
-                          : (accent === 'monochrome' ? (isDark ? '#ffffff' : '#111111') : (isDark ? ACCENT_PRESETS.find(p => p.id === accent)?.swatchDark : ACCENT_PRESETS.find(p => p.id === accent)?.swatchLight)),
+                        background: accent === 'monochrome' ? (isDark ? '#ffffff' : '#111111') : (isDark ? ACCENT_PRESETS.find(p => p.id === accent)?.swatchDark : ACCENT_PRESETS.find(p => p.id === accent)?.swatchLight),
                         border: '1px solid rgba(0,0,0,0.15)',
                         flexShrink: 0
                       }} />
-                      <span>{accent === 'custom' ? 'Custom' : (ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic')}</span>
+                      <span>{ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic'}</span>
                     </div>
                     <ChevronRight className="settings-card-arrow" size={18} />
                   </div>
@@ -1033,474 +1015,190 @@ export default function Settings({
 
         {/* Bottom Sheet Drawer Modal for Appearance & Theme */}
         {showAppearanceSheet && createPortal(
-          <div className="sheet-backdrop" onClick={() => setShowAppearanceSheet(false)}>
+          <div className="sheet-backdrop" onClick={() => {
+            setShowAppearanceSheet(false);
+            setAppearanceSubView('main');
+          }}>
             <div className="sheet-modal sheet-modal-lg" onClick={(e) => e.stopPropagation()}>
               {/* Drag Handle */}
               <div className="sheet-drag-handle" />
 
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
-                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
-                  }}>
-                    <Palette size={20} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                      Appearance & Theme
-                    </h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
-                      Choose dark mode & primary accent color
-                    </p>
-                  </div>
-                </div>
+              {appearanceSubView === 'main' ? (
+                <>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                        display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                      }}>
+                        <Palette size={20} />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                          Appearance & Theme
+                        </h3>
+                        <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                          Choose dark mode & primary accent color
+                        </p>
+                      </div>
+                    </div>
 
-                <button
-                  type="button"
-                  className="drawer-close-btn"
-                  onClick={() => setShowAppearanceSheet(false)}
-                  style={{
-                    background: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '50%',
-                    width: 32,
-                    height: 32,
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: 'var(--text-2)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Theme Mode Toggle Row */}
-              <div style={{
-                padding: '14px 16px',
-                borderRadius: 14,
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 12
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {isDark ? <Moon size={18} style={{ color: 'var(--accent)' }} /> : <Sun size={18} style={{ color: 'var(--accent)' }} />}
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Dark Theme Mode</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Switch between dark and light background</div>
-                  </div>
-                </div>
-                <Switch
-                  checked={isDark}
-                  onChange={() => {
-                    const nextMode = isDark ? 'light' : 'dark';
-                    toggleMode();
-                    updateSettings({ colorMode: nextMode });
-                  }}
-                  color="primary"
-                />
-              </div>
-
-              {/* Hide Scrollbars Toggle Row */}
-              <div style={{
-                padding: '14px 16px',
-                borderRadius: 14,
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 16
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {(settings.hideScrollbar ?? true) ? (
-                    <EyeOff size={18} style={{ color: 'var(--accent)' }} />
-                  ) : (
-                    <Eye size={18} style={{ color: 'var(--accent)' }} />
-                  )}
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Hide Scrollbars</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Hide visible scrollbar tracks for a clean mobile app look</div>
-                  </div>
-                </div>
-                <Switch
-                  checked={settings.hideScrollbar ?? true}
-                  onChange={(e) => {
-                    const hide = e.target.checked;
-                    updateSettings({ hideScrollbar: hide });
-                    showToast(hide ? 'Scrollbars hidden (Clean mobile style)' : 'Scrollbars visible');
-                  }}
-                  color="primary"
-                />
-              </div>
-
-              {/* Accent Color Presets */}
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>
-                Preset Accent Colors
-              </div>
-              <div className="accent-picker-grid">
-                {ACCENT_PRESETS.map(preset => {
-                  const isSelected = accent === preset.id;
-                  const colorHex = isDark ? preset.swatchDark : preset.swatchLight;
-
-                  return (
                     <button
-                      key={preset.id}
                       type="button"
+                      className="drawer-close-btn"
                       onClick={() => {
-                        setAccent(preset.id);
-                        updateSettings({ accent: preset.id });
+                        setShowAppearanceSheet(false);
+                        setAppearanceSubView('main');
                       }}
-                      className="accent-picker-btn"
                       style={{
-                        border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
-                        background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 8,
+                        width: 32,
+                        height: 32,
+                        display: 'grid',
+                        placeItems: 'center',
+                        color: 'var(--text-2)',
+                        cursor: 'pointer'
                       }}
                     >
-                      <div style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: '50%',
-                        background: preset.id === 'monochrome'
-                          ? (isDark ? '#ffffff' : '#111111')
-                          : colorHex,
-                        border: preset.id === 'monochrome' && isDark ? '1px solid #555' : '1px solid rgba(0,0,0,0.12)',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
-                        flexShrink: 0,
-                        display: 'grid',
-                        placeItems: 'center'
-                      }}>
-                        {isSelected && <Check size={12} style={{ color: preset.id === 'monochrome' && isDark ? '#000' : '#fff' }} />}
-                      </div>
-                      <span style={{ fontSize: 12, fontWeight: isSelected ? 600 : 500, color: 'var(--text)', lineHeight: 1.2 }}>
-                        {preset.name}
-                      </span>
+                      <X size={16} />
                     </button>
-                  );
-                })}
-              </div>
+                  </div>
 
-              {/* Saved Custom Colors */}
-              {savedCustomColors.length > 0 && (
-                <div style={{ marginTop: 18 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span>Saved Custom Colors</span>
-                    <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-3)', textTransform: 'none' }}>
-                      ({savedCustomColors.length})
-                    </span>
+                  {/* Theme Mode Toggle Row */}
+                  <div style={{
+                    padding: '14px 16px',
+                    borderRadius: 14,
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 12
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {isDark ? <Moon size={18} style={{ color: 'var(--accent)' }} /> : <Sun size={18} style={{ color: 'var(--accent)' }} />}
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Dark Theme Mode</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Switch between dark and light background</div>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={isDark}
+                      onChange={() => {
+                        const nextMode = isDark ? 'light' : 'dark';
+                        toggleMode();
+                        updateSettings({ colorMode: nextMode });
+                      }}
+                      color="primary"
+                    />
+                  </div>
+
+                  {/* Accent Color Presets */}
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>
+                    Preset Accent Colors
                   </div>
                   <div className="accent-picker-grid">
-                    {savedCustomColors.map(saved => {
-                      const isSelected = accent === 'custom' && customColor.toLowerCase() === saved.hex.toLowerCase();
+                    {ACCENT_PRESETS.map(preset => {
+                      const isSelected = accent === preset.id;
+                      const colorHex = isDark ? preset.swatchDark : preset.swatchLight;
 
                       return (
-                        <div
-                          key={saved.id}
+                        <button
+                          key={preset.id}
+                          type="button"
                           onClick={() => {
-                            setAccent('custom');
-                            setCustomColor(saved.hex);
-                            updateSettings({ accent: 'custom', customAccentColor: saved.hex });
+                            setAccent(preset.id);
+                            updateSettings({ accent: preset.id });
                           }}
                           className="accent-picker-btn"
                           style={{
                             border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
                             background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            padding: '8px 10px',
                           }}
                         >
                           <div style={{
                             width: 20,
                             height: 20,
                             borderRadius: '50%',
-                            background: saved.hex,
-                            border: '1px solid rgba(0,0,0,0.12)',
+                            background: preset.id === 'monochrome'
+                              ? (isDark ? '#ffffff' : '#111111')
+                              : colorHex,
+                            border: preset.id === 'monochrome' && isDark ? '1px solid #555' : '1px solid rgba(0,0,0,0.12)',
                             boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
                             flexShrink: 0,
                             display: 'grid',
                             placeItems: 'center'
                           }}>
-                            {isSelected && <Check size={12} style={{ color: '#fff' }} />}
+                            {isSelected && <Check size={12} style={{ color: preset.id === 'monochrome' && isDark ? '#000' : '#fff' }} />}
                           </div>
-                          <span style={{
-                            fontSize: 12,
-                            fontWeight: isSelected ? 600 : 500,
-                            color: 'var(--text)',
-                            lineHeight: 1.2,
-                            flex: 1,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}>
-                            {saved.name}
+                          <span style={{ fontSize: 12, fontWeight: isSelected ? 600 : 500, color: 'var(--text)', lineHeight: 1.2 }}>
+                            {preset.name}
                           </span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveCustomColor(saved.id, saved.hex);
-                            }}
-                            title="Remove custom accent"
-                            style={{
-                              border: 'none',
-                              background: 'none',
-                              padding: 3,
-                              borderRadius: 4,
-                              cursor: 'pointer',
-                              color: 'var(--text-3)',
-                              display: 'grid',
-                              placeItems: 'center',
-                            }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
-                </div>
-              )}
 
-              {/* Color Picker & Save Form (Custom Accent Card - Collapsed by Default) */}
-              <div style={{
-                marginTop: 18,
-                borderRadius: 'var(--radius-lg)',
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                overflow: 'hidden',
-                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-              }}>
-                {/* Collapsible Header Row */}
-                <div
-                  onClick={() => setIsCustomAccentCardExpanded(prev => !prev)}
-                  style={{
-                    padding: '14px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    background: isCustomAccentCardExpanded ? 'var(--surface3)' : 'transparent',
-                    borderBottom: isCustomAccentCardExpanded ? '1px solid var(--border)' : 'none',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 8,
-                        background: customColor,
-                        display: 'grid',
-                        placeItems: 'center',
-                        color: '#fff',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
-                        border: '1.5px solid var(--border2)',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Palette size={15} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span>Create Custom Accent</span>
-                        {accent === 'custom' && (
-                          <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: 'var(--accent-soft)', color: 'var(--accent)' }}>
-                            Active
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>
-                        {isCustomAccentCardExpanded ? 'Choose custom color or save new preset' : `Current: ${customColor.toUpperCase()}`}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {/* More Appearance Drawer Trigger */}
+                  <div style={{ marginTop: 14 }}>
                     <button
                       type="button"
+                      onClick={() => setAppearanceSubView('more')}
                       style={{
-                        border: 'none',
-                        background: 'var(--surface)',
-                        borderRadius: '50%',
-                        width: 28,
-                        height: 28,
-                        display: 'grid',
-                        placeItems: 'center',
-                        color: 'var(--text-2)',
+                        width: '100%',
+                        padding: '13px 16px',
+                        borderRadius: 14,
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                         cursor: 'pointer',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        transition: 'all 0.15s ease',
                       }}
-                      aria-label={isCustomAccentCardExpanded ? 'Collapse custom accent card' : 'Expand custom accent card'}
                     >
-                      {isCustomAccentCardExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          background: accent === 'monochrome' ? (isDark ? '#ffffff' : '#111111') : 'var(--accent)',
+                          display: 'grid',
+                          placeItems: 'center',
+                          color: accent === 'monochrome' ? (isDark ? '#000000' : '#ffffff') : '#ffffff',
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.18)',
+                          flexShrink: 0,
+                        }}>
+                          <Palette size={15} />
+                        </div>
+                        <div style={{ textAlign: 'left' }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>More Appearance</span>
+                          </div>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>
+                            Hide scrollbars & display options
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
                     </button>
                   </div>
-                </div>
-
-                {/* Card Content when Expanded */}
-                {isCustomAccentCardExpanded && (
-                  <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {/* Quick Color Swatches - Reduced to 6 Core Accent Colors */}
-                    <div>
-                      <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8 }}>
-                        Quick Color Palette
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                        {[
-                          { name: 'Indigo', hex: '#6366F1' },
-                          { name: 'Blue', hex: '#3B82F6' },
-                          { name: 'Emerald', hex: '#10B981' },
-                          { name: 'Rose', hex: '#F43F5E' },
-                          { name: 'Orange', hex: '#F97316' },
-                          { name: 'Amber', hex: '#EAB308' },
-                        ].map(swatch => {
-                          const isSelected = customColor.toUpperCase() === swatch.hex && accent === 'custom';
-                          return (
-                            <button
-                              key={swatch.hex}
-                              type="button"
-                              className={`color-swatch-btn ${isSelected ? 'selected' : ''}`}
-                              style={{
-                                background: swatch.hex,
-                                width: 32,
-                                height: 32,
-                                borderRadius: '50%',
-                                border: isSelected ? '2.5px solid var(--text)' : '1px solid rgba(0,0,0,0.15)',
-                                boxShadow: isSelected ? `0 0 0 2px ${swatch.hex}, 0 2px 8px rgba(0,0,0,0.25)` : '0 1px 4px rgba(0,0,0,0.12)',
-                                transition: 'all 0.15s ease',
-                                cursor: 'pointer',
-                                display: 'grid',
-                                placeItems: 'center',
-                              }}
-                              onClick={() => {
-                                setCustomColor(swatch.hex);
-                                setAccent('custom');
-                                updateSettings({ accent: 'custom', customAccentColor: swatch.hex });
-                              }}
-                              title={swatch.name}
-                            >
-                              {isSelected && <Check size={14} style={{ color: '#fff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Pick Color Trigger Button + Hex Input */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                </>
+              ) : (
+                <>
+                  {/* More Appearance Sub-View Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <button
                         type="button"
-                        onClick={() => setShowCustomColorPickerModal(true)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 8,
-                          padding: '0 16px',
-                          height: 40,
-                          borderRadius: 'var(--radius)',
-                          background: 'var(--surface)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--text)',
-                          fontWeight: 600,
-                          fontSize: 13,
-                          cursor: 'pointer',
-                          userSelect: 'none',
-                          flexShrink: 0,
-                          touchAction: 'manipulation',
-                          WebkitTapHighlightColor: 'transparent',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <div style={{ width: 18, height: 18, borderRadius: '50%', background: customColor, border: '1px solid rgba(0,0,0,0.15)', flexShrink: 0 }} />
-                        <span>Color Picker</span>
-                      </button>
-
-                      <div style={{ flex: 1, minWidth: 120 }}>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={customColor}
-                          onChange={e => {
-                            const hex = e.target.value;
-                            setCustomColor(hex);
-                            setAccent('custom');
-                            updateSettings({ accent: 'custom', customAccentColor: hex });
-                          }}
-                          placeholder="#6366F1"
-                          maxLength={7}
-                          style={{ fontFamily: 'monospace', fontWeight: 600, textTransform: 'uppercase', minHeight: 40 }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Save Preset Name + Save Button */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={newColorName}
-                        onChange={e => setNewColorName(e.target.value)}
-                        placeholder="Preset name (e.g. Neon Violet)"
-                        style={{ flex: 1, minWidth: 160, fontSize: 13, minHeight: 40 }}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleSaveCustomColor();
-                          }
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleSaveCustomColor}
-                        className="btn btn-primary"
-                        style={{ height: 40, padding: '0 16px', whiteSpace: 'nowrap', fontSize: 13, fontWeight: 600, gap: 6 }}
-                      >
-                        <Plus size={16} /> Save Preset
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Custom Color Picker Modal for Mobile & Web */}
-              {showCustomColorPickerModal && createPortal(
-                <div className="sheet-backdrop" onClick={() => setShowCustomColorPickerModal(false)} style={{ zIndex: 11000 }}>
-                  <div
-                    className="sheet-modal"
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                      maxWidth: 420,
-                      width: '92%',
-                      borderRadius: 20,
-                      padding: '20px',
-                      background: 'var(--surface)',
-                      border: 'none',
-                      boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Palette size={18} style={{ color: 'var(--accent)' }} />
-                        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Choose Custom Accent</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowCustomColorPickerModal(false)}
+                        onClick={() => setAppearanceSubView('main')}
                         style={{
                           background: 'var(--surface2)',
                           border: '1px solid var(--border)',
-                          borderRadius: '50%',
+                          borderRadius: 8,
                           width: 32,
                           height: 32,
                           display: 'grid',
@@ -1508,124 +1206,74 @@ export default function Settings({
                           color: 'var(--text-2)',
                           cursor: 'pointer',
                         }}
+                        title="Back to appearance"
                       >
-                        <X size={16} />
+                        <ArrowLeft size={16} />
                       </button>
-                    </div>
-
-                    <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 14 }}>
-                      Select a color from the spectrum or enter your preferred hex code:
-                    </div>
-
-                    {/* Color Swatch Grid */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(6, 1fr)',
-                      gap: 10,
-                      marginBottom: 20,
-                      maxHeight: 220,
-                      overflowY: 'auto',
-                      padding: '4px',
-                    }}>
-                      {[
-                        '#EF4444', '#DC2626', '#B91C1C', '#F43F5E', '#E11D48', '#BE123C',
-                        '#EC4899', '#DB2777', '#C026D3', '#A855F7', '#9333EA', '#7E22CE',
-                        '#8B5CF6', '#7C3AED', '#6366F1', '#4F46E5', '#3B82F6', '#2563EB',
-                        '#0EA5E9', '#0284C7', '#06B6D4', '#0891B2', '#14B8A6', '#0D9488',
-                        '#10B981', '#059669', '#22C55E', '#16A34A', '#84CC16', '#65A30D',
-                        '#EAB308', '#CA8A04', '#F97316', '#EA580C', '#8D6E63', '#475569',
-                      ].map(hex => {
-                        const isSel = customColor.toUpperCase() === hex;
-                        return (
-                          <button
-                            key={hex}
-                            type="button"
-                            onClick={() => {
-                              setCustomColor(hex);
-                              setAccent('custom');
-                              updateSettings({ accent: 'custom', customAccentColor: hex });
-                            }}
-                            style={{
-                              width: '100%',
-                              aspectRatio: '1',
-                              borderRadius: '50%',
-                              background: hex,
-                              border: isSel ? '2.5px solid var(--text)' : '1px solid rgba(0,0,0,0.15)',
-                              boxShadow: isSel ? `0 0 0 2.5px ${hex}, 0 2px 8px rgba(0,0,0,0.3)` : '0 1px 4px rgba(0,0,0,0.15)',
-                              transform: isSel ? 'scale(1.12)' : 'scale(1)',
-                              transition: 'all 0.15s ease',
-                              cursor: 'pointer',
-                              display: 'grid',
-                              placeItems: 'center',
-                            }}
-                          >
-                            {isSel && <Check size={14} style={{ color: '#fff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' }} />}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Live Hex Input & Preview Row */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: 12,
-                      borderRadius: 14,
-                      background: 'var(--surface2)',
-                      border: '1px solid var(--border)',
-                      marginBottom: 18,
-                    }}>
-                      <div style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: customColor,
-                        border: '1px solid rgba(0,0,0,0.15)',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                        flexShrink: 0,
-                      }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', marginBottom: 2 }}>
-                          HEX CODE
-                        </div>
-                        <input
-                          type="text"
-                          value={customColor}
-                          onChange={e => {
-                            const hex = e.target.value;
-                            setCustomColor(hex);
-                            setAccent('custom');
-                            updateSettings({ accent: 'custom', customAccentColor: hex });
-                          }}
-                          placeholder="#6366F1"
-                          maxLength={7}
-                          style={{
-                            width: '100%',
-                            background: 'transparent',
-                            border: 'none',
-                            outline: 'none',
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            fontSize: 15,
-                            color: 'var(--text)',
-                            textTransform: 'uppercase',
-                          }}
-                        />
+                      <div>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                          More Appearance
+                        </h3>
+                        <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                          Interface & display options
+                        </p>
                       </div>
                     </div>
-
                     <button
                       type="button"
-                      className="btn btn-primary"
-                      onClick={() => setShowCustomColorPickerModal(false)}
-                      style={{ width: '100%', height: 42, borderRadius: 12, fontWeight: 600, fontSize: 14 }}
+                      className="drawer-close-btn"
+                      onClick={() => {
+                        setShowAppearanceSheet(false);
+                        setAppearanceSubView('main');
+                      }}
+                      style={{
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 8,
+                        width: 32,
+                        height: 32,
+                        display: 'grid',
+                        placeItems: 'center',
+                        color: 'var(--text-2)',
+                        cursor: 'pointer',
+                      }}
                     >
-                      Apply Color
+                      <X size={16} />
                     </button>
                   </div>
-                </div>,
-                document.body
+
+                  {/* Hide Scrollbars Toggle Row */}
+                  <div style={{
+                    padding: '14px 16px',
+                    borderRadius: 14,
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {(settings.hideScrollbar ?? true) ? (
+                        <EyeOff size={18} style={{ color: accent === 'monochrome' ? (isDark ? '#ffffff' : '#111111') : 'var(--accent)' }} />
+                      ) : (
+                        <Eye size={18} style={{ color: accent === 'monochrome' ? (isDark ? '#ffffff' : '#111111') : 'var(--accent)' }} />
+                      )}
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Hide Scrollbars</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Hide visible scrollbar tracks for a clean mobile app look</div>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.hideScrollbar ?? true}
+                      onChange={(e) => {
+                        const hide = e.target.checked;
+                        updateSettings({ hideScrollbar: hide });
+                        showToast(hide ? 'Scrollbars hidden (Clean mobile style)' : 'Scrollbars visible');
+                      }}
+                      color="primary"
+                    />
+                  </div>
+                </>
               )}
             </div>
           </div>,
@@ -1663,7 +1311,7 @@ export default function Settings({
                   style={{
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: '50%',
+                    borderRadius: 8,
                     width: 32,
                     height: 32,
                     display: 'grid',
@@ -1822,7 +1470,7 @@ export default function Settings({
                   style={{
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: '50%',
+                    borderRadius: 8,
                     width: 32,
                     height: 32,
                     display: 'grid',
@@ -1873,130 +1521,220 @@ export default function Settings({
 
         {/* Bottom Sheet Drawer Modal for Categories */}
         {showCategoriesSheet && createPortal(
-          <div className="sheet-backdrop" onClick={() => setShowCategoriesSheet(false)}>
+          <div className="sheet-backdrop" onClick={() => {
+            setShowCategoriesSheet(false);
+            setCategorySubView('list');
+          }}>
             <div className="sheet-modal sheet-modal-lg" onClick={(e) => e.stopPropagation()}>
               {/* Drag Handle */}
               <div className="sheet-drag-handle" />
 
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
-                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
-                  }}>
-                    <Tag size={20} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                      Manage Category Tags
-                    </h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
-                      {settings.categories.length} category tags configured
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ fontSize: 11.5, gap: 4, padding: '4px 8px' }}
-                    onClick={() => {
-                      updateSettings({ categories: [...DEFAULT_CATEGORIES] });
-                      showToast('Reset categories to default');
-                    }}
-                  >
-                    <RotateCcw size={14} /> Reset
-                  </button>
-                  <button
-                    type="button"
-                    className="drawer-close-btn"
-                    onClick={() => setShowCategoriesSheet(false)}
-                    style={{
-                      background: 'var(--surface2)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '50%',
-                      width: 32,
-                      height: 32,
-                      display: 'grid',
-                      placeItems: 'center',
-                      color: 'var(--text-2)',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {/* All Category Chips Grid */}
-              <div className="category-chip-list" style={{ marginBottom: 18 }}>
-                {settings.categories.map((c: Category) => {
-                  const bgTint = c.color.startsWith('#') && c.color.length === 7 ? `${c.color}20` : 'var(--accent-soft)';
-                  return (
-                    <div key={c.name} className="category-chip">
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 22,
-                          height: 22,
-                          borderRadius: 6,
-                          background: bgTint,
-                          color: c.color,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <CategoryIcon category={c.name} icon={c.icon} size={13} style={{ color: c.color }} />
-                      </span>
-                      <span>{c.name}</span>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, marginLeft: 2 }}>
-                        <button
-                          type="button"
-                          className="category-chip-edit"
-                          title={`Edit ${c.name}`}
-                          onClick={() => startEditCategory(c)}
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          className="category-chip-delete"
-                          title={`Remove ${c.name}`}
-                          onClick={() => handleDeleteCategory(c.name)}
-                        >
-                          <X size={14} />
-                        </button>
+              {categorySubView === 'list' ? (
+                <>
+                  {/* Fixed Header */}
+                  <div className="sheet-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
+                        display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                      }}>
+                        <Tag size={20} />
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                          Manage Category Tags
+                        </h3>
+                        <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                          {settings.categories.length} category tags configured
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
 
-              {/* Add Category Section */}
-              <div className="category-add-box" style={{ marginTop: 12 }}>
-                <div
-                  onClick={() => setShowAddCategory(!showAddCategory)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13 }}>
-                    <Plus size={16} style={{ color: 'var(--accent)' }} />
-                    <span>Add New Category</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: 11.5, gap: 4, padding: '4px 8px' }}
+                        onClick={() => {
+                          updateSettings({ categories: [...DEFAULT_CATEGORIES] });
+                          showToast('Reset categories to default');
+                        }}
+                      >
+                        <RotateCcw size={14} /> Reset
+                      </button>
+                      <button
+                        type="button"
+                        className="drawer-close-btn"
+                        onClick={() => {
+                          setShowCategoriesSheet(false);
+                          setCategorySubView('list');
+                        }}
+                        style={{
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 8,
+                          width: 32,
+                          height: 32,
+                          display: 'grid',
+                          placeItems: 'center',
+                          color: 'var(--text-2)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ color: 'var(--text-3)', display: 'grid', placeItems: 'center' }}>
-                    {showAddCategory ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </div>
-                </div>
 
-                {showAddCategory && (
-                  <div className="category-add-form" style={{ gridTemplateColumns: '1fr', gap: 14, marginTop: 14 }}>
+                  {/* Scrollable Body */}
+                  <div className="sheet-modal-body">
+                    {/* All Category Chips Grid */}
+                    <div className="category-chip-list" style={{ marginBottom: 16 }}>
+                      {settings.categories.map((c: Category) => {
+                        const bgTint = c.color.startsWith('#') && c.color.length === 7 ? `${c.color}20` : 'var(--accent-soft)';
+                        return (
+                          <div key={c.name} className="category-chip">
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 22,
+                                height: 22,
+                                borderRadius: 6,
+                                background: bgTint,
+                                color: c.color,
+                                flexShrink: 0,
+                              }}
+                            >
+                              <CategoryIcon category={c.name} icon={c.icon} size={13} style={{ color: c.color }} />
+                            </span>
+                            <span>{c.name}</span>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, marginLeft: 2 }}>
+                              <button
+                                type="button"
+                                className="category-chip-edit"
+                                title={`Edit ${c.name}`}
+                                onClick={() => startEditCategory(c)}
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                className="category-chip-delete"
+                                title={`Remove ${c.name}`}
+                                onClick={() => handleDeleteCategory(c.name)}
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Add New Category Trigger Row */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setCategorySubView('add')}
+                        style={{
+                          width: '100%',
+                          padding: '13px 16px',
+                          borderRadius: 14,
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            background: 'var(--accent-soft)',
+                            display: 'grid',
+                            placeItems: 'center',
+                            color: 'var(--accent)',
+                            flexShrink: 0,
+                          }}>
+                            <Plus size={16} />
+                          </div>
+                          <div style={{ textAlign: 'left' }}>
+                            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                              Add New Category
+                            </div>
+                            <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>
+                              Create custom category tag, icon & color
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight size={18} style={{ color: 'var(--text-3)' }} />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Fixed Add Category Subview Header */}
+                  <div className="sheet-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <button
+                        type="button"
+                        onClick={() => setCategorySubView('list')}
+                        style={{
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 8,
+                          width: 32,
+                          height: 32,
+                          display: 'grid',
+                          placeItems: 'center',
+                          color: 'var(--text-2)',
+                          cursor: 'pointer',
+                        }}
+                        title="Back to categories"
+                      >
+                        <ArrowLeft size={16} />
+                      </button>
+                      <div>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                          Add New Category
+                        </h3>
+                        <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+                          Create custom category tag, icon & color
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="drawer-close-btn"
+                      onClick={() => {
+                        setShowCategoriesSheet(false);
+                        setCategorySubView('list');
+                      }}
+                      style={{
+                        background: 'var(--surface2)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 8,
+                        width: 32,
+                        height: 32,
+                        display: 'grid',
+                        placeItems: 'center',
+                        color: 'var(--text-2)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {/* Scrollable Form Body */}
+                  <div className="sheet-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label className="form-label" style={{ fontSize: 11.5 }}>Category Name</label>
                       <input
@@ -2005,6 +1743,7 @@ export default function Settings({
                         onChange={e => setNewCatName(e.target.value)}
                         placeholder="e.g. Subscriptions, Fuel, Food..."
                         onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
+                        autoFocus
                       />
                     </div>
 
@@ -2040,17 +1779,29 @@ export default function Settings({
                         })}
                       </div>
                     </div>
+                  </div>
 
+                  {/* Fixed Bottom Action Footer */}
+                  <div className="sheet-modal-footer" style={{ display: 'flex', gap: 10 }}>
                     <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setCategorySubView('list')}
+                      style={{ flex: 1, padding: '10px 16px', borderRadius: 10 }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
                       className="btn btn-primary"
                       onClick={handleAddCategory}
-                      style={{ padding: '9px 16px', gap: 6, justifyContent: 'center', justifySelf: 'start', marginTop: 4 }}
+                      style={{ flex: 2, padding: '10px 16px', gap: 6, justifyContent: 'center', borderRadius: 10 }}
                     >
                       <Plus size={18} /> Add Category
                     </button>
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           </div>,
           document.body
@@ -2182,7 +1933,7 @@ export default function Settings({
                   style={{
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: '50%',
+                    borderRadius: 8,
                     width: 32,
                     height: 32,
                     display: 'grid',
@@ -2263,7 +2014,7 @@ export default function Settings({
                   style={{
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: '50%',
+                    borderRadius: 8,
                     width: 32,
                     height: 32,
                     display: 'grid',
@@ -2607,7 +2358,7 @@ export default function Settings({
                   style={{
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: '50%',
+                    borderRadius: 8,
                     width: 32,
                     height: 32,
                     display: 'grid',
@@ -2937,7 +2688,7 @@ export default function Settings({
                   style={{
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: '50%',
+                    borderRadius: 8,
                     width: 32,
                     height: 32,
                     display: 'grid',
@@ -3268,7 +3019,7 @@ export default function Settings({
                   style={{
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: '50%',
+                    borderRadius: 8,
                     width: 32,
                     height: 32,
                     display: 'grid',
@@ -3284,78 +3035,116 @@ export default function Settings({
               {/* Software Update Status Panel */}
               {availableUpdate ? (
                 <div style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
                   background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  marginBottom: 14,
+                  border: '1.5px solid rgba(59, 130, 246, 0.3)',
+                  boxShadow: '0 4px 16px rgba(59, 130, 246, 0.1)',
+                  marginBottom: 16,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 8
+                  gap: 12
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <ArrowUpCircle size={18} style={{ color: '#2563eb', flexShrink: 0 }} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 12,
+                        background: 'rgba(59, 130, 246, 0.12)',
+                        border: '1px solid rgba(59, 130, 246, 0.25)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        color: '#3b82f6',
+                        flexShrink: 0
+                      }}>
+                        <ArrowUpCircle size={20} />
+                      </div>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
                           v{availableUpdate.version} Available
                         </div>
-                        <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
-                          Build #{availableUpdate.buildNumber} · {availableUpdate.releaseDate}
+                        <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1 }}>
+                          Build #{availableUpdate.buildNumber} • {availableUpdate.releaseDate}
                         </div>
                       </div>
                     </div>
                     {!isUpdating && (
                       <button
                         type="button"
-                        className="btn btn-primary btn-sm"
+                        className="btn btn-primary"
                         onClick={() => installUpdate()}
-                        style={{ gap: 5, padding: '5px 12px', borderRadius: 8, fontSize: 11.5, fontWeight: 600 }}
+                        style={{ gap: 6, padding: '7px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600, flexShrink: 0 }}
                       >
-                        <Download size={12} /> Download
+                        <Download size={13} /> Download
                       </button>
                     )}
                   </div>
                   {isUpdating && (
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, fontWeight: 600, marginBottom: 3 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 600, marginBottom: 4, color: 'var(--text-2)' }}>
                         <span>{updateStatusMessage}</span>
                         <span>{updateProgress}%</span>
                       </div>
-                      <div style={{ height: 4, background: 'var(--surface3)', borderRadius: 99, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${updateProgress}%`, background: 'var(--text)', borderRadius: 99 }} />
+                      <div style={{ height: 5, background: 'var(--surface3)', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${updateProgress}%`, background: 'var(--accent)', borderRadius: 99, transition: 'width 0.2s ease' }} />
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
                 <div style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  borderRadius: '16px',
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  marginBottom: 14,
+                  marginBottom: 16,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: 12,
-                  flexWrap: 'wrap'
+                  gap: 10
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: '1 1 auto' }}>
-                    <CheckCircle2 size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>Up to date</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      • Checked {settings.lastUpdateCheck || String(jsonSettings.lastUpdated || 'Today')}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto' }}>
+                    <div style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: 'rgba(34, 197, 94, 0.12)',
+                      border: '1px solid rgba(34, 197, 94, 0.25)',
+                      display: 'grid',
+                      placeItems: 'center',
+                      color: '#22c55e',
+                      flexShrink: 0
+                    }}>
+                      <CheckCircle2 size={18} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        Up to date
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        Checked {settings.lastUpdateCheck || String(jsonSettings.lastUpdated || 'Today')}
+                      </div>
+                    </div>
                   </div>
                   <button
                     type="button"
-                    className="btn btn-secondary btn-sm"
+                    className="btn btn-secondary"
                     onClick={() => checkForUpdates(true)}
                     disabled={isCheckingUpdate}
-                    style={{ gap: 6, fontSize: 11.5, padding: '5px 12px', borderRadius: 8, fontWeight: 600, flexShrink: 0 }}
+                    style={{
+                      gap: 5,
+                      fontSize: 11.5,
+                      padding: '6px 12px',
+                      borderRadius: 10,
+                      fontWeight: 600,
+                      flexShrink: 0,
+                      background: 'var(--surface3)',
+                      border: '1px solid var(--border)',
+                      whiteSpace: 'nowrap'
+                    }}
                   >
-                    <RefreshCw size={12} className={isCheckingUpdate ? 'spin' : ''} />
+                    <RefreshCw size={13} className={isCheckingUpdate ? 'spin' : ''} />
                     {isCheckingUpdate ? 'Checking...' : 'Check Updates'}
                   </button>
                 </div>
@@ -3542,7 +3331,7 @@ export default function Settings({
                 style={{
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: '50%',
+                  borderRadius: 8,
                   width: '32px',
                   height: '32px',
                   display: 'grid',
@@ -3671,12 +3460,16 @@ export default function Settings({
             className="modal"
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: '460px',
-              maxHeight: '85vh',
-              padding: '20px 22px 22px',
+              maxWidth: '480px',
+              maxHeight: '88vh',
+              padding: '18px 20px 22px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
+              borderRadius: '24px',
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+              boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
             }}
           >
             <div className="modal-handle-bar">
@@ -3685,7 +3478,7 @@ export default function Settings({
 
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
                   width: '36px',
                   height: '36px',
@@ -3698,10 +3491,25 @@ export default function Settings({
                   <GitCommit size={18} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
-                    Release History
-                  </h3>
-                  <div style={{ fontSize: '11.5px', color: 'var(--text-3)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: 'var(--text)' }}>
+                      Release History
+                    </h3>
+                    {displayReleaseHistory.length > 0 && (
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        padding: '2px 8px',
+                        borderRadius: 99,
+                        background: 'var(--surface2)',
+                        color: 'var(--text-2)',
+                        border: '1px solid var(--border)'
+                      }}>
+                        {displayReleaseHistory.length} releases
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: 1 }}>
                     prathambahekar/okane
                   </div>
                 </div>
@@ -3709,19 +3517,21 @@ export default function Settings({
               <button
                 type="button"
                 onClick={() => setHistoryModalOpen(false)}
+                aria-label="Close release history"
                 style={{
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: '50%',
-                  width: '30px',
-                  height: '30px',
+                  borderRadius: 10,
+                  width: '32px',
+                  height: '32px',
                   display: 'grid',
                   placeItems: 'center',
                   color: 'var(--text-2)',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
                 }}
               >
-                <X size={15} />
+                <X size={16} />
               </button>
             </div>
 
@@ -3729,20 +3539,22 @@ export default function Settings({
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '8px',
+              gap: '10px',
               overflowY: 'auto',
-              maxHeight: '55vh',
-              paddingRight: '2px'
+              maxHeight: '68vh',
+              paddingRight: '4px'
             }}>
               {displayReleaseHistory.length === 0 ? (
                 <div style={{
-                  padding: '24px 16px',
+                  padding: '32px 16px',
                   textAlign: 'center',
                   color: 'var(--text-3)',
                   fontSize: '13px',
-                  fontStyle: 'italic'
+                  background: 'var(--surface2)',
+                  borderRadius: '16px',
+                  border: '1px dashed var(--border)'
                 }}>
-                  No release history loaded yet. Click "Check Updates" in settings to fetch releases.
+                  No release history loaded yet. Tap "Check Updates" in settings to fetch releases.
                 </div>
               ) : (
                 displayReleaseHistory.map((item, idx) => {
@@ -3750,91 +3562,85 @@ export default function Settings({
                   const normalizedItemVer = item.version.replace(/^v/, '').trim();
                   const normalizedCurrentVer = String(currentVer).replace(/^v/, '').trim();
                   const isCurrent = normalizedItemVer === normalizedCurrentVer;
-                  const hasNotes = item.releaseNotes && item.releaseNotes.trim() !== 'No release notes provided.';
 
                   return (
                     <div
                       key={item.version + '_' + idx}
                       style={{
-                        padding: '10px 12px',
-                        borderRadius: '10px',
+                        padding: '14px 16px',
+                        borderRadius: '16px',
                         background: 'var(--surface2)',
-                        border: '1px solid var(--border)',
+                        border: isCurrent ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                        boxShadow: isCurrent ? '0 4px 16px rgba(99, 102, 241, 0.12)' : 'none',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 4
+                        gap: 6
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
                             {item.name || `v${item.version}`}
                           </span>
                           {isCurrent && (
                             <span style={{
-                              fontSize: 9.5,
+                              fontSize: 10,
                               fontWeight: 600,
-                              padding: '1px 6px',
+                              padding: '2px 8px',
                               borderRadius: 99,
                               background: 'rgba(34, 197, 94, 0.12)',
                               color: '#22c55e',
-                              border: '1px solid rgba(34, 197, 94, 0.25)'
+                              border: '1px solid rgba(34, 197, 94, 0.3)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
                             }}>
+                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
                               Installed
                             </span>
                           )}
                           {item.isPrerelease && (
                             <span style={{
-                              fontSize: 9.5,
+                              fontSize: 10,
                               fontWeight: 600,
-                              padding: '1px 6px',
+                              padding: '2px 8px',
                               borderRadius: 99,
                               background: 'rgba(245, 158, 11, 0.12)',
                               color: '#f59e0b',
-                              border: '1px solid rgba(245, 158, 11, 0.2)',
+                              border: '1px solid rgba(245, 158, 11, 0.25)',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 3
+                              gap: 4
                             }}>
-                              <FlaskConical size={10} />
+                              <FlaskConical size={11} />
                               Pre-release
                             </span>
                           )}
                         </div>
-                        <span style={{ fontSize: 10.5, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-3)', whiteSpace: 'nowrap', fontWeight: 500 }}>
                           {item.releaseDate}
                         </span>
                       </div>
 
-                      {hasNotes && (
-                        <p style={{
-                          fontSize: 11.5,
-                          color: 'var(--text-2)',
-                          margin: '2px 0 4px 0',
-                          lineHeight: 1.35,
-                          whiteSpace: 'pre-line'
-                        }}>
-                          {item.releaseNotes}
-                        </p>
-                      )}
+                      <FormattedReleaseNotes notes={item.releaseNotes} />
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 2 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4, marginTop: 2 }}>
                         <a
                           href={item.htmlUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
-                            fontSize: 11,
-                            color: 'var(--text-2)',
-                            fontWeight: 500,
+                            fontSize: 11.5,
+                            color: 'var(--accent)',
+                            fontWeight: 600,
                             textDecoration: 'none',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 3
+                            gap: 4
                           }}
                         >
                           <span>View on GitHub</span>
-                          <ExternalLink size={10} style={{ color: 'var(--text-3)' }} />
+                          <ExternalLink size={12} />
                         </a>
                         {item.downloadUrl && (
                           <a
@@ -3842,17 +3648,17 @@ export default function Settings({
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
-                              fontSize: 11,
-                              color: 'var(--text-3)',
+                              fontSize: 11.5,
+                              color: 'var(--text-2)',
                               fontWeight: 500,
                               textDecoration: 'none',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 3,
+                              gap: 4,
                               marginLeft: 'auto'
                             }}
                           >
-                            <Download size={10} />
+                            <Download size={12} />
                             <span>Download</span>
                           </a>
                         )}
@@ -3862,15 +3668,6 @@ export default function Settings({
                 })
               )}
             </div>
-
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setHistoryModalOpen(false)}
-              style={{ width: '100%', borderRadius: '12px', padding: '10px' }}
-            >
-              Close
-            </button>
           </div>
         </div>,
         document.body
@@ -3909,7 +3706,7 @@ export default function Settings({
                 style={{
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: '50%',
+                  borderRadius: 8,
                   width: 32,
                   height: 32,
                   display: 'grid',

@@ -214,7 +214,7 @@ export function buildTheme(mode: 'light' | 'dark', accent: AccentPreset = 'blue'
         contrastText: colors.contrast || '#ffffff',
       },
       background: mode === 'dark' ? {
-        default: '#09090b', // bg-zinc-950
+        default: '#0f0f11', // bg-dark-soft
         paper: '#18181b',   // bg-zinc-900
       } : {
         default: '#fafafa',

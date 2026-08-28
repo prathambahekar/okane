@@ -599,20 +599,17 @@ function AppInner() {
           position="fixed"
           elevation={0}
           sx={{
-            bgcolor: mode === 'dark' ? 'rgba(15, 15, 17, 0.88)' : 'rgba(255, 255, 255, 0.90)',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            borderBottom: '1px solid',
-            borderColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+            bgcolor: 'var(--bg)',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
+            borderBottom: 'none',
             color: 'text.primary',
-            boxShadow: mode === 'dark'
-              ? '0 4px 20px rgba(0, 0, 0, 0.4)'
-              : '0 2px 14px rgba(0, 0, 0, 0.03)',
-            transition: 'background-color 0.2s ease, border-color 0.2s ease',
+            boxShadow: 'none',
+            transition: 'background-color 0.2s ease',
             pt: 'env(safe-area-inset-top, 0px)',
           }}
         >
-          <Toolbar variant="dense" sx={{ minHeight: 56, px: 1.5, gap: 1, justifyContent: 'space-between' }}>
+          <Toolbar variant="dense" sx={{ minHeight: { xs: '44px !important', sm: '56px' }, height: { xs: 44, sm: 56 }, px: 1.5, gap: 1, justifyContent: 'space-between' }}>
             {/* Left side: Back button or Branded view title */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flexShrink: 1 }}>
               {view === 'friend-detail' ? (
@@ -693,7 +690,7 @@ function AppInner() {
               {/* Quick financial summaries */}
               {view === 'expenses' && (
                 <Box sx={{
-                  display: 'flex',
+                  display: { xs: 'none', sm: 'flex' },
                   alignItems: 'center',
                   gap: { xs: 0.4, sm: 0.5 },
                   maxWidth: { xs: '200px', sm: '320px', md: 'none' },
@@ -733,7 +730,7 @@ function AppInner() {
 
               {view === 'friends' && (
                 <Box sx={{
-                  display: 'flex',
+                  display: { xs: 'none', sm: 'flex' },
                   alignItems: 'center',
                   gap: { xs: 0.4, sm: 0.5 },
                   maxWidth: { xs: '200px', sm: '320px', md: 'none' },

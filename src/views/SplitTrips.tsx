@@ -302,7 +302,7 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
             style={{
               width: '32px',
               height: '32px',
-              borderRadius: '50%',
+              borderRadius: 8,
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
               color: 'var(--text-2)',

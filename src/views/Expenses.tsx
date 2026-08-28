@@ -25,6 +25,11 @@ function fmtDateWithDay(iso: string): string {
   if (!iso) return '—';
   const d = new Date(iso + 'T00:00:00');
   if (isNaN(d.getTime())) return fmtDate(iso);
+  const nowYear = new Date().getFullYear();
+  const dYear = d.getFullYear();
+  if (dYear === nowYear) {
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 

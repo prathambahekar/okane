@@ -217,7 +217,7 @@ export default function PinSetupDrawer({
             style={{
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
-              borderRadius: '50%',
+              borderRadius: 8,
               width: 32,
               height: 32,
               display: 'grid',
