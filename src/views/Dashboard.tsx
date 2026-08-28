@@ -18,6 +18,7 @@ interface Props {
 export default function Dashboard({ onNavigate, onAddExpense }: Props) {
   const { db, deleteExpense, showToast } = useStore();
   const { expenses, wallets, settings: { currency } } = db;
+  const visibleWallets = useMemo(() => wallets.filter(w => !w.isHidden), [wallets]);
   const [showTransfer, setShowTransfer] = useState(false);
   const [selectedDetailGe, setSelectedDetailGe] = useState<GroupedExpense | null>(null);
   const [editExp, setEditExp] = useState<Expense | null>(null);
@@ -101,7 +102,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   Total Net Worth
                 </span>
                 <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', fontSize: 11 }}>
-                  {wallets.length} Active Wallet{wallets.length !== 1 ? 's' : ''}
+                  {visibleWallets.length} Active Wallet{visibleWallets.length !== 1 ? 's' : ''}
                 </span>
               </div>
 
@@ -116,7 +117,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                   Wallets Breakdown
                 </div>
-                {wallets.length >= 2 && (
+                {visibleWallets.length >= 2 && (
                   <button
                     type="button"
                     onClick={() => setShowTransfer(true)}
@@ -140,7 +141,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 )}
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {wallets.map(w => {
+                {visibleWallets.map(w => {
                   const bal = walletBalance(db, w.id);
                   return (
                     <div

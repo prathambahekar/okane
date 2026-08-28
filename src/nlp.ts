@@ -161,13 +161,14 @@ export function parseLocallyClient(
 
     // General balance across all wallets
     const total = totalWalletBalance(db);
-    const walletLines = db.wallets.map(w => {
+    const visibleWallets = db.wallets.filter(w => !w.isHidden);
+    const walletLines = visibleWallets.map(w => {
       const b = walletBalance(db, w.id);
       return `• ${w.name}: ${fmt(b)}`;
     }).join('\n');
 
     return {
-      reply: `Your total net balance is ${fmt(total)} across ${db.wallets.length} accounts:\n${walletLines}`,
+      reply: `Your total net balance is ${fmt(total)} across ${visibleWallets.length} accounts:\n${walletLines}`,
       actionType: 'general_query',
       isOffline: true,
     };

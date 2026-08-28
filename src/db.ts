@@ -1494,8 +1494,11 @@ export function getDBCalculationCache(db: AppDB): DBCalculationCache {
   });
 
   let totalWallet = 0;
-  walletBalances.forEach(b => {
-    totalWallet += b;
+  walletBalances.forEach((b, walletId) => {
+    const w = (db.wallets || []).find(x => x.id === walletId);
+    if (!w?.isHidden) {
+      totalWallet += b;
+    }
   });
 
   const allFriendBalancesSorted = (db.friends || [])
@@ -1847,6 +1850,7 @@ export function addWallet(db: AppDB, data: Partial<Wallet>): { db: AppDB; wallet
     minBalanceAlert: data.minBalanceAlert !== undefined ? Number(data.minBalanceAlert) : undefined,
     monthlySpendLimit: data.monthlySpendLimit !== undefined ? Number(data.monthlySpendLimit) : undefined,
     isDefault,
+    isHidden: isDefault ? false : Boolean(data.isHidden),
     rulesNotes: data.rulesNotes || '',
   };
   
@@ -1880,10 +1884,13 @@ export function updateWallet(db: AppDB, id: string, data: Partial<Wallet>): AppD
     settings: nextSettings,
     wallets: db.wallets.map(w => {
       if (w.id === id) {
+        const nextIsDefault = data.isDefault !== undefined ? Boolean(data.isDefault) : (w.isDefault ?? (nextSettings.defaultWalletId === id));
+        const nextIsHidden = nextIsDefault ? false : (data.isHidden !== undefined ? Boolean(data.isHidden) : Boolean(w.isHidden));
         return {
           ...w,
           ...data,
-          isDefault: data.isDefault !== undefined ? Boolean(data.isDefault) : (w.isDefault ?? (nextSettings.defaultWalletId === id)),
+          isDefault: nextIsDefault,
+          isHidden: nextIsHidden,
           openingBalance: data.openingBalance !== undefined ? Number(data.openingBalance) : w.openingBalance,
         };
       }

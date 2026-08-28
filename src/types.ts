@@ -14,6 +14,7 @@ export interface Wallet {
   minBalanceAlert?: number;
   monthlySpendLimit?: number;
   isDefault?: boolean;
+  isHidden?: boolean;
   rulesNotes?: string;
 }
 

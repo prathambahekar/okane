@@ -20,6 +20,8 @@ import {
   Store,
   Users,
   Search,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useStore } from '../store';
 import type { Wallet, Envelope, Expense, Settlement } from '../types';
@@ -39,7 +41,7 @@ import CategoryIcon from '../components/CategoryIcon';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: string; onClearViewArg?: () => void }) {
-  const { db, deleteWallet, deleteSettlement, deleteEnvelope, deleteExpense, showToast } = useStore();
+  const { db, deleteWallet, updateWallet, deleteSettlement, deleteEnvelope, deleteExpense, showToast } = useStore();
   const { wallets, expenses, envelopes = [], settings } = db;
   const currency = settings?.currency || 'INR';
   const enableEnvelopes = settings?.enableEnvelopes ?? false;
@@ -373,6 +375,26 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                             Default
                           </span>
                         )}
+                        {w.isHidden && (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              padding: '2px 8px',
+                              borderRadius: 999,
+                              background: 'rgba(239, 68, 68, 0.12)',
+                              color: 'var(--debit)',
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              border: '1px solid rgba(239, 68, 68, 0.2)',
+                              letterSpacing: '0.2px',
+                            }}
+                            title="Hidden from Dashboard & Total Net Worth"
+                          >
+                            <EyeOff size={11} /> Hidden
+                          </span>
+                        )}
                       </div>
                       {enableEnvelopes && (
                         <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
@@ -397,6 +419,26 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     >
                       <Edit2 size={16} />
                     </button>
+                    {!isDefault && (
+                      <button
+                        className="btn-icon"
+                        style={{
+                          padding: 7,
+                          borderRadius: 8,
+                          border: w.isHidden ? '1px solid var(--debit)' : '1px solid var(--border)',
+                          background: w.isHidden ? 'rgba(239, 68, 68, 0.12)' : 'var(--surface2)',
+                          color: w.isHidden ? 'var(--debit)' : 'var(--text-2)',
+                        }}
+                        onClick={() => {
+                          const nextState = !w.isHidden;
+                          updateWallet(w.id, { isHidden: nextState });
+                          showToast(nextState ? `Wallet "${w.name}" is now hidden` : `Wallet "${w.name}" is now visible`);
+                        }}
+                        title={w.isHidden ? 'Unhide Wallet (Show in Dashboard/Totals)' : 'Hide Wallet (Hide from Dashboard/Totals)'}
+                      >
+                        {w.isHidden ? <Eye size={16} /> : <EyeOff size={16} />}
+                      </button>
+                    )}
                     <button
                       className="btn-icon"
                       style={{
