@@ -54,9 +54,9 @@ export default function SecurityLockModal({
 
         const biometricOptions = {
           reason: 'Unlock Okane',
-          title: 'Okane Security',
-          subtitle: 'Biometric Authentication',
-          description: 'Scan your fingerprint or face to unlock',
+          title: 'Unlock Okane',
+          subtitle: '',
+          description: '',
           maxAttempts: 3,
           useFallback: false,
           requireConfirmation: !autoUnlockOnFace,

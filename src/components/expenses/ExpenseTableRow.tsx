@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Users, User, CheckCircle2, RotateCcw, Edit2, Trash2,
-  Store, Wallet as WalletIcon, ChevronDown, ChevronUp
+  Store, Wallet as WalletIcon
 } from 'lucide-react';
 import CategoryIcon from '../CategoryIcon';
 import { fmtMoney, friendInitial, getAvatarStyle, typeLabel, resolveCategoryMeta, type GroupedExpense } from '../../utils';
@@ -28,8 +28,6 @@ interface Props {
 export const ExpenseTableRow: React.FC<Props> = React.memo(({
   ge,
   currency,
-  isExpanded = false,
-  onToggleExpand = () => {},
   onEdit,
   onDelete,
   onUndo,
@@ -39,6 +37,7 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
   friendsMap,
   walletsMap,
   settlementObj,
+  onSelectDetail,
 }) => {
   const primaryItem = ge.items[0];
 
@@ -67,7 +66,11 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
 
   return (
     <React.Fragment>
-      <tr className="modern-tx-row">
+      <tr
+        className="modern-tx-row"
+        onClick={() => onSelectDetail?.(ge)}
+        style={{ cursor: onSelectDetail ? 'pointer' : 'default' }}
+      >
         <td>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div
@@ -105,9 +108,7 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                   </span>
                 )}
                 {(ge.isSplit || ge.items.length > 1 || ge.isSettlementGroup) && (
-                  <button
-                    type="button"
-                    onClick={() => onToggleExpand(ge.id)}
+                  <span
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -120,13 +121,10 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                       color: 'var(--accent)',
                       whiteSpace: 'nowrap',
                       flexShrink: 0,
-                      border: 'none',
-                      cursor: 'pointer'
                     }}
-                    title={isExpanded ? "Collapse breakdown" : "Expand breakdown"}
                   >
-                    <Users size={11} /> {ge.isSettlementGroup ? 'Settlement' : (ge.isSplit ? 'Split' : 'Breakdown')} {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                  </button>
+                    <Users size={11} /> {ge.isSettlementGroup ? 'Settlement' : (ge.isSplit ? 'Split' : 'Breakdown')}
+                  </span>
                 )}
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--text-3)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>

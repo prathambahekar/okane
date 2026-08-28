@@ -266,96 +266,64 @@ export default function Friends({ onNavigate }: Props) {
 
       {/* Clean Tab Segmented Switch & Filter Bar */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', gap: 6, width: '100%', minWidth: 0 }}>
-          {/* Contact Type Segmented Switch */}
-          <div className="contact-type-switch" style={{ flex: '1 1 auto', minWidth: 0 }}>
-            <button
-              type="button"
-              className={`type-btn ${typeFilter === 'friend' ? 'active' : ''}`}
-              onClick={() => setTypeFilter('friend')}
-              title="Friends"
-              aria-label="Friends"
-            >
-              <div className="type-btn-top">
-                <User size={15} style={{ flexShrink: 0, color: typeFilter === 'friend' ? 'var(--accent)' : 'inherit' }} />
-                <span className="type-badge">{counts.friend}</span>
-              </div>
-              <span className="type-label">Friends</span>
-            </button>
-
-            <button
-              type="button"
-              className={`type-btn ${typeFilter === 'vendor' ? 'active' : ''}`}
-              onClick={() => setTypeFilter('vendor')}
-              title="Vendors"
-              aria-label="Vendors"
-            >
-              <div className="type-btn-top">
-                <Store size={15} style={{ flexShrink: 0, color: typeFilter === 'vendor' ? 'var(--accent)' : 'inherit' }} />
-                <span className="type-badge">{counts.vendor}</span>
-              </div>
-              <span className="type-label">Vendors</span>
-            </button>
-
-            <button
-              type="button"
-              className={`type-btn ${typeFilter === 'subscription' ? 'active' : ''}`}
-              onClick={() => setTypeFilter('subscription')}
-              title="Subscriptions"
-              aria-label="Subscriptions"
-            >
-              <div className="type-btn-top">
-                <Tv size={15} style={{ flexShrink: 0, color: typeFilter === 'subscription' ? 'var(--accent)' : 'inherit' }} />
-                <span className="type-badge">{counts.subscription}</span>
-              </div>
-              <span className="type-label">Subscriptions</span>
-            </button>
-          </div>
-
-          {/* Right Action: Filter Button */}
+        {/* Contact Type Segmented Switch + Filter (Single Unified Capsule) */}
+        <div className="contact-type-switch" style={{ width: '100%', minWidth: 0 }}>
           <button
             type="button"
-            className="contact-filter-btn"
+            className={`type-btn ${typeFilter === 'friend' ? 'active' : ''}`}
+            onClick={() => setTypeFilter('friend')}
+            title="Friends"
+            aria-label="Friends"
+          >
+            <div className="type-btn-top">
+              <User size={15} style={{ flexShrink: 0, color: typeFilter === 'friend' ? 'var(--accent)' : 'inherit' }} />
+              <span className="type-badge">{counts.friend}</span>
+            </div>
+            <span className="type-label">Friends</span>
+          </button>
+
+          <button
+            type="button"
+            className={`type-btn ${typeFilter === 'vendor' ? 'active' : ''}`}
+            onClick={() => setTypeFilter('vendor')}
+            title="Vendors"
+            aria-label="Vendors"
+          >
+            <div className="type-btn-top">
+              <Store size={15} style={{ flexShrink: 0, color: typeFilter === 'vendor' ? 'var(--accent)' : 'inherit' }} />
+              <span className="type-badge">{counts.vendor}</span>
+            </div>
+            <span className="type-label">Vendors</span>
+          </button>
+
+          <button
+            type="button"
+            className={`type-btn ${typeFilter === 'subscription' ? 'active' : ''}`}
+            onClick={() => setTypeFilter('subscription')}
+            title="Subscriptions"
+            aria-label="Subscriptions"
+          >
+            <div className="type-btn-top">
+              <Tv size={15} style={{ flexShrink: 0, color: typeFilter === 'subscription' ? 'var(--accent)' : 'inherit' }} />
+              <span className="type-badge">{counts.subscription}</span>
+            </div>
+            <span className="type-label">Subscriptions</span>
+          </button>
+
+          {/* Integrated Filter Action Button (No split line, icon only) */}
+          <button
+            type="button"
+            className={`contact-filter-integrated-btn ${activeFilterCount > 0 ? 'active' : ''}`}
             onClick={() => setShowFilters(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 5,
-              padding: '0 10px',
-              borderRadius: '12px',
-              fontSize: '12px',
-              fontWeight: 600,
-              backgroundColor: activeFilterCount > 0 ? 'var(--accent-soft)' : 'var(--surface2)',
-              color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-2)',
-              border: activeFilterCount > 0 ? '1px solid var(--accent)' : '1px solid var(--border)',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              flexShrink: 0,
-            }}
-            title="Filters & Sorting"
+            title={activeFilterCount > 0 ? `${activeFilterCount} active filters` : "Filters & Sorting"}
             aria-label="Open Filters"
           >
-            <div className="filter-btn-top">
-              <SlidersHorizontal size={15} style={{ color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-2)' }} />
-              {activeFilterCount > 0 && (
-                <span
-                  className="type-badge"
-                  style={{
-                    backgroundColor: 'var(--accent)',
-                    color: 'var(--accent-contrast, #ffffff)',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    borderRadius: '999px',
-                    padding: '1px 5px',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {activeFilterCount}
-                </span>
-              )}
-            </div>
-            <span className="filter-btn-label">Filters</span>
+            <SlidersHorizontal size={15} style={{ color: activeFilterCount > 0 ? 'var(--accent)' : 'inherit' }} />
+            {activeFilterCount > 0 && (
+              <span className="contact-filter-badge">
+                {activeFilterCount}
+              </span>
+            )}
           </button>
         </div>
 

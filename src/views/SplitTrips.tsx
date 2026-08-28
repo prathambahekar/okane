@@ -258,8 +258,7 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
         {/* Drawer Header */}
         <div
           style={{
-            padding: '12px 20px 14px 20px',
-            borderBottom: '1px solid var(--border)',
+            padding: '16px 20px 8px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -998,58 +997,23 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
       {/* ========================================================================= */}
       {/* TOP NAVIGATION BUTTONS (GROUPS & HISTORY POP DRAWERS) */}
       {/* ========================================================================= */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '8px',
-          width: '100%',
-        }}
-      >
-        <div>
-          {subView !== 'home' && (
-            <button
-              type="button"
-              onClick={() => {
-                if (subView === 'settle') {
-                  setSubView('expenses');
-                } else {
-                  if (subView === 'archive-detail') setSelectedArchivedTrip(null);
-                  setSubView('home');
-                }
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 14px',
-                borderRadius: '10px',
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                transition: 'all 0.15s ease',
-                whiteSpace: 'nowrap',
-              }}
-              title="Back to Split Trips Home"
-            >
-              <ArrowLeft size={15} style={{ color: 'var(--accent)' }} />
-              <span>Back</span>
-            </button>
-          )}
-        </div>
-
-        {/* Action Buttons: Saved Groups & History (pop bottom drawers) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+      <div className="split-trips-top-nav">
+        {subView !== 'home' && (
           <button
             type="button"
-            onClick={() => setGroupsDrawerOpen(true)}
+            onClick={() => {
+              if (subView === 'settle') {
+                setSubView('expenses');
+              } else {
+                if (subView === 'archive-detail') setSelectedArchivedTrip(null);
+                setSubView('home');
+              }
+            }}
             style={{
-              padding: '8px 14px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '7px 14px',
               borderRadius: '10px',
               background: 'var(--surface)',
               border: '1px solid var(--border)',
@@ -1057,41 +1021,43 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               fontSize: '12.5px',
               fontWeight: 700,
               cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+              marginRight: 'auto',
             }}
+            title="Back to Split Trips Home"
+          >
+            <ArrowLeft size={15} style={{ color: 'var(--accent)' }} />
+            <span>Back</span>
+          </button>
+        )}
+
+        {/* Action Buttons: Groups & History in centered/full-width segmented capsule */}
+        <div className="split-trips-capsule">
+          <button
+            type="button"
+            className="split-trips-tab-btn"
+            onClick={() => setGroupsDrawerOpen(true)}
+            title="Saved Groups"
           >
             <Users size={15} style={{ color: 'var(--accent)' }} />
             <span>Groups</span>
-            <span style={{ fontSize: '11px', fontWeight: 800, padding: '1px 6px', borderRadius: '99px', background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+            <span className="split-trips-tab-badge">
               {presetGroups.length}
             </span>
           </button>
 
           <button
             type="button"
+            className="split-trips-tab-btn"
             onClick={() => setHistoryDrawerOpen(true)}
-            style={{
-              padding: '8px 14px',
-              borderRadius: '10px',
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              color: 'var(--text)',
-              fontSize: '12.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            }}
+            title="Trip History"
           >
             <HistoryIcon size={15} style={{ color: 'var(--accent)' }} />
             <span>History</span>
             {tripHistory.length > 0 && (
-              <span style={{ fontSize: '11px', fontWeight: 800, padding: '1px 6px', borderRadius: '99px', background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+              <span className="split-trips-tab-badge">
                 {tripHistory.length}
               </span>
             )}
@@ -1099,9 +1065,6 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* SCREEN 1: MINIMAL & BEAUTIFUL HOME SETUP */}
-      {/* ========================================================================= */}
       {/* ========================================================================= */}
       {/* SCREEN 1: MINIMAL & BEAUTIFUL HOME SETUP */}
       {/* ========================================================================= */}
@@ -1182,138 +1145,98 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
             </div>
           )}
 
-          {/* Start New Trip Hero Card */}
-          <div
-            style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '20px',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              boxShadow: 'var(--shadow)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '12px',
-                flexWrap: 'wrap',
-              }}
-            >
-              <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.3px' }}>
-                Trips & Split
-              </h2>
+          {/* Start New Trip Hero Card (Redesigned from scratch, clean & beautiful) */}
+          <div className="split-hero-card">
+            <div className="split-hero-main">
+              <div className="split-hero-info">
+                <div className="split-hero-icon">
+                  <Compass size={22} />
+                </div>
+                <div className="split-hero-text">
+                  <p className="split-hero-subtitle">
+                    Split bills and track shared expenses with friends.
+                  </p>
+                </div>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setAddTripDrawerOpen(true)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  background: 'var(--accent-gradient)',
-                  color: 'var(--accent-contrast, #ffffff)',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  boxShadow: '0 2px 10px var(--accent-soft)',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <Plus size={16} />
-                <span>Start a Trip</span>
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-2)' }}>
-                Saved Groups ({presetGroups.length})
-              </span>
-              <button
-                type="button"
-                onClick={() => setGroupsDrawerOpen(true)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--accent)',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <Users size={14} />
-                <span>Manage Groups</span>
-              </button>
-            </div>
-
-              {/* Saved Groups Preview Pills */}
-              {presetGroups.length === 0 ? (
-                <div
-                  onClick={handleOpenAddGroupDrawer}
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: '10px',
-                    border: '1px dashed var(--border2)',
-                    background: 'var(--surface2)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    color: 'var(--text-2)',
-                    fontSize: '12px',
-                    fontWeight: 600,
+              <div className="split-hero-actions">
+                <button
+                  type="button"
+                  className="split-start-btn"
+                  onClick={() => {
+                    setSelectedGroupId(presetGroups.length > 0 ? presetGroups[0].id : '');
+                    setAddTripDrawerOpen(true);
                   }}
                 >
-                  <Plus size={15} style={{ color: 'var(--accent)' }} />
-                  <span>No saved groups yet — Create a group</span>
+                  <Plus size={16} />
+                  <span>Start a Trip</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Saved Groups Subsection */}
+            <div className="split-groups-strip">
+              <div className="split-groups-strip-header">
+                <div className="split-groups-strip-title">
+                  <Users size={14} style={{ color: 'var(--accent)' }} />
+                  <span>Saved Groups</span>
+                  {presetGroups.length > 0 && (
+                    <span className="split-groups-count-badge">
+                      {presetGroups.length}
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px' }}>
-                  {presetGroups.map(grp => (
-                    <div
-                      key={grp.id}
-                      onClick={() => {
+                {presetGroups.length > 0 && (
+                  <button
+                    type="button"
+                    className="split-groups-manage-btn"
+                    onClick={() => setGroupsDrawerOpen(true)}
+                  >
+                    Manage
+                  </button>
+                )}
+              </div>
+
+              <div className="split-groups-grid">
+                {presetGroups.map(grp => (
+                  <div
+                    key={grp.id}
+                    className="split-group-pill"
+                    onClick={() => {
+                      setSelectedGroupId(grp.id);
+                      setAddTripDrawerOpen(true);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
                         setSelectedGroupId(grp.id);
                         setAddTripDrawerOpen(true);
-                      }}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface2)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <Users size={15} style={{ color: 'var(--accent)' }} />
-                      <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {grp.name}
-                        </div>
-                        <div style={{ fontSize: '10.5px', color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {grp.memberNames.length} Members
-                        </div>
-                      </div>
+                      }
+                    }}
+                    title={`Start trip with ${grp.name}`}
+                  >
+                    <div className="split-group-avatar">
+                      {grp.name.charAt(0).toUpperCase()}
                     </div>
-                  ))}
-                </div>
-              )}
+                    <span className="split-group-name">{grp.name}</span>
+                    <span className="split-group-badge">
+                      {grp.memberNames.length} {grp.memberNames.length === 1 ? 'member' : 'members'}
+                    </span>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  className="split-group-add-pill"
+                  onClick={handleOpenAddGroupDrawer}
+                  title="Create a new saved group"
+                >
+                  <Plus size={14} style={{ color: 'var(--accent)' }} />
+                  <span>{presetGroups.length === 0 ? 'Create a group' : 'New Group'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -2642,97 +2565,56 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
         icon={<Users size={20} />}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={handleOpenAddGroupDrawer}
-              style={{
-                padding: '7px 14px',
-                borderRadius: '8px',
-                background: 'var(--accent-gradient)',
-                color: 'var(--accent-contrast, #ffffff)',
-                border: 'none',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <Plus size={14} />
-              <span>Create New Group</span>
-            </button>
-          </div>
-
           {presetGroups.length === 0 ? (
-            <div style={{ padding: '30px 16px', textAlign: 'center', color: 'var(--text-3)', fontSize: '12.5px', fontStyle: 'italic', background: 'var(--surface2)', borderRadius: '12px' }}>
-              No saved groups. Create a group to easily split trip expenses.
+            <div style={{ padding: '30px 16px', textAlign: 'center', color: 'var(--text-3)', fontSize: '13px', fontStyle: 'italic', background: 'var(--surface2)', borderRadius: '14px' }}>
+              No saved groups yet. Create one below to split trip costs faster.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="drawer-groups-list">
               {presetGroups.map(grp => {
                 const isSelected = selectedGroupId === grp.id;
                 return (
                   <div
                     key={grp.id}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: '12px',
-                      border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
-                      background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '12px',
+                    className={`drawer-group-card ${isSelected ? 'is-selected' : ''}`}
+                    onClick={() => {
+                      setSelectedGroupId(grp.id);
+                      setGroupsDrawerOpen(false);
+                      showToast(`Selected group "${grp.name}"`);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setSelectedGroupId(grp.id);
+                        setGroupsDrawerOpen(false);
+                        showToast(`Selected group "${grp.name}"`);
+                      }
                     }}
                   >
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>{grp.name}</span>
-                        {isSelected && <CheckCircle2 size={15} style={{ color: 'var(--accent)' }} />}
+                    <div className="drawer-group-card-left">
+                      <div className="drawer-group-icon">
+                        {grp.name.charAt(0).toUpperCase()}
                       </div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-3)', marginTop: '2px' }}>
-                        {grp.memberNames.join(', ')} ({grp.memberNames.length} Members)
+                      <div className="drawer-group-info">
+                        <div className="drawer-group-title-row">
+                          <span className="drawer-group-name">{grp.name}</span>
+                          {isSelected && (
+                            <CheckCircle2 size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                          )}
+                        </div>
+                        <div className="drawer-group-members">
+                          {grp.memberNames.join(', ')} • {grp.memberNames.length} {grp.memberNames.length === 1 ? 'member' : 'members'}
+                        </div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedGroupId(grp.id);
-                          setGroupsDrawerOpen(false);
-                          showToast(`Selected group "${grp.name}"`);
-                        }}
-                        style={{
-                          padding: '5px 10px',
-                          borderRadius: '6px',
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          background: isSelected ? 'var(--accent)' : 'var(--surface)',
-                          color: isSelected ? 'var(--accent-contrast, #ffffff)' : 'var(--text)',
-                          border: '1px solid var(--border)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {isSelected ? 'Selected' : 'Select'}
-                      </button>
-
+                    <div className="drawer-group-actions" onClick={e => e.stopPropagation()}>
                       <button
                         type="button"
                         onClick={() => handleOpenEditGroupDrawer(grp)}
                         title="Edit Group"
-                        style={{
-                          padding: '6px',
-                          borderRadius: '6px',
-                          background: 'var(--surface)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--text-2)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
+                        className="drawer-action-btn"
                       >
                         <Pencil size={13} />
                       </button>
@@ -2741,16 +2623,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                         type="button"
                         onClick={(e) => handleDeleteGroup(grp.id, e)}
                         title="Delete Group"
-                        style={{
-                          padding: '6px',
-                          borderRadius: '6px',
-                          background: 'var(--debit-bg)',
-                          border: 'none',
-                          color: 'var(--debit)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
+                        className="drawer-action-btn btn-delete"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -2760,6 +2633,16 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               })}
             </div>
           )}
+
+          {/* Create New Group CTA Button */}
+          <button
+            type="button"
+            onClick={handleOpenAddGroupDrawer}
+            className="drawer-create-group-btn"
+          >
+            <Plus size={15} style={{ color: 'var(--accent)' }} />
+            <span>Create New Group</span>
+          </button>
         </div>
       </BottomDrawer>
 
@@ -2854,7 +2737,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
 
             {/* Import from Okane Contacts */}
             {db.friends && db.friends.length > 0 && (
-              <div style={{ paddingTop: '8px', borderTop: '1px solid var(--border)', marginTop: '6px' }}>
+              <div style={{ paddingTop: '10px', marginTop: '6px' }}>
                 <span style={{ fontSize: '11px', color: 'var(--text-3)', display: 'block', marginBottom: '6px' }}>
                   Quick add from Contacts:
                 </span>
@@ -2890,7 +2773,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
           </div>
 
           {/* Save Button */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '10px' }}>
             <button
               type="button"
               onClick={() => setAddGroupDrawerOpen(false)}
@@ -3057,7 +2940,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '10px' }}>
             <button
               type="button"
               onClick={() => setAddTripDrawerOpen(false)}
@@ -3260,7 +3143,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
             )}
 
             {/* Modal Footer Actions */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '10px' }}>
               <button
                 type="button"
                 onClick={() => setAddExpenseDrawerOpen(false)}

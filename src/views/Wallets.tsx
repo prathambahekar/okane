@@ -262,7 +262,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
   return (
     <div className="view-container">
       {/* Page Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ marginTop: 8, marginBottom: 14 }}>
         <div>
           <h1 className="page-title">{enableEnvelopes ? 'Wallets & Envelopes' : 'Wallets'}</h1>
           <p className="page-subtitle desktop-only">
@@ -271,7 +271,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
               : 'Manage your physical wallets and bank accounts.'}
           </p>
         </div>
-        <div className="page-header-actions" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="page-header-actions" style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
           {enableEnvelopes && (
             <button
               className="btn btn-secondary"
@@ -290,8 +290,9 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
               borderRadius: 10,
               padding: '9px 16px',
               fontWeight: 600,
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 8,
               border: '1.5px solid var(--border)',
             }}
@@ -308,8 +309,9 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
               borderRadius: 10,
               padding: '9px 20px',
               fontWeight: 600,
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 8,
             }}
             onClick={() => setShowAdd(true)}
@@ -320,7 +322,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
       </div>
 
       {/* Wallet Cards Grid Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20, marginBottom: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginBottom: 24 }}>
         {walletCardsData.map(({ wallet: w, isDefault, bal, allocated, unallocated, wEnvelopes, wExpCount, wSpend }) => {
           return (
             <div
@@ -329,7 +331,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                 background: 'var(--surface)',
                 border: '1.5px solid var(--border)',
                 borderRadius: 16,
-                padding: '24px',
+                padding: '20px',
                 transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 display: 'flex',
                 flexDirection: 'column',

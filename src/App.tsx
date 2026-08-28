@@ -38,7 +38,7 @@ import {
 import { StoreProvider, useStore } from './store';
 import { useColorMode, type AccentPreset } from './theme';
 import type { ViewName } from './types';
-import { expenseFlow, friendBalance, totalWalletBalance, todayISO, monthKey } from './db';
+import { expenseFlow, friendBalance, todayISO, monthKey } from './db';
 import { fmtMoney } from './utils';
 import Dashboard from './views/Dashboard';
 import Expenses from './views/Expenses';
@@ -278,7 +278,6 @@ function AppInner() {
   }, [expenses]);
   const friendCredit = useMemo(() => friends.reduce((s, f) => s + Math.max(0, friendBalance(db, f.id).net), 0), [friends, db]);
   const friendDebt = useMemo(() => friends.reduce((s, f) => s + Math.max(0, -friendBalance(db, f.id).net), 0), [friends, db]);
-  const totalBal = useMemo(() => totalWalletBalance(db), [db]);
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
     try {
@@ -563,33 +562,6 @@ function AppInner() {
 
           <div className="sidebar-footer">
             <div className="sidebar-footer-actions" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between', gap: 6 }}>
-              {searchLocation === 'topbar' && (
-                <IconButton
-                  size="small"
-                  onClick={() => setShowSearchModal(true)}
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    color: 'text.secondary',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)',
-                    bgcolor: 'var(--surface2)',
-                    transition: 'transform 0.25s ease, color 0.25s ease, border-color 0.2s ease',
-                    '&:hover': {
-                      color: 'text.primary',
-                      borderColor: 'var(--border2)',
-                      transform: 'scale(1.08)',
-                    },
-                    '&:active': {
-                      transform: 'scale(0.9)',
-                    }
-                  }}
-                  title="Quick Search (Ctrl + K)"
-                  aria-label="Quick Search"
-                >
-                  <Search size={18} />
-                </IconButton>
-              )}
               <NotificationBell onNavigate={navigate} placement="top-left" />
               <IconButton
                 size="small"
@@ -797,18 +769,6 @@ function AppInner() {
                 </Box>
               )}
 
-              {(view === 'dashboard' || view === 'wallets') && (
-                <Box sx={{
-                  display: 'inline-flex', alignItems: 'center', px: 1, py: 0.3, borderRadius: 99,
-                  bgcolor: totalBal < 0
-                    ? (mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)')
-                    : 'var(--accent-soft)',
-                  color: totalBal < 0 ? 'error.main' : 'primary.main',
-                  fontSize: { xs: '0.75rem', sm: '0.8rem' }, fontWeight: 700
-                }}>
-                  {fmtMoney(totalBal, currency)}
-                </Box>
-              )}
 
               {view === 'analytics' && (
                 <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -1193,7 +1153,7 @@ function AppInner() {
         onClick={() => setShowSearchModal(true)}
         hasAIAssistant={enableAIAssistant}
         onAIClick={() => setShowAIAssistant(true)}
-        hideSearchButton={searchLocation === 'topbar'}
+        hideSearchButton={isMobile && searchLocation === 'topbar'}
       />
 
       {/* Contextual & Universal Search Modal */}

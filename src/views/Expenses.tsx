@@ -270,82 +270,52 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
 
       {/* Merged Clean Filter & Actions Bar */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-        {/* Unified Top Control Bar - Strictly Single Row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
-          {/* Flow Filter Segmented Switch - Takes remaining horizontal space on mobile */}
-          <div className="expense-flow-switch">
-            <button
-              type="button"
-              className={`flow-btn ${flowFilter === '' ? 'active' : ''}`}
-              onClick={() => setFlowFilter('')}
-              title="All Transactions"
-              aria-label="All Transactions"
-            >
-              <Layers size={14} style={{ opacity: flowFilter === '' ? 1 : 0.7 }} />
-              <span>All</span>
-            </button>
-
-            <button
-              type="button"
-              className={`flow-btn flow-spent ${flowFilter === 'out' ? 'active' : ''}`}
-              onClick={() => setFlowFilter('out')}
-              title="Spent (Money Out)"
-              aria-label="Spent"
-            >
-              <ArrowUpRight size={14} style={{ color: 'var(--debit, #ef4444)' }} />
-              <span>Spent</span>
-            </button>
-
-            <button
-              type="button"
-              className={`flow-btn flow-received ${flowFilter === 'in' ? 'active' : ''}`}
-              onClick={() => setFlowFilter('in')}
-              title="Received (Money In)"
-              aria-label="Received"
-            >
-              <ArrowDownLeft size={14} style={{ color: 'var(--credit, #22c55e)' }} />
-              <span>Received</span>
-            </button>
-          </div>
-
-          {/* Right Action: Filter Button (Icon-only on Mobile) */}
+        {/* Unified Single-Row Flow & Filter Control Bar */}
+        <div className="expense-flow-switch">
           <button
             type="button"
+            className={`flow-btn ${flowFilter === '' ? 'active' : ''}`}
+            onClick={() => setFlowFilter('')}
+            title="All Transactions"
+            aria-label="All Transactions"
+          >
+            <Layers size={14} style={{ opacity: flowFilter === '' ? 1 : 0.7 }} />
+            <span>All</span>
+          </button>
+
+          <button
+            type="button"
+            className={`flow-btn flow-spent ${flowFilter === 'out' ? 'active' : ''}`}
+            onClick={() => setFlowFilter('out')}
+            title="Spent (Money Out)"
+            aria-label="Spent"
+          >
+            <ArrowUpRight size={14} style={{ color: 'var(--debit, #ef4444)' }} />
+            <span>Spent</span>
+          </button>
+
+          <button
+            type="button"
+            className={`flow-btn flow-received ${flowFilter === 'in' ? 'active' : ''}`}
+            onClick={() => setFlowFilter('in')}
+            title="Received (Money In)"
+            aria-label="Received"
+          >
+            <ArrowDownLeft size={14} style={{ color: 'var(--credit, #22c55e)' }} />
+            <span>Received</span>
+          </button>
+
+          {/* Compact Filter Action Button */}
+          <button
+            type="button"
+            className={`flow-filter-btn ${activeFilterCount > 0 ? 'active' : ''}`}
             onClick={() => setShowFilters(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              height: 36,
-              padding: '0 10px',
-              borderRadius: '10px',
-              fontSize: '12.5px',
-              fontWeight: 600,
-              backgroundColor: activeFilterCount > 0 ? 'var(--accent-soft)' : 'var(--surface2)',
-              color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-2)',
-              border: activeFilterCount > 0 ? '1px solid var(--accent)' : '1px solid var(--border)',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              flexShrink: 0,
-            }}
-            title="Filters & Sorting"
+            title={activeFilterCount > 0 ? `${activeFilterCount} active filters` : "Filters & Sorting"}
             aria-label="Open Filters"
           >
-            <SlidersHorizontal size={15} style={{ color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-2)' }} />
-            <span className="desktop-only">Filters</span>
+            <SlidersHorizontal size={14} style={{ color: activeFilterCount > 0 ? 'var(--accent)' : 'inherit' }} />
             {activeFilterCount > 0 && (
-              <span
-                style={{
-                  backgroundColor: 'var(--accent)',
-                  color: 'var(--accent-contrast, #ffffff)',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  borderRadius: '10px',
-                  padding: '1px 5px',
-                  lineHeight: 1.2,
-                }}
-              >
+              <span className="flow-filter-badge">
                 {activeFilterCount}
               </span>
             )}

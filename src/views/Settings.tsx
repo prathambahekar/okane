@@ -942,7 +942,7 @@ export default function Settings({
                     <div className="settings-card-text">
                       <h2 className="settings-card-title">Appearance & Theme</h2>
                       <p className="settings-card-sub">
-                        {isDark ? 'Dark Mode' : 'Light Mode'} • {ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Monochrome'} • Search: {(settings.searchLocation ?? 'floating') === 'topbar' ? 'Top Bar' : 'Floating'}
+                        {isDark ? 'Dark Mode' : 'Light Mode'} • {ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Monochrome'} • Mobile Search: {(settings.searchLocation ?? 'floating') === 'topbar' ? 'Top Bar' : 'Floating'}
                       </p>
                     </div>
                   </div>
@@ -1288,8 +1288,8 @@ export default function Settings({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <Search size={18} style={{ color: accent === 'monochrome' ? (isDark ? '#ffffff' : '#111111') : 'var(--accent)' }} />
                       <div>
-                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Search Location</div>
-                        <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Choose floating quick button or top bar placement</div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Search Placement (Mobile)</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Choose floating quick button or top bar header on mobile (desktop is always floating)</div>
                       </div>
                     </div>
 
@@ -3912,7 +3912,7 @@ export default function Settings({
                       Auto-enter on Face Unlock
                     </div>
                     <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
-                      Automatically enter dashboard when face is recognized without pressing unlock button
+                      Skip confirmation button when face is recognized
                     </div>
                   </div>
                 </div>
