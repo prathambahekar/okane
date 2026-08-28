@@ -9,10 +9,9 @@ import type { ViewName } from '../types';
 interface Props {
   onNavigate: (v: ViewName) => void;
   placement?: 'bottom-right' | 'bottom-left' | 'top-left' | 'top-right';
-  transparentBg?: boolean;
 }
 
-export default function NotificationBell({ onNavigate, transparentBg }: Props) {
+export default function NotificationBell({ onNavigate }: Props) {
   const { db, triggerAutopayDeduct, quickLogRecurringRule, availableUpdate } = useStore();
   const [open, setOpen] = useState(false);
 
@@ -54,16 +53,15 @@ export default function NotificationBell({ onNavigate, transparentBg }: Props) {
           width: 36,
           height: 36,
           borderRadius: 10,
-          background: transparentBg
-            ? (open ? 'rgba(0, 0, 0, 0.08)' : 'transparent')
-            : (open ? 'var(--surface3)' : 'var(--surface2)'),
-          border: transparentBg ? 'none' : '1px solid var(--border)',
+          background: open ? 'var(--surface3)' : 'var(--surface2)',
+          border: '1px solid var(--border)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: totalCount > 0 ? 'var(--text)' : 'var(--text-2)',
+          color: 'var(--text)',
           flexShrink: 0,
+          transition: 'transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease',
         }}
         title="Notifications"
       >

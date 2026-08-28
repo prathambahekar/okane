@@ -526,7 +526,7 @@ export function defaultDB(): AppDB {
       enableSampleData: false,
       enableUserGuide: false,
       colorMode: (localStorage.getItem('color-mode') as 'light' | 'dark') || 'dark',
-      accent: localStorage.getItem('accent-color') || 'blue',
+      accent: localStorage.getItem('accent-color') || 'monochrome',
       customAccentColor: localStorage.getItem('custom-accent-color') || '#6366f1',
       sidebarCollapsed: localStorage.getItem('sidebar_collapsed') === 'true',
       enableAnimations: true,
@@ -534,7 +534,9 @@ export function defaultDB(): AppDB {
       enableBiometricLock: false,
       securityPin: '',
       requireBiometricOnResume: true,
+      autoUnlockOnFace: false,
       hideScrollbar: localStorage.getItem('hide_scrollbar') !== null ? localStorage.getItem('hide_scrollbar') === 'true' : true,
+      searchLocation: (localStorage.getItem('search_location') as 'floating' | 'topbar') || 'floating',
     },
     recurringRules: [],
   };

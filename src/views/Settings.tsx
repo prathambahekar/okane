@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -942,7 +942,7 @@ export default function Settings({
                     <div className="settings-card-text">
                       <h2 className="settings-card-title">Appearance & Theme</h2>
                       <p className="settings-card-sub">
-                        {isDark ? 'Dark Mode' : 'Light Mode'} • {ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Classic Blue'} • {(settings.hideScrollbar ?? true) ? 'Hidden Scrollbars' : 'Visible Scrollbars'}
+                        {isDark ? 'Dark Mode' : 'Light Mode'} • {ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Monochrome'} • Search: {(settings.searchLocation ?? 'floating') === 'topbar' ? 'Top Bar' : 'Floating'}
                       </p>
                     </div>
                   </div>
@@ -1272,6 +1272,82 @@ export default function Settings({
                       }}
                       color="primary"
                     />
+                  </div>
+
+                  {/* Search Location Choice Row */}
+                  <div style={{
+                    padding: '14px 16px',
+                    borderRadius: 14,
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    marginTop: 12,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Search size={18} style={{ color: accent === 'monochrome' ? (isDark ? '#ffffff' : '#111111') : 'var(--accent)' }} />
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Search Location</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Choose floating quick button or top bar placement</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateSettings({ searchLocation: 'floating' });
+                          localStorage.setItem('search_location', 'floating');
+                          showToast('Search position set to Floating');
+                        }}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: 10,
+                          border: (settings.searchLocation ?? 'floating') === 'floating' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          background: (settings.searchLocation ?? 'floating') === 'floating' ? 'var(--accent-soft)' : 'var(--surface)',
+                          color: 'var(--text)',
+                          fontSize: 12.5,
+                          fontWeight: (settings.searchLocation ?? 'floating') === 'floating' ? 700 : 500,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: (settings.searchLocation ?? 'floating') === 'floating' ? 'var(--accent)' : 'var(--text-3)' }} />
+                        <span>Floating</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateSettings({ searchLocation: 'topbar' });
+                          localStorage.setItem('search_location', 'topbar');
+                          showToast('Search position set to Top Bar');
+                        }}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: 10,
+                          border: (settings.searchLocation ?? 'floating') === 'topbar' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          background: (settings.searchLocation ?? 'floating') === 'topbar' ? 'var(--accent-soft)' : 'var(--surface)',
+                          color: 'var(--text)',
+                          fontSize: 12.5,
+                          fontWeight: (settings.searchLocation ?? 'floating') === 'topbar' ? 700 : 500,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: (settings.searchLocation ?? 'floating') === 'topbar' ? 'var(--accent)' : 'var(--text-3)' }} />
+                        <span>Top Bar</span>
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -3807,6 +3883,48 @@ export default function Settings({
                 <Switch
                   checked={isBiometricEnabled}
                   onChange={(e) => handleToggleBiometricOnly(e.target.checked)}
+                  color="primary"
+                />
+              </div>
+
+              {/* 3. Auto-enter on Face Recognition Switch */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                opacity: isLockEnabled ? 1 : 0.65
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: (settings.autoUnlockOnFace ?? false) && isLockEnabled ? 'var(--accent-soft)' : 'var(--border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <ScanFace size={18} style={{ color: (settings.autoUnlockOnFace ?? false) && isLockEnabled ? 'var(--accent)' : 'var(--text-3)' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                      Auto-enter on Face Unlock
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      Automatically enter dashboard when face is recognized without pressing unlock button
+                    </div>
+                  </div>
+                </div>
+
+                <Switch
+                  checked={Boolean(settings.autoUnlockOnFace ?? false)}
+                  disabled={!isLockEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    updateSettings({ autoUnlockOnFace: enabled });
+                    showToast(enabled ? 'Face auto-enter enabled' : 'Face auto-enter disabled');
+                  }}
                   color="primary"
                 />
               </div>

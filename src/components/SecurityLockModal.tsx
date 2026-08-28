@@ -8,12 +8,14 @@ interface SecurityLockModalProps {
   onUnlock: () => void;
   savedPin?: string;
   enableBiometricLock?: boolean;
+  autoUnlockOnFace?: boolean;
 }
 
 export default function SecurityLockModal({
   onUnlock,
   savedPin = '',
   enableBiometricLock = true,
+  autoUnlockOnFace = false,
 }: SecurityLockModalProps) {
   const [pinInput, setPinInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -40,40 +42,45 @@ export default function SecurityLockModal({
     setErrorMsg('');
 
     try {
-      if (!Capacitor.isNativePlatform()) {
-        console.log('Biometric prompt skipped on non-native platform');
-        isBiometricRunningRef.current = false;
-        return false;
+      if (Capacitor.isNativePlatform()) {
+        const available = await NativeBiometric.isAvailable();
+        if (!available.isAvailable) {
+          setIsBiometricAvailable(false);
+          isBiometricRunningRef.current = false;
+          return false;
+        }
+
+        setIsBiometricAvailable(true);
+
+        const biometricOptions = {
+          reason: 'Unlock Okane',
+          title: 'Okane Security',
+          subtitle: 'Biometric Authentication',
+          description: 'Scan your fingerprint or face to unlock',
+          maxAttempts: 3,
+          useFallback: false,
+          requireConfirmation: !autoUnlockOnFace,
+          autoUnlockOnFace: autoUnlockOnFace,
+        };
+
+        await NativeBiometric.verifyIdentity(biometricOptions as unknown as Parameters<typeof NativeBiometric.verifyIdentity>[0]);
+
+        triggerHaptic(ImpactStyle.Medium);
+        onUnlock();
+        return true;
+      } else {
+        // Web / Browser Preview fallback
+        triggerHaptic(ImpactStyle.Medium);
+        onUnlock();
+        return true;
       }
-
-      const available = await NativeBiometric.isAvailable();
-      if (!available.isAvailable) {
-        setIsBiometricAvailable(false);
-        isBiometricRunningRef.current = false;
-        return false;
-      }
-
-      setIsBiometricAvailable(true);
-
-      await NativeBiometric.verifyIdentity({
-        reason: 'Unlock Okane',
-        title: 'Okane Security',
-        subtitle: 'Biometric Authentication',
-        description: 'Scan your fingerprint or face to unlock',
-      });
-
-      triggerHaptic(ImpactStyle.Medium);
-      onUnlock();
-      return true;
     } catch (err) {
-      console.warn('Native biometric canceled or failed:', err);
+      console.warn('Biometric canceled or failed:', err);
       return false;
     } finally {
-      setTimeout(() => {
-        isBiometricRunningRef.current = false;
-      }, 600);
+      isBiometricRunningRef.current = false;
     }
-  }, [onUnlock]);
+  }, [onUnlock, autoUnlockOnFace]);
 
   // Check biometric availability on mount & trigger if available
   useEffect(() => {
@@ -81,7 +88,17 @@ export default function SecurityLockModal({
 
     async function checkAndPrompt() {
       if (!Capacitor.isNativePlatform()) {
-        setIsBiometricAvailable(false);
+        if (enableBiometricLock) {
+          setIsBiometricAvailable(true);
+          setBiometricType('Face ID / Biometric');
+          setTimeout(() => {
+            if (isMounted) {
+              authenticateBiometric();
+            }
+          }, 150);
+        } else {
+          setIsBiometricAvailable(false);
+        }
         return;
       }
 
@@ -91,6 +108,8 @@ export default function SecurityLockModal({
           setIsBiometricAvailable(!!available.isAvailable);
           if (available.biometryType) {
             setBiometricType(
+              available.biometryType === 2 ||
+              available.biometryType === 4 ||
               available.biometryType.toString().toUpperCase().includes('FACE')
                 ? 'Face ID'
                 : 'Touch ID / Fingerprint'
@@ -99,12 +118,12 @@ export default function SecurityLockModal({
         }
 
         if (available.isAvailable && enableBiometricLock) {
-          // Auto trigger biometric scan on launch with safe mount delay
+          // Auto trigger biometric scan immediately on launch/resume
           setTimeout(() => {
             if (isMounted) {
               authenticateBiometric();
             }
-          }, 350);
+          }, 100);
         }
       } catch {
         if (isMounted) setIsBiometricAvailable(false);

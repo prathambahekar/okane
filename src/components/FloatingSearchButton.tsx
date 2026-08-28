@@ -5,9 +5,12 @@ interface Props {
   onClick: () => void;
   hasAIAssistant?: boolean;
   onAIClick?: () => void;
+  hideSearchButton?: boolean;
 }
 
-export default function FloatingSearchButton({ onClick, hasAIAssistant = false, onAIClick }: Props) {
+export default function FloatingSearchButton({ onClick, hasAIAssistant = false, onAIClick, hideSearchButton = false }: Props) {
+  if (hideSearchButton && !hasAIAssistant) return null;
+
   return (
     <Box
       sx={{
@@ -25,45 +28,47 @@ export default function FloatingSearchButton({ onClick, hasAIAssistant = false, 
       <div id="floating-extra-actions-slot" style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }} />
 
       {/* Floating Search Button */}
-      <button
-        type="button"
-        id="floating-search-btn"
-        onClick={onClick}
-        style={{
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--surface2)',
-          color: 'var(--text)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          pointerEvents: 'auto',
-          transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.backgroundColor = 'var(--surface3)';
-          e.currentTarget.style.borderColor = 'var(--accent)';
-          e.currentTarget.style.color = 'var(--accent)';
-          e.currentTarget.style.transform = 'scale(1.08)';
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.backgroundColor = 'var(--surface2)';
-          e.currentTarget.style.borderColor = 'var(--border)';
-          e.currentTarget.style.color = 'var(--text)';
-          e.currentTarget.style.transform = 'none';
-        }}
-        onMouseDown={e => {
-          e.currentTarget.style.transform = 'scale(0.95)';
-        }}
-        title="Quick Search (Ctrl + K)"
-        aria-label="Quick Search"
-      >
-        <Search size={20} />
-      </button>
+      {!hideSearchButton && (
+        <button
+          type="button"
+          id="floating-search-btn"
+          onClick={onClick}
+          style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            backgroundColor: 'var(--surface2)',
+            color: 'var(--text)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+            transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.backgroundColor = 'var(--surface3)';
+            e.currentTarget.style.borderColor = 'var(--accent)';
+            e.currentTarget.style.color = 'var(--accent)';
+            e.currentTarget.style.transform = 'scale(1.08)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.backgroundColor = 'var(--surface2)';
+            e.currentTarget.style.borderColor = 'var(--border)';
+            e.currentTarget.style.color = 'var(--text)';
+            e.currentTarget.style.transform = 'none';
+          }}
+          onMouseDown={e => {
+            e.currentTarget.style.transform = 'scale(0.95)';
+          }}
+          title="Quick Search (Ctrl + K)"
+          aria-label="Quick Search"
+        >
+          <Search size={20} />
+        </button>
+      )}
 
       {/* Floating Voice AI Assistant Trigger */}
       {hasAIAssistant && onAIClick && (

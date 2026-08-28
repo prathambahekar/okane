@@ -151,7 +151,9 @@ export interface Settings {
   enableBiometricLock?: boolean; // Biometric (Fingerprint/Face) unlock
   securityPin?: string;
   requireBiometricOnResume?: boolean;
+  autoUnlockOnFace?: boolean; // Automatically enter on Face ID without pressing confirm
   hideScrollbar?: boolean; // Hide visible scrollbars for clean mobile-native look
+  searchLocation?: 'floating' | 'topbar'; // Floating button or Top Bar header search
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';

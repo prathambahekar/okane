@@ -148,7 +148,7 @@ export function getAccentColors(accent: AccentPreset, mode: 'light' | 'dark', cu
     soft = hexToRgba(hex, mode === 'dark' ? 0.18 : 0.12);
     contrast = getContrastTextColor(hex);
   } else {
-    const preset = ACCENT_PRESETS.find(p => p.id === accent) || ACCENT_PRESETS[0];
+    const preset = ACCENT_PRESETS.find(p => p.id === accent) || ACCENT_PRESETS.find(p => p.id === 'monochrome') || ACCENT_PRESETS[0];
     const pColors = preset[mode];
     main = pColors.main;
     dark = pColors.dark;
@@ -191,7 +191,7 @@ export const ColorModeContext = React.createContext<{
   mode: 'light',
   setMode: () => {},
   toggleMode: () => {},
-  accent: 'blue',
+  accent: 'monochrome',
   setAccent: () => {},
   customColor: '#6366f1',
   setCustomColor: () => {},
@@ -199,7 +199,7 @@ export const ColorModeContext = React.createContext<{
 
 export const useColorMode = () => React.useContext(ColorModeContext);
 
-export function buildTheme(mode: 'light' | 'dark', accent: AccentPreset = 'blue', customHex?: string) {
+export function buildTheme(mode: 'light' | 'dark', accent: AccentPreset = 'monochrome', customHex?: string) {
   const colors = getAccentColors(accent, mode, customHex);
   const fallbackMain = mode === 'dark' ? '#42a5f5' : '#1976d2';
   const safeMain = (colors.main && colors.main.length > 0) ? colors.main : fallbackMain;

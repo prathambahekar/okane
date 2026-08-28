@@ -33,6 +33,7 @@ import {
   ArrowLeft,
   X,
   HelpCircle,
+  Search,
 } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import { useColorMode, type AccentPreset } from './theme';
@@ -223,6 +224,7 @@ function AppInner() {
   const isDevMode = db.settings?.devMode ?? true;
   const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
   const enableAIAssistant = db.settings?.enableAIAssistant ?? true;
+  const searchLocation = db.settings?.searchLocation ?? 'floating';
   const enableSplitTrips = db.settings?.enableSplitTrips ?? false;
   const enableAutopay = db.settings?.enableAutopay ?? false;
   const enableUserGuide = isDevMode && (db.settings?.enableUserGuide ?? true);
@@ -561,6 +563,33 @@ function AppInner() {
 
           <div className="sidebar-footer">
             <div className="sidebar-footer-actions" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between', gap: 6 }}>
+              {searchLocation === 'topbar' && (
+                <IconButton
+                  size="small"
+                  onClick={() => setShowSearchModal(true)}
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    color: 'text.secondary',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border)',
+                    bgcolor: 'var(--surface2)',
+                    transition: 'transform 0.25s ease, color 0.25s ease, border-color 0.2s ease',
+                    '&:hover': {
+                      color: 'text.primary',
+                      borderColor: 'var(--border2)',
+                      transform: 'scale(1.08)',
+                    },
+                    '&:active': {
+                      transform: 'scale(0.9)',
+                    }
+                  }}
+                  title="Quick Search (Ctrl + K)"
+                  aria-label="Quick Search"
+                >
+                  <Search size={18} />
+                </IconButton>
+              )}
               <NotificationBell onNavigate={navigate} placement="top-left" />
               <IconButton
                 size="small"
@@ -813,7 +842,29 @@ function AppInner() {
                 </Box>
               )}
 
-              <NotificationBell onNavigate={navigate} transparentBg />
+              {searchLocation === 'topbar' && (
+                <IconButton
+                  size="small"
+                  onClick={() => setShowSearchModal(true)}
+                  sx={{
+                    color: 'text.primary',
+                    bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                    p: 0.8,
+                    borderRadius: '10px',
+                    transition: 'transform 0.15s ease, background-color 0.15s ease',
+                    '&:hover': {
+                      bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.08)',
+                    },
+                    '&:active': { transform: 'scale(0.92)' }
+                  }}
+                  title="Search (Ctrl + K)"
+                  aria-label="Search"
+                >
+                  <Search size={18} />
+                </IconButton>
+              )}
+
+              <NotificationBell onNavigate={navigate} />
             </Box>
           </Toolbar>
         </AppBar>
@@ -1142,6 +1193,7 @@ function AppInner() {
         onClick={() => setShowSearchModal(true)}
         hasAIAssistant={enableAIAssistant}
         onAIClick={() => setShowAIAssistant(true)}
+        hideSearchButton={searchLocation === 'topbar'}
       />
 
       {/* Contextual & Universal Search Modal */}
@@ -1187,7 +1239,8 @@ function AppInner() {
         <SecurityLockModal
           onUnlock={handleUnlock}
           savedPin={db.settings?.securityPin || ''}
-          enableBiometricLock={db.settings?.enableBiometricLock ?? false}
+          enableBiometricLock={db.settings?.enableBiometricLock ?? true}
+          autoUnlockOnFace={db.settings?.autoUnlockOnFace ?? false}
         />
       )}
       <Toast />

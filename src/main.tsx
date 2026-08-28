@@ -6,6 +6,8 @@ import CssBaseline from '@mui/material/CssBaseline';
 import App from './App';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ColorModeContext, buildTheme, getAccentColors, type AccentPreset } from './theme';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
 
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
@@ -23,7 +25,7 @@ function getInitialAccent(): AccentPreset {
   if (saved && ['blue', 'red', 'monochrome', 'emerald', 'indigo', 'rose', 'teal', 'sunset', 'custom'].includes(saved)) {
     return saved;
   }
-  return 'blue';
+  return 'monochrome';
 }
 
 function getInitialCustomColor(): string {
@@ -83,6 +85,28 @@ function Root() {
       localStorage.setItem('color-mode', mode);
     } catch (e) {
       console.warn('Storage unavailable:', e);
+    }
+
+    // Update HTML meta theme-color
+    const themeBg = mode === 'dark' ? '#0f0f11' : '#fafafa';
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (!metaThemeColor) {
+      metaThemeColor = document.createElement('meta');
+      metaThemeColor.setAttribute('name', 'theme-color');
+      document.head.appendChild(metaThemeColor);
+    }
+    metaThemeColor.setAttribute('content', themeBg);
+
+    // Update Capacitor status bar style on native Android / iOS
+    if (Capacitor.isNativePlatform() || Capacitor.isPluginAvailable('StatusBar')) {
+      try {
+        // Style.Light = Dark content for Light backgrounds
+        // Style.Dark = Light content for Dark backgrounds
+        StatusBar.setStyle({ style: mode === 'dark' ? Style.Dark : Style.Light }).catch(() => {});
+        StatusBar.setBackgroundColor({ color: themeBg }).catch(() => {});
+      } catch (err) {
+        console.warn('StatusBar configuration error:', err);
+      }
     }
   }, [mode]);
 
