@@ -154,6 +154,7 @@ export interface Settings {
   searchLocation?: 'floating' | 'topbar'; // Floating button or Top Bar header search
   autoOpenKeyboard?: boolean; // Auto open soft keyboard when search bar or textbox is selected/focused on mobile
   floatingSidebar?: boolean; // Floating card layout or docked full-height layout for desktop sidebar
+  hideAmounts?: boolean; // Mask financial amounts for privacy in public
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';

@@ -488,6 +488,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         // ignore storage errors
       }
     }
+    if (data.hideAmounts !== undefined) {
+      try {
+        localStorage.setItem('hide_amounts', String(data.hideAmounts));
+      } catch {
+        // ignore storage errors
+      }
+    }
     setDB(current => {
       let updatedWallets = current.wallets;
       if (data.defaultWalletId) {

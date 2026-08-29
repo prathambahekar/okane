@@ -544,6 +544,7 @@ export function defaultDB(): AppDB {
       searchLocation: (localStorage.getItem('search_location') as 'floating' | 'topbar') || 'floating',
       autoOpenKeyboard: localStorage.getItem('auto_open_keyboard') !== null ? localStorage.getItem('auto_open_keyboard') === 'true' : true,
       floatingSidebar: localStorage.getItem('sidebar_floating') === 'true',
+      hideAmounts: localStorage.getItem('hide_amounts') === 'true',
     },
     recurringRules: [],
   };
@@ -878,6 +879,7 @@ export function syncDBToSQLTables(db: AppDB): void {
       if (db.settings.sidebarCollapsed !== undefined) localStorage.setItem('sidebar_collapsed', String(db.settings.sidebarCollapsed));
       if (db.settings.floatingSidebar !== undefined) localStorage.setItem('sidebar_floating', String(db.settings.floatingSidebar));
       if (db.settings.hideScrollbar !== undefined) localStorage.setItem('hide_scrollbar', String(db.settings.hideScrollbar));
+      if (db.settings.hideAmounts !== undefined) localStorage.setItem('hide_amounts', String(db.settings.hideAmounts));
     }
 
     // Sync Trip and Split data into settings table and localStorage
@@ -1045,6 +1047,7 @@ export function loadDBFromSQLTables(): AppDB {
       performanceMode: false,
       hideScrollbar: localStorage.getItem('hide_scrollbar') !== null ? localStorage.getItem('hide_scrollbar') === 'true' : true,
       floatingSidebar: localStorage.getItem('sidebar_floating') === 'true',
+      hideAmounts: localStorage.getItem('hide_amounts') === 'true',
     };
 
     sqlSettings.forEach(st => {

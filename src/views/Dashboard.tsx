@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, ArrowLeftRight, Store, ArrowRight } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, ArrowLeftRight, Store, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useStore } from '../store';
 import { walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey, allFriendBalances } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, type GroupedExpense } from '../utils';
@@ -16,8 +16,9 @@ interface Props {
 }
 
 export default function Dashboard({ onNavigate, onAddExpense }: Props) {
-  const { db, deleteExpense, showToast } = useStore();
+  const { db, updateSettings, deleteExpense, showToast } = useStore();
   const { expenses, wallets, settings: { currency } } = db;
+  const hideAmounts = db.settings?.hideAmounts ?? (typeof localStorage !== 'undefined' && localStorage.getItem('hide_amounts') === 'true');
   const visibleWallets = useMemo(() => wallets.filter(w => !w.isHidden), [wallets]);
   const [showTransfer, setShowTransfer] = useState(false);
   const [selectedDetailGe, setSelectedDetailGe] = useState<GroupedExpense | null>(null);
@@ -98,16 +99,43 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
           <div className="dashboard-hero-top">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                  Total Net Worth
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                    Total Net Worth
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateSettings({ hideAmounts: !hideAmounts });
+                    }}
+                    title={hideAmounts ? "Privacy Mode ON (Click to show amounts)" : "Privacy Mode OFF (Click to hide amounts)"}
+                    style={{
+                      background: hideAmounts ? 'var(--accent-soft)' : 'var(--surface2)',
+                      border: `1px solid ${hideAmounts ? 'var(--accent)' : 'var(--border)'}`,
+                      borderRadius: 999,
+                      padding: '2px 8px',
+                      color: hideAmounts ? 'var(--accent)' : 'var(--text-3)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      transition: 'all 0.2s ease',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {hideAmounts ? <EyeOff size={12} /> : <Eye size={12} />}
+                    <span>{hideAmounts ? 'Hidden' : 'Hide'}</span>
+                  </button>
+                </div>
                 <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', fontSize: 11 }}>
                   {visibleWallets.length} Active Wallet{visibleWallets.length !== 1 ? 's' : ''}
                 </span>
               </div>
 
               <div style={{ fontSize: 32, fontWeight: 800, color: totalBalance < 0 ? 'var(--debit)' : 'var(--text)', marginTop: 4, letterSpacing: '-0.8px' }}>
-                {fmtMoney(totalBalance, currency)}
+                {fmtMoney(totalBalance, currency, hideAmounts)}
               </div>
             </div>
 
@@ -152,7 +180,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     >
                       <span className="cat-dot" style={{ background: w.color }} />
                       <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>{w.name}:</span>
-                      <span style={{ fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>{fmtMoney(bal, currency)}</span>
+                      <span style={{ fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>{fmtMoney(bal, currency, hideAmounts)}</span>
                     </div>
                   );
                 })}
@@ -169,7 +197,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   <span>{monthName.toUpperCase()} SPEND</span>
                 </div>
                 <div className="dashboard-mini-stat-val" style={{ color: 'var(--debit)' }}>
-                  {fmtMoney(monthSpend, currency)}
+                  {fmtMoney(monthSpend, currency, hideAmounts)}
                 </div>
               </div>
 
@@ -179,7 +207,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   <span>{monthName.toUpperCase()} INCOME</span>
                 </div>
                 <div className="dashboard-mini-stat-val" style={{ color: 'var(--credit)' }}>
-                  {fmtMoney(monthIncome, currency)}
+                  {fmtMoney(monthIncome, currency, hideAmounts)}
                 </div>
               </div>
 
@@ -189,7 +217,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   <span>FRIENDS NET</span>
                 </div>
                 <div className="dashboard-mini-stat-val" style={{ color: (overallCredit - overallDebt) >= 0 ? 'var(--credit)' : 'var(--debit)' }}>
-                  {(overallCredit - overallDebt) >= 0 ? '+' : ''}{fmtMoney(overallCredit - overallDebt, currency)}
+                  {(overallCredit - overallDebt) >= 0 ? '+' : ''}{fmtMoney(overallCredit - overallDebt, currency, hideAmounts)}
                 </div>
               </div>
             </div>
@@ -298,7 +326,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', fontWeight: 600, fontSize: 13, flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: isIn ? 'var(--credit)' : undefined }}>
-                      {isIn ? '+' : ''}{fmtMoney(ge.totalAmount, currency)}
+                      {isIn ? '+' : ''}{fmtMoney(ge.totalAmount, currency, hideAmounts)}
                     </div>
                   </div>
                 );

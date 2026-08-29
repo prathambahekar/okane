@@ -3325,6 +3325,7 @@ export default function Settings({
                 <div className="settings-card-text">
                   <h2 className="settings-card-title">Security & Privacy</h2>
                   <p className="settings-card-sub">
+                    {settings.hideAmounts ? 'Privacy Mode ON · ' : ''}
                     {isLockEnabled
                       ? (isBiometricEnabled ? 'PIN & Native Biometric Lock active' : 'PIN Lock active (Biometrics off)')
                       : 'PIN & Native Biometric protection'}
@@ -4406,6 +4407,48 @@ export default function Settings({
 
             {/* Main Controls List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* 0. Privacy Mode (Mask Amounts) Switch */}
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: (settings.hideAmounts ?? (localStorage.getItem('hide_amounts') === 'true')) ? 'var(--accent-soft)' : 'var(--surface3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    {(settings.hideAmounts ?? (localStorage.getItem('hide_amounts') === 'true')) ? (
+                      <EyeOff size={18} style={{ color: 'var(--accent)' }} />
+                    ) : (
+                      <Eye size={18} style={{ color: 'var(--text-3)' }} />
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                      Hide Amounts (Privacy Mode)
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      Mask financial amounts across dashboard, wallets, and transactions for public privacy
+                    </div>
+                  </div>
+                </div>
+
+                <Switch
+                  checked={Boolean(settings.hideAmounts ?? (localStorage.getItem('hide_amounts') === 'true'))}
+                  onChange={(e) => {
+                    updateSettings({ hideAmounts: e.target.checked });
+                  }}
+                  color="primary"
+                />
+              </div>
+
               {/* 1. Master PIN Lock Switch */}
               <div style={{
                 padding: '14px 16px',
