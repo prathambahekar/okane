@@ -481,6 +481,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         // ignore storage errors
       }
     }
+    if (data.floatingSidebar !== undefined) {
+      try {
+        localStorage.setItem('sidebar_floating', String(data.floatingSidebar));
+      } catch {
+        // ignore storage errors
+      }
+    }
     setDB(current => {
       let updatedWallets = current.wallets;
       if (data.defaultWalletId) {

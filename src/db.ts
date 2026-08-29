@@ -543,6 +543,7 @@ export function defaultDB(): AppDB {
       hideScrollbar: localStorage.getItem('hide_scrollbar') !== null ? localStorage.getItem('hide_scrollbar') === 'true' : true,
       searchLocation: (localStorage.getItem('search_location') as 'floating' | 'topbar') || 'floating',
       autoOpenKeyboard: localStorage.getItem('auto_open_keyboard') !== null ? localStorage.getItem('auto_open_keyboard') === 'true' : true,
+      floatingSidebar: localStorage.getItem('sidebar_floating') === 'true',
     },
     recurringRules: [],
   };
@@ -875,6 +876,7 @@ export function syncDBToSQLTables(db: AppDB): void {
       if (db.settings.accent) localStorage.setItem('accent-color', db.settings.accent);
       if (db.settings.customAccentColor) localStorage.setItem('custom-accent-color', db.settings.customAccentColor);
       if (db.settings.sidebarCollapsed !== undefined) localStorage.setItem('sidebar_collapsed', String(db.settings.sidebarCollapsed));
+      if (db.settings.floatingSidebar !== undefined) localStorage.setItem('sidebar_floating', String(db.settings.floatingSidebar));
       if (db.settings.hideScrollbar !== undefined) localStorage.setItem('hide_scrollbar', String(db.settings.hideScrollbar));
     }
 
@@ -1042,6 +1044,7 @@ export function loadDBFromSQLTables(): AppDB {
       enableAnimations: true,
       performanceMode: false,
       hideScrollbar: localStorage.getItem('hide_scrollbar') !== null ? localStorage.getItem('hide_scrollbar') === 'true' : true,
+      floatingSidebar: localStorage.getItem('sidebar_floating') === 'true',
     };
 
     sqlSettings.forEach(st => {

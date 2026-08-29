@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet, Layout } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -1381,6 +1381,35 @@ export default function Settings({
                         <span>Top Bar</span>
                       </button>
                     </div>
+                  </div>
+
+                  {/* Floating Sidebar Toggle Row (Desktop) */}
+                  <div style={{
+                    padding: '14px 16px',
+                    borderRadius: 14,
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    marginTop: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Layout size={18} style={{ color: accent === 'monochrome' ? (isDark ? '#ffffff' : '#111111') : 'var(--accent)' }} />
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Floating Sidebar (Desktop)</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Detached floating rounded layout or docked full-height sidebar</div>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={settings.floatingSidebar ?? false}
+                      onChange={(e) => {
+                        const isFloating = e.target.checked;
+                        updateSettings({ floatingSidebar: isFloating });
+                        showToast(isFloating ? 'Floating sidebar enabled' : 'Docked full-height sidebar enabled');
+                      }}
+                      color="primary"
+                    />
                   </div>
                 </>
               )}

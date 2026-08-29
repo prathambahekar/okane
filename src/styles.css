@@ -321,18 +321,17 @@ input, textarea, [contenteditable="true"], .selectable-text {
 }
 
 .sidebar-logo {
-  padding: 12px 14px;
+  padding: 14px 14px 6px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border-bottom: 1px solid var(--border);
-  min-height: 54px;
+  border-bottom: none;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .sidebar.collapsed .sidebar-logo {
-  padding: 12px 8px;
+  padding: 14px 8px 6px 8px;
   justify-content: center;
 }
 
@@ -374,7 +373,7 @@ input, textarea, [contenteditable="true"], .selectable-text {
 
 .sidebar-nav {
   flex: 1;
-  padding: 6px 8px 12px 8px;
+  padding: 4px 10px 4px 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -382,7 +381,7 @@ input, textarea, [contenteditable="true"], .selectable-text {
 }
 
 .sidebar.collapsed .sidebar-nav {
-  padding: 8px 6px;
+  padding: 4px 6px;
 }
 
 .nav-section-group {
@@ -461,6 +460,7 @@ input, textarea, [contenteditable="true"], .selectable-text {
 .nav-section-divider {
   height: 1px;
   background: var(--border);
+  opacity: 0.65;
   margin: 8px 4px;
   border-radius: 99px;
 }
@@ -571,8 +571,8 @@ input, textarea, [contenteditable="true"], .selectable-text {
 }
 
 .sidebar-footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
+  padding: 4px 14px 14px 14px;
+  border-top: none;
   font-size: 11px;
   color: var(--text-3);
   display: flex;
@@ -581,7 +581,7 @@ input, textarea, [contenteditable="true"], .selectable-text {
 }
 
 .sidebar.collapsed .sidebar-footer {
-  padding: 12px 6px;
+  padding: 4px 6px 14px 6px;
   flex-direction: column;
   justify-content: center;
   gap: 10px;

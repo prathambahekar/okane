@@ -238,6 +238,7 @@ function AppInner() {
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
 
   const sidebarCollapsed = db.settings?.sidebarCollapsed ?? (localStorage.getItem('sidebar_collapsed') === 'true');
+  const floatingSidebar = db.settings?.floatingSidebar ?? (localStorage.getItem('sidebar_floating') === 'true');
 
   useEffect(() => {
     const shouldHide = db.settings?.hideScrollbar ?? true;
@@ -479,7 +480,7 @@ function AppInner() {
     <div className={`app-layout ${db.settings?.enableAnimations === false ? 'no-animations' : ''} ${db.settings?.performanceMode ? 'performance-mode' : ''}`}>
       {/* Desktop sidebar */}
       {!isMobile && (
-        <nav className={`sidebar floating ${sidebarCollapsed ? 'collapsed' : ''}`}>
+        <nav className={`sidebar ${floatingSidebar ? 'floating' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
           <div className="sidebar-logo">
             {!sidebarCollapsed && (
               <div>
@@ -581,9 +582,9 @@ function AppInner() {
             <button
               className="btn btn-primary btn-sm"
               style={{
-                margin: sidebarCollapsed ? '4px auto 8px' : '4px 0 8px',
+                margin: sidebarCollapsed ? '8px auto 4px' : '8px 0 4px',
                 width: sidebarCollapsed ? 36 : '100%',
-                height: 36,
+                height: 38,
                 padding: sidebarCollapsed ? 0 : '8px 12px',
                 borderRadius: 10,
                 display: 'flex',
@@ -599,6 +600,8 @@ function AppInner() {
               <span className="nav-item-label">Add Expense</span>
             </button>
           </div>
+
+          <div className="nav-section-divider" style={{ margin: sidebarCollapsed ? '4px 6px 4px 6px' : '4px 10px 4px 10px' }} />
 
           <div className="sidebar-footer">
             <div className="sidebar-footer-actions" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between', gap: 6 }}>

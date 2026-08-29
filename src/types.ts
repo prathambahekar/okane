@@ -153,6 +153,7 @@ export interface Settings {
   hideScrollbar?: boolean; // Hide visible scrollbars for clean mobile-native look
   searchLocation?: 'floating' | 'topbar'; // Floating button or Top Bar header search
   autoOpenKeyboard?: boolean; // Auto open soft keyboard when search bar or textbox is selected/focused on mobile
+  floatingSidebar?: boolean; // Floating card layout or docked full-height layout for desktop sidebar
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';
