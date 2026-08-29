@@ -537,6 +537,7 @@ export function defaultDB(): AppDB {
       autoUnlockOnFace: false,
       hideScrollbar: localStorage.getItem('hide_scrollbar') !== null ? localStorage.getItem('hide_scrollbar') === 'true' : true,
       searchLocation: (localStorage.getItem('search_location') as 'floating' | 'topbar') || 'floating',
+      autoOpenKeyboard: localStorage.getItem('auto_open_keyboard') !== null ? localStorage.getItem('auto_open_keyboard') === 'true' : true,
     },
     recurringRules: [],
   };

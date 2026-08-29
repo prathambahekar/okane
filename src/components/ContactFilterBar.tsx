@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -23,6 +23,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { showSoftKeyboard } from '../utils/keyboard';
 import type { ContactType } from '../types';
 import { fmtMoney } from '../utils';
 
@@ -88,6 +89,19 @@ export const ContactFilterBar: React.FC<Props> = ({
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus search input when filters drawer opens
+  useEffect(() => {
+    if (showFilters) {
+      const timer = setTimeout(() => {
+        if (searchInputRef.current) {
+          showSoftKeyboard(searchInputRef.current, { placeCursorAtEnd: true, scroll: true });
+        }
+      }, 80);
+      return () => clearTimeout(timer);
+    }
+  }, [showFilters]);
 
   // Close on escape key
   useEffect(() => {
@@ -368,6 +382,7 @@ export const ContactFilterBar: React.FC<Props> = ({
             >
               <Search size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search by name, nickname, or category..."
                 value={search}

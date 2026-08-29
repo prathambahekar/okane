@@ -16,7 +16,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
   return createPortal(
     <div
       className="modal-backdrop"
-      style={{ zIndex: 100070 }}
+      style={{ zIndex: 100095 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="modal confirm-modal" onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)' }}>

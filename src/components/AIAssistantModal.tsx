@@ -57,6 +57,7 @@ import type { ExpenseType, ExpenseFlow } from '../types';
 import { CategoryBadge } from './CategoryIcon';
 import type { ExpenseInitialData } from './ExpenseModal';
 import { getFrequentTasks, type FrequentTaskItem } from '../utils/frequentTasks';
+import { showSoftKeyboard } from '../utils/keyboard';
 
 const ModalFadeTransition = React.forwardRef(function Transition(
   props: TransitionProps & {
@@ -768,8 +769,21 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const contentEndRef = useRef<HTMLDivElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const msgCounterRef = useRef(1);
+
+  // Auto-focus text input when AI modal opens
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => {
+        if (textInputRef.current) {
+          showSoftKeyboard(textInputRef.current, { placeCursorAtEnd: true, scroll: true });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   // Audio analyzer refs & volume state for live wave visualization
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -2324,6 +2338,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
         <AudioWaveVisualizer volume={volumeLevel} isListening={isListening} />
 
         <InputBase
+          inputRef={textInputRef}
           placeholder={isListening ? 'Listening... Speak now...' : 'Describe transaction or ask Max...'}
           fullWidth
           value={inputText}

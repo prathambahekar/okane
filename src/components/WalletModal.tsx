@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Wallet as WalletIcon, Plus, Check, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../store';
@@ -6,6 +6,7 @@ import type { Wallet } from '../types';
 import { WALLET_PRESETS, renderWalletIcon } from './WalletIconRenderer';
 import { currencySymbol } from '../utils';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
+import { showSoftKeyboard } from '../utils/keyboard';
 
 interface Props {
   wallet?: Wallet;
@@ -26,6 +27,17 @@ export default function WalletModal({ wallet, onClose }: Props) {
   const [openingBalance, setOpeningBalance] = useState(wallet ? String(wallet.openingBalance) : '0');
   const [isDefault, setIsDefault] = useState<boolean>(isCurrentlyDefault);
   const [error, setError] = useState('');
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus wallet name input on modal mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (nameInputRef.current) {
+        showSoftKeyboard(nameInputRef.current, { placeCursorAtEnd: true, scroll: true });
+      }
+    }, 80);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSelectPreset = (presetId: string) => {
     setSelectedPresetId(presetId);
@@ -203,6 +215,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
                 Wallet Name *
               </label>
               <input
+                ref={nameInputRef}
                 className="form-input"
                 value={name}
                 onChange={e => {

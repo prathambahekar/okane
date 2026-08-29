@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { showSoftKeyboard } from '../../utils/keyboard';
 import type { RecurringKind } from '../../types';
 import { fmtMoney } from '../../utils';
 
@@ -71,6 +72,19 @@ export const AutopayFilterBar: React.FC<Props> = ({
   currency = 'USD',
 }) => {
   const [showStats, setShowStats] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus search input when autopay filters drawer opens
+  useEffect(() => {
+    if (showFilters) {
+      const timer = setTimeout(() => {
+        if (searchInputRef.current) {
+          showSoftKeyboard(searchInputRef.current, { placeCursorAtEnd: true, scroll: true });
+        }
+      }, 80);
+      return () => clearTimeout(timer);
+    }
+  }, [showFilters]);
 
   // Close on escape key
   useEffect(() => {
@@ -312,6 +326,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
             >
               <Search size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search by title, category, or note..."
                 value={search}

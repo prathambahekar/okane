@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -13,8 +13,22 @@ import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 
 import CategoryIcon, { AVAILABLE_ICONS } from '../components/CategoryIcon';
+import { renderWalletIcon } from '../components/WalletIconRenderer';
 import PinSetupDrawer from '../components/PinSetupDrawer';
 import { CURRENT_APP_VERSION } from '../utils/updateManager';
+
+const CURRENCY_NAMES: Record<string, string> = {
+  USD: 'US Dollar',
+  EUR: 'Euro',
+  GBP: 'British Pound',
+  INR: 'Indian Rupee',
+  JPY: 'Japanese Yen',
+  AUD: 'Australian Dollar',
+  CAD: 'Canadian Dollar',
+  CNY: 'Chinese Yuan',
+  SGD: 'Singapore Dollar',
+  AED: 'UAE Dirham',
+};
 
 function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeColor: (c: string) => void }) {
   const isCustom = !FRIEND_PALETTE.includes(color);
@@ -974,7 +988,7 @@ export default function Settings({
                   <div className="settings-card-text">
                     <h2 className="settings-card-title">Preferences</h2>
                     <p className="settings-card-sub">
-                      Currency ({settings.currency}), default category & wallet
+                      Currency ({settings.currency}), default category, wallet & mobile keyboard
                     </p>
                   </div>
                 </div>
@@ -1516,25 +1530,32 @@ export default function Settings({
         {/* Bottom Sheet Drawer Modal for Preferences */}
         {showPreferencesSheet && createPortal(
           <div className="sheet-backdrop" onClick={() => setShowPreferencesSheet(false)}>
-            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-modal" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '88vh', overflowY: 'auto' }}>
               {/* Drag Handle */}
               <div className="sheet-drag-handle" />
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{
-                    width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)',
-                    display: 'grid', placeItems: 'center', color: 'var(--accent)', flexShrink: 0
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--accent)25',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--accent)',
+                    flexShrink: 0
                   }}>
                     <Sliders size={20} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                    <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                       App Preferences
                     </h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
-                      Configure currency, default category & wallet
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                      Configure currency, transaction defaults & input behavior
                     </p>
                   </div>
                 </div>
@@ -1546,48 +1567,392 @@ export default function Settings({
                   style={{
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: 8,
+                    borderRadius: 10,
                     width: 32,
                     height: 32,
                     display: 'grid',
                     placeItems: 'center',
                     color: 'var(--text-2)',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
                   }}
                 >
                   <X size={16} />
                 </button>
               </div>
 
-              {/* Preferences Form Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontWeight: 600 }}>Currency</label>
-                  <select className="form-select" value={settings.currency} onChange={e => updateSettings({ currency: e.target.value })}>
-                    {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
-                  </select>
+              {/* Section 1: Financial & Transaction Defaults */}
+              <div style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: 'var(--text-3)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                marginBottom: 8,
+                marginTop: 2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <Coins size={12} style={{ color: 'var(--accent)' }} />
+                Transaction & Financial Defaults
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {(() => {
+                  const currentCurrency = CURRENCIES.find(c => c.code === settings.currency) || CURRENCIES[0];
+                  const currentCategory = settings.categories.find(c => c.name === settings.defaultCategory) || settings.categories[0];
+                  const currentWallet = db.wallets.find(w => w.id === settings.defaultWalletId) || db.wallets[0];
+
+                  return (
+                    <>
+                      {/* 1. Currency Preference Card */}
+                      <div
+                        style={{
+                          position: 'relative',
+                          padding: '12px 14px',
+                          borderRadius: 14,
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                          <div style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 11,
+                            background: 'var(--accent-soft)',
+                            border: '1px solid var(--accent)33',
+                            display: 'grid',
+                            placeItems: 'center',
+                            color: 'var(--accent)',
+                            fontWeight: 700,
+                            fontSize: 16,
+                            flexShrink: 0
+                          }}>
+                            {currentCurrency.symbol}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                              Default Currency
+                            </div>
+                            <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {CURRENCY_NAMES[settings.currency] || settings.currency} ({settings.currency})
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '6px 11px',
+                          borderRadius: 9,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--text)',
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          flexShrink: 0
+                        }}>
+                          <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{currentCurrency.symbol}</span>
+                          <span>{currentCurrency.code}</span>
+                          <ChevronDown size={14} style={{ color: 'var(--text-3)', marginLeft: 2 }} />
+                        </div>
+
+                        {/* Transparent Native Select Trigger */}
+                        <select
+                          value={settings.currency}
+                          onChange={(e) => {
+                            updateSettings({ currency: e.target.value });
+                            showToast(`Default currency set to ${e.target.value}`);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {CURRENCIES.map(c => (
+                            <option key={c.code} value={c.code}>
+                              {c.symbol} {c.code} — {CURRENCY_NAMES[c.code] || c.code}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* 2. Default Category Preference Card */}
+                      <div
+                        style={{
+                          position: 'relative',
+                          padding: '12px 14px',
+                          borderRadius: 14,
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                          <div style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 11,
+                            background: 'var(--accent-soft)',
+                            border: '1px solid var(--accent)33',
+                            display: 'grid',
+                            placeItems: 'center',
+                            flexShrink: 0
+                          }}>
+                            <CategoryIcon
+                              category={currentCategory?.name}
+                              icon={currentCategory?.icon}
+                              size={18}
+                              color="var(--accent)"
+                            />
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                              Default Category
+                            </div>
+                            <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1 }}>
+                              Auto-assigned for new expenses
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 7,
+                          padding: '6px 11px',
+                          borderRadius: 9,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--text)',
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          flexShrink: 0,
+                          maxWidth: 140
+                        }}>
+                          <div style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            background: 'var(--accent)',
+                            flexShrink: 0
+                          }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {currentCategory?.name || 'Select'}
+                          </span>
+                          <ChevronDown size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+                        </div>
+
+                        {/* Transparent Native Select Trigger */}
+                        <select
+                          value={settings.defaultCategory}
+                          onChange={(e) => {
+                            updateSettings({ defaultCategory: e.target.value });
+                            showToast(`Default category set to ${e.target.value}`);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {settings.categories.map(c => (
+                            <option key={c.name} value={c.name}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* 3. Default Wallet Preference Card */}
+                      <div
+                        style={{
+                          position: 'relative',
+                          padding: '12px 14px',
+                          borderRadius: 14,
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                          <div style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 11,
+                            background: 'var(--accent-soft)',
+                            border: '1px solid var(--accent)33',
+                            display: 'grid',
+                            placeItems: 'center',
+                            flexShrink: 0
+                          }}>
+                            {renderWalletIcon(currentWallet?.icon || 'wallet', 20, 'var(--accent)')}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                              Default Wallet
+                            </div>
+                            <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1 }}>
+                              Primary account for payments & transfers
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 7,
+                          padding: '6px 11px',
+                          borderRadius: 9,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--text)',
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          flexShrink: 0,
+                          maxWidth: 140
+                        }}>
+                          <div style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            background: 'var(--accent)',
+                            flexShrink: 0
+                          }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {currentWallet?.name || 'Cash'}
+                          </span>
+                          <ChevronDown size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+                        </div>
+
+                        {/* Transparent Native Select Trigger */}
+                        <select
+                          value={settings.defaultWalletId}
+                          onChange={(e) => {
+                            updateSettings({ defaultWalletId: e.target.value });
+                            const wName = db.wallets.find(w => w.id === e.target.value)?.name || 'Wallet';
+                            showToast(`Default wallet set to ${wName}`);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {db.wallets.map(w => (
+                            <option key={w.id} value={w.id}>
+                              {w.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  );
+                })()}
+
+                {/* Section 2: Input Behavior */}
+                <div style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: 'var(--text-3)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  marginBottom: 0,
+                  marginTop: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}>
+                  <KeyboardIcon size={12} style={{ color: 'var(--accent)' }} />
+                  Mobile Input Preference
                 </div>
 
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontWeight: 600 }}>Default Category</label>
-                  <select className="form-select" value={settings.defaultCategory} onChange={e => updateSettings({ defaultCategory: e.target.value })}>
-                    {settings.categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontWeight: 600 }}>Default Expense Status</label>
-                  <select className="form-select" value={settings.defaultStatus} onChange={e => updateSettings({ defaultStatus: e.target.value as 'paid' | 'unpaid' })}>
-                    <option value="paid">Paid</option>
-                    <option value="unpaid">Unpaid</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontWeight: 600 }}>Default Wallet</label>
-                  <select className="form-select" value={settings.defaultWalletId} onChange={e => updateSettings({ defaultWalletId: e.target.value })}>
-                    {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                  </select>
+                {/* Auto Open Mobile Keyboard Preference */}
+                <div
+                  onClick={() => {
+                    const nextVal = !(settings.autoOpenKeyboard ?? true);
+                    localStorage.setItem('auto_open_keyboard', String(nextVal));
+                    updateSettings({ autoOpenKeyboard: nextVal });
+                    showToast(nextVal ? 'Auto open keyboard enabled' : 'Auto open keyboard disabled');
+                  }}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 14,
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1 }}>
+                    <div style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 11,
+                      background: 'var(--accent-soft)',
+                      border: '1px solid var(--accent)33',
+                      display: 'grid',
+                      placeItems: 'center',
+                      color: 'var(--accent)',
+                      flexShrink: 0,
+                      marginTop: 1
+                    }}>
+                      <KeyboardIcon size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
+                        Auto Open Keyboard
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', lineHeight: 1.35, marginTop: 1 }}>
+                        Automatically pop up the soft keyboard when selecting search bars, filters, and textboxes on mobile
+                      </div>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings.autoOpenKeyboard ?? true}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      localStorage.setItem('auto_open_keyboard', String(val));
+                      updateSettings({ autoOpenKeyboard: val });
+                      showToast(val ? 'Auto open keyboard enabled' : 'Auto open keyboard disabled');
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    color="primary"
+                  />
                 </div>
               </div>
             </div>

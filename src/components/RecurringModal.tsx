@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -22,6 +22,7 @@ import { todayISO, computeNextDueDate } from '../db';
 import { currencySymbol, getAvatarStyle, friendInitial } from '../utils';
 import { NoteEditorModal } from './common/NoteEditorModal';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
+import { showSoftKeyboard } from '../utils/keyboard';
 
 interface Props {
   rule?: RecurringRule | null;
@@ -54,6 +55,17 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
   const [showContactDrawer, setShowContactDrawer] = useState(false);
   const [pickerTypeFilter, setPickerTypeFilter] = useState<'all' | 'friend' | 'vendor'>('all');
   const [pickerSearch, setPickerSearch] = useState('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus title input on modal open
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (titleInputRef.current) {
+        showSoftKeyboard(titleInputRef.current, { placeCursorAtEnd: true, scroll: true });
+      }
+    }, 80);
+    return () => clearTimeout(timer);
+  }, []);
 
   useBackButtonModal(showContactDrawer, () => setShowContactDrawer(false), { priority: BackPriority.DRAWER });
 
@@ -461,6 +473,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
 
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <input
+                  ref={titleInputRef}
                   type="text"
                   required
                   placeholder={isSubscription ? 'e.g. Netflix, Spotify, Prime, Gym...' : 'e.g. Daily Coffee, Milk, Maid, Metro'}

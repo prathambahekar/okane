@@ -28,6 +28,7 @@ import type { ViewName, Trip, Expense } from '../types';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, resolveCategoryMeta, type GroupedExpense } from '../utils';
 import { friendBalance, walletBalance } from '../db';
 import CategoryIcon from './CategoryIcon';
+import { showSoftKeyboard } from '../utils/keyboard';
 import { CURRENT_APP_VERSION } from '../utils/updateManager';
 import { ExpenseDetailDrawer } from './ExpenseDetailDrawer';
 import ExpenseModal from './ExpenseModal';
@@ -80,10 +81,10 @@ const SETTINGS_SEARCH_ITEMS: SettingsSearchItem[] = [
   {
     id: 'preferences',
     title: 'Preferences & Currency',
-    subtitle: 'Default currency (INR, USD, EUR, GBP, JPY...), default wallet & expense status',
+    subtitle: 'Default currency (INR, USD...), default wallet, status & auto open keyboard',
     category: 'Preferences',
     icon: Sliders,
-    tags: ['currency', 'money', 'inr', 'usd', 'eur', 'gbp', 'jpy', 'cad', 'aud', 'wallet', 'default', 'status', 'paid', 'unpaid', 'preferences', 'defaults', 'symbol', 'format']
+    tags: ['currency', 'money', 'inr', 'usd', 'eur', 'gbp', 'jpy', 'cad', 'aud', 'wallet', 'default', 'status', 'paid', 'unpaid', 'preferences', 'defaults', 'symbol', 'format', 'keyboard', 'auto open keyboard', 'search', 'textbox', 'mobile keyboard']
   },
   {
     id: 'categories',
@@ -202,14 +203,24 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
     onClose();
   }, [onClose]);
 
-  // Reset state and focus input when modal opens
+  const [prevOpen, setPrevOpen] = useState(open);
+
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    if (open) {
+      setQuery('');
+      setSelectedTab(null);
+    }
+  }
+
+  // Auto-focus and show soft keyboard when modal opens
   useEffect(() => {
     if (open) {
       const timer = setTimeout(() => {
-        setQuery('');
-        setSelectedTab(null);
-        inputRef.current?.focus();
-      }, 0);
+        if (inputRef.current) {
+          showSoftKeyboard(inputRef.current, { placeCursorAtEnd: true, scroll: true });
+        }
+      }, 50);
       return () => clearTimeout(timer);
     }
   }, [open]);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -13,6 +13,7 @@ import {
   TrendingDown,
   Search,
 } from 'lucide-react';
+import { showSoftKeyboard } from '../utils/keyboard';
 import type { Friend } from '../types';
 import type { SettlementTimeframe } from '../views/Settlements';
 import { friendInitial, getAvatarStyle } from '../utils';
@@ -55,6 +56,19 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const [friendSearch, setFriendSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Auto focus search when settlement drawer opens and search input exists
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        if (searchRef.current) {
+          showSoftKeyboard(searchRef.current, { placeCursorAtEnd: true, scroll: true });
+        }
+      }, 80);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   // Close on escape key
   useEffect(() => {
@@ -467,6 +481,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
               >
                 <Search size={12.5} style={{ color: 'var(--text-3)', marginRight: 6 }} />
                 <input
+                  ref={searchRef}
                   type="text"
                   value={friendSearch}
                   onChange={e => setFriendSearch(e.target.value)}

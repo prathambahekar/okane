@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, TrendingDown, TrendingUp, User, Users, HeartHandshake, FileText, Sparkles, Store } from 'lucide-react';
 import { useStore } from '../store';
@@ -6,6 +6,7 @@ import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types'
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
 import { currencySymbol, fmtMoney } from '../utils';
 import { detectCategoryFromText } from '../utils/categoryDetector';
+import { showSoftKeyboard } from '../utils/keyboard';
 import {
   ExpenseTutorialBanner,
   FriendSplitModal,
@@ -116,6 +117,17 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
   const [error, setError] = useState('');
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
   const [autoSettle, setAutoSettle] = useState(true);
+  const descInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus description input on modal mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (descInputRef.current) {
+        showSoftKeyboard(descInputRef.current, { placeCursorAtEnd: true, scroll: true });
+      }
+    }, 80);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Multi-friend selection state for splitting expenses
   const initialFriendIdsList = (() => {
@@ -895,6 +907,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                       </button>
                     </div>
                     <input
+                      ref={descInputRef}
                       className="form-input"
                       value={desc}
                       onChange={e => handleDescriptionChange(e.target.value)}

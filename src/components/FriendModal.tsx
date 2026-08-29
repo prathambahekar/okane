@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -18,6 +18,7 @@ import { FRIEND_PALETTE } from '../db';
 import { getAvatarStyle } from '../utils';
 import { POPULAR_SUBSCRIPTIONS, renderBrandLogo, detectBrandPreset } from './BrandIcons';
 import { NoteEditorModal } from './common/NoteEditorModal';
+import { showSoftKeyboard } from '../utils/keyboard';
 
 interface Props {
   friend?: Friend | null;
@@ -119,6 +120,17 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
   const [showNumberPicker, setShowNumberPicker] = useState(() => Boolean(friend?.avatarNumber));
   const [error, setError] = useState('');
   const friendColorInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus name input when contact/vendor/subscription modal opens
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (nameInputRef.current) {
+        showSoftKeyboard(nameInputRef.current, { placeCursorAtEnd: true, scroll: true });
+      }
+    }, 80);
+    return () => clearTimeout(timer);
+  }, []);
 
   const openNoteModal = () => {
     setIsNoteModalOpen(true);
@@ -413,6 +425,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                   {type === 'vendor' ? 'Vendor Name *' : type === 'subscription' ? 'Subscription Name *' : 'Name *'}
                 </label>
                 <input
+                  ref={nameInputRef}
                   className="form-input"
                   style={{ height: 40, minHeight: 40, padding: '8px 12px', fontSize: 13, borderRadius: 10, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }}
                   value={name}
@@ -826,7 +839,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
         {isCycleModalOpen && (
           <div
             className="modal-backdrop"
-            style={{ zIndex: 10005, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+            style={{ zIndex: 100085, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
             onClick={e => { if (e.target === e.currentTarget) setIsCycleModalOpen(false); }}
           >
             <div className="modal friend-drawer-modal" style={{ maxWidth: 420, maxHeight: '88vh', display: 'flex', flexDirection: 'column', border: '1px solid var(--border)', borderRadius: 20, background: 'var(--surface)', animation: 'slidein 0.15s ease' }}>

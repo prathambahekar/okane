@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "set-version": "node scripts/set-version.js",
-    "bump": "node scripts/set-version.js"
+    "bump": "node scripts/set-version.js",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
@@ -40,6 +41,7 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^9.39.4",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

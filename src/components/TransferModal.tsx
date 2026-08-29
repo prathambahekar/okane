@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ArrowLeftRight, ArrowRight, AlertCircle, FileText, Calendar, ChevronDown, Wallet as WalletIcon } from 'lucide-react';
 import { useStore } from '../store';
@@ -7,6 +7,7 @@ import { fmtMoney, currencySymbol } from '../utils';
 import { NoteEditorModal } from './common/NoteEditorModal';
 import { renderWalletIcon } from './WalletIconRenderer';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
+import { showSoftKeyboard } from '../utils/keyboard';
 
 interface Props {
   isOpen: boolean;
@@ -42,6 +43,19 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
   const [note, setNote] = useState<string>('');
   const [isNoteModalOpen, setIsNoteModalOpen] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const amountInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus amount input on modal open
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        if (amountInputRef.current) {
+          showSoftKeyboard(amountInputRef.current, { placeCursorAtEnd: true, scroll: true });
+        }
+      }, 80);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   useBackButtonModal(isNoteModalOpen, () => setIsNoteModalOpen(false), { priority: BackPriority.DIALOG });
 
@@ -195,6 +209,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   {currencySymbol(currency)}
                 </span>
                 <input
+                  ref={amountInputRef}
                   type="number"
                   min="0"
                   step="any"

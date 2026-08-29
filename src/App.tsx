@@ -63,6 +63,7 @@ import ContextualSearchModal from './components/ContextualSearchModal';
 import SecurityLockModal from './components/SecurityLockModal';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { showSoftKeyboard } from './utils/keyboard';
 import { useBackButtonModal, backHandler, BackPriority } from './utils/backHandler';
 import './styles.css';
 
@@ -187,6 +188,45 @@ function AppInner() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Auto open soft keyboard when any search bar, input or textbox is selected/focused on mobile
+  useEffect(() => {
+    const autoOpen = db.settings?.autoOpenKeyboard ?? true;
+    if (!autoOpen) return;
+
+    const handleInputInteraction = (e: Event) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      const isInput = target.tagName === 'INPUT';
+      const isTextarea = target.tagName === 'TEXTAREA';
+      const isContentEditable = target.isContentEditable;
+
+      if (!isInput && !isTextarea && !isContentEditable) return;
+
+      if (isInput) {
+        const inputType = (target as HTMLInputElement).type?.toLowerCase();
+        if (['button', 'submit', 'reset', 'checkbox', 'radio', 'file', 'image', 'range', 'color'].includes(inputType)) {
+          return;
+        }
+      }
+
+      // Check if target is not disabled/readonly
+      if ((target as HTMLInputElement).readOnly || (target as HTMLInputElement).disabled) {
+        return;
+      }
+
+      // Invoke soft keyboard manager with auto scrolling
+      showSoftKeyboard(target, { placeCursorAtEnd: true, scroll: true });
+    };
+
+    document.addEventListener('focusin', handleInputInteraction, true);
+    document.addEventListener('click', handleInputInteraction, true);
+    return () => {
+      document.removeEventListener('focusin', handleInputInteraction, true);
+      document.removeEventListener('click', handleInputInteraction, true);
+    };
+  }, [db.settings?.autoOpenKeyboard]);
 
   const handleStartExpenseTutorial = () => {
     setShowGuideModal(false);

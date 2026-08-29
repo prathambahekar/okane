@@ -1,13 +1,14 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FileText, X, Check, Trash2 } from 'lucide-react';
 import { useBackButtonModal, BackPriority } from '../../utils/backHandler';
+import { showSoftKeyboard } from '../../utils/keyboard';
 
 export interface NoteEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  initialNote: string;
+  initialNote?: string;
   onSave: (note: string) => void;
   placeholder?: string;
   quickTags?: string[];
@@ -17,7 +18,7 @@ export function NoteEditorModal({
   isOpen,
   onClose,
   title = 'Note',
-  initialNote,
+  initialNote = '',
   onSave,
   placeholder = 'Add optional notes or remarks...',
   quickTags = ['Roommate', 'Family', 'Office colleague', 'Splitwise friend', 'UPI ID'],
@@ -28,10 +29,10 @@ export function NoteEditorModal({
 
   return createPortal(
     <NoteEditorContent
-      key={initialNote}
+      key={isOpen ? `open-${initialNote || ''}` : 'closed'}
       onClose={onClose}
       title={title}
-      initialNote={initialNote}
+      initialNote={initialNote || ''}
       onSave={onSave}
       placeholder={placeholder}
       quickTags={quickTags}
@@ -52,29 +53,38 @@ interface ContentProps {
 function NoteEditorContent({
   onClose,
   title,
-  initialNote,
+  initialNote = '',
   onSave,
   placeholder,
   quickTags,
 }: ContentProps) {
-  const [tempNote, setTempNote] = useState(initialNote);
+  const [tempNote, setTempNote] = useState(initialNote || '');
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Removed auto-focus effect on open so keyboard does not auto-open on mobile
+  // Auto-focus and open keyboard when note editor opens
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (textareaRef.current) {
+        showSoftKeyboard(textareaRef.current, { placeCursorAtEnd: true, scroll: true });
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleTagClick = (tag: string) => {
-    if (!tempNote.trim()) {
+    const current = tempNote || '';
+    if (!current.trim()) {
       setTempNote(tag);
-    } else if (tempNote.includes(tag)) {
+    } else if (current.includes(tag)) {
       // Toggle off if only this tag or remove from note
-      const cleaned = tempNote
+      const cleaned = current
         .replace(new RegExp(`(^|,\\s*)${tag}(,\\s*|$)`, 'g'), ', ')
         .replace(/^,\s*|,\s*$/g, '')
         .trim();
       setTempNote(cleaned);
     } else {
-      setTempNote(prev => `${prev.trim()}, ${tag}`);
+      setTempNote(prev => `${(prev || '').trim()}, ${tag}`);
     }
   };
 
@@ -85,17 +95,20 @@ function NoteEditorContent({
   };
 
   const handleSave = () => {
-    onSave(tempNote.trim());
+    onSave((tempNote || '').trim());
     onClose();
   };
 
   const isTagActive = (tag: string) => {
-    return tempNote.toLowerCase().includes(tag.toLowerCase());
+    return (tempNote || '').toLowerCase().includes(tag.toLowerCase());
   };
 
   return (
     <div
       className="note-drawer-overlay"
+      style={{
+        zIndex: 100085,
+      }}
       onClick={e => {
         if (e.target === e.currentTarget) onClose();
       }}

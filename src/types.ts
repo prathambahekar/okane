@@ -154,6 +154,7 @@ export interface Settings {
   autoUnlockOnFace?: boolean; // Automatically enter on Face ID without pressing confirm
   hideScrollbar?: boolean; // Hide visible scrollbars for clean mobile-native look
   searchLocation?: 'floating' | 'topbar'; // Floating button or Top Bar header search
+  autoOpenKeyboard?: boolean; // Auto open soft keyboard when search bar or textbox is selected/focused on mobile
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';

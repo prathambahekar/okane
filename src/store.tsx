@@ -519,6 +519,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         // ignore storage errors
       }
     }
+    if (data.autoOpenKeyboard !== undefined) {
+      try {
+        localStorage.setItem('auto_open_keyboard', String(data.autoOpenKeyboard));
+      } catch {
+        // ignore storage errors
+      }
+    }
     setDB(current => {
       let updatedWallets = current.wallets;
       if (data.defaultWalletId) {
