@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, PiggyBank, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, importSQLDumpString } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -13,22 +13,9 @@ import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 
 import CategoryIcon, { AVAILABLE_ICONS } from '../components/CategoryIcon';
-import { renderWalletIcon } from '../components/WalletIconRenderer';
 import PinSetupDrawer from '../components/PinSetupDrawer';
 import { CURRENT_APP_VERSION } from '../utils/updateManager';
-
-const CURRENCY_NAMES: Record<string, string> = {
-  USD: 'US Dollar',
-  EUR: 'Euro',
-  GBP: 'British Pound',
-  INR: 'Indian Rupee',
-  JPY: 'Japanese Yen',
-  AUD: 'Australian Dollar',
-  CAD: 'Canadian Dollar',
-  CNY: 'Chinese Yuan',
-  SGD: 'Singapore Dollar',
-  AED: 'UAE Dirham',
-};
+import { showSoftKeyboard } from '../utils/keyboard';
 
 function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeColor: (c: string) => void }) {
   const isCustom = !FRIEND_PALETTE.includes(color);
@@ -261,7 +248,7 @@ export default function Settings({
   onTestLock?: () => void;
 }) {
   const {
-    db, updateSettings, updateCategory, resetDB, restoreDB, loadSampleData, showToast,
+    db, updateSettings, updateCategory, resetDB, restoreDB, showToast,
     availableUpdate, releaseHistory, isCheckingUpdate, isUpdating, updateProgress, updateStatusMessage,
     checkForUpdates, installUpdate
   } = useStore();
@@ -292,6 +279,43 @@ export default function Settings({
   const [showAdvancedSheet, setShowAdvancedSheet] = useState(false);
   const [showCategoriesSheet, setShowCategoriesSheet] = useState(false);
   const [showPreferencesSheet, setShowPreferencesSheet] = useState(false);
+  const [showCurrencySheet, setShowCurrencySheet] = useState(false);
+  const [currencySearchQuery, setCurrencySearchQuery] = useState('');
+  const currencySearchInputRef = useRef<HTMLInputElement>(null);
+  const newCatInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showCurrencySheet) {
+      const timer = setTimeout(() => {
+        if (currencySearchInputRef.current && (settings.autoOpenKeyboard ?? false)) {
+          showSoftKeyboard(currencySearchInputRef.current, { placeCursorAtEnd: true, scroll: true });
+        }
+      }, 90);
+      return () => clearTimeout(timer);
+    }
+  }, [showCurrencySheet, settings.autoOpenKeyboard]);
+
+  useEffect(() => {
+    if (categorySubView === 'add' && showCategoriesSheet) {
+      const timer = setTimeout(() => {
+        if (newCatInputRef.current && (settings.autoOpenKeyboard ?? false)) {
+          showSoftKeyboard(newCatInputRef.current, { placeCursorAtEnd: true, scroll: true });
+        }
+      }, 90);
+      return () => clearTimeout(timer);
+    }
+  }, [categorySubView, showCategoriesSheet, settings.autoOpenKeyboard]);
+
+  const filteredCurrencies = useMemo(() => {
+    const q = currencySearchQuery.trim().toLowerCase();
+    if (!q) return CURRENCIES;
+    return CURRENCIES.filter(c =>
+      c.code.toLowerCase().includes(q) ||
+      c.name.toLowerCase().includes(q) ||
+      c.country.toLowerCase().includes(q) ||
+      c.symbol.toLowerCase().includes(q)
+    );
+  }, [currencySearchQuery]);
   const [showDataSheet, setShowDataSheet] = useState(false);
   const [showVersionSheet, setShowVersionSheet] = useState(false);
   const [showFeedbackSheet, setShowFeedbackSheet] = useState(false);
@@ -928,11 +952,6 @@ export default function Settings({
     showToast('All data cleared');
   };
 
-  const handleLoadSample = () => {
-    loadSampleData();
-    showToast('Sample data loaded');
-  };
-
   return (
     <div className="view-container">
       <div className="page-header">
@@ -1441,7 +1460,15 @@ export default function Settings({
                     updateSettings({ enableAnimations: enabled });
                     showToast(enabled ? 'Animations enabled' : 'Animations disabled (Instant navigation)');
                   }}
-                  color="primary"
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: 'var(--accent)',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: 'var(--accent) !important',
+                      opacity: '0.85 !important',
+                    },
+                  }}
                 />
               </div>
 
@@ -1472,7 +1499,15 @@ export default function Settings({
                     updateSettings({ performanceMode: enabled });
                     showToast(enabled ? 'Ultra Performance Mode enabled' : 'Standard Mode enabled');
                   }}
-                  color="primary"
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: 'var(--accent)',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: 'var(--accent) !important',
+                      opacity: '0.85 !important',
+                    },
+                  }}
                 />
               </div>
 
@@ -1507,7 +1542,15 @@ export default function Settings({
                     updateSettings({ hideScrollbar: hide });
                     showToast(hide ? 'Scrollbars hidden (Clean mobile style)' : 'Scrollbars visible');
                   }}
-                  color="primary"
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: 'var(--accent)',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: 'var(--accent) !important',
+                      opacity: '0.85 !important',
+                    },
+                  }}
                 />
               </div>
 
@@ -1608,6 +1651,7 @@ export default function Settings({
                     <>
                       {/* 1. Currency Preference Card */}
                       <div
+                        onClick={() => setShowCurrencySheet(true)}
                         style={{
                           position: 'relative',
                           padding: '12px 14px',
@@ -1643,7 +1687,7 @@ export default function Settings({
                               Default Currency
                             </div>
                             <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {CURRENCY_NAMES[settings.currency] || settings.currency} ({settings.currency})
+                              {currentCurrency.name} ({currentCurrency.code})
                             </div>
                           </div>
                         </div>
@@ -1665,29 +1709,6 @@ export default function Settings({
                           <span>{currentCurrency.code}</span>
                           <ChevronDown size={14} style={{ color: 'var(--text-3)', marginLeft: 2 }} />
                         </div>
-
-                        {/* Transparent Native Select Trigger */}
-                        <select
-                          value={settings.currency}
-                          onChange={(e) => {
-                            updateSettings({ currency: e.target.value });
-                            showToast(`Default currency set to ${e.target.value}`);
-                          }}
-                          style={{
-                            position: 'absolute',
-                            inset: 0,
-                            width: '100%',
-                            height: '100%',
-                            opacity: 0,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {CURRENCIES.map(c => (
-                            <option key={c.code} value={c.code}>
-                              {c.symbol} {c.code} — {CURRENCY_NAMES[c.code] || c.code}
-                            </option>
-                          ))}
-                        </select>
                       </div>
 
                       {/* 2. Default Category Preference Card */}
@@ -1715,14 +1736,10 @@ export default function Settings({
                             border: '1px solid var(--accent)33',
                             display: 'grid',
                             placeItems: 'center',
+                            color: 'var(--accent)',
                             flexShrink: 0
                           }}>
-                            <CategoryIcon
-                              category={currentCategory?.name}
-                              icon={currentCategory?.icon}
-                              size={18}
-                              color="var(--accent)"
-                            />
+                            <Tag size={18} style={{ color: 'var(--accent)' }} />
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
@@ -1748,13 +1765,6 @@ export default function Settings({
                           flexShrink: 0,
                           maxWidth: 140
                         }}>
-                          <div style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: 'var(--accent)',
-                            flexShrink: 0
-                          }} />
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {currentCategory?.name || 'Select'}
                           </span>
@@ -1810,9 +1820,10 @@ export default function Settings({
                             border: '1px solid var(--accent)33',
                             display: 'grid',
                             placeItems: 'center',
+                            color: 'var(--accent)',
                             flexShrink: 0
                           }}>
-                            {renderWalletIcon(currentWallet?.icon || 'wallet', 20, 'var(--accent)')}
+                            <Wallet size={18} style={{ color: 'var(--accent)' }} />
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
@@ -1838,13 +1849,6 @@ export default function Settings({
                           flexShrink: 0,
                           maxWidth: 140
                         }}>
-                          <div style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: 'var(--accent)',
-                            flexShrink: 0
-                          }} />
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {currentWallet?.name || 'Cash'}
                           </span>
@@ -1899,7 +1903,7 @@ export default function Settings({
                 {/* Auto Open Mobile Keyboard Preference */}
                 <div
                   onClick={() => {
-                    const nextVal = !(settings.autoOpenKeyboard ?? true);
+                    const nextVal = !(settings.autoOpenKeyboard ?? false);
                     localStorage.setItem('auto_open_keyboard', String(nextVal));
                     updateSettings({ autoOpenKeyboard: nextVal });
                     showToast(nextVal ? 'Auto open keyboard enabled' : 'Auto open keyboard disabled');
@@ -1938,12 +1942,12 @@ export default function Settings({
                         Auto Open Keyboard
                       </div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-3)', lineHeight: 1.35, marginTop: 1 }}>
-                        Automatically pop up the soft keyboard when selecting search bars, filters, and textboxes on mobile
+                        Auto-open soft keyboard when focusing inputs & search
                       </div>
                     </div>
                   </div>
                   <Switch
-                    checked={settings.autoOpenKeyboard ?? true}
+                    checked={settings.autoOpenKeyboard ?? false}
                     onChange={(e) => {
                       const val = e.target.checked;
                       localStorage.setItem('auto_open_keyboard', String(val));
@@ -1951,7 +1955,15 @@ export default function Settings({
                       showToast(val ? 'Auto open keyboard enabled' : 'Auto open keyboard disabled');
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    color="primary"
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: 'var(--accent)',
+                      },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                        backgroundColor: 'var(--accent) !important',
+                        opacity: '0.85 !important',
+                      },
+                    }}
                   />
                 </div>
               </div>
@@ -1966,7 +1978,13 @@ export default function Settings({
             setShowCategoriesSheet(false);
             setCategorySubView('list');
           }}>
-            <div className="sheet-modal sheet-modal-lg" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="sheet-modal sheet-modal-lg"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxHeight: '92vh',
+              }}
+            >
               {/* Drag Handle */}
               <div className="sheet-drag-handle" />
 
@@ -2120,8 +2138,8 @@ export default function Settings({
                 </>
               ) : (
                 <>
-                  {/* Fixed Add Category Subview Header */}
-                  <div className="sheet-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  {/* Fixed Add Category Subview Header without splitting lines */}
+                  <div className="sheet-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 'none', paddingBottom: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <button
                         type="button"
@@ -2174,26 +2192,26 @@ export default function Settings({
                     </button>
                   </div>
 
-                  {/* Scrollable Form Body */}
-                  <div className="sheet-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
+                  {/* Scrollable Form Body without splitting lines */}
+                  <div className="sheet-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16, border: 'none' }}>
+                    <div className="form-group" style={{ marginBottom: 0, border: 'none' }}>
                       <label className="form-label" style={{ fontSize: 11.5 }}>Category Name</label>
                       <input
+                        ref={newCatInputRef}
                         className="form-input"
                         value={newCatName}
                         onChange={e => setNewCatName(e.target.value)}
                         placeholder="e.g. Subscriptions, Fuel, Food..."
                         onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
-                        autoFocus
                       />
                     </div>
 
-                    <div className="form-group" style={{ marginBottom: 0 }}>
+                    <div className="form-group" style={{ marginBottom: 0, border: 'none' }}>
                       <label className="form-label" style={{ fontSize: 11.5 }}>Color Tag</label>
                       <ColorPickerSection color={newCatColor} onChangeColor={setNewCatColor} />
                     </div>
 
-                    <div className="form-group" style={{ marginBottom: 0 }}>
+                    <div className="form-group" style={{ marginBottom: 0, border: 'none' }}>
                       <label className="form-label" style={{ fontSize: 11.5 }}>Category Icon</label>
                       <div className="category-icon-picker">
                         {AVAILABLE_ICONS.map(({ id, label, Icon }) => {
@@ -2222,8 +2240,8 @@ export default function Settings({
                     </div>
                   </div>
 
-                  {/* Fixed Bottom Action Footer */}
-                  <div className="sheet-modal-footer" style={{ display: 'flex', gap: 10 }}>
+                  {/* Fixed Bottom Action Footer without dividing border */}
+                  <div className="sheet-modal-footer" style={{ display: 'flex', gap: 10, borderTop: 'none', paddingTop: 8 }}>
                     <button
                       type="button"
                       className="btn btn-secondary"
@@ -2243,6 +2261,286 @@ export default function Settings({
                   </div>
                 </>
               )}
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Bottom Sheet Drawer Modal for Currency Selection */}
+        {showCurrencySheet && createPortal(
+          <div className="sheet-backdrop" onClick={() => setShowCurrencySheet(false)}>
+            <div
+              className="sheet-modal sheet-modal-lg"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {/* Drag Handle */}
+              <div className="sheet-drag-handle" />
+
+              {/* Header */}
+              <div className="sheet-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 11,
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--accent)33',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--accent)',
+                    flexShrink: 0
+                  }}>
+                    <Coins size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Select Currency
+                    </h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                      Choose your primary app currency & symbol
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="drawer-close-btn"
+                  onClick={() => setShowCurrencySheet(false)}
+                  style={{
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text-2)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div style={{ position: 'relative', marginBottom: 12 }}>
+                <Search
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    left: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-3)',
+                    pointerEvents: 'none'
+                  }}
+                />
+                <input
+                  ref={currencySearchInputRef}
+                  type="text"
+                  value={currencySearchQuery}
+                  onChange={(e) => setCurrencySearchQuery(e.target.value)}
+                  placeholder="Search currency by code, name, country or symbol..."
+                  className="form-input"
+                  style={{
+                    paddingLeft: 36,
+                    paddingRight: currencySearchQuery ? 36 : 12,
+                    minHeight: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    fontSize: 13.5
+                  }}
+                />
+                {currencySearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrencySearchQuery('');
+                      currencySearchInputRef.current?.focus();
+                    }}
+                    style={{
+                      position: 'absolute',
+                      right: 10,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'var(--surface3)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: 20,
+                      height: 20,
+                      display: 'grid',
+                      placeItems: 'center',
+                      color: 'var(--text-2)',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Suggested / Popular Currency Chips */}
+              {!currencySearchQuery && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: 'var(--text-3)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    marginBottom: 6
+                  }}>
+                    Popular Currencies
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 6
+                  }}>
+                    {['INR', 'USD', 'EUR', 'GBP', 'AED', 'CAD', 'AUD', 'JPY', 'SGD', 'SAR'].map(code => {
+                      const c = CURRENCIES.find(item => item.code === code);
+                      if (!c) return null;
+                      const isSelected = settings.currency === code;
+                      return (
+                        <button
+                          key={code}
+                          type="button"
+                          onClick={() => {
+                            updateSettings({ currency: code });
+                            showToast(`Default currency set to ${c.name} (${c.code})`);
+                            setShowCurrencySheet(false);
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            padding: '5px 10px',
+                            borderRadius: 9,
+                            fontSize: 12,
+                            fontWeight: isSelected ? 700 : 600,
+                            background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                            border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                            color: isSelected ? 'var(--accent)' : 'var(--text-2)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <span style={{ fontWeight: 700 }}>{c.symbol}</span>
+                          <span>{c.code}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Scrollable Currency List */}
+              <div className="sheet-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 4 }}>
+                {filteredCurrencies.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '36px 16px',
+                    color: 'var(--text-3)',
+                    fontSize: 13
+                  }}>
+                    <Coins size={32} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
+                    <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-2)' }}>No currencies found</p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: 12 }}>Try searching with a different name, country or code</p>
+                  </div>
+                ) : (
+                  filteredCurrencies.map((c) => {
+                    const isSelected = settings.currency === c.code;
+                    return (
+                      <div
+                        key={c.code}
+                        onClick={() => {
+                          updateSettings({ currency: c.code });
+                          showToast(`Default currency set to ${c.name} (${c.code})`);
+                          setShowCurrencySheet(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          borderRadius: 12,
+                          background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
+                          border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          gap: 12
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                          <div style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 10,
+                            background: isSelected ? 'var(--accent)' : 'var(--surface)',
+                            color: isSelected ? 'var(--accent-contrast, #fff)' : 'var(--accent)',
+                            border: '1px solid var(--border)',
+                            display: 'grid',
+                            placeItems: 'center',
+                            fontSize: 15,
+                            fontWeight: 750,
+                            flexShrink: 0
+                          }}>
+                            {c.symbol}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+                                {c.code}
+                              </span>
+                              <span style={{ fontSize: 13, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                — {c.name}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1 }}>
+                              {c.country} • Symbol: <strong style={{ color: 'var(--text-2)' }}>{c.symbol}</strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ flexShrink: 0 }}>
+                          {isSelected ? (
+                            <div style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              background: 'var(--accent)',
+                              color: 'var(--accent-contrast, #fff)',
+                              display: 'grid',
+                              placeItems: 'center'
+                            }}>
+                              <Check size={14} strokeWidth={3} />
+                            </div>
+                          ) : (
+                            <span style={{
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: 'var(--text-3)',
+                              background: 'var(--surface)',
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              border: '1px solid var(--border)'
+                            }}>
+                              {c.symbol}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>,
           document.body
@@ -2400,14 +2698,6 @@ export default function Settings({
                   <span className="data-action-label" style={{ fontWeight: 600 }}>Import</span>
                   <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Restore from backup</span>
                 </button>
-
-                {settings.devMode && (settings.enableSampleData ?? false) && (
-                  <button type="button" className="data-action-card" onClick={handleLoadSample}>
-                    <FlaskConical size={24} />
-                    <span className="data-action-label" style={{ fontWeight: 600 }}>Sample Data</span>
-                    <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Load Demo</span>
-                  </button>
-                )}
               </div>
 
               <div className="data-reset-row" onClick={() => { setShowDataSheet(false); setShowReset(true); }} role="button" tabIndex={0}>
@@ -3226,46 +3516,6 @@ export default function Settings({
                   </div>
                 </div>
 
-                {/* 2. Goal-Based Envelopes (Experimental) */}
-                <div style={{
-                  padding: '12px 14px',
-                  borderRadius: 12,
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 8,
-                      background: (isDevMode && (settings.enableEnvelopes ?? false)) ? 'var(--accent-soft)' : 'var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                    }}>
-                      <PiggyBank size={17} style={{ color: (isDevMode && (settings.enableEnvelopes ?? false)) ? 'var(--accent)' : 'var(--text-3)' }} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>Envelopes (Goal-Based)</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        Goal-based envelopes inside wallets
-                      </div>
-                    </div>
-                  </div>
-
-                  <Switch
-                    disabled={!isDevMode}
-                    checked={isDevMode && (settings.enableEnvelopes ?? false)}
-                    onChange={(e) => {
-                      const enabled = e.target.checked;
-                      updateSettings({ enableEnvelopes: enabled });
-                      showToast(enabled ? 'Envelopes enabled' : 'Envelopes disabled');
-                    }}
-                    color="primary"
-                    size="small"
-                  />
-                </div>
-
                 {/* 3. Performance & Animations Card Switch */}
                 <div style={{
                   padding: '12px 14px',
@@ -3311,58 +3561,6 @@ export default function Settings({
                         const enabled = e.target.checked;
                         updateSettings({ enablePerformanceCard: enabled });
                         showToast(enabled ? 'Performance Card enabled' : 'Performance Card disabled');
-                      }}
-                      color="primary"
-                      size="small"
-                    />
-                  </div>
-                </div>
-
-                {/* 6. Sample Data Loader */}
-                <div style={{
-                  padding: '12px 14px',
-                  borderRadius: 12,
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 8,
-                      background: (isDevMode && (settings.enableSampleData ?? false)) ? 'var(--accent-soft)' : 'var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                    }}>
-                      <FlaskConical size={17} style={{ color: (isDevMode && (settings.enableSampleData ?? false)) ? 'var(--accent)' : 'var(--text-3)' }} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>Sample Data Loader</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        Populate demo transactions & wallets
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {isDevMode && (settings.enableSampleData ?? false) && (
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={handleLoadSample}
-                        style={{ padding: '3px 10px', fontSize: 11.5, height: 28, gap: 4 }}
-                      >
-                        Load
-                      </button>
-                    )}
-                    <Switch
-                      disabled={!isDevMode}
-                      checked={isDevMode && (settings.enableSampleData ?? false)}
-                      onChange={(e) => {
-                        const enabled = e.target.checked;
-                        updateSettings({ enableSampleData: enabled });
-                        showToast(enabled ? 'Sample Data Loader enabled' : 'Sample Data Loader disabled');
                       }}
                       color="primary"
                       size="small"

@@ -128,11 +128,9 @@ export interface Settings {
   defaultStatus: ExpenseStatus;
   defaultWalletId: string;
   enableAIAssistant?: boolean;
-  enableEnvelopes?: boolean;
   enableAutopay?: boolean;
   enableDevSQLConsole?: boolean;
   enableSplitTrips?: boolean;
-  enableSampleData?: boolean;
   enableUserGuide?: boolean;
   enableAutoUpdate?: boolean;
   installedVersion?: string;
@@ -184,26 +182,12 @@ export interface RecurringRule {
   createdAt: number;
 }
 
-export interface Envelope {
-  id: string;
-  walletId: string;
-  name: string;
-  targetAmount: number;
-  currentAmount: number;
-  color?: string;
-  icon?: string;
-  targetDate?: string;
-  notes?: string;
-  createdAt: number;
-}
-
 export interface AppDB {
   version: number;
   friends: Friend[];
   expenses: Expense[];
   settlements: Settlement[];
   wallets: Wallet[];
-  envelopes?: Envelope[];
   settings: Settings;
   recurringRules?: RecurringRule[];
   activeTrip?: Trip | null;

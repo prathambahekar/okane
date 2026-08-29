@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Plus,
@@ -11,12 +11,6 @@ import {
   RotateCcw,
   Handshake,
   ArrowLeftRight,
-  PiggyBank,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Calendar,
-  CheckCircle2,
-  FolderPlus,
   Store,
   Users,
   Search,
@@ -24,27 +18,23 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { useStore } from '../store';
-import type { Wallet, Envelope, Expense, Settlement } from '../types';
-import { walletBalance, walletEnvelopeAllocated, walletUnallocatedBalance, expenseFlow, monthKey } from '../db';
+import type { Wallet, Expense, Settlement } from '../types';
+import { walletBalance, expenseFlow, monthKey } from '../db';
 import { fmtMoney, fmtDate, typeLabel, statusLabel, groupExpenses, resolveCategoryMeta, type GroupedExpense } from '../utils';
 import WalletModal from '../components/WalletModal';
 import { renderWalletIcon } from '../components/WalletIconRenderer';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ExpenseModal from '../components/ExpenseModal';
 import TransferModal from '../components/TransferModal';
-import EnvelopeModal from '../components/EnvelopeModal';
-import { getEnvelopeIconComponent } from '../utils/envelopeUtils';
-import EnvelopeFundModal from '../components/EnvelopeFundModal';
 import { ExpenseDetailDrawer } from '../components/ExpenseDetailDrawer';
 import SettlementDetailModal from '../components/SettlementDetailModal';
 import CategoryIcon from '../components/CategoryIcon';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: string; onClearViewArg?: () => void }) {
-  const { db, deleteWallet, updateWallet, deleteSettlement, deleteEnvelope, deleteExpense, showToast } = useStore();
-  const { wallets, expenses, envelopes = [], settings } = db;
+  const { db, deleteWallet, updateWallet, deleteSettlement, deleteExpense, showToast } = useStore();
+  const { wallets, expenses, settings } = db;
   const currency = settings?.currency || 'INR';
-  const enableEnvelopes = settings?.enableEnvelopes ?? false;
 
   const [editW, setEditW] = useState<Wallet | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -79,14 +69,6 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferFromId, setTransferFromId] = useState<string | undefined>(undefined);
 
-  // Envelope state
-  const [showEnvelopeModal, setShowEnvelopeModal] = useState(false);
-  const [editingEnvelope, setEditingEnvelope] = useState<Envelope | null>(null);
-  const [fundingEnvelope, setFundingEnvelope] = useState<Envelope | null>(null);
-  const [deletingEnvelopeId, setDeletingEnvelopeId] = useState<string | null>(null);
-  const [envelopeWalletFilter, setEnvelopeWalletFilter] = useState<string>('all');
-  const [defaultEnvelopeWalletId, setDefaultEnvelopeWalletId] = useState<string | undefined>(undefined);
-
   const handleDelete = (id: string) => {
     if (!deleteWallet(id)) {
       showToast('Cannot delete the only wallet.');
@@ -96,11 +78,6 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
       setSelectedWalletForTx(null);
     }
     setDelId(null);
-  };
-
-  const handleDeleteEnvelope = (id: string) => {
-    deleteEnvelope(id);
-    setDeletingEnvelopeId(null);
   };
 
   const activeWallet = selectedWalletForTx;
@@ -209,9 +186,6 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
     const mapped = wallets.map(w => {
       const isDefault = w.id === defaultWalId || Boolean(w.isDefault);
       const bal = walletBalance(db, w.id);
-      const allocated = walletEnvelopeAllocated(db, w.id);
-      const unallocated = walletUnallocatedBalance(db, w.id);
-      const wEnvelopes = envelopes.filter(e => e.walletId === w.id);
       const wExpenses = expenses.filter(e => e.walletId === w.id);
       const wSettlements = (db.settlements || []).filter(s => s.walletId === w.id);
       const wExpCount = wExpenses.length + wSettlements.length;
@@ -227,9 +201,6 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
         wallet: w,
         isDefault,
         bal,
-        allocated,
-        unallocated,
-        wEnvelopes,
         wExpCount,
         wSpend,
       };
@@ -241,49 +212,19 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
       if (!a.isDefault && b.isDefault) return 1;
       return 0;
     });
-  }, [wallets, db, envelopes, expenses, thisKey, settings?.defaultWalletId]);
-
-  // Envelopes statistics
-  const filteredEnvelopes = useMemo(() => {
-    if (envelopeWalletFilter === 'all') return envelopes;
-    return envelopes.filter(e => e.walletId === envelopeWalletFilter);
-  }, [envelopes, envelopeWalletFilter]);
-
-  const totalGoalTarget = useMemo(() => {
-    return filteredEnvelopes.reduce((sum, e) => sum + (Number(e.targetAmount) || 0), 0);
-  }, [filteredEnvelopes]);
-
-  const totalGoalCurrent = useMemo(() => {
-    return filteredEnvelopes.reduce((sum, e) => sum + (Number(e.currentAmount) || 0), 0);
-  }, [filteredEnvelopes]);
-
-  const overallProgressPct = totalGoalTarget > 0 ? Math.min(100, Math.round((totalGoalCurrent / totalGoalTarget) * 100)) : 0;
+  }, [wallets, db, expenses, thisKey, settings?.defaultWalletId]);
 
   return (
     <div className="view-container">
       {/* Page Header */}
       <div className="page-header" style={{ marginTop: 8, marginBottom: 14 }}>
         <div>
-          <h1 className="page-title">{enableEnvelopes ? 'Wallets & Envelopes' : 'Wallets'}</h1>
+          <h1 className="page-title">Wallets</h1>
           <p className="page-subtitle desktop-only">
-            {enableEnvelopes
-              ? 'Manage your physical wallets, bank accounts, and goal-based envelopes.'
-              : 'Manage your physical wallets and bank accounts.'}
+            Manage your physical wallets and bank accounts.
           </p>
         </div>
         <div className="page-header-actions" style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
-          {enableEnvelopes && (
-            <button
-              className="btn btn-secondary"
-              onClick={() => {
-                setDefaultEnvelopeWalletId(undefined);
-                setEditingEnvelope(null);
-                setShowEnvelopeModal(true);
-              }}
-            >
-              <FolderPlus size={16} /> New Goal Envelope
-            </button>
-          )}
           <button
             className="btn btn-secondary"
             style={{
@@ -323,7 +264,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
 
       {/* Wallet Cards Grid Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12, marginBottom: 24 }}>
-        {walletCardsData.map(({ wallet: w, isDefault, bal, allocated, unallocated, wEnvelopes, wExpCount, wSpend }) => {
+        {walletCardsData.map(({ wallet: w, isDefault, bal, wExpCount, wSpend }) => {
           return (
             <div
               key={w.id}
@@ -354,7 +295,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                         flexShrink: 0,
                       }}
                     >
-                      {renderWalletIcon(w.icon || 'wallet', 44, w.color || '#d97706')}
+                      {renderWalletIcon(w.icon || 'wallet', 44, w.color || 'var(--accent)')}
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -398,11 +339,6 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                           </span>
                         )}
                       </div>
-                      {enableEnvelopes && (
-                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
-                          {wEnvelopes.length} {wEnvelopes.length === 1 ? 'Goal Envelope' : 'Goal Envelopes'}
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -503,26 +439,6 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                       Opening Balance: <strong style={{ color: 'var(--text)', marginLeft: 4 }}>{fmtMoney(w.openingBalance, currency)}</strong>
                     </span>
                   </div>
-
-                  {/* Allocated vs Unallocated Breakdown Bar */}
-                  {enableEnvelopes && bal > 0 && (
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>
-                        <span>Available: <strong style={{ color: 'var(--text)' }}>{fmtMoney(unallocated, currency)}</strong></span>
-                        <span>Saved Goals: <strong style={{ color: w.color }}>{fmtMoney(allocated, currency)}</strong></span>
-                      </div>
-                      <div style={{ height: 6, borderRadius: 99, background: 'var(--surface2)', overflow: 'hidden', display: 'flex' }}>
-                        <div
-                          style={{
-                            width: `${Math.min(100, Math.max(0, (allocated / bal) * 100))}%`,
-                            background: w.color,
-                            transition: 'width 0.3s ease',
-                          }}
-                          title={`Allocated to goals: ${fmtMoney(allocated, currency)}`}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -545,31 +461,6 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
 
                 {/* Bottom Action Buttons */}
                 <div style={{ display: 'flex', gap: 10 }}>
-                  {enableEnvelopes && (
-                    <button
-                      className="btn btn-secondary"
-                      style={{
-                        flex: 1,
-                        justifyContent: 'center',
-                        gap: 6,
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        padding: '9px 10px',
-                        borderRadius: 10,
-                        border: '1.5px solid var(--border)',
-                        background: 'var(--surface2)',
-                      }}
-                      onClick={() => {
-                        setDefaultEnvelopeWalletId(w.id);
-                        setEditingEnvelope(null);
-                        setShowEnvelopeModal(true);
-                      }}
-                      title="Add envelope to this wallet"
-                    >
-                      <Plus size={14} />
-                      Goal
-                    </button>
-                  )}
                   <button
                     className="btn btn-secondary"
                     style={{
@@ -622,373 +513,9 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
         })}
       </div>
 
-      {/* Envelopes Section */}
-      {enableEnvelopes && (
-        <div
-          style={{
-            background: 'var(--surface)',
-            border: '1.5px solid var(--border)',
-            borderRadius: 16,
-            padding: 24,
-            boxShadow: 'var(--shadow)',
-          }}
-        >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                background: 'rgba(59, 130, 246, 0.12)',
-                border: '1px solid rgba(59, 130, 246, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#3B82F6',
-              }}
-            >
-              <PiggyBank size={22} />
-            </div>
-            <div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Goal-Based Envelopes</h2>
-              <p style={{ fontSize: 12.5, color: 'var(--text-2)', margin: '2px 0 0 0' }}>
-                Track dedicated savings targets (e.g. Emergency reserve, Vacation, Buying a gadget) inside your wallets.
-              </p>
-            </div>
-          </div>
 
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setDefaultEnvelopeWalletId(undefined);
-              setEditingEnvelope(null);
-              setShowEnvelopeModal(true);
-            }}
-          >
-            <Plus size={16} /> Create Goal Envelope
-          </button>
-        </div>
 
-        {/* Filters & Overall Stats */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-          {/* Wallet Filter Pills */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setEnvelopeWalletFilter('all')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 20,
-                fontSize: 12.5,
-                fontWeight: 600,
-                border: envelopeWalletFilter === 'all' ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-                background: envelopeWalletFilter === 'all' ? 'var(--accent)18' : 'var(--surface2)',
-                color: envelopeWalletFilter === 'all' ? 'var(--accent)' : 'var(--text-2)',
-                cursor: 'pointer',
-              }}
-            >
-              All Wallets ({envelopes.length})
-            </button>
-            {wallets.map(w => {
-              const count = envelopes.filter(e => e.walletId === w.id).length;
-              const isSel = envelopeWalletFilter === w.id;
-              return (
-                <button
-                  key={w.id}
-                  onClick={() => setEnvelopeWalletFilter(w.id)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: 20,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    border: isSel ? `1.5px solid ${w.color}` : '1px solid var(--border)',
-                    background: isSel ? `${w.color}18` : 'var(--surface2)',
-                    color: isSel ? w.color : 'var(--text-2)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: w.color }} />
-                  {w.name} ({count})
-                </button>
-              );
-            })}
-          </div>
 
-          {/* Goal Progress Summary Badge */}
-          <div
-            style={{
-              padding: '8px 16px',
-              borderRadius: 12,
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 10.5, color: 'var(--text-3)', fontWeight: 600, textTransform: 'uppercase' }}>
-                Total Saved
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
-                {fmtMoney(totalGoalCurrent, currency)}
-                <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-2)', marginLeft: 4 }}>
-                  / {fmtMoney(totalGoalTarget, currency)}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ width: 100 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-2)', marginBottom: 3 }}>
-                <span>Achieved</span>
-                <span style={{ fontWeight: 700, color: 'var(--credit)' }}>{overallProgressPct}%</span>
-              </div>
-              <div style={{ height: 6, borderRadius: 99, background: 'var(--surface3)', overflow: 'hidden' }}>
-                <div style={{ width: `${overallProgressPct}%`, height: '100%', background: 'var(--credit)', transition: 'width 0.3s ease' }} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Envelope Grid */}
-        {filteredEnvelopes.length === 0 ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '48px 20px',
-              background: 'var(--surface2)',
-              borderRadius: 12,
-              border: '1px dashed var(--border2)',
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                background: 'rgba(59, 130, 246, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 12px auto',
-                color: '#3B82F6',
-              }}
-            >
-              <PiggyBank size={24} />
-            </div>
-            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>No envelopes yet</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-2)', maxWidth: 400, margin: '0 auto 16px auto' }}>
-              Create goal-based envelopes like Emergency Reserve, Vacation, or Tech Upgrade to allocate your savings purposefully.
-            </p>
-            <button
-              className="btn btn-primary"
-              onClick={() => {
-                setDefaultEnvelopeWalletId(envelopeWalletFilter !== 'all' ? envelopeWalletFilter : undefined);
-                setEditingEnvelope(null);
-                setShowEnvelopeModal(true);
-              }}
-            >
-              <Plus size={16} /> Add First Savings Goal
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-            {filteredEnvelopes.map(env => {
-              const targetWal = wallets.find(w => w.id === env.walletId);
-              const pct = env.targetAmount > 0 ? Math.min(100, Math.round((env.currentAmount / env.targetAmount) * 100)) : 100;
-              const isCompleted = env.targetAmount > 0 && env.currentAmount >= env.targetAmount;
-              const remaining = Math.max(0, env.targetAmount - env.currentAmount);
-
-              return (
-                <div
-                  key={env.id}
-                  style={{
-                    background: 'var(--surface2)',
-                    border: `1.5px solid ${isCompleted ? 'rgba(16, 185, 129, 0.4)' : 'var(--border)'}`,
-                    borderRadius: 14,
-                    padding: '18px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: 14,
-                    position: 'relative',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <div>
-                    {/* Header */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div
-                          style={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: 10,
-                            background: `${env.color}22`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: env.color,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {React.createElement(getEnvelopeIconComponent(env.icon), { size: 20 })}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {env.name}
-                            {isCompleted && <CheckCircle2 size={16} style={{ color: 'var(--credit)' }} />}
-                          </div>
-                          {targetWal && (
-                            <div style={{ fontSize: 11, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
-                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: targetWal.color }} />
-                              {targetWal.name}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 2 }}>
-                        <button
-                          className="btn-icon"
-                          style={{ padding: 4 }}
-                          onClick={() => {
-                            setEditingEnvelope(env);
-                            setShowEnvelopeModal(true);
-                          }}
-                          title="Edit Envelope Goal"
-                        >
-                          <Edit2 size={15} />
-                        </button>
-                        <button
-                          className="btn-icon"
-                          style={{ padding: 4, color: 'var(--debit)' }}
-                          onClick={() => setDeletingEnvelopeId(env.id)}
-                          title="Delete Envelope"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Numbers */}
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
-                        {fmtMoney(env.currentAmount, currency)}
-                        {env.targetAmount > 0 && (
-                          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-3)', marginLeft: 6 }}>
-                            / {fmtMoney(env.targetAmount, currency)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Progress Bar */}
-                      {env.targetAmount > 0 && (
-                        <div style={{ marginTop: 8 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-2)', marginBottom: 4 }}>
-                            <span>{pct}% complete</span>
-                            <span>{remaining > 0 ? `${fmtMoney(remaining, currency)} left` : 'Goal Reached!'}</span>
-                          </div>
-                          <div style={{ height: 8, borderRadius: 99, background: 'var(--surface3)', overflow: 'hidden' }}>
-                            <div
-                              style={{
-                                width: `${pct}%`,
-                                height: '100%',
-                                background: isCompleted ? 'var(--credit)' : env.color,
-                                transition: 'width 0.3s ease',
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Metadata Badges */}
-                    {(env.targetDate || env.notes) && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                        {env.targetDate && (
-                          <span
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: 6,
-                              background: 'var(--surface3)',
-                              border: '1px solid var(--border)',
-                              fontSize: 10.5,
-                              color: 'var(--text-2)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4,
-                            }}
-                          >
-                            <Calendar size={11} /> Target: {fmtDate(env.targetDate)}
-                          </span>
-                        )}
-                        {env.notes && (
-                          <span
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: 6,
-                              background: 'var(--surface3)',
-                              border: '1px solid var(--border)',
-                              fontSize: 10.5,
-                              color: 'var(--text-2)',
-                              maxWidth: '100%',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                            title={env.notes}
-                          >
-                            {env.notes}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Fund Actions */}
-                  <div style={{ display: 'flex', gap: 8, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-                    <button
-                      className="btn btn-secondary"
-                      style={{
-                        flex: 1,
-                        justifyContent: 'center',
-                        gap: 4,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        padding: '6px 10px',
-                        color: 'var(--credit)',
-                      }}
-                      onClick={() => setFundingEnvelope(env)}
-                    >
-                      <ArrowDownLeft size={14} /> Deposit
-                    </button>
-                    <button
-                      className="btn btn-secondary"
-                      style={{
-                        flex: 1,
-                        justifyContent: 'center',
-                        gap: 4,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        padding: '6px 10px',
-                        color: 'var(--debit)',
-                      }}
-                      onClick={() => setFundingEnvelope(env)}
-                    >
-                      <ArrowUpRight size={14} /> Withdraw
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-      )}
 
       {/* Wallet Transactions Modern Drawer Modal */}
       {activeWallet && createPortal(
@@ -1428,42 +955,12 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
         defaultFromWalletId={transferFromId}
       />
 
-      {/* Envelope Modals */}
-      {showEnvelopeModal && (
-        <EnvelopeModal
-          envelope={editingEnvelope}
-          defaultWalletId={defaultEnvelopeWalletId}
-          onClose={() => {
-            setShowEnvelopeModal(false);
-            setEditingEnvelope(null);
-            setDefaultEnvelopeWalletId(undefined);
-          }}
-        />
-      )}
-
-      {fundingEnvelope && (
-        <EnvelopeFundModal
-          envelope={fundingEnvelope}
-          onClose={() => setFundingEnvelope(null)}
-        />
-      )}
-
       {delId && (
         <ConfirmDialog
           title="Delete Wallet"
           message="All expenses in this wallet will be moved to another wallet. Are you sure?"
           onConfirm={() => handleDelete(delId)}
           onClose={() => setDelId(null)}
-        />
-      )}
-
-      {deletingEnvelopeId && (
-        <ConfirmDialog
-          title="Delete Goal Envelope"
-          message="Are you sure you want to delete this savings goal envelope?"
-          confirmLabel="Delete Envelope"
-          onConfirm={() => handleDeleteEnvelope(deletingEnvelopeId)}
-          onClose={() => setDeletingEnvelopeId(null)}
         />
       )}
 

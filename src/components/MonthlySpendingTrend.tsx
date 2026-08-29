@@ -1,8 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Calendar, BarChart2, LineChart, TrendingUp, ArrowUpRight, ArrowDownRight, Info, Plus, Sparkles, Filter, ChevronDown, Layers } from 'lucide-react';
+import { Calendar, BarChart2, LineChart, TrendingUp, ArrowUpRight, ArrowDownRight, Info, Plus, Filter, ChevronDown, Layers } from 'lucide-react';
 import { personalNetAmount } from '../db';
 import { fmtMoney } from '../utils';
-import { useStore } from '../store';
 import type { Expense, ViewName } from '../types';
 
 interface Props {
@@ -13,7 +12,6 @@ interface Props {
 }
 
 export default function MonthlySpendingTrend({ expenses, currency, onNavigate, onAddExpense }: Props) {
-  const { loadSampleData } = useStore();
   const [chartType, setChartType] = useState<'cumulative' | 'daily' | 'history'>('cumulative');
   const [comparisonBaseline, setComparisonBaseline] = useState<'prev_month' | 'prev_year' | 'avg_month'>('prev_month');
   const [filterScope, setFilterScope] = useState<string>('personal'); // 'personal' | 'all' | category name
@@ -349,10 +347,6 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
     return fmtMoney(amount, currencySymbol);
   };
 
-  const handleSeedData = () => {
-    loadSampleData();
-  };
-
   return (
     <div className="card spending-trend-card">
       {/* Header Row: Title & View Switcher */}
@@ -599,7 +593,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
               No spending logged for {selFullMonthName}
             </h3>
             <p style={{ fontSize: 12.5, color: 'var(--text-3)', margin: 0, maxWidth: 380 }}>
-              Start logging expenses or seed sample data to unlock interactive pace curves, category breakdowns, and monthly trends.
+              Start logging expenses to unlock interactive pace curves, category breakdowns, and monthly trends.
             </p>
           </div>
 
@@ -609,9 +603,6 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                 <Plus size={15} /> Add Expense
               </button>
             )}
-            <button className="btn btn-secondary btn-sm" onClick={handleSeedData}>
-              <Sparkles size={15} /> Load Sample Data
-            </button>
           </div>
         </div>
       ) : (

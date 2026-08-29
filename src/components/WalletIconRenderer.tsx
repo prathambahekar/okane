@@ -416,14 +416,16 @@ export function renderWalletIcon(iconKey?: string, size = 26, customColor?: stri
     );
   }
 
+  const iconColor = (customColor && customColor !== '#D97706' && customColor !== '#d97706') ? customColor : 'var(--accent)';
+
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" {...svgCommonProps}>
-      <rect width="48" height="48" rx="12" fill={customColor || '#D97706'} />
+      <rect width="48" height="48" rx="12" fill={iconColor} />
       <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="11.25" className="wallet-icon-fallback-border" strokeWidth="1.5" />
-      <g transform="translate(12, 12)" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none">
-        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-        <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-        <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+      <g transform="translate(11, 11)" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <rect x="2" y="5" width="22" height="16" rx="3" />
+        <path d="M2 10h22" />
+        <circle cx="17.5" cy="15" r="1.5" fill="#FFFFFF" />
       </g>
     </svg>
   );

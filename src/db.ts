@@ -1,5 +1,5 @@
 import alasql from 'alasql';
-import type { AppDB, Wallet, Friend, Expense, Settlement, ExpenseFlow, ExpenseType, ExpenseStatus, RecurringRule, FrequencyType, ContactType, RecurringKind, SettlementPartialBreakdownItem, Envelope } from './types';
+import type { AppDB, Wallet, Friend, Expense, Settlement, ExpenseFlow, ExpenseType, ExpenseStatus, RecurringRule, FrequencyType, ContactType, RecurringKind, SettlementPartialBreakdownItem } from './types';
 
 const SQL_STORAGE_KEY = 'okane_sql_database_dump_v1';
 const LEGACY_JSON_KEY = 'ledger_app_db_v2';
@@ -13,7 +13,6 @@ export function resetSQLTables() {
     alasql('DROP TABLE IF EXISTS expenses');
     alasql('DROP TABLE IF EXISTS settlements');
     alasql('DROP TABLE IF EXISTS recurring_rules');
-    alasql('DROP TABLE IF EXISTS envelopes');
     alasql('DROP TABLE IF EXISTS categories');
     alasql('DROP TABLE IF EXISTS settings');
   } catch (err) {
@@ -31,7 +30,6 @@ export function initSQLTables() {
     alasql('CREATE TABLE IF NOT EXISTS expenses (id STRING PRIMARY KEY, groupId STRING, description STRING, amount NUMBER, category STRING, date STRING, type STRING, flow STRING, friendId STRING, walletId STRING, status STRING, settled INT, settlementId STRING, notes STRING, createdAt INT, originalAmount NUMBER, settledAmount NUMBER, parentExpenseId STRING, vendorId STRING)');
     alasql('CREATE TABLE IF NOT EXISTS settlements (id STRING PRIMARY KEY, friendId STRING, amount NUMBER, date STRING, note STRING, walletId STRING, createdAt INT, expenseIds STRING, originalTotal NUMBER, remainingAmount NUMBER, partialBreakdown STRING)');
     alasql('CREATE TABLE IF NOT EXISTS recurring_rules (id STRING PRIMARY KEY, title STRING, kind STRING, amount NUMBER, category STRING, walletId STRING, friendId STRING, type STRING, flow STRING, frequency STRING, intervalValue INT, startDate STRING, nextDueDate STRING, autoDeduct INT, status STRING, notes STRING, createdAt INT)');
-    alasql('CREATE TABLE IF NOT EXISTS envelopes (id STRING PRIMARY KEY, walletId STRING, name STRING, targetAmount NUMBER, currentAmount NUMBER, color STRING, icon STRING, targetDate STRING, notes STRING, createdAt INT)');
     alasql('CREATE TABLE IF NOT EXISTS categories (name STRING PRIMARY KEY, color STRING, icon STRING)');
     alasql('CREATE TABLE IF NOT EXISTS settings (st_key STRING PRIMARY KEY, st_val STRING)');
     isSQLInitialized = true;
@@ -165,7 +163,6 @@ export function generateSQLDumpString(): string {
     expenses: (alasql('SELECT * FROM expenses') as Record<string, unknown>[]) || [],
     settlements: (alasql('SELECT * FROM settlements') as Record<string, unknown>[]) || [],
     recurring_rules: (alasql('SELECT * FROM recurring_rules') as Record<string, unknown>[]) || [],
-    envelopes: (alasql('SELECT * FROM envelopes') as Record<string, unknown>[]) || [],
     categories: (alasql('SELECT * FROM categories') as Record<string, unknown>[]) || [],
     settings: (alasql('SELECT * FROM settings') as Record<string, unknown>[]) || [],
   };
@@ -178,7 +175,6 @@ CREATE TABLE IF NOT EXISTS wallets (id TEXT PRIMARY KEY, name TEXT, openingBalan
 CREATE TABLE IF NOT EXISTS expenses (id TEXT PRIMARY KEY, groupId TEXT, description TEXT, amount REAL, category TEXT, date TEXT, type TEXT, flow TEXT, friendId TEXT, walletId TEXT, status TEXT, settled INTEGER, settlementId TEXT, notes TEXT, createdAt INTEGER, originalAmount REAL, settledAmount REAL, parentExpenseId TEXT, vendorId TEXT);
 CREATE TABLE IF NOT EXISTS settlements (id TEXT PRIMARY KEY, friendId TEXT, amount REAL, date TEXT, note TEXT, walletId TEXT, createdAt INTEGER, expenseIds TEXT, originalTotal REAL, remainingAmount REAL, partialBreakdown TEXT);
 CREATE TABLE IF NOT EXISTS recurring_rules (id TEXT PRIMARY KEY, title TEXT, kind TEXT, amount REAL, category TEXT, walletId TEXT, friendId TEXT, type TEXT, flow TEXT, frequency TEXT, intervalValue INTEGER, startDate TEXT, nextDueDate TEXT, autoDeduct INTEGER, status TEXT, notes TEXT, createdAt INTEGER);
-CREATE TABLE IF NOT EXISTS envelopes (id TEXT PRIMARY KEY, walletId TEXT, name TEXT, targetAmount REAL, currentAmount REAL, color TEXT, icon TEXT, targetDate TEXT, notes TEXT, createdAt INTEGER);
 CREATE TABLE IF NOT EXISTS categories (name TEXT PRIMARY KEY, color TEXT, icon TEXT);
 CREATE TABLE IF NOT EXISTS settings (st_key TEXT PRIMARY KEY, st_val TEXT);
 
@@ -217,11 +213,6 @@ CREATE TABLE IF NOT EXISTS settings (st_key TEXT PRIMARY KEY, st_val TEXT);
   sql += `\nDELETE FROM recurring_rules;\n`;
   dump.recurring_rules.forEach(r => {
     sql += `INSERT INTO recurring_rules (id, title, kind, amount, category, walletId, friendId, type, flow, frequency, intervalValue, startDate, nextDueDate, autoDeduct, status, notes, createdAt) VALUES (${escapeVal(r.id)}, ${escapeVal(r.title)}, ${escapeVal(r.kind)}, ${escapeVal(r.amount)}, ${escapeVal(r.category)}, ${escapeVal(r.walletId)}, ${escapeVal(r.friendId)}, ${escapeVal(r.type)}, ${escapeVal(r.flow)}, ${escapeVal(r.frequency)}, ${escapeVal(r.intervalValue)}, ${escapeVal(r.startDate)}, ${escapeVal(r.nextDueDate)}, ${escapeVal(r.autoDeduct)}, ${escapeVal(r.status)}, ${escapeVal(r.notes)}, ${escapeVal(r.createdAt)});\n`;
-  });
-
-  sql += `\nDELETE FROM envelopes;\n`;
-  dump.envelopes.forEach(e => {
-    sql += `INSERT INTO envelopes (id, walletId, name, targetAmount, currentAmount, color, icon, targetDate, notes, createdAt) VALUES (${escapeVal(e.id)}, ${escapeVal(e.walletId)}, ${escapeVal(e.name)}, ${escapeVal(e.targetAmount)}, ${escapeVal(e.currentAmount)}, ${escapeVal(e.color)}, ${escapeVal(e.icon)}, ${escapeVal(e.targetDate)}, ${escapeVal(e.notes)}, ${escapeVal(e.createdAt)});\n`;
   });
 
   sql += `\nDELETE FROM categories;\n`;
@@ -440,11 +431,73 @@ export const FRIEND_PALETTE = [
   '#E11D48', '#0D9488', '#EA580C', '#0284C7', '#475569',
 ];
 
-export const CURRENCIES = [
-  { code: 'USD', symbol: '$' }, { code: 'EUR', symbol: '€' }, { code: 'GBP', symbol: '£' },
-  { code: 'INR', symbol: '₹' }, { code: 'JPY', symbol: '¥' }, { code: 'AUD', symbol: 'A$' },
-  { code: 'CAD', symbol: 'C$' }, { code: 'CNY', symbol: '¥' }, { code: 'SGD', symbol: 'S$' },
-  { code: 'AED', symbol: 'د.إ' },
+export interface CurrencyInfo {
+  code: string;
+  symbol: string;
+  name: string;
+  country: string;
+}
+
+export const CURRENCIES: CurrencyInfo[] = [
+  { code: 'USD', symbol: '$', name: 'US Dollar', country: 'United States' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee', country: 'India' },
+  { code: 'EUR', symbol: '€', name: 'Euro', country: 'European Union' },
+  { code: 'GBP', symbol: '£', name: 'British Pound', country: 'United Kingdom' },
+  { code: 'AED', symbol: 'د.إ', name: 'Emirati Dirham', country: 'United Arab Emirates' },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', country: 'Canada' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', country: 'Australia' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen', country: 'Japan' },
+  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', country: 'China' },
+  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar', country: 'Singapore' },
+  { code: 'SAR', symbol: '﷼', name: 'Saudi Riyal', country: 'Saudi Arabia' },
+  { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc', country: 'Switzerland' },
+  { code: 'MYR', symbol: 'RM', name: 'Malaysian Ringgit', country: 'Malaysia' },
+  { code: 'THB', symbol: '฿', name: 'Thai Baht', country: 'Thailand' },
+  { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah', country: 'Indonesia' },
+  { code: 'PHP', symbol: '₱', name: 'Philippine Peso', country: 'Philippines' },
+  { code: 'VND', symbol: '₫', name: 'Vietnamese Dong', country: 'Vietnam' },
+  { code: 'KRW', symbol: '₩', name: 'South Korean Won', country: 'South Korea' },
+  { code: 'NZD', symbol: 'NZ$', name: 'New Zealand Dollar', country: 'New Zealand' },
+  { code: 'HKD', symbol: 'HK$', name: 'Hong Kong Dollar', country: 'Hong Kong' },
+  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', country: 'Brazil' },
+  { code: 'MXN', symbol: 'Mex$', name: 'Mexican Peso', country: 'Mexico' },
+  { code: 'ZAR', symbol: 'R', name: 'South African Rand', country: 'South Africa' },
+  { code: 'TRY', symbol: '₺', name: 'Turkish Lira', country: 'Turkey' },
+  { code: 'RUB', symbol: '₽', name: 'Russian Ruble', country: 'Russia' },
+  { code: 'SEK', symbol: 'kr', name: 'Swedish Krona', country: 'Sweden' },
+  { code: 'NOK', symbol: 'kr', name: 'Norwegian Krone', country: 'Norway' },
+  { code: 'DKK', symbol: 'kr', name: 'Danish Krone', country: 'Denmark' },
+  { code: 'PLN', symbol: 'zł', name: 'Polish Zloty', country: 'Poland' },
+  { code: 'CZK', symbol: 'Kč', name: 'Czech Koruna', country: 'Czech Republic' },
+  { code: 'HUF', symbol: 'Ft', name: 'Hungarian Forint', country: 'Hungary' },
+  { code: 'RON', symbol: 'lei', name: 'Romanian Leu', country: 'Romania' },
+  { code: 'ILS', symbol: '₪', name: 'Israeli New Shekel', country: 'Israel' },
+  { code: 'EGP', symbol: 'E£', name: 'Egyptian Pound', country: 'Egypt' },
+  { code: 'PKR', symbol: '₨', name: 'Pakistani Rupee', country: 'Pakistan' },
+  { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka', country: 'Bangladesh' },
+  { code: 'LKR', symbol: 'Rs', name: 'Sri Lankan Rupee', country: 'Sri Lanka' },
+  { code: 'NPR', symbol: 'Rs', name: 'Nepalese Rupee', country: 'Nepal' },
+  { code: 'QAR', symbol: 'QR', name: 'Qatari Riyal', country: 'Qatar' },
+  { code: 'KWD', symbol: 'KD', name: 'Kuwaiti Dinar', country: 'Kuwait' },
+  { code: 'OMR', symbol: 'RO', name: 'Omani Rial', country: 'Oman' },
+  { code: 'BHD', symbol: 'BD', name: 'Bahraini Dinar', country: 'Bahrain' },
+  { code: 'JOD', symbol: 'JD', name: 'Jordanian Dinar', country: 'Jordan' },
+  { code: 'CLP', symbol: 'CLP$', name: 'Chilean Peso', country: 'Chile' },
+  { code: 'COP', symbol: 'COL$', name: 'Colombian Peso', country: 'Colombia' },
+  { code: 'ARS', symbol: 'ARS$', name: 'Argentine Peso', country: 'Argentina' },
+  { code: 'PEN', symbol: 'S/', name: 'Peruvian Sol', country: 'Peru' },
+  { code: 'NGN', symbol: '₦', name: 'Nigerian Naira', country: 'Nigeria' },
+  { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling', country: 'Kenya' },
+  { code: 'GHS', symbol: 'GH₵', name: 'Ghanaian Cedi', country: 'Ghana' },
+  { code: 'TWD', symbol: 'NT$', name: 'New Taiwan Dollar', country: 'Taiwan' },
+  { code: 'KZT', symbol: '₸', name: 'Kazakhstani Tenge', country: 'Kazakhstan' },
+  { code: 'UAH', symbol: '₴', name: 'Ukrainian Hryvnia', country: 'Ukraine' },
+  { code: 'MAD', symbol: 'DH', name: 'Moroccan Dirham', country: 'Morocco' },
+  { code: 'TND', symbol: 'DT', name: 'Tunisian Dinar', country: 'Tunisia' },
+  { code: 'DZD', symbol: 'DA', name: 'Algerian Dinar', country: 'Algeria' },
+  { code: 'CRC', symbol: '₡', name: 'Costa Rican Colón', country: 'Costa Rica' },
+  { code: 'UYU', symbol: '$U', name: 'Uruguayan Peso', country: 'Uruguay' },
+  { code: 'DOP', symbol: 'RD$', name: 'Dominican Peso', country: 'Dominican Republic' },
 ];
 
 export function uid(prefix = 'id'): string {
@@ -456,51 +509,6 @@ export function todayISO(): string {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-export function defaultSampleEnvelopes(walletId: string): Envelope[] {
-  const nextYear = new Date();
-  nextYear.setFullYear(nextYear.getFullYear() + 1);
-  const targetDateStr = nextYear.toISOString().split('T')[0];
-
-  return [
-    {
-      id: 'env_emergency',
-      walletId,
-      name: 'Emergency Fund',
-      targetAmount: 10000,
-      currentAmount: 3500,
-      color: '#10B981',
-      icon: 'shield',
-      targetDate: targetDateStr,
-      notes: '3-6 months reserve fund',
-      createdAt: Date.now() - 86400000 * 30,
-    },
-    {
-      id: 'env_vacation',
-      walletId,
-      name: 'Vacation Savings',
-      targetAmount: 3000,
-      currentAmount: 1200,
-      color: '#3B82F6',
-      icon: 'plane',
-      targetDate: targetDateStr,
-      notes: 'Year-end holiday travel',
-      createdAt: Date.now() - 86400000 * 15,
-    },
-    {
-      id: 'env_gadget',
-      walletId,
-      name: 'New Laptop',
-      targetAmount: 2000,
-      currentAmount: 800,
-      color: '#8B5CF6',
-      icon: 'laptop',
-      targetDate: targetDateStr,
-      notes: 'Hardware upgrade savings',
-      createdAt: Date.now() - 86400000 * 10,
-    },
-  ];
-}
-
 export function defaultDB(): AppDB {
   const wallets = JSON.parse(JSON.stringify(DEFAULT_WALLETS)) as Wallet[];
   const defaultWal = wallets[0].id;
@@ -510,7 +518,6 @@ export function defaultDB(): AppDB {
     expenses: [],
     settlements: [],
     wallets,
-    envelopes: defaultSampleEnvelopes(defaultWal),
     settings: {
       currency: 'INR',
       categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
@@ -518,12 +525,10 @@ export function defaultDB(): AppDB {
       defaultStatus: 'paid',
       defaultWalletId: defaultWal,
       enableAIAssistant: true,
-      enableEnvelopes: false,
       enableAutopay: false,
       devMode: false,
       enableDevSQLConsole: false,
       enableSplitTrips: false,
-      enableSampleData: false,
       enableUserGuide: false,
       colorMode: (localStorage.getItem('color-mode') as 'light' | 'dark') || 'dark',
       accent: localStorage.getItem('accent-color') || 'monochrome',
@@ -577,10 +582,6 @@ export function sanitizeLoadedDB(rawDB: unknown): AppDB {
     ? parsed.recurringRules.filter(r => r && typeof r === 'object' && r.id && r.title)
     : [];
 
-  const envelopes = Array.isArray(parsed.envelopes)
-    ? parsed.envelopes.filter(env => env && typeof env === 'object' && env.id && env.name)
-    : d.envelopes;
-
   const settings = {
     ...d.settings,
     ...(parsed.settings || {}),
@@ -597,7 +598,6 @@ export function sanitizeLoadedDB(rawDB: unknown): AppDB {
     expenses,
     settlements,
     recurringRules,
-    envelopes,
     settings,
     activeTrip: parsed.activeTrip ?? null,
     tripHistory: Array.isArray(parsed.tripHistory) ? parsed.tripHistory : [],
@@ -856,16 +856,6 @@ export function syncDBToSQLTables(db: AppDB): void {
       ]);
     });
 
-    const seenEnvelopes = new Set<string>();
-    (db.envelopes || []).forEach(env => {
-      if (!env.id || seenEnvelopes.has(env.id)) return;
-      seenEnvelopes.add(env.id);
-      safeInsert('INSERT INTO envelopes VALUES (?,?,?,?,?,?,?,?,?,?)', [
-        env.id, env.walletId, env.name, Number(env.targetAmount) || 0, Number(env.currentAmount) || 0,
-        env.color || '#3B82F6', env.icon || 'piggy-bank', env.targetDate || '', env.notes || '', env.createdAt || Date.now()
-      ]);
-    });
-
     const seenCats = new Set<string>();
     (db.settings?.categories || DEFAULT_CATEGORIES).forEach(c => {
       if (!c.name || seenCats.has(c.name)) return;
@@ -914,7 +904,6 @@ export function syncDBToSQLTables(db: AppDB): void {
       expenses: alasql('SELECT * FROM expenses'),
       settlements: alasql('SELECT * FROM settlements'),
       recurring_rules: alasql('SELECT * FROM recurring_rules'),
-      envelopes: alasql('SELECT * FROM envelopes'),
       categories: alasql('SELECT * FROM categories'),
       settings: alasql('SELECT * FROM settings'),
     };
@@ -933,7 +922,6 @@ export function loadDBFromSQLTables(): AppDB {
     const sqlExpenses = (alasql('SELECT * FROM expenses') as Record<string, unknown>[]) || [];
     const sqlSettlements = (alasql('SELECT * FROM settlements') as Record<string, unknown>[]) || [];
     const sqlRecurring = (alasql('SELECT * FROM recurring_rules') as Record<string, unknown>[]) || [];
-    const sqlEnvelopes = (alasql('SELECT * FROM envelopes') as Record<string, unknown>[]) || [];
     const sqlCategories = (alasql('SELECT * FROM categories') as Record<string, unknown>[]) || [];
     const sqlSettings = (alasql('SELECT * FROM settings') as Record<string, unknown>[]) || [];
 
@@ -1031,19 +1019,6 @@ export function loadDBFromSQLTables(): AppDB {
       createdAt: Number(r.createdAt) || Date.now(),
     }));
 
-    const envelopes: Envelope[] = sqlEnvelopes.map(e => ({
-      id: String(e.id),
-      walletId: String(e.walletId),
-      name: String(e.name),
-      targetAmount: Number(e.targetAmount) || 0,
-      currentAmount: Number(e.currentAmount) || 0,
-      color: e.color ? String(e.color) : '#3B82F6',
-      icon: e.icon ? String(e.icon) : 'piggy-bank',
-      targetDate: e.targetDate ? String(e.targetDate) : undefined,
-      notes: e.notes ? String(e.notes) : '',
-      createdAt: Number(e.createdAt) || Date.now(),
-    }));
-
     const categories = sqlCategories.length > 0
       ? sqlCategories.map(c => ({ name: String(c.name), color: String(c.color), icon: c.icon ? String(c.icon) : undefined }))
       : JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
@@ -1055,12 +1030,10 @@ export function loadDBFromSQLTables(): AppDB {
       defaultStatus: 'paid',
       defaultWalletId: wallets[0]?.id || 'wal_cash',
       enableAIAssistant: true,
-      enableEnvelopes: false,
       enableAutopay: false,
       devMode: true,
       enableDevSQLConsole: true,
       enableSplitTrips: false,
-      enableSampleData: false,
       enableUserGuide: false,
       colorMode: (localStorage.getItem('color-mode') as 'light' | 'dark') || 'light',
       accent: localStorage.getItem('accent-color') || 'blue',
@@ -1123,7 +1096,6 @@ export function loadDBFromSQLTables(): AppDB {
       expenses,
       settlements,
       recurringRules,
-      envelopes,
       settings: (settingsObj as unknown) as AppDB['settings'],
       activeTrip: parsedActiveTrip,
       tripHistory: parsedTripHistory,
@@ -1253,19 +1225,6 @@ export function loadDB(): AppDB {
           });
         }
 
-        const seenEnvelopes = new Set<string>();
-        if (Array.isArray(dump.envelopes)) {
-          dump.envelopes.forEach((row: Record<string, unknown>) => {
-            const id = String(row.id ?? '');
-            if (!id || seenEnvelopes.has(id)) return;
-            seenEnvelopes.add(id);
-            insertSafe('INSERT INTO envelopes VALUES (?,?,?,?,?,?,?,?,?,?)', [
-              row.id, row.walletId, row.name, Number(row.targetAmount) || 0, Number(row.currentAmount) || 0,
-              row.color || '#3B82F6', row.icon || 'piggy-bank', row.targetDate || '', row.notes || '', row.createdAt || Date.now()
-            ]);
-          });
-        }
-
         const seenCats = new Set<string>();
         if (Array.isArray(dump.categories)) {
           dump.categories.forEach((row: Record<string, unknown>) => {
@@ -1373,7 +1332,6 @@ export interface DBCalculationCache {
   allFriendBalancesSorted: Array<{ friend: Friend; owedToMe: number; owedByMe: number; net: number }>;
   overallBalance: { credit: number; debit: number; net: number };
   contactStats: Map<string, { totalSpent: number; count: number; lastTx: Expense | null }>;
-  envelopeAllocated: Map<string, number>;
 }
 
 const dbCalculationCache = new WeakMap<AppDB, DBCalculationCache>();
@@ -1518,11 +1476,6 @@ export function getDBCalculationCache(db: AppDB): DBCalculationCache {
   });
   const overall = { credit, debit, net: credit - debit };
 
-  const envelopeAllocated = new Map<string, number>();
-  (db.envelopes || []).forEach(env => {
-    envelopeAllocated.set(env.walletId, (envelopeAllocated.get(env.walletId) || 0) + (Number(env.currentAmount) || 0));
-  });
-
   const cacheEntry: DBCalculationCache = {
     walletBalances,
     totalWalletBalance: totalWallet,
@@ -1530,7 +1483,6 @@ export function getDBCalculationCache(db: AppDB): DBCalculationCache {
     allFriendBalancesSorted,
     overallBalance: overall,
     contactStats,
-    envelopeAllocated,
   };
 
   dbCalculationCache.set(db, cacheEntry);
@@ -2436,64 +2388,4 @@ export function quickLogRecurringRule(db: AppDB, ruleId: string, customDate?: st
     db: { ...nextDb, recurringRules: updatedRules },
     expense: createdExp,
   };
-}
-
-export function walletEnvelopeAllocated(db: AppDB, walletId: string): number {
-  return getDBCalculationCache(db).envelopeAllocated.get(walletId) || 0;
-}
-
-export function walletUnallocatedBalance(db: AppDB, walletId: string): number {
-  const total = walletBalance(db, walletId);
-  const allocated = walletEnvelopeAllocated(db, walletId);
-  return total - allocated;
-}
-
-export function addEnvelope(db: AppDB, data: Partial<Envelope>): { db: AppDB; envelope: Envelope } {
-  const walId = data.walletId || db.settings.defaultWalletId || db.wallets[0]?.id || 'wal_cash';
-  const envelope: Envelope = {
-    id: uid('env'),
-    walletId: walId,
-    name: data.name?.trim() || 'New Goal Envelope',
-    targetAmount: Math.max(0, Number(data.targetAmount) || 0),
-    currentAmount: Math.max(0, Number(data.currentAmount) || 0),
-    color: data.color || '#3B82F6',
-    icon: data.icon || 'piggy-bank',
-    targetDate: data.targetDate || '',
-    notes: data.notes?.trim() || '',
-    createdAt: Date.now(),
-  };
-  return {
-    db: {
-      ...db,
-      envelopes: [envelope, ...(db.envelopes || [])],
-    },
-    envelope,
-  };
-}
-
-export function updateEnvelope(db: AppDB, id: string, data: Partial<Envelope>): AppDB {
-  const envelopes = (db.envelopes || []).map(e => {
-    if (e.id !== id) return e;
-    const updated = { ...e, ...data };
-    if (data.targetAmount !== undefined) updated.targetAmount = Math.max(0, Number(data.targetAmount) || 0);
-    if (data.currentAmount !== undefined) updated.currentAmount = Math.max(0, Number(data.currentAmount) || 0);
-    return updated;
-  });
-  return { ...db, envelopes };
-}
-
-export function deleteEnvelope(db: AppDB, id: string): AppDB {
-  return {
-    ...db,
-    envelopes: (db.envelopes || []).filter(e => e.id !== id),
-  };
-}
-
-export function adjustEnvelopeBalance(db: AppDB, id: string, delta: number): AppDB {
-  const envelopes = (db.envelopes || []).map(e => {
-    if (e.id !== id) return e;
-    const nextAmt = Math.max(0, Number((e.currentAmount + delta).toFixed(2)));
-    return { ...e, currentAmount: nextAmt };
-  });
-  return { ...db, envelopes };
 }
