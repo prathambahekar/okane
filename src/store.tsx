@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
-import type { AppDB, Expense, Friend, Wallet, RecurringRule } from './types';
+import type { AppDB, Expense, Friend, Wallet, RecurringRule, Trip, TripGroup } from './types';
 import {
   loadDB, saveDB, defaultDB, resetSQLTables, DEFAULT_CATEGORIES, DEFAULT_WALLETS,
   addExpense as dbAddExpense, updateExpense as dbUpdateExpense, deleteExpense as dbDeleteExpense, deleteExpenseGroup as dbDeleteExpenseGroup,
@@ -61,6 +61,7 @@ export interface DataStateContextType {
 
   updateCategory: (oldName: string, data: { name: string; color: string; icon?: string }) => void;
   updateSettings: (data: Partial<AppDB['settings']>) => void;
+  updateTripsData: (data: { activeTrip?: Trip | null; tripHistory?: Trip[]; presetGroups?: TripGroup[] }) => void;
   resetDB: () => void;
   restoreDB: (data: AppDB) => void;
   bulkAddExpenses: (expenses: Partial<Expense>[]) => number;
@@ -605,6 +606,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return count;
   }, []);
 
+  const updateTripsData = useCallback((data: { activeTrip?: Trip | null; tripHistory?: Trip[]; presetGroups?: TripGroup[] }) => {
+    setDB(current => {
+      const next = {
+        ...current,
+        ...(data.activeTrip !== undefined ? { activeTrip: data.activeTrip } : {}),
+        ...(data.tripHistory !== undefined ? { tripHistory: data.tripHistory } : {}),
+        ...(data.presetGroups !== undefined ? { presetGroups: data.presetGroups } : {}),
+      };
+      saveDB(next);
+      return next;
+    });
+  }, []);
+
   const dataValue = useMemo<DataStateContextType>(() => ({
     db,
     addExpense, updateExpense, deleteExpense,
@@ -613,7 +627,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     recordSettlement, deleteSettlement, unsettleExpense,
     addRecurringRule, updateRecurringRule, deleteRecurringRule,
     triggerAutopayDeduct, quickLogRecurringRule,
-    updateCategory, updateSettings, resetDB, restoreDB, bulkAddExpenses,
+    updateCategory, updateSettings, updateTripsData, resetDB, restoreDB, bulkAddExpenses,
   }), [
     db,
     addExpense, updateExpense, deleteExpense,
@@ -622,7 +636,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     recordSettlement, deleteSettlement, unsettleExpense,
     addRecurringRule, updateRecurringRule, deleteRecurringRule,
     triggerAutopayDeduct, quickLogRecurringRule,
-    updateCategory, updateSettings, resetDB, restoreDB, bulkAddExpenses,
+    updateCategory, updateSettings, updateTripsData, resetDB, restoreDB, bulkAddExpenses,
   ]);
 
   const uiValue = useMemo<UIFeedbackContextType>(() => ({

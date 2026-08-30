@@ -3014,7 +3014,7 @@ export default function Settings({
                 <div className="settings-card-text">
                   <h2 className="settings-card-title">Advanced Features</h2>
                   <p className="settings-card-sub">
-                    {(settings.enableAIAssistant ?? true) ? 'AI Assistant On' : 'AI Assistant Off'} • {(settings.enableAutopay ?? false) ? 'Autopay On' : 'Autopay Off'} • {(settings.enableSplitTrips ?? false) ? 'Trips & Splits On' : 'Trips & Splits Off'}
+                    {(settings.enableAIAssistant ?? true) ? 'AI Assistant On' : 'AI Assistant Off'} • {(settings.enableAutopay ?? false) ? 'Autopay On' : 'Autopay Off'} • {(settings.enableSplitTrips ?? true) ? 'Trips & Splits On' : 'Trips & Splits Off'}
                   </p>
                 </div>
               </div>
@@ -3022,9 +3022,9 @@ export default function Settings({
               <div className="settings-card-right">
                 <span className="badge settings-card-badge">
                   {
-                    [settings.enableAIAssistant ?? true, settings.enableReportBugCard ?? true, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length === 0
+                    [settings.enableAIAssistant ?? true, settings.enableReportBugCard ?? true, settings.enableAutopay ?? false, settings.enableSplitTrips ?? true].filter(Boolean).length === 0
                       ? 'Disabled'
-                      : `${[settings.enableAIAssistant ?? true, settings.enableReportBugCard ?? true, settings.enableAutopay ?? false, settings.enableSplitTrips ?? false].filter(Boolean).length} Active`
+                      : `${[settings.enableAIAssistant ?? true, settings.enableReportBugCard ?? true, settings.enableAutopay ?? false, settings.enableSplitTrips ?? true].filter(Boolean).length} Active`
                   }
                 </span>
                 <ChevronRight className="settings-card-arrow" size={18} />
@@ -3270,10 +3270,10 @@ export default function Settings({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: 8,
-                      background: (settings.enableSplitTrips ?? false) ? 'var(--accent-soft)' : 'var(--border)',
+                      background: (settings.enableSplitTrips ?? true) ? 'var(--accent-soft)' : 'var(--border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                     }}>
-                      <Plane size={18} style={{ color: (settings.enableSplitTrips ?? false) ? 'var(--accent)' : 'var(--text-3)' }} />
+                      <Plane size={18} style={{ color: (settings.enableSplitTrips ?? true) ? 'var(--accent)' : 'var(--text-3)' }} />
                     </div>
                     <div>
                       <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>Trips & Bill Splits</div>
@@ -3284,7 +3284,7 @@ export default function Settings({
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {(settings.enableSplitTrips ?? false) && onNavigate && (
+                    {(settings.enableSplitTrips ?? true) && onNavigate && (
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
@@ -3295,7 +3295,7 @@ export default function Settings({
                       </button>
                     )}
                     <Switch
-                      checked={settings.enableSplitTrips ?? false}
+                      checked={settings.enableSplitTrips ?? true}
                       onChange={(e) => {
                         const enabled = e.target.checked;
                         updateSettings({ enableSplitTrips: enabled });

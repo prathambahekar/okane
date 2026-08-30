@@ -528,7 +528,7 @@ export function defaultDB(): AppDB {
       enableAutopay: false,
       devMode: false,
       enableDevSQLConsole: false,
-      enableSplitTrips: false,
+      enableSplitTrips: true,
       enableUserGuide: false,
       colorMode: (localStorage.getItem('color-mode') as 'light' | 'dark') || 'dark',
       accent: localStorage.getItem('accent-color') || 'monochrome',
@@ -587,6 +587,7 @@ export function sanitizeLoadedDB(rawDB: unknown): AppDB {
   const settings = {
     ...d.settings,
     ...(parsed.settings || {}),
+    enableSplitTrips: parsed.settings?.enableSplitTrips ?? true,
     categories: safeCategories,
     currency: parsed.settings?.currency || 'INR',
     defaultWalletId: parsed.settings?.defaultWalletId || safeWallets[0].id,
@@ -883,23 +884,36 @@ export function syncDBToSQLTables(db: AppDB): void {
     }
 
     // Sync Trip and Split data into settings table and localStorage
-    const activeTripStr = db.activeTrip !== undefined ? (db.activeTrip ? JSON.stringify(db.activeTrip) : '') : localStorage.getItem('okane_active_trip_v1');
-    const tripHistoryStr = db.tripHistory !== undefined ? JSON.stringify(db.tripHistory) : localStorage.getItem('okane_trip_history_v1');
-    const presetGroupsStr = db.presetGroups !== undefined ? JSON.stringify(db.presetGroups) : localStorage.getItem('okane_preset_groups_v1');
+    const activeTripStr = db.activeTrip !== undefined
+      ? (db.activeTrip ? JSON.stringify(db.activeTrip) : '')
+      : (localStorage.getItem('okane_active_trip_v1') || '');
+    const tripHistoryStr = db.tripHistory !== undefined
+      ? (db.tripHistory ? JSON.stringify(db.tripHistory) : '')
+      : (localStorage.getItem('okane_trip_history_v1') || '');
+    const presetGroupsStr = db.presetGroups !== undefined
+      ? (db.presetGroups ? JSON.stringify(db.presetGroups) : '')
+      : (localStorage.getItem('okane_preset_groups_v1') || '');
 
     if (activeTripStr) {
       safeInsert('INSERT INTO settings VALUES (?,?)', ['_active_trip', activeTripStr]);
       localStorage.setItem('okane_active_trip_v1', activeTripStr);
     } else {
+      try { alasql('DELETE FROM settings WHERE st_key = "_active_trip"'); } catch { /* ignore */ }
       localStorage.removeItem('okane_active_trip_v1');
     }
     if (tripHistoryStr) {
       safeInsert('INSERT INTO settings VALUES (?,?)', ['_trip_history', tripHistoryStr]);
       localStorage.setItem('okane_trip_history_v1', tripHistoryStr);
+    } else {
+      try { alasql('DELETE FROM settings WHERE st_key = "_trip_history"'); } catch { /* ignore */ }
+      localStorage.removeItem('okane_trip_history_v1');
     }
     if (presetGroupsStr) {
       safeInsert('INSERT INTO settings VALUES (?,?)', ['_preset_groups', presetGroupsStr]);
       localStorage.setItem('okane_preset_groups_v1', presetGroupsStr);
+    } else {
+      try { alasql('DELETE FROM settings WHERE st_key = "_preset_groups"'); } catch { /* ignore */ }
+      localStorage.removeItem('okane_preset_groups_v1');
     }
 
     const sqlDump = {
@@ -1037,7 +1051,7 @@ export function loadDBFromSQLTables(): AppDB {
       enableAutopay: false,
       devMode: true,
       enableDevSQLConsole: true,
-      enableSplitTrips: false,
+      enableSplitTrips: true,
       enableUserGuide: false,
       colorMode: (localStorage.getItem('color-mode') as 'light' | 'dark') || 'light',
       accent: localStorage.getItem('accent-color') || 'blue',

@@ -266,7 +266,7 @@ function AppInner() {
   const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
   const enableAIAssistant = db.settings?.enableAIAssistant ?? true;
   const searchLocation = db.settings?.searchLocation ?? 'topbar';
-  const enableSplitTrips = db.settings?.enableSplitTrips ?? false;
+  const enableSplitTrips = db.settings?.enableSplitTrips ?? true;
   const enableAutopay = db.settings?.enableAutopay ?? false;
   const enableUserGuide = isDevMode && (db.settings?.enableUserGuide ?? true);
 

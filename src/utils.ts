@@ -3,8 +3,14 @@ import type { Expense, ExpenseFlow, ExpenseType, Wallet, Friend, Category } from
 import { expenseFlow, personalNetAmount } from './db';
 
 export function currencySymbol(currency: string): string {
-  const c = CURRENCIES.find(x => x.code === currency);
-  return c ? c.symbol : '$';
+  if (!currency) return '₹';
+  const c = CURRENCIES.find(x => x.code === currency || x.symbol === currency);
+  if (c) return c.symbol;
+  if (currency === 'INR') return '₹';
+  if (currency === 'USD') return '$';
+  if (currency === 'EUR') return '€';
+  if (currency === 'GBP') return '£';
+  return currency;
 }
 
 export function fmtMoney(n: number, currency: string, hideAmount?: boolean): string {
