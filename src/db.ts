@@ -1061,6 +1061,10 @@ export function loadDBFromSQLTables(): AppDB {
       }
     });
 
+    if (settingsObj.hideAmounts !== undefined) {
+      localStorage.setItem('hide_amounts', String(Boolean(settingsObj.hideAmounts)));
+    }
+
     if (settingsObj._active_trip !== undefined) {
       const val = typeof settingsObj._active_trip === 'string' ? settingsObj._active_trip : JSON.stringify(settingsObj._active_trip);
       if (val) localStorage.setItem('okane_active_trip_v1', val);

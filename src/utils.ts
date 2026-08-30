@@ -8,13 +8,11 @@ export function currencySymbol(currency: string): string {
 }
 
 export function fmtMoney(n: number, currency: string, hideAmount?: boolean): string {
-  const isHidden = hideAmount !== undefined
-    ? hideAmount
-    : (typeof localStorage !== 'undefined' && localStorage.getItem('hide_amounts') === 'true');
+  const isHidden = hideAmount === true;
   const v = Number(n) || 0;
   const sym = currencySymbol(currency);
   if (isHidden) {
-    return (v < 0 ? '-' : '') + sym + ' • • • •';
+    return (v < 0 ? '-' : '') + '• • • •';
   }
   const abs = Math.abs(v);
   const s = abs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -28,8 +28,8 @@ function formatISO(d: Date): string {
 }
 
 function fmtCompactMoney(amount: number, currency: string): string {
-  if (amount === 0) return '-';
   const sym = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+  if (amount === 0) return '-';
   if (amount >= 1000000) {
     const val = (amount / 1000000).toFixed(1).replace(/\.0$/, '');
     return `${sym}${val}M`;

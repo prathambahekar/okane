@@ -35,7 +35,6 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
   const { db, deleteWallet, updateWallet, deleteSettlement, deleteExpense, showToast } = useStore();
   const { wallets, expenses, settings } = db;
   const currency = settings?.currency || 'INR';
-  const hideAmounts = settings?.hideAmounts ?? (typeof localStorage !== 'undefined' && localStorage.getItem('hide_amounts') === 'true');
 
   const [editW, setEditW] = useState<Wallet | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -419,7 +418,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                       letterSpacing: '-0.5px',
                     }}
                   >
-                    {fmtMoney(bal, currency, hideAmounts)}
+                    {fmtMoney(bal, currency)}
                   </div>
 
                   {/* Opening Balance Badge Pill */}
@@ -437,7 +436,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                         alignItems: 'center',
                       }}
                     >
-                      Opening Balance: <strong style={{ color: 'var(--text)', marginLeft: 4 }}>{fmtMoney(w.openingBalance, currency, hideAmounts)}</strong>
+                      Opening Balance: <strong style={{ color: 'var(--text)', marginLeft: 4 }}>{fmtMoney(w.openingBalance, currency)}</strong>
                     </span>
                   </div>
                 </div>
@@ -457,7 +456,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                   }}
                 >
                   <span style={{ fontWeight: 500 }}>Monthly Spend</span>
-                  <span style={{ fontWeight: 700, color: 'var(--debit)' }}>-{fmtMoney(wSpend, currency, hideAmounts)}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--debit)' }}>-{fmtMoney(wSpend, currency)}</span>
                 </div>
 
                 {/* Bottom Action Buttons */}
@@ -568,7 +567,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     <div style={{ fontSize: '12.5px', color: 'var(--text-2)', marginTop: 2 }}>
                       Current Balance:{' '}
                       <strong style={{ color: walletBalance(db, activeWallet.id) < 0 ? 'var(--debit)' : 'var(--text)', fontWeight: 700 }}>
-                        {fmtMoney(walletBalance(db, activeWallet.id), currency, hideAmounts)}
+                        {fmtMoney(walletBalance(db, activeWallet.id), currency)}
                       </strong>
                     </div>
                   </div>
@@ -620,7 +619,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     <span>This Month Spent</span>
                   </div>
                   <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--debit)', letterSpacing: '-0.2px' }}>
-                    -{fmtMoney(walletMonthSpend, currency, hideAmounts)}
+                    -{fmtMoney(walletMonthSpend, currency)}
                   </div>
                 </div>
 
@@ -640,7 +639,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     <span>This Month Inflow</span>
                   </div>
                   <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--credit)', letterSpacing: '-0.2px' }}>
-                    +{fmtMoney(walletMonthIn, currency, hideAmounts)}
+                    +{fmtMoney(walletMonthIn, currency)}
                   </div>
                 </div>
               </div>
@@ -906,7 +905,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                               color: isIn ? 'var(--credit)' : 'var(--debit)',
                             }}
                           >
-                            {isIn ? '+' : '-'}{fmtMoney(tx.amount, currency, hideAmounts)}
+                            {isIn ? '+' : '-'}{fmtMoney(tx.amount, currency)}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginTop: 2 }}>
                             {tx.statusKey && tx.statusKey !== 'none' && statusLabel(tx.statusKey) && (

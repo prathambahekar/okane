@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { Plus, TrendingUp, TrendingDown, Wallet, Users, ReceiptText, ArrowLeftRight, Store, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Users, ReceiptText, ArrowLeftRight, Store, ArrowRight, Eye, EyeOff, PieChart, ChevronDown, Check, Flame } from 'lucide-react';
 import { useStore } from '../store';
-import { walletBalance, totalWalletBalance, expenseFlow, personalNetAmount, monthKey, allFriendBalances } from '../db';
+import { walletBalance, totalWalletBalance, expenseFlow, monthKey, allFriendBalances } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, type GroupedExpense } from '../utils';
 import type { Friend, ViewName, Expense } from '../types';
 import { CategoryBadge } from '../components/CategoryIcon';
@@ -16,9 +16,11 @@ interface Props {
 }
 
 export default function Dashboard({ onNavigate, onAddExpense }: Props) {
-  const { db, updateSettings, deleteExpense, showToast } = useStore();
+  const { db, deleteExpense, showToast } = useStore();
   const { expenses, wallets, settings: { currency } } = db;
-  const hideAmounts = db.settings?.hideAmounts ?? (typeof localStorage !== 'undefined' && localStorage.getItem('hide_amounts') === 'true');
+  const hideAmounts = Boolean(db.settings?.hideAmounts);
+  const [tempReveal, setTempReveal] = useState(false);
+  const isCardMasked = hideAmounts && !tempReveal;
   const visibleWallets = useMemo(() => wallets.filter(w => !w.isHidden), [wallets]);
   const [showTransfer, setShowTransfer] = useState(false);
   const [selectedDetailGe, setSelectedDetailGe] = useState<GroupedExpense | null>(null);
@@ -27,23 +29,85 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
 
   const now = new Date();
   const thisKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  const [selectedCatMonth, setSelectedCatMonth] = useState<string>(thisKey);
+  const [isCatMonthPickerOpen, setIsCatMonthPickerOpen] = useState(false);
+  const activeCatMonth = selectedCatMonth || thisKey;
+
+  const expenseMonths = useMemo(() => {
+    const set = new Set<string>([thisKey]);
+    expenses.forEach(e => {
+      if (e.type === 'personal' && e.date) {
+        const k = monthKey(e.date);
+        if (k) set.add(k);
+      }
+    });
+    // Add past 6 months to ensure user can select previous months even if empty
+    const [yStr, mStr] = thisKey.split('-');
+    const baseDate = new Date(parseInt(yStr, 10), parseInt(mStr, 10) - 1, 1);
+    for (let i = 0; i < 6; i++) {
+      const k = baseDate.getFullYear() + '-' + String(baseDate.getMonth() + 1).padStart(2, '0');
+      set.add(k);
+      baseDate.setMonth(baseDate.getMonth() - 1);
+    }
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [expenses, thisKey]);
+
+  const formatMonthLabel = (key: string) => {
+    const parts = key.split('-');
+    if (parts.length !== 2) return key;
+    const year = parseInt(parts[0], 10);
+    const monthIdx = parseInt(parts[1], 10) - 1;
+    const d = new Date(year, monthIdx, 1);
+    const mName = d.toLocaleDateString(undefined, { month: 'long' });
+    if (key === thisKey) return mName;
+    return year === now.getFullYear() ? mName : `${mName} ${year}`;
+  };
+
   const totalBalance = useMemo(() => totalWalletBalance(db), [db]);
 
   const { monthSpend, monthIncome } = useMemo(() => {
     let spend = 0;
     let income = 0;
     expenses.forEach(e => {
-      if (monthKey(e.date) === thisKey && e.type === 'personal') {
-        spend += personalNetAmount(e);
-        if (expenseFlow(e) === 'in') {
-          income += Number(e.amount) || 0;
+      if (monthKey(e.date) === thisKey && e.type === 'personal' && e.status !== 'unpaid' && e.category !== 'Transfer') {
+        const amt = Number(e.amount) || 0;
+        if (expenseFlow(e) === 'out') {
+          spend += amt;
+        } else if (expenseFlow(e) === 'in') {
+          income += amt;
         }
       }
     });
     return { monthSpend: spend, monthIncome: income };
   }, [expenses, thisKey]);
 
-  const { allBalances, overallCredit, overallDebt } = useMemo(() => {
+  const highestExpense = useMemo(() => {
+    let maxAmt = 0;
+    let maxExp: { description: string; amount: number; category?: string } | null = null;
+    expenses.forEach(e => {
+      if (
+        monthKey(e.date) === thisKey &&
+        e.type === 'personal' &&
+        e.status !== 'unpaid' &&
+        e.category !== 'Transfer' &&
+        expenseFlow(e) === 'out'
+      ) {
+        const amt = Number(e.amount) || 0;
+        if (amt > maxAmt) {
+          maxAmt = amt;
+          const res: { description: string; amount: number; category?: string } = {
+            description: e.description || e.category || 'Expense',
+            amount: amt,
+            category: e.category
+          };
+          maxExp = res;
+        }
+      }
+    });
+    return maxExp as { description: string; amount: number; category?: string } | null;
+  }, [expenses, thisKey]);
+
+  const { allBalances, netFriends } = useMemo(() => {
     let credit = 0;
     let debt = 0;
     const balances = allFriendBalances(db);
@@ -51,7 +115,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
       credit += b.owedToMe;
       debt += b.owedByMe;
     });
-    return { allBalances: balances, overallCredit: credit, overallDebt: debt };
+    return { allBalances: balances, netFriends: credit - debt };
   }, [db]);
 
   const recentExpenses = useMemo(() => groupExpenses(expenses, db.wallets, db.friends).slice(0, 5), [expenses, db.wallets, db.friends]);
@@ -63,18 +127,23 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
     [allBalances]
   );
 
-  const catTotals = useMemo(() => {
+  const { catTotals, totalCatSpend } = useMemo(() => {
     const totals: Record<string, number> = {};
+    let grandTotal = 0;
     expenses.forEach(e => {
       if (e.type !== 'personal' || expenseFlow(e) !== 'out') return;
       const key = monthKey(e.date);
-      if (key !== thisKey) return;
-      totals[e.category] = (totals[e.category] || 0) + Number(e.amount);
+      if (key !== activeCatMonth) return;
+      const catLower = (e.category || '').toLowerCase();
+      if (catLower.includes('refund') || catLower.includes('income') || catLower.includes('salary') || catLower.includes('cashback') || catLower.includes('deposit')) return;
+      const amt = Number(e.amount) || 0;
+      totals[e.category] = (totals[e.category] || 0) + amt;
+      grandTotal += amt;
     });
-    return Object.entries(totals).sort((a, b) => b[1] - a[1]).slice(0, 4);
-  }, [expenses, thisKey]);
+    const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    return { catTotals: sorted, totalCatSpend: grandTotal };
+  }, [expenses, activeCatMonth]);
 
-  const maxCat = catTotals[0]?.[1] || 1;
   const monthName = now.toLocaleDateString(undefined, { month: 'long' });
 
   return (
@@ -103,31 +172,31 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                     Total Net Worth
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateSettings({ hideAmounts: !hideAmounts });
-                    }}
-                    title={hideAmounts ? "Privacy Mode ON (Click to show amounts)" : "Privacy Mode OFF (Click to hide amounts)"}
-                    style={{
-                      background: hideAmounts ? 'var(--accent-soft)' : 'var(--surface2)',
-                      border: `1px solid ${hideAmounts ? 'var(--accent)' : 'var(--border)'}`,
-                      borderRadius: 999,
-                      padding: '2px 8px',
-                      color: hideAmounts ? 'var(--accent)' : 'var(--text-3)',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      fontSize: 10.5,
-                      fontWeight: 600,
-                      transition: 'all 0.2s ease',
-                      lineHeight: 1,
-                    }}
-                  >
-                    {hideAmounts ? <EyeOff size={12} /> : <Eye size={12} />}
-                    <span>{hideAmounts ? 'Hidden' : 'Hide'}</span>
-                  </button>
+                  {hideAmounts && (
+                    <button
+                      type="button"
+                      onClick={() => setTempReveal(!tempReveal)}
+                      title={isCardMasked ? "Click to show amounts" : "Click to hide amounts"}
+                      style={{
+                        background: isCardMasked ? 'var(--accent-soft)' : 'var(--surface2)',
+                        border: `1px solid ${isCardMasked ? 'var(--accent)' : 'var(--border)'}`,
+                        borderRadius: 999,
+                        padding: '2px 8px',
+                        color: isCardMasked ? 'var(--accent)' : 'var(--text-3)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: 10.5,
+                        fontWeight: 600,
+                        transition: 'all 0.2s ease',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {isCardMasked ? <EyeOff size={12} /> : <Eye size={12} />}
+                      <span>{isCardMasked ? 'Hidden' : 'Shown'}</span>
+                    </button>
+                  )}
                 </div>
                 <span className="badge" style={{ background: 'var(--surface2)', color: 'var(--text-2)', fontSize: 11 }}>
                   {visibleWallets.length} Active Wallet{visibleWallets.length !== 1 ? 's' : ''}
@@ -135,7 +204,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               </div>
 
               <div style={{ fontSize: 32, fontWeight: 800, color: totalBalance < 0 ? 'var(--debit)' : 'var(--text)', marginTop: 4, letterSpacing: '-0.8px' }}>
-                {fmtMoney(totalBalance, currency, hideAmounts)}
+                {fmtMoney(totalBalance, currency, isCardMasked)}
               </div>
             </div>
 
@@ -180,7 +249,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     >
                       <span className="cat-dot" style={{ background: w.color }} />
                       <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>{w.name}:</span>
-                      <span style={{ fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>{fmtMoney(bal, currency, hideAmounts)}</span>
+                      <span style={{ fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>{fmtMoney(bal, currency, isCardMasked)}</span>
                     </div>
                   );
                 })}
@@ -188,36 +257,98 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             </div>
           </div>
 
-          {/* Stats Section: 3 Mini Metric Cards Grid */}
+          {/* Stats Section: 4 Mini Metric Cards Grid */}
           <div className="dashboard-hero-stats">
             <div className="dashboard-stats-grid">
               <div className="dashboard-mini-stat">
                 <div className="dashboard-mini-stat-header">
-                  <TrendingDown size={14} style={{ color: 'var(--debit)' }} />
-                  <span>{monthName.toUpperCase()} SPEND</span>
+                  <div style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    background: 'var(--debit-bg, rgba(239, 68, 68, 0.1))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--debit)',
+                    flexShrink: 0
+                  }}>
+                    <TrendingDown size={13} />
+                  </div>
+                  <span>{monthName} Spend</span>
                 </div>
                 <div className="dashboard-mini-stat-val" style={{ color: 'var(--debit)' }}>
-                  {fmtMoney(monthSpend, currency, hideAmounts)}
+                  {fmtMoney(monthSpend, currency)}
                 </div>
               </div>
 
               <div className="dashboard-mini-stat">
                 <div className="dashboard-mini-stat-header">
-                  <TrendingUp size={14} style={{ color: 'var(--credit)' }} />
-                  <span>{monthName.toUpperCase()} INCOME</span>
+                  <div style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    background: 'var(--credit-bg, rgba(34, 197, 94, 0.1))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--credit)',
+                    flexShrink: 0
+                  }}>
+                    <TrendingUp size={13} />
+                  </div>
+                  <span>{monthName} Income</span>
                 </div>
                 <div className="dashboard-mini-stat-val" style={{ color: 'var(--credit)' }}>
-                  {fmtMoney(monthIncome, currency, hideAmounts)}
+                  {fmtMoney(monthIncome, currency)}
                 </div>
               </div>
 
               <div className="dashboard-mini-stat">
                 <div className="dashboard-mini-stat-header">
-                  <Users size={14} style={{ color: (overallCredit - overallDebt) >= 0 ? 'var(--credit)' : 'var(--debit)' }} />
-                  <span>FRIENDS NET</span>
+                  <div style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    background: netFriends > 0 ? 'var(--credit-bg, rgba(34, 197, 94, 0.1))' : netFriends < 0 ? 'var(--debit-bg, rgba(239, 68, 68, 0.1))' : 'var(--accent-soft)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: netFriends > 0 ? 'var(--credit)' : netFriends < 0 ? 'var(--debit)' : 'var(--text-2)',
+                    flexShrink: 0
+                  }}>
+                    <Users size={13} />
+                  </div>
+                  <span title={netFriends > 0 ? 'Friends owe you in total' : netFriends < 0 ? 'You owe friends in total' : 'All balances settled'}>
+                    Friends Net {netFriends > 0 ? '(Get)' : netFriends < 0 ? '(Owe)' : ''}
+                  </span>
                 </div>
-                <div className="dashboard-mini-stat-val" style={{ color: (overallCredit - overallDebt) >= 0 ? 'var(--credit)' : 'var(--debit)' }}>
-                  {(overallCredit - overallDebt) >= 0 ? '+' : ''}{fmtMoney(overallCredit - overallDebt, currency, hideAmounts)}
+                <div className="dashboard-mini-stat-val" style={{ color: netFriends > 0 ? 'var(--credit)' : netFriends < 0 ? 'var(--debit)' : 'var(--text-1)' }}>
+                  {netFriends > 0 ? '+' : ''}{fmtMoney(netFriends < 0 ? -netFriends : netFriends, currency)}
+                </div>
+              </div>
+
+              <div className="dashboard-mini-stat">
+                <div className="dashboard-mini-stat-header">
+                  <div style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#f59e0b',
+                    flexShrink: 0
+                  }}>
+                    <Flame size={13} />
+                  </div>
+                  <span title={highestExpense ? `${highestExpense.description} (${highestExpense.category || 'Expense'})` : 'Highest Expense'}>
+                    Highest Exp
+                  </span>
+                </div>
+                <div className="dashboard-mini-stat-val" style={{ color: '#f59e0b' }}>
+                  {highestExpense ? fmtMoney(highestExpense.amount, currency) : fmtMoney(0, currency)}
                 </div>
               </div>
             </div>
@@ -228,11 +359,23 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
 
       <div className="dashboard-grid">
         {/* Recent Expenses */}
-        <div className="card" style={{ gridColumn: '1 / -1', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, width: '100%', minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
-              <ReceiptText size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <h2 style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Recent Expenses</h2>
+        <div className="card" style={{ gridColumn: '1 / -1', minWidth: 0, width: '100%', boxSizing: 'border-box', padding: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, width: '100%', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+              <div style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: 'var(--accent-soft)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--accent)',
+                flexShrink: 0
+              }}>
+                <ReceiptText size={15} />
+              </div>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Recent Expenses</h2>
             </div>
             <button className="btn-view-all" onClick={() => onNavigate('expenses')}>
               <span>View all</span>
@@ -244,8 +387,8 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               <p>No expenses yet.</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
-              {recentExpenses.map((ge, idx) => {
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', minWidth: 0 }}>
+              {recentExpenses.map((ge) => {
                 const cat = db.settings.categories.find(c => c.name === ge.category);
                 const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
                 const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
@@ -257,14 +400,16 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     onClick={() => setSelectedDetailGe(ge)}
                     role="button"
                     tabIndex={0}
+                    className="recent-expense-row"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '9px 0',
-                      borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
-                      gap: 10,
-                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 10,
+                      gap: 12,
+                      width: 'calc(100% + 12px)',
+                      margin: '0 -6px',
                       minWidth: 0,
                       boxSizing: 'border-box',
                       cursor: 'pointer',
@@ -277,9 +422,9 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
-                      <CategoryBadge category={ge.category} color={cat?.color} icon={cat?.icon} size={14} showLabel={false} />
+                      <CategoryBadge category={ge.category} color={cat?.color} icon={cat?.icon} size={15} showLabel={false} />
                       <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
-                        <div style={{ fontWeight: 500, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, width: '100%' }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, width: '100%' }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: '0 1 auto' }}>{ge.description}</span>
                           {vendor && (
                             <span
@@ -291,26 +436,21 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                                 background: 'var(--surface2)',
                                 color: 'var(--text-2)',
                                 border: '1px solid var(--border)',
-                                whiteSpace: 'nowrap',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 3,
-                                flexShrink: 0,
-                                maxWidth: '110px',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
+                                justifyContent: 'center',
+                                flexShrink: 0
                               }}
                               title={`Vendor: ${vendor.name}`}
                             >
-                              <Store size={9} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vendor.name}</span>
+                              <Store size={10} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                             </span>
                           )}
                           {ge.isSplit && (
                             <span style={{
                               fontSize: 10,
                               fontWeight: 600,
-                              padding: '1px 5px',
+                              padding: '1px 6px',
                               borderRadius: 4,
                               background: 'var(--accent-soft)',
                               color: 'var(--accent)',
@@ -319,14 +459,14 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                             }}>Split</span>
                           )}
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                           {fmtDate(ge.date)} · {ge.category}
                           {friendsInGroup.length > 0 ? ` · ${friendsInGroup.map(f => f?.name).join(', ')}` : ''}
                         </div>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right', fontWeight: 600, fontSize: 13, flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: isIn ? 'var(--credit)' : undefined }}>
-                      {isIn ? '+' : ''}{fmtMoney(ge.totalAmount, currency, hideAmounts)}
+                    <div style={{ textAlign: 'right', fontWeight: 700, fontSize: 13, flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: isIn ? 'var(--credit)' : 'var(--text)' }}>
+                      {isIn ? '+' : ''}{fmtMoney(ge.totalAmount, currency)}
                     </div>
                   </div>
                 );
@@ -336,11 +476,23 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         </div>
 
         {/* Friend Balances */}
-        <div className="card" style={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, width: '100%', minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
-              <Users size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <h2 style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Friends</h2>
+        <div className="card" style={{ minWidth: 0, width: '100%', boxSizing: 'border-box', padding: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, width: '100%', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+              <div style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: 'var(--accent-soft)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--accent)',
+                flexShrink: 0
+              }}>
+                <Users size={15} />
+              </div>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Friends</h2>
             </div>
             <button className="btn-view-all" onClick={() => onNavigate('friends')}>
               <span>View all</span>
@@ -348,81 +500,241 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             </button>
           </div>
           {balancedFriends.length === 0 ? (
-            <div style={{ color: 'var(--text-3)', fontSize: 12.5, padding: '12px 0' }}>All settled up!</div>
+            <div style={{ color: 'var(--text-3)', fontSize: 12.5, padding: '16px 0', textAlign: 'center' }}>
+              All settled up! No outstanding balances.
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', minWidth: 0 }}>
-              {balancedFriends.map(({ friend, net }: { friend: Friend; net: number }) => (
-                <div key={friend.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                  onClick={() => onNavigate('friend-detail', friend.id)}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                    <div className="avatar avatar-sm" style={{ ...getAvatarStyle(friend.color), width: 22, height: 22, fontSize: 10, flexShrink: 0 }}>{friendInitial(friend.name, friend.avatarNumber)}</div>
-                    <span style={{ flex: 1, fontSize: 12.5, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{friend.name}</span>
-                  </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: net > 0 ? 'var(--credit)' : 'var(--debit)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                      {net > 0 ? '+' : ''}{fmtMoney(net, currency)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', minWidth: 0 }}>
+              {balancedFriends.map(({ friend, net }: { friend: Friend; net: number }) => {
+                const isOwed = net > 0;
+                return (
+                  <div
+                    key={friend.id}
+                    onClick={() => onNavigate('friend-detail', friend.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      cursor: 'pointer',
+                      padding: '8px 10px',
+                      borderRadius: 10,
+                      margin: '0 -6px',
+                      transition: 'background 0.15s ease',
+                      width: 'calc(100% + 12px)',
+                      boxSizing: 'border-box'
+                    }}
+                    className="friend-balance-row"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                      <div
+                        className="avatar"
+                        style={{
+                          ...getAvatarStyle(friend.color),
+                          width: 28,
+                          height: 28,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          flexShrink: 0,
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {friendInitial(friend.name, friend.avatarNumber)}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {friend.name}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                      <div style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: isOwed ? 'var(--credit)' : 'var(--debit)',
+                        whiteSpace: 'nowrap',
+                        fontVariantNumeric: 'tabular-nums'
+                      }}>
+                        {isOwed ? '+' : ''}{fmtMoney(net, currency)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Wallets */}
-        <div className="card" style={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, width: '100%', minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
-              <Wallet size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <h2 style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Wallets</h2>
+        {/* Category Spend */}
+        <div className="card" style={{ minWidth: 0, width: '100%', boxSizing: 'border-box', padding: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: 'var(--accent-soft)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--accent)',
+                flexShrink: 0
+              }}>
+                <PieChart size={15} />
+              </div>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Top Categories</h2>
             </div>
-            <button className="btn-view-all" onClick={() => onNavigate('wallets')}>
-              <span>Manage</span>
-              <ArrowRight size={13} className="btn-view-all-arrow" />
-            </button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', minWidth: 0 }}>
-            {wallets.map(w => {
-              const bal = walletBalance(db, w.id);
-              return (
-                <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: w.color, flexShrink: 0 }} />
-                    <span style={{ flex: 1, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{w.name}</span>
+
+            {/* Month Selector Badge */}
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setIsCatMonthPickerOpen(prev => !prev)}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 650,
+                  padding: '4px 10px',
+                  borderRadius: 999,
+                  background: 'var(--surface2)',
+                  color: 'var(--text-2)',
+                  border: '1px solid var(--border)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  transition: 'all 0.15s ease',
+                }}
+                title="Select month for top categories"
+              >
+                <span>{formatMonthLabel(activeCatMonth)}</span>
+                <ChevronDown size={12} style={{ transform: isCatMonthPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+              </button>
+
+              {isCatMonthPickerOpen && (
+                <>
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                    onClick={() => setIsCatMonthPickerOpen(false)}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 6px)',
+                      right: 0,
+                      zIndex: 100,
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 12,
+                      boxShadow: 'var(--shadow-lg)',
+                      padding: '6px',
+                      minWidth: 150,
+                      maxHeight: 220,
+                      overflowY: 'auto',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 2,
+                    }}
+                  >
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', padding: '4px 8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Select Month
+                    </div>
+                    {expenseMonths.map(mKey => {
+                      const isSelected = mKey === activeCatMonth;
+                      const label = formatMonthLabel(mKey);
+                      return (
+                        <button
+                          key={mKey}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCatMonth(mKey);
+                            setIsCatMonthPickerOpen(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '7px 10px',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: isSelected ? 700 : 500,
+                            background: isSelected ? 'var(--accent-soft)' : 'transparent',
+                            color: isSelected ? 'var(--accent)' : 'var(--text)',
+                            border: 'none',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            width: '100%',
+                          }}
+                        >
+                          <span>{label}</span>
+                          {isSelected && <Check size={13} style={{ color: 'var(--accent)' }} />}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <span style={{ fontSize: 12.5, fontWeight: 500, color: bal < 0 ? 'var(--debit)' : 'var(--text)', flexShrink: 0, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(bal, currency)}</span>
-                </div>
-              );
-            })}
+                </>
+              )}
+            </div>
           </div>
+
+          {catTotals.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {catTotals.map(([cat, total]) => {
+                const catObj = db.settings.categories.find(c => c.name === cat);
+                const catColor = catObj?.color ?? '#6B7280';
+                const pct = totalCatSpend > 0 ? Math.round((total / totalCatSpend) * 100) : 0;
+                const fillPct = totalCatSpend > 0 ? Math.min(100, Math.max(2, (total / totalCatSpend) * 100)) : 0;
+
+                return (
+                  <div key={cat} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                        <CategoryBadge category={cat} color={catColor} icon={catObj?.icon} size={14} showLabel={true} />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <span style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: '1px 6px',
+                          borderRadius: 4,
+                          background: 'var(--surface2)',
+                          color: 'var(--text-3)'
+                        }}>
+                          {pct}%
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
+                          {fmtMoney(total, currency)}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{
+                      width: '100%',
+                      height: 6,
+                      borderRadius: 999,
+                      background: 'var(--surface2)',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${fillPct}%`,
+                        background: catColor,
+                        borderRadius: 999,
+                        transition: 'width 0.4s ease'
+                      }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
+              No personal spending recorded in {formatMonthLabel(activeCatMonth)}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Category Spend */}
-      {catTotals.length > 0 && (
-        <div className="card" style={{ marginBottom: 14 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Top Categories — {monthName}</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {catTotals.map(([cat, total]) => {
-              const catObj = db.settings.categories.find(c => c.name === cat);
-              const catColor = catObj?.color ?? '#6B7280';
-              return (
-                <div key={cat}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12.5 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CategoryBadge category={cat} color={catColor} icon={catObj?.icon} size={14} />
-                    </div>
-                    <span style={{ fontWeight: 600 }}>{fmtMoney(total, currency)}</span>
-                  </div>
-                  <div className="progress-bar-track">
-                    <div className="progress-bar-fill" style={{ width: `${(total / maxCat) * 100}%`, background: catColor }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       <TransferModal
         isOpen={showTransfer}
