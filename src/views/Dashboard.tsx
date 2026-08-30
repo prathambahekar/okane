@@ -274,9 +274,9 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               >
                 <div className="dashboard-mini-stat-header">
                   <div style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 7,
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
                     background: 'var(--debit-bg, rgba(239, 68, 68, 0.12))',
                     border: '1px solid var(--debit-border, rgba(239, 68, 68, 0.25))',
                     display: 'flex',
@@ -285,7 +285,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     color: 'var(--debit)',
                     flexShrink: 0
                   }}>
-                    <TrendingDown size={14} />
+                    <TrendingDown size={12} />
                   </div>
                   <span>{monthName} Spend</span>
                 </div>
@@ -301,9 +301,9 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               >
                 <div className="dashboard-mini-stat-header">
                   <div style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 7,
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
                     background: 'var(--credit-bg, rgba(34, 197, 94, 0.12))',
                     border: '1px solid var(--credit-border, rgba(34, 197, 94, 0.25))',
                     display: 'flex',
@@ -312,7 +312,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     color: 'var(--credit)',
                     flexShrink: 0
                   }}>
-                    <TrendingUp size={14} />
+                    <TrendingUp size={12} />
                   </div>
                   <span>{monthName} Income</span>
                 </div>
@@ -334,9 +334,9 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               >
                 <div className="dashboard-mini-stat-header">
                   <div style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 7,
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
                     background: netFriends > 0
                       ? 'var(--credit-bg, rgba(34, 197, 94, 0.12))'
                       : netFriends < 0
@@ -349,7 +349,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     color: netFriends > 0 ? 'var(--credit)' : netFriends < 0 ? 'var(--debit)' : 'var(--accent)',
                     flexShrink: 0
                   }}>
-                    <Users size={14} />
+                    <Users size={12} />
                   </div>
                   <span>Friends Net</span>
                 </div>
@@ -371,9 +371,9 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               >
                 <div className="dashboard-mini-stat-header">
                   <div style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 7,
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
                     background: 'var(--amber-bg, rgba(245, 158, 11, 0.12))',
                     border: '1px solid var(--amber-border, rgba(245, 158, 11, 0.25))',
                     display: 'flex',
@@ -382,7 +382,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     color: 'var(--amber, #f59e0b)',
                     flexShrink: 0
                   }}>
-                    <Flame size={14} />
+                    <Flame size={12} />
                   </div>
                   <span>
                     Highest Exp
