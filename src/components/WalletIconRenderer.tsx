@@ -69,9 +69,9 @@ export const WALLET_PRESETS: WalletTypePreset[] = [
   {
     id: 'cash',
     name: 'Cash',
-    defaultName: 'Cash in Hand',
-    color: '#16A34A',
-    bgLight: '#DCFCE7',
+    defaultName: 'Cash',
+    color: '#EAB308',
+    bgLight: '#FEF9C3',
     iconKey: 'cash',
   },
 ];
@@ -254,112 +254,40 @@ export function renderWalletIcon(iconKey?: string, size = 26, customColor?: stri
     );
   }
 
-  // 7. Cards / Debit / Credit Card - Layered Luxury 3D Card Stack with EMV Chip & NFC Waves
+  // 7. Cards / Debit / Credit Card - Minimal clean card badge
   if (key === 'card' || key.includes('card') || key.includes('debit') || key.includes('credit')) {
+    const cardColor = (customColor && customColor !== '#ffffff') ? customColor : '#6366F1';
     return (
       <svg width={size} height={size} viewBox="0 0 48 48" {...svgCommonProps}>
-        <defs>
-          <linearGradient id="cardGradFront" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#6366F1" />
-            <stop offset="100%" stopColor="#4338CA" />
-          </linearGradient>
-          <linearGradient id="chipGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#FDE047" />
-            <stop offset="100%" stopColor="#D97706" />
-          </linearGradient>
-        </defs>
         <rect width="48" height="48" rx="12" className="wallet-icon-card-bg" />
         <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="11.25" className="wallet-icon-card-border" strokeWidth="1.5" />
-        
-        {/* Layer 1: Background Angled Dark Slate Card */}
-        <g transform="translate(6.5, 9.5) rotate(-5 15 10)">
-          <rect width="31" height="19.5" rx="3.5" fill="#1E1B4B" opacity="0.6" stroke="rgba(255,255,255,0.2)" strokeWidth="0.8" />
-          <rect y="4" width="31" height="3.5" fill="#0F172A" opacity="0.8" />
-        </g>
-        
-        {/* Layer 2: Main Foreground Luxury Payment Card */}
-        <g transform="translate(9, 14.5)">
-          {/* Card Surface */}
-          <rect width="31.5" height="20" rx="3.5" fill="url(#cardGradFront)" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
-          {/* Golden EMV Smart Microchip */}
-          <rect x="3.5" y="4.2" width="5.8" height="4.5" rx="1" fill="url(#chipGrad)" />
-          {/* Microchip Circuit Lines */}
-          <line x1="3.5" y1="6.45" x2="9.3" y2="6.45" stroke="#92400E" strokeWidth="0.5" />
-          <line x1="6.4" y1="4.2" x2="6.4" y2="8.7" stroke="#92400E" strokeWidth="0.5" />
-          
-          {/* Contactless Wave NFC Symbol */}
-          <g stroke="#FFFFFF" strokeWidth="1" strokeLinecap="round" opacity="0.9" transform="translate(23.5, 3.8)">
-            <path d="M0 5.5A4 4 0 0 1 0 1.5" fill="none" />
-            <path d="M2 6.5A6.5 6.5 0 0 1 2 0.5" fill="none" />
-            <path d="M4 7.5A9 9 0 0 1 4 -0.5" fill="none" />
-          </g>
-          
-          {/* Card Number Dots */}
-          <g fill="#FFFFFF" opacity="0.75" transform="translate(3.5, 12)">
-            <circle cx="1" cy="1" r="0.75" />
-            <circle cx="3" cy="1" r="0.75" />
-            <circle cx="5" cy="1" r="0.75" />
-            <circle cx="7" cy="1" r="0.75" />
-            <circle cx="11" cy="1" r="0.75" />
-            <circle cx="13" cy="1" r="0.75" />
-            <circle cx="15" cy="1" r="0.75" />
-            <circle cx="17" cy="1" r="0.75" />
-          </g>
-          
-          {/* Card Network Interlocking Discs (Mastercard style) */}
-          <circle cx="23.5" cy="14.5" r="3" fill="#EF4444" opacity="0.95" />
-          <circle cx="27.2" cy="14.5" r="3" fill="#F59E0B" opacity="0.9" />
+        <g stroke={cardColor} fill="none">
+          {/* Outer credit card rectangle */}
+          <rect x="9.5" y="14" width="29" height="20" rx="4.5" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+          {/* Top magnetic stripe line */}
+          <line x1="9.5" y1="21" x2="38.5" y2="21" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Minimal chip/contact circle in lower right */}
+          <circle cx="31.5" cy="27" r="2.5" fill={cardColor} stroke="none" />
         </g>
       </svg>
     );
   }
 
-  // 8. Cash - Multi-Layer Crisp Banknote Stack with Detailed Guilloche & Rupee Emblem
+  // 8. Cash - Minimal clean cash banknote badge with yellow icon & neutral white/dark bg
   if (key === 'cash' || key.includes('cash')) {
+    const cashYellow = '#EAB308'; // Bright warm yellow
     return (
       <svg width={size} height={size} viewBox="0 0 48 48" {...svgCommonProps}>
-        <defs>
-          <linearGradient id="cashGradFront" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#10B981" />
-            <stop offset="100%" stopColor="#047857" />
-          </linearGradient>
-        </defs>
         <rect width="48" height="48" rx="12" className="wallet-icon-cash-bg" />
         <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="11.25" className="wallet-icon-cash-border" strokeWidth="1.5" />
-        
-        {/* Layer 1: Background Banknote (Angled) */}
-        <g transform="translate(7.5, 10.5) rotate(-6 16 10)">
-          <rect width="32" height="19" rx="3.2" fill="#064E3B" opacity="0.5" stroke="rgba(255,255,255,0.2)" strokeWidth="0.8" />
-          <circle cx="16" cy="9.5" r="4.5" fill="#065F46" />
-        </g>
-        
-        {/* Layer 2: Main Foreground Crisp Banknote */}
-        <g transform="translate(8, 14.5)">
-          {/* Banknote Body */}
-          <rect width="32" height="19.5" rx="3.2" fill="url(#cashGradFront)" stroke="#FFFFFF" strokeWidth="0.8" strokeOpacity="0.4" />
-          {/* Inner Guilloche Border */}
-          <rect x="2" y="2" width="28" height="15.5" rx="2" fill="none" stroke="#FFFFFF" strokeWidth="0.8" strokeDasharray="1.5 1" opacity="0.6" />
-          {/* Security Foil Band on Left */}
-          <rect x="7" y="2" width="2.2" height="15.5" fill="#34D399" opacity="0.45" />
-          
-          {/* 4 Corner Geometric Denomination Dots */}
-          <circle cx="4" cy="4" r="0.9" fill="#FFFFFF" opacity="0.8" />
-          <circle cx="28" cy="4" r="0.9" fill="#FFFFFF" opacity="0.8" />
-          <circle cx="4" cy="15.5" r="0.9" fill="#FFFFFF" opacity="0.8" />
-          <circle cx="28" cy="15.5" r="0.9" fill="#FFFFFF" opacity="0.8" />
-          
-          {/* Central Medallion Circle */}
-          <circle cx="16.5" cy="9.75" r="5" fill="#FFFFFF" />
-          
-          {/* Rupee Symbol (₹) inside Medallion */}
-          <path
-            d="M14.5 7.2H18.5M14.5 8.7H17.8C18.4 8.7 18.8 9 18.8 9.6C18.8 10.2 18.3 10.6 17.6 10.6H14.5M16.6 10.6L14.7 12.8"
-            stroke="#047857"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
+        <g stroke={cashYellow} fill="none">
+          {/* Outer banknote rectangle */}
+          <rect x="9" y="14.5" width="30" height="19" rx="4.5" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+          {/* Central circle emblem */}
+          <circle cx="24" cy="24" r="3.8" fill={cashYellow} stroke="none" />
+          {/* Inner side dashes */}
+          <line x1="15" y1="18.5" x2="15" y2="29.5" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
+          <line x1="33" y1="18.5" x2="33" y2="29.5" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
         </g>
       </svg>
     );

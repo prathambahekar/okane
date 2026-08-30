@@ -265,7 +265,7 @@ function AppInner() {
   const isDevMode = db.settings?.devMode ?? true;
   const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
   const enableAIAssistant = db.settings?.enableAIAssistant ?? true;
-  const searchLocation = db.settings?.searchLocation ?? 'floating';
+  const searchLocation = db.settings?.searchLocation ?? 'topbar';
   const enableSplitTrips = db.settings?.enableSplitTrips ?? false;
   const enableAutopay = db.settings?.enableAutopay ?? false;
   const enableUserGuide = isDevMode && (db.settings?.enableUserGuide ?? true);
@@ -317,8 +317,8 @@ function AppInner() {
       .filter(e => monthKey(e.date) === curMonth && expenseFlow(e) === 'in' && e.type === 'personal')
       .reduce((s, e) => s + Number(e.amount), 0);
   }, [expenses]);
-  const friendCredit = useMemo(() => friends.reduce((s, f) => s + Math.max(0, friendBalance(db, f.id).net), 0), [friends, db]);
-  const friendDebt = useMemo(() => friends.reduce((s, f) => s + Math.max(0, -friendBalance(db, f.id).net), 0), [friends, db]);
+  const friendCredit = useMemo(() => friends.reduce((s, f) => (f.type || 'friend') === 'friend' ? s + Math.max(0, friendBalance(db, f.id).net) : s, 0), [friends, db]);
+  const friendDebt = useMemo(() => friends.reduce((s, f) => (f.type || 'friend') === 'friend' ? s + Math.max(0, -friendBalance(db, f.id).net) : s, 0), [friends, db]);
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
     try {

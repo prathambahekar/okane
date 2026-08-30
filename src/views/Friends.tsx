@@ -123,8 +123,11 @@ export default function Friends({ onNavigate }: Props) {
     friends.forEach(f => {
       if ((f.type || 'friend') === 'friend') {
         const b = friendBalance(db, f.id);
-        credit += b.owedToMe;
-        debit += b.owedByMe;
+        if (b.net > 0) {
+          credit += b.net;
+        } else if (b.net < 0) {
+          debit += Math.abs(b.net);
+        }
       }
     });
     return { credit, debit, net: credit - debit };

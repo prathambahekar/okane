@@ -9,6 +9,7 @@ import TransferModal from '../components/TransferModal';
 import { ExpenseDetailDrawer } from '../components/ExpenseDetailDrawer';
 import ExpenseModal from '../components/ExpenseModal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { renderWalletIcon } from '../components/WalletIconRenderer';
 
 interface Props {
   onNavigate: (v: ViewName, arg?: string) => void;
@@ -81,10 +82,10 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
     return { monthSpend: spend, monthIncome: income };
   }, [expenses, thisKey]);
 
-  const highestExpense = useMemo(() => {
+  const highestExpenseObj = useMemo<Expense | null>(() => {
     let maxAmt = 0;
-    let maxExp: { description: string; amount: number; category?: string } | null = null;
-    expenses.forEach(e => {
+    let maxExp: Expense | null = null;
+    expenses.forEach((e: Expense) => {
       if (
         monthKey(e.date) === thisKey &&
         e.type === 'personal' &&
@@ -95,25 +96,26 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         const amt = Number(e.amount) || 0;
         if (amt > maxAmt) {
           maxAmt = amt;
-          const res: { description: string; amount: number; category?: string } = {
-            description: e.description || e.category || 'Expense',
-            amount: amt,
-            category: e.category
-          };
-          maxExp = res;
+          maxExp = e;
         }
       }
     });
-    return maxExp as { description: string; amount: number; category?: string } | null;
+    return maxExp;
   }, [expenses, thisKey]);
+
+  const highestExpenseGrouped = useMemo(() => {
+    if (!highestExpenseObj) return null;
+    const grouped = groupExpenses([highestExpenseObj], db.wallets, db.friends);
+    return grouped[0] || null;
+  }, [highestExpenseObj, db.wallets, db.friends]);
 
   const { allBalances, netFriends } = useMemo(() => {
     let credit = 0;
     let debt = 0;
-    const balances = allFriendBalances(db);
+    const balances = allFriendBalances(db).filter(b => (b.friend.type || 'friend') === 'friend');
     balances.forEach(b => {
-      credit += b.owedToMe;
-      debt += b.owedByMe;
+      if (b.net > 0) credit += b.net;
+      else if (b.net < 0) debt += Math.abs(b.net);
     });
     return { allBalances: balances, netFriends: credit - debt };
   }, [db]);
@@ -209,8 +211,8 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             </div>
 
             {/* Quick Wallet Breakdown Chips */}
-            <div style={{ marginTop: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ marginTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                   Wallets Breakdown
                 </div>
@@ -221,15 +223,16 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     style={{
                       background: 'var(--accent-soft)',
                       color: 'var(--accent)',
-                      border: 'none',
-                      borderRadius: 6,
+                      border: '1px solid var(--accent-border-soft, transparent)',
+                      borderRadius: 8,
                       fontSize: 11,
                       fontWeight: 700,
-                      padding: '3px 9px',
+                      padding: '4px 10px',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 4
+                      gap: 4,
+                      transition: 'all 0.15s ease'
                     }}
                     title="Transfer funds between wallets"
                   >
@@ -237,7 +240,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   </button>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div className="dashboard-wallet-chips-scroll">
                 {visibleWallets.map(w => {
                   const bal = walletBalance(db, w.id);
                   return (
@@ -247,9 +250,13 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       onClick={() => onNavigate('wallets')}
                       title={`Click to view ${w.name} in Wallets`}
                     >
-                      <span className="cat-dot" style={{ background: w.color }} />
+                      <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                        {renderWalletIcon(w.icon || w.name || 'other_upi', 18, w.color)}
+                      </div>
                       <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>{w.name}:</span>
-                      <span style={{ fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>{fmtMoney(bal, currency, isCardMasked)}</span>
+                      <span style={{ fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>
+                        {fmtMoney(bal, currency, isCardMasked)}
+                      </span>
                     </div>
                   );
                 })}
@@ -260,20 +267,25 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
           {/* Stats Section: 4 Mini Metric Cards Grid */}
           <div className="dashboard-hero-stats">
             <div className="dashboard-stats-grid">
-              <div className="dashboard-mini-stat">
+              <div
+                className="dashboard-mini-stat dashboard-mini-stat-spend"
+                onClick={() => onNavigate('expenses')}
+                title={`View ${monthName} Expenses`}
+              >
                 <div className="dashboard-mini-stat-header">
                   <div style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 6,
-                    background: 'var(--debit-bg, rgba(239, 68, 68, 0.1))',
+                    width: 24,
+                    height: 24,
+                    borderRadius: 7,
+                    background: 'var(--debit-bg, rgba(239, 68, 68, 0.12))',
+                    border: '1px solid var(--debit-border, rgba(239, 68, 68, 0.25))',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: 'var(--debit)',
                     flexShrink: 0
                   }}>
-                    <TrendingDown size={13} />
+                    <TrendingDown size={14} />
                   </div>
                   <span>{monthName} Spend</span>
                 </div>
@@ -282,20 +294,25 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 </div>
               </div>
 
-              <div className="dashboard-mini-stat">
+              <div
+                className="dashboard-mini-stat dashboard-mini-stat-income"
+                onClick={() => onNavigate('expenses')}
+                title={`View ${monthName} Income`}
+              >
                 <div className="dashboard-mini-stat-header">
                   <div style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 6,
-                    background: 'var(--credit-bg, rgba(34, 197, 94, 0.1))',
+                    width: 24,
+                    height: 24,
+                    borderRadius: 7,
+                    background: 'var(--credit-bg, rgba(34, 197, 94, 0.12))',
+                    border: '1px solid var(--credit-border, rgba(34, 197, 94, 0.25))',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: 'var(--credit)',
                     flexShrink: 0
                   }}>
-                    <TrendingUp size={13} />
+                    <TrendingUp size={14} />
                   </div>
                   <span>{monthName} Income</span>
                 </div>
@@ -304,51 +321,75 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 </div>
               </div>
 
-              <div className="dashboard-mini-stat">
+              <div
+                className={`dashboard-mini-stat ${
+                  netFriends > 0
+                    ? 'dashboard-mini-stat-income'
+                    : netFriends < 0
+                    ? 'dashboard-mini-stat-spend'
+                    : 'dashboard-mini-stat-friends'
+                }`}
+                onClick={() => onNavigate('friends')}
+                title={netFriends > 0 ? 'Friends owe you in total (Click to view)' : netFriends < 0 ? 'You owe friends in total (Click to view)' : 'All balances settled (Click to view)'}
+              >
                 <div className="dashboard-mini-stat-header">
                   <div style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 6,
-                    background: netFriends > 0 ? 'var(--credit-bg, rgba(34, 197, 94, 0.1))' : netFriends < 0 ? 'var(--debit-bg, rgba(239, 68, 68, 0.1))' : 'var(--accent-soft)',
+                    width: 24,
+                    height: 24,
+                    borderRadius: 7,
+                    background: netFriends > 0
+                      ? 'var(--credit-bg, rgba(34, 197, 94, 0.12))'
+                      : netFriends < 0
+                      ? 'var(--debit-bg, rgba(239, 68, 68, 0.12))'
+                      : 'var(--accent-soft)',
+                    border: `1px solid ${netFriends > 0 ? 'var(--credit-border, rgba(46, 125, 50, 0.22))' : netFriends < 0 ? 'var(--debit-border, rgba(211, 47, 47, 0.22))' : 'var(--accent-border-soft)'}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: netFriends > 0 ? 'var(--credit)' : netFriends < 0 ? 'var(--debit)' : 'var(--text-2)',
+                    color: netFriends > 0 ? 'var(--credit)' : netFriends < 0 ? 'var(--debit)' : 'var(--accent)',
                     flexShrink: 0
                   }}>
-                    <Users size={13} />
+                    <Users size={14} />
                   </div>
-                  <span title={netFriends > 0 ? 'Friends owe you in total' : netFriends < 0 ? 'You owe friends in total' : 'All balances settled'}>
-                    Friends Net {netFriends > 0 ? '(Get)' : netFriends < 0 ? '(Owe)' : ''}
-                  </span>
+                  <span>Friends Net</span>
                 </div>
-                <div className="dashboard-mini-stat-val" style={{ color: netFriends > 0 ? 'var(--credit)' : netFriends < 0 ? 'var(--debit)' : 'var(--text-1)' }}>
-                  {netFriends > 0 ? '+' : ''}{fmtMoney(netFriends < 0 ? -netFriends : netFriends, currency)}
+                <div className="dashboard-mini-stat-val" style={{ color: netFriends > 0 ? 'var(--credit)' : netFriends < 0 ? 'var(--debit)' : 'var(--text)' }}>
+                  {fmtMoney(Math.abs(netFriends), currency)}
                 </div>
               </div>
 
-              <div className="dashboard-mini-stat">
+              <div
+                className="dashboard-mini-stat dashboard-mini-stat-highest"
+                onClick={() => {
+                  if (highestExpenseGrouped) {
+                    setSelectedDetailGe(highestExpenseGrouped);
+                  } else {
+                    onNavigate('expenses');
+                  }
+                }}
+                title={highestExpenseObj ? `${highestExpenseObj.description || highestExpenseObj.category || 'Expense'} (${highestExpenseObj.category || 'Expense'}) - Click to view drawer` : 'Highest Expense'}
+              >
                 <div className="dashboard-mini-stat-header">
                   <div style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 6,
-                    background: 'rgba(245, 158, 11, 0.12)',
+                    width: 24,
+                    height: 24,
+                    borderRadius: 7,
+                    background: 'var(--amber-bg, rgba(245, 158, 11, 0.12))',
+                    border: '1px solid var(--amber-border, rgba(245, 158, 11, 0.25))',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#f59e0b',
+                    color: 'var(--amber, #f59e0b)',
                     flexShrink: 0
                   }}>
-                    <Flame size={13} />
+                    <Flame size={14} />
                   </div>
-                  <span title={highestExpense ? `${highestExpense.description} (${highestExpense.category || 'Expense'})` : 'Highest Expense'}>
+                  <span>
                     Highest Exp
                   </span>
                 </div>
-                <div className="dashboard-mini-stat-val" style={{ color: '#f59e0b' }}>
-                  {highestExpense ? fmtMoney(highestExpense.amount, currency) : fmtMoney(0, currency)}
+                <div className="dashboard-mini-stat-val" style={{ color: 'var(--amber, #f59e0b)' }}>
+                  {highestExpenseObj ? fmtMoney(highestExpenseObj.amount, currency) : fmtMoney(0, currency)}
                 </div>
               </div>
             </div>

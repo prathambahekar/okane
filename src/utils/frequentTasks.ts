@@ -76,39 +76,24 @@ export function getFrequentTasks(db: AppDB): FrequentTaskItem[] {
     }
   }
 
-  const cutoff7 = new Date(refTime - 7 * 86400 * 1000).toISOString().slice(0, 10);
-  const cutoff14 = new Date(refTime - 14 * 86400 * 1000).toISOString().slice(0, 10);
-  const cutoff30 = new Date(refTime - 30 * 86400 * 1000).toISOString().slice(0, 10);
+  const cutoff60 = new Date(refTime - 60 * 86400 * 1000).toISOString().slice(0, 10);
 
-  // 1. Filter expenses strictly from the past 7 days first
-  const candidates7 = (db.expenses || []).filter(e => {
+  // Gather non-settlement candidate expenses from recent history
+  let candidates = (db.expenses || []).filter(e => {
     if (!e.date) return false;
     const d = (e.description || '').trim().toLowerCase();
     if (!d || d.length < 2) return false;
     if (d.startsWith('settling') || d.startsWith('repaid') || d.startsWith('debt repayment')) return false;
-    return e.date >= cutoff7;
+    return e.date >= cutoff60;
   });
 
-  let candidates = candidates7;
-
-  // ONLY expand window if there are absolutely NO transactions in the past 7 days
-  if (candidates.length === 0) {
+  // Fallback to all non-settlement expenses if fewer than 4 recent ones
+  if (candidates.length < 4) {
     candidates = (db.expenses || []).filter(e => {
-      if (!e.date) return false;
       const d = (e.description || '').trim().toLowerCase();
       if (!d || d.length < 2) return false;
       if (d.startsWith('settling') || d.startsWith('repaid') || d.startsWith('debt repayment')) return false;
-      return e.date >= cutoff14;
-    });
-  }
-
-  if (candidates.length === 0) {
-    candidates = (db.expenses || []).filter(e => {
-      if (!e.date) return false;
-      const d = (e.description || '').trim().toLowerCase();
-      if (!d || d.length < 2) return false;
-      if (d.startsWith('settling') || d.startsWith('repaid') || d.startsWith('debt repayment')) return false;
-      return e.date >= cutoff30;
+      return true;
     });
   }
 

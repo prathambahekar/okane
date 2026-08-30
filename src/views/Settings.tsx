@@ -975,7 +975,7 @@ export default function Settings({
                     <div className="settings-card-text">
                       <h2 className="settings-card-title">Appearance & Theme</h2>
                       <p className="settings-card-sub">
-                        {isDark ? 'Dark Mode' : 'Light Mode'} • {ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Monochrome'} • Mobile Search: {(settings.searchLocation ?? 'floating') === 'topbar' ? 'Top Bar' : 'Floating'}
+                        {isDark ? 'Dark Mode' : 'Light Mode'} • {ACCENT_PRESETS.find(p => p.id === accent)?.name || 'Monochrome'} • Mobile Search: {(settings.searchLocation ?? 'topbar') === 'topbar' ? 'Top Bar' : 'Floating'}
                       </p>
                     </div>
                   </div>
@@ -1337,11 +1337,11 @@ export default function Settings({
                         style={{
                           padding: '10px 12px',
                           borderRadius: 10,
-                          border: (settings.searchLocation ?? 'floating') === 'floating' ? '2px solid var(--accent)' : '1px solid var(--border)',
-                          background: (settings.searchLocation ?? 'floating') === 'floating' ? 'var(--accent-soft)' : 'var(--surface)',
+                          border: (settings.searchLocation ?? 'topbar') === 'floating' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          background: (settings.searchLocation ?? 'topbar') === 'floating' ? 'var(--accent-soft)' : 'var(--surface)',
                           color: 'var(--text)',
                           fontSize: 12.5,
-                          fontWeight: (settings.searchLocation ?? 'floating') === 'floating' ? 700 : 500,
+                          fontWeight: (settings.searchLocation ?? 'topbar') === 'floating' ? 700 : 500,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1350,7 +1350,7 @@ export default function Settings({
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: (settings.searchLocation ?? 'floating') === 'floating' ? 'var(--accent)' : 'var(--text-3)' }} />
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: (settings.searchLocation ?? 'topbar') === 'floating' ? 'var(--accent)' : 'var(--text-3)' }} />
                         <span>Floating</span>
                       </button>
 
@@ -1364,11 +1364,11 @@ export default function Settings({
                         style={{
                           padding: '10px 12px',
                           borderRadius: 10,
-                          border: (settings.searchLocation ?? 'floating') === 'topbar' ? '2px solid var(--accent)' : '1px solid var(--border)',
-                          background: (settings.searchLocation ?? 'floating') === 'topbar' ? 'var(--accent-soft)' : 'var(--surface)',
+                          border: (settings.searchLocation ?? 'topbar') === 'topbar' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          background: (settings.searchLocation ?? 'topbar') === 'topbar' ? 'var(--accent-soft)' : 'var(--surface)',
                           color: 'var(--text)',
                           fontSize: 12.5,
-                          fontWeight: (settings.searchLocation ?? 'floating') === 'topbar' ? 700 : 500,
+                          fontWeight: (settings.searchLocation ?? 'topbar') === 'topbar' ? 700 : 500,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1377,7 +1377,7 @@ export default function Settings({
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: (settings.searchLocation ?? 'floating') === 'topbar' ? 'var(--accent)' : 'var(--text-3)' }} />
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: (settings.searchLocation ?? 'topbar') === 'topbar' ? 'var(--accent)' : 'var(--text-3)' }} />
                         <span>Top Bar</span>
                       </button>
                     </div>

@@ -541,7 +541,7 @@ export function defaultDB(): AppDB {
       requireBiometricOnResume: true,
       autoUnlockOnFace: false,
       hideScrollbar: localStorage.getItem('hide_scrollbar') !== null ? localStorage.getItem('hide_scrollbar') === 'true' : true,
-      searchLocation: (localStorage.getItem('search_location') as 'floating' | 'topbar') || 'floating',
+      searchLocation: (localStorage.getItem('search_location') as 'floating' | 'topbar') || 'topbar',
       autoOpenKeyboard: localStorage.getItem('auto_open_keyboard') !== null ? localStorage.getItem('auto_open_keyboard') === 'true' : true,
       floatingSidebar: localStorage.getItem('sidebar_floating') === 'true',
       hideAmounts: localStorage.getItem('hide_amounts') === 'true',
@@ -1478,10 +1478,12 @@ export function getDBCalculationCache(db: AppDB): DBCalculationCache {
 
   let credit = 0, debit = 0;
   (db.friends || []).forEach(f => {
-    const b = friendBalances.get(f.id);
-    if (b) {
-      credit += b.owedToMe;
-      debit += b.owedByMe;
+    if ((f.type || 'friend') === 'friend') {
+      const b = friendBalances.get(f.id);
+      if (b) {
+        if (b.net > 0) credit += b.net;
+        else if (b.net < 0) debit += Math.abs(b.net);
+      }
     }
   });
   const overall = { credit, debit, net: credit - debit };

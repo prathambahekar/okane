@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, TrendingDown, TrendingUp, User, Users, HeartHandshake, FileText, Sparkles, Store } from 'lucide-react';
+import { X, TrendingDown, TrendingUp, User, Users, HeartHandshake, FileText, Sparkles } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types';
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
@@ -297,8 +297,16 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
     return rawList;
   }, [db, friendId, flow, splitMode]);
 
-  const frequentTasksList = useMemo(() => {
-    return getFrequentTasks(db);
+  const frequentDescriptions = useMemo(() => {
+    const raw = getFrequentTasks(db);
+    const list: string[] = [];
+    for (const t of raw) {
+      const text = t.description?.trim();
+      if (text && !list.some(item => item.toLowerCase() === text.toLowerCase())) {
+        list.push(text);
+      }
+    }
+    return list.slice(0, 5);
   }, [db]);
 
   const toggleSelectExpense = (expId: string) => {
@@ -957,13 +965,13 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                         </button>
                       </div>
                     )}
-                    {frequentTasksList.length > 0 && (
+                    {frequentDescriptions.length > 0 && (
                       <div
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: 6,
-                          marginTop: 6,
+                          marginTop: 8,
                           width: '100%',
                           minWidth: 0,
                           boxSizing: 'border-box',
@@ -971,19 +979,20 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                       >
                         <span
                           style={{
-                            fontSize: 10.5,
-                            fontWeight: 600,
+                            fontSize: 10,
+                            fontWeight: 700,
                             color: 'var(--text-3)',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: 3.5,
                             flexShrink: 0,
-                            height: 24,
+                            height: 22,
                             lineHeight: 1,
-                            letterSpacing: '0.2px',
+                            letterSpacing: '0.4px',
+                            textTransform: 'uppercase',
                           }}
                         >
-                          <Sparkles size={11} style={{ color: 'var(--accent)' }} /> Frequent:
+                          <Sparkles size={11} style={{ color: 'var(--accent)', flexShrink: 0 }} /> Frequent
                         </span>
                         <div
                           style={{
@@ -999,32 +1008,27 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                             paddingBottom: 2,
                           }}
                         >
-                          {frequentTasksList.slice(0, 4).map((task, idx) => {
-                            const isSelected = desc.trim().toLowerCase() === task.description.trim().toLowerCase();
-                            const hasVendor = Boolean(task.vendorId || task.vendorName);
-                            const hasFriends = Boolean((task.friendNames && task.friendNames.length > 0) || task.friendName);
-                            const friendNamesList = task.friendNames && task.friendNames.length > 0 ? task.friendNames : (task.friendName ? [task.friendName] : []);
-                            
+                          {frequentDescriptions.map((itemText, idx) => {
+                            const isSelected = desc.trim().toLowerCase() === itemText.toLowerCase();
+
                             return (
                               <button
-                                key={`${task.label}-${idx}`}
+                                key={`${itemText}-${idx}`}
                                 type="button"
-                                title={`${task.description} (${currencySymbol(s.currency)}${task.amount})${friendNamesList.length > 0 ? ` • ${friendNamesList.join(', ')}` : ''}`}
+                                title={itemText}
                                 style={{
-                                  fontSize: 10.5,
-                                  fontWeight: isSelected ? 650 : 500,
+                                  fontSize: 11,
+                                  fontWeight: isSelected ? 600 : 450,
                                   height: 24,
-                                  padding: '0 8px',
-                                  borderRadius: 999,
-                                  border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border2)',
+                                  padding: '0 9px',
+                                  borderRadius: 7,
+                                  border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
                                   background: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
                                   color: isSelected ? 'var(--accent)' : 'var(--text-2)',
-                                  boxShadow: isSelected ? '0 1px 4px var(--accent-soft)' : 'none',
                                   flexShrink: 0,
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: 4,
-                                  maxWidth: 190,
+                                  maxWidth: 160,
                                   overflow: 'hidden',
                                   whiteSpace: 'nowrap',
                                   cursor: 'pointer',
@@ -1033,82 +1037,10 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                                   boxSizing: 'border-box',
                                 }}
                                 onClick={() => {
-                                  handleDescriptionChange(task.description);
-                                  if (task.amount) setAmount(String(task.amount));
-                                  if (task.category) setCategory(task.category);
-                                  if (task.flow) setFlow(task.flow);
-
-                                  if (task.type === 'by_friend' || task.whoPaid === 'other') {
-                                    setWhoPaid('other');
-                                    setSplitMode('just_me');
-                                  } else if (task.type === 'for_friend' || (task.friendIds && task.friendIds.length > 0) || task.friendId) {
-                                    setWhoPaid('me');
-                                    setSplitMode('for_friend');
-                                    setSplitCalcMode('equal_all');
-                                    setIncludeYouInCustom(true);
-                                  } else if (task.splitMode === 'pay_debt') {
-                                    setWhoPaid('me');
-                                    setSplitMode('pay_debt');
-                                  } else {
-                                    setWhoPaid('me');
-                                    setSplitMode('just_me');
-                                  }
-
-                                  const allFriendIds = task.friendIds && task.friendIds.length > 0
-                                    ? task.friendIds
-                                    : (task.friendId ? [task.friendId] : []);
-
-                                  if (allFriendIds.length > 0) {
-                                    setFriendId(allFriendIds[0]);
-                                    setSelectedFriendIds(allFriendIds);
-                                  } else {
-                                    setFriendId('');
-                                    setSelectedFriendIds([]);
-                                  }
-
-                                  if (task.vendorId) {
-                                    setVendorId(task.vendorId);
-                                  } else {
-                                    setVendorId('');
-                                  }
-
-                                  if (task.status) {
-                                    setStatus(task.status);
-                                  } else if (task.isDebt) {
-                                    setStatus('unpaid');
-                                  }
-
-                                  if (task.walletId) setWalletId(task.walletId);
+                                  handleDescriptionChange(itemText);
                                 }}
                               >
-                                {hasVendor && <Store size={10} style={{ flexShrink: 0, opacity: 0.8 }} />}
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.description}</span>
-                                
-                                {hasFriends && (
-                                  <span
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 2,
-                                      padding: '1px 4.5px',
-                                      borderRadius: 999,
-                                      fontSize: '9px',
-                                      fontWeight: 650,
-                                      background: 'rgba(99, 102, 241, 0.16)',
-                                      color: 'var(--accent)',
-                                      border: '1px solid rgba(99, 102, 241, 0.25)',
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    {friendNamesList.length === 1 ? (
-                                      friendNamesList[0]
-                                    ) : (
-                                      `${friendNamesList.map(n => n.charAt(0).toUpperCase()).join('+')}`
-                                    )}
-                                  </span>
-                                )}
-
-                                <span style={{ opacity: 0.75, fontSize: '9.5px', fontWeight: 600, flexShrink: 0 }}>{task.subText}</span>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{itemText}</span>
                               </button>
                             );
                           })}
