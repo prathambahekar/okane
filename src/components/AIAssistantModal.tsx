@@ -1,26 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Dialog from '@mui/material/Dialog';
-import Fade from '@mui/material/Fade';
-import type { TransitionProps } from '@mui/material/transitions';
-import SwipeableDrawer from '@mui/material/SwipeableDrawer';
-import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
-import Autocomplete from '@mui/material/Autocomplete';
-import IconButton from '@mui/material/IconButton';
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import Chip from '@mui/material/Chip';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import CircularProgress from '@mui/material/CircularProgress';
-import InputBase from '@mui/material/InputBase';
-import Paper from '@mui/material/Paper';
-import Tooltip from '@mui/material/Tooltip';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import useMediaQuery from '@mui/material/useMediaQuery';
+import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor } from '@capacitor/core';
 import {
   Mic,
@@ -54,19 +33,10 @@ import { currencySymbol } from '../utils';
 import { parseLocallyClient } from '../nlp';
 import { uid, todayISO } from '../db';
 import type { ExpenseType, ExpenseFlow } from '../types';
-import { CategoryBadge } from './CategoryIcon';
 import type { ExpenseInitialData } from './ExpenseModal';
 import { getFrequentTasks, type FrequentTaskItem } from '../utils/frequentTasks';
 import { showSoftKeyboard } from '../utils/keyboard';
-
-const ModalFadeTransition = React.forwardRef(function Transition(
-  props: TransitionProps & {
-    children: React.ReactElement;
-  },
-  ref: React.Ref<unknown>,
-) {
-  return <Fade ref={ref} {...props} timeout={180} />;
-});
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 interface ISpeechRecognition {
   continuous: boolean;
@@ -93,38 +63,22 @@ function AudioWaveVisualizer({ volume, isListening }: { volume: number; isListen
   ];
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '3px',
-        px: 1,
-        py: 0.5,
-        height: '28px',
-        borderRadius: '99px',
-        bgcolor: 'rgba(239, 68, 68, 0.08)',
-        border: '1px solid rgba(239, 68, 68, 0.22)',
-        flexShrink: 0,
-      }}
-    >
+    <div className="flex items-center gap-[3px] px-2 py-1 h-7 rounded-full bg-rose-500/10 border border-rose-500/25 shrink-0">
       {barConfigs.map((cfg, idx) => {
         const computedHeight = Math.max(4, Math.min(22, 4 + volume * cfg.mult * 26));
         return (
-          <Box
+          <div
             key={idx}
-            sx={{
-              width: '3px',
+            style={{
               height: `${computedHeight}px`,
-              borderRadius: '99px',
-              bgcolor: 'var(--debit)',
-              transition: 'height 0.06s ease-out, opacity 0.12s ease',
               opacity: Math.max(0.4, Math.min(1, 0.5 + volume * 0.7)),
               boxShadow: volume > 0.15 ? '0 0 6px rgba(239, 68, 68, 0.45)' : 'none',
             }}
+            className="w-[3px] rounded-full bg-[var(--debit)] transition-all duration-75"
           />
         );
       })}
-    </Box>
+    </div>
   );
 }
 
@@ -379,50 +333,21 @@ function BotMessageBubble({ text }: { text: string }) {
   flushBullets();
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        px: { xs: 2, sm: 2.25 },
-        py: 1.75,
-        borderRadius: '16px',
-        bgcolor: 'var(--surface2)',
-        color: 'var(--text)',
-        maxWidth: { xs: '95%', sm: '88%' },
-        border: '1px solid var(--border)',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1.5,
-      }}
-    >
+    <div className="px-3.5 sm:px-4 py-3 rounded-2xl bg-[var(--surface2)] text-[var(--text)] max-w-[95%] sm:max-w-[88%] border border-[var(--border)] shadow-sm flex flex-col gap-3">
       {blocks.map((block, idx) => {
         if (block.type === 'text') {
           return (
-            <Typography
+            <p
               key={idx}
-              variant="body2"
-              sx={{
-                lineHeight: 1.6,
-                fontSize: '13.5px',
-                color: 'var(--text)',
-                fontWeight: 500,
-              }}
+              className="leading-relaxed text-[13px] text-[var(--text)] font-medium whitespace-pre-wrap"
             >
               {renderFormattedText(block.content)}
-            </Typography>
+            </p>
           );
         }
 
         return (
-          <Box
-            key={idx}
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1,
-              my: 0.25,
-            }}
-          >
+          <div key={idx} className="flex flex-col gap-2 my-0.5">
             {block.items.map((bullet, bIdx) => {
               if (bullet.kind === 'friend_debt') {
                 const avatar = getAvatarStyle(bullet.label);
@@ -430,93 +355,42 @@ function BotMessageBubble({ text }: { text: string }) {
                 const isPositive = bullet.isOwedToMe;
 
                 return (
-                  <Box
+                  <div
                     key={bIdx}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 1.5,
-                      px: 1.5,
-                      py: 1.15,
-                      borderRadius: '12px',
-                      bgcolor: 'var(--surface)',
-                      border: '1px solid var(--border)',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                      transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
-                      '&:hover': {
-                        borderColor: isPositive ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)',
-                        bgcolor: 'var(--surface3)',
-                        transform: 'translateY(-1px)',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                      },
+                    className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xs transition-all hover:bg-[var(--surface3)] hover:-translate-y-0.5"
+                    style={{
+                      borderColor: isPositive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)',
                     }}
                   >
                     {/* Left: Avatar & Name */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
-                      <Box
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: '50%',
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 shadow-xs"
+                        style={{
                           background: avatar.bg,
                           color: avatar.text,
-                          display: 'grid',
-                          placeItems: 'center',
-                          fontWeight: 700,
-                          fontSize: '13px',
-                          flexShrink: 0,
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                         }}
                       >
                         {initial}
-                      </Box>
+                      </div>
 
-                      <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                        <Typography
-                          variant="body2"
-                          noWrap
-                          sx={{
-                            fontSize: '13.5px',
-                            fontWeight: 650,
-                            color: 'var(--text)',
-                            lineHeight: 1.2,
-                          }}
-                        >
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[13.5px] font-semibold text-[var(--text)] truncate leading-tight">
                           {bullet.label}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontSize: '11px',
-                            color: 'var(--text-3)',
-                            fontWeight: 500,
-                          }}
-                        >
+                        </span>
+                        <span className="text-[11px] text-[var(--text-3)] font-medium">
                           Friend
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </span>
+                      </div>
+                    </div>
 
                     {/* Right: Vibrant Pill Badge */}
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.6,
-                        px: 1.3,
-                        py: 0.5,
-                        borderRadius: '99px',
-                        bgcolor: isPositive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                        border: '1px solid',
-                        borderColor: isPositive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)',
-                        color: isPositive ? '#10b981' : '#ef4444',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        letterSpacing: '0.01em',
-                        flexShrink: 0,
-                        boxShadow: isPositive ? '0 1px 4px rgba(16, 185, 129, 0.15)' : '0 1px 4px rgba(239, 68, 68, 0.15)',
-                      }}
+                    <div
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold shrink-0 border shadow-xs ${
+                        isPositive
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 shadow-emerald-500/10'
+                          : 'bg-rose-500/10 border-rose-500/30 text-rose-500 shadow-rose-500/10'
+                      }`}
                     >
                       {isPositive ? (
                         <ArrowDownLeft size={13} strokeWidth={2.6} />
@@ -524,8 +398,8 @@ function BotMessageBubble({ text }: { text: string }) {
                         <ArrowUpRight size={13} strokeWidth={2.6} />
                       )}
                       <span>{bullet.badgeText}</span>
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
                 );
               }
 
@@ -534,129 +408,59 @@ function BotMessageBubble({ text }: { text: string }) {
                 const isZero = bullet.amount === '₹0' || bullet.amount === '$0' || bullet.amount === '0';
 
                 return (
-                  <Box
+                  <div
                     key={bIdx}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 1.5,
-                      px: 1.5,
-                      py: 1.15,
-                      borderRadius: '12px',
-                      bgcolor: 'var(--surface)',
-                      border: '1px solid var(--border)',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                      transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
-                      '&:hover': {
-                        borderColor: theme.color,
-                        bgcolor: 'var(--surface3)',
-                        transform: 'translateY(-1px)',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                      },
-                    }}
+                    className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xs transition-all hover:bg-[var(--surface3)] hover:-translate-y-0.5"
+                    style={{ borderColor: theme.border }}
                   >
                     {/* Left: Themed Icon & Account Name */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
-                      <Box
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: '8px',
-                          bgcolor: theme.bg,
-                          border: `1px solid ${theme.border}`,
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div
+                        className="w-8 h-8 rounded-lg border flex items-center justify-center shrink-0"
+                        style={{
+                          background: theme.bg,
+                          borderColor: theme.border,
                           color: theme.color,
-                          display: 'grid',
-                          placeItems: 'center',
-                          flexShrink: 0,
                         }}
                       >
                         {theme.icon}
-                      </Box>
+                      </div>
 
-                      <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                        <Typography
-                          variant="body2"
-                          noWrap
-                          sx={{
-                            fontSize: '13.5px',
-                            fontWeight: 650,
-                            color: 'var(--text)',
-                            lineHeight: 1.2,
-                          }}
-                        >
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[13.5px] font-semibold text-[var(--text)] truncate leading-tight">
                           {bullet.label}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontSize: '11px',
-                            color: 'var(--text-3)',
-                            fontWeight: 500,
-                          }}
-                        >
+                        </span>
+                        <span className="text-[11px] text-[var(--text-3)] font-medium">
                           Account
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </span>
+                      </div>
+                    </div>
 
                     {/* Right: Clean Balance Pill */}
-                    <Box
-                      sx={{
-                        px: 1.25,
-                        py: 0.45,
-                        borderRadius: '8px',
-                        bgcolor: 'var(--surface2)',
-                        border: '1px solid var(--border)',
-                        color: isZero ? 'var(--text-3)' : 'var(--text)',
-                        fontSize: '13px',
-                        fontWeight: isZero ? 600 : 750,
-                        letterSpacing: '0.01em',
-                        flexShrink: 0,
-                      }}
+                    <div
+                      className={`px-2.5 py-1 rounded-lg border border-[var(--border)] text-xs font-bold shrink-0 ${
+                        isZero ? 'bg-[var(--surface2)] text-[var(--text-3)]' : 'bg-[var(--surface2)] text-[var(--text)] font-extrabold'
+                      }`}
                     >
                       {bullet.amount}
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
                 );
               }
 
               // Fallback / Transaction / Generic Item
               return (
-                <Box
+                <div
                   key={bIdx}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1.5,
-                    px: 1.5,
-                    py: 1.15,
-                    borderRadius: '12px',
-                    bgcolor: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                    transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
-                    '&:hover': {
-                      borderColor: 'var(--accent)',
-                      bgcolor: 'var(--surface3)',
-                      transform: 'translateY(-1px)',
-                    },
-                  }}
+                  className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xs transition-all hover:border-[var(--accent)] hover:bg-[var(--surface3)] hover:-translate-y-0.5"
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
-                    <Box
-                      sx={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: '8px',
-                        bgcolor: bullet.badgeType === 'credit' ? 'rgba(34, 197, 94, 0.12)' : 'var(--surface2)',
-                        border: '1px solid var(--border)',
-                        color: bullet.badgeType === 'credit' ? 'var(--credit)' : 'var(--accent)',
-                        display: 'grid',
-                        placeItems: 'center',
-                        flexShrink: 0,
-                      }}
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div
+                      className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 ${
+                        bullet.badgeType === 'credit'
+                          ? 'bg-emerald-500/15 border-emerald-500/30 text-[var(--credit)]'
+                          : 'bg-[var(--surface2)] border-[var(--border)] text-[var(--accent)]'
+                      }`}
                     >
                       {bullet.badgeType === 'credit' ? (
                         <TrendingUp size={14} />
@@ -665,59 +469,36 @@ function BotMessageBubble({ text }: { text: string }) {
                       ) : (
                         <Sparkles size={14} />
                       )}
-                    </Box>
+                    </div>
 
-                    <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                      <Typography
-                        variant="body2"
-                        noWrap
-                        sx={{
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          color: 'var(--text)',
-                        }}
-                      >
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-semibold text-[var(--text)] truncate">
                         {bullet.label}
-                      </Typography>
+                      </span>
                       {bullet.subText && (
-                        <Typography
-                          variant="caption"
-                          noWrap
-                          sx={{
-                            fontSize: '11px',
-                            color: 'var(--text-3)',
-                          }}
-                        >
+                        <span className="text-[11px] text-[var(--text-3)] truncate">
                           {bullet.subText}
-                        </Typography>
+                        </span>
                       )}
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
 
                   {bullet.amount && (
-                    <Box
-                      sx={{
-                        px: 1.25,
-                        py: 0.45,
-                        borderRadius: '8px',
-                        bgcolor: 'var(--surface2)',
-                        border: '1px solid var(--border)',
-                        color: bullet.badgeType === 'credit' ? 'var(--credit)' : 'var(--text)',
-                        fontSize: '12.5px',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
+                    <div
+                      className={`px-2.5 py-1 rounded-lg border border-[var(--border)] text-xs font-bold shrink-0 bg-[var(--surface2)] ${
+                        bullet.badgeType === 'credit' ? 'text-[var(--credit)]' : 'text-[var(--text)]'
+                      }`}
                     >
                       {bullet.amount}
-                    </Box>
+                    </div>
                   )}
-                </Box>
+                </div>
               );
             })}
-          </Box>
+          </div>
         );
       })}
-    </Paper>
+    </div>
   );
 }
 
@@ -1352,161 +1133,63 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
 
   // Header without any horizontal divider lines
   const headerContent = (
-    <Box
-      sx={{
-        px: { xs: 2, sm: 3 },
-        pt: isMobile ? 0.75 : 2.5,
-        pb: 1.25,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        bgcolor: 'var(--surface)',
-        gap: 1,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: '8px',
-            bgcolor: 'var(--surface2)',
-            border: '1px solid var(--border)',
-            color: 'var(--accent)',
-            display: 'grid',
-            placeItems: 'center',
-            flexShrink: 0,
-          }}
-        >
+    <div className={`px-4 sm:px-6 ${isMobile ? 'pt-2' : 'pt-5'} pb-3 flex items-center justify-between bg-[var(--surface)] gap-2`}>
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-9 h-9 rounded-lg bg-[var(--surface2)] border border-[var(--border)] text-[var(--accent)] flex items-center justify-center shrink-0">
           <Sparkles size={17} color="currentColor" />
-        </Box>
-        <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'nowrap' }}>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                fontSize: { xs: '15.5px', sm: '17px' },
-                color: 'var(--text)',
-                lineHeight: 1.2,
-                whiteSpace: 'nowrap',
-              }}
-            >
+        </div>
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2 flex-nowrap">
+            <h3 className="font-bold text-base sm:text-lg text-[var(--text)] leading-tight whitespace-nowrap">
               Max Assistant
-            </Typography>
-          </Box>
-          <Typography
-            variant="caption"
-            sx={{
-              color: 'var(--text-3)',
-              fontSize: { xs: '11px', sm: '12px' },
-              mt: 0.25,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
+            </h3>
+          </div>
+          <span className="text-[11px] sm:text-xs text-[var(--text-3)] mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
             Voice & text financial assistant
-          </Typography>
-        </Box>
-      </Box>
+          </span>
+        </div>
+      </div>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+      <div className="flex items-center gap-2 shrink-0">
         {messages.length > 0 && (
-          <Tooltip title="Restart chat & clear history">
-            <IconButton
-              size="small"
-              onClick={handleRestartChat}
-              sx={{
-                color: 'var(--text-2)',
-                p: 0.75,
-                width: 32,
-                height: 32,
-                borderRadius: '8px',
-                bgcolor: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                display: 'grid',
-                placeItems: 'center',
-                transition: 'all 0.15s ease',
-                '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' },
-              }}
-            >
-              <RotateCcw size={15} />
-            </IconButton>
-          </Tooltip>
+          <button
+            type="button"
+            onClick={handleRestartChat}
+            title="Restart chat & clear history"
+            className="w-8 h-8 rounded-lg bg-[var(--surface2)] border border-[var(--border)] text-[var(--text-2)] hover:bg-rose-500/15 hover:text-rose-500 hover:border-rose-500/30 flex items-center justify-center transition-all"
+          >
+            <RotateCcw size={15} />
+          </button>
         )}
 
-        <IconButton
-          size="small"
+        <button
+          type="button"
           onClick={onClose}
-          sx={{
-            color: 'var(--text-2)',
-            p: 0.75,
-            width: 32,
-            height: 32,
-            borderRadius: '8px',
-            bgcolor: 'var(--surface2)',
-            border: '1px solid var(--border)',
-            display: 'grid',
-            placeItems: 'center',
-            transition: 'all 0.15s ease',
-            '&:hover': { bgcolor: 'var(--surface3)', color: 'var(--text)' },
-          }}
+          className="w-8 h-8 rounded-lg bg-[var(--surface2)] border border-[var(--border)] text-[var(--text-2)] hover:bg-[var(--surface3)] hover:text-[var(--text)] flex items-center justify-center transition-all"
         >
           <X size={16} />
-        </IconButton>
-      </Box>
-    </Box>
+        </button>
+      </div>
+    </div>
   );
 
   // Main body without splitting lines
   const mainBodyContent = (
-    <Box
-      sx={{
-        px: { xs: 2, sm: 3 },
-        py: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-        flex: 1,
-        overflowY: 'auto',
-        bgcolor: 'var(--surface)',
-      }}
-    >
+    <div className="px-4 sm:px-6 py-2 flex flex-col gap-4 flex-1 overflow-y-auto bg-[var(--surface)]">
       {/* Empty State: Minimal, Clean Actions */}
       {messages.length === 0 && !activeDraft && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, my: 'auto', py: 1.5 }}>
+        <div className="flex flex-col gap-5 my-auto py-3">
           {/* Frequent Actions */}
           {frequentActions.length > 0 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  color: 'var(--text-3)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  fontSize: '11px',
-                  px: 0.25,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.6,
-                }}
-              >
+            <div className="flex flex-col gap-2">
+              <span className="font-bold text-[var(--text-3)] uppercase tracking-wider text-[11px] px-0.5 flex items-center gap-1.5">
                 <Sparkles size={12} color="var(--accent)" />
                 Frequent Actions
-              </Typography>
+              </span>
 
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                  gap: 0.85,
-                  width: '100%',
-                }}
-              >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                 {frequentActions.map((item, idx) => (
-                  <Box
+                  <div
                     key={idx}
                     onClick={() => {
                       if (item.taskItem) {
@@ -1564,53 +1247,16 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                         handleSend(item.prompt);
                       }
                     }}
-                    sx={{
-                      px: 1.25,
-                      py: 1,
-                      borderRadius: '8px',
-                      bgcolor: 'var(--surface2)',
-                      border: '1px solid var(--border)',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 0.75,
-                      transition: 'all 0.15s ease',
-                      '&:hover': {
-                        bgcolor: 'var(--surface3)',
-                        borderColor: 'var(--accent)',
-                        transform: 'translateY(-1px)',
-                      },
-                      '&:active': {
-                        transform: 'translateY(0)',
-                      },
-                    }}
+                    className="px-3 py-2.5 rounded-lg bg-[var(--surface2)] border border-[var(--border)] cursor-pointer select-none flex items-center justify-between gap-2 transition-all hover:bg-[var(--surface3)] hover:border-[var(--accent)] hover:-translate-y-0.5 active:translate-y-0"
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.85, minWidth: 0, flex: 1 }}>
-                      <Box
-                        sx={{
-                          color: 'var(--accent)',
-                          display: 'grid',
-                          placeItems: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="text-[var(--accent)] flex items-center justify-center shrink-0">
                         {item.icon}
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                        <Typography
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: '12.5px',
-                            color: 'var(--text)',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
+                      </div>
+                      <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                        <span className="font-semibold text-xs text-[var(--text)] truncate">
                           {item.taskItem?.description || item.label}
-                        </Typography>
+                        </span>
 
                         {/* Friend Badge (Name badge if 1 friend, initials badge if multiple friends) */}
                         {item.taskItem && ((item.taskItem.friendNames && item.taskItem.friendNames.length > 0) || item.taskItem.friendName) && (() => {
@@ -1621,611 +1267,481 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                           const isByOther = item.taskItem.whoPaid === 'other' || item.taskItem.type === 'by_friend';
                           
                           return (
-                            <Box
-                              sx={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 0.35,
-                                px: 0.75,
-                                py: 0.15,
-                                borderRadius: '999px',
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                flexShrink: 0,
-                                background: isByOther
-                                  ? 'rgba(16, 185, 129, 0.12)'
-                                  : 'rgba(99, 102, 241, 0.14)',
-                                color: isByOther
-                                  ? '#10b981'
-                                  : 'var(--accent)',
-                                border: isByOther
-                                  ? '1px solid rgba(16, 185, 129, 0.25)'
-                                  : '1px solid rgba(99, 102, 241, 0.25)',
-                                lineHeight: 1.2,
-                              }}
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 leading-tight border ${
+                                isByOther
+                                  ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30'
+                                  : 'bg-indigo-500/15 text-[var(--accent)] border-indigo-500/30'
+                              }`}
                             >
                               {names.length === 1 ? (
                                 <span>{isByOther ? `by ${names[0]}` : names[0]}</span>
                               ) : (
                                 <span>{names.map(n => n.charAt(0).toUpperCase()).join('+')}</span>
                               )}
-                            </Box>
+                            </span>
                           );
                         })()}
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
 
                     {item.subText && (
-                      <Typography
-                        sx={{
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          color: 'var(--text-3)',
-                          flexShrink: 0,
-                        }}
-                      >
+                      <span className="text-[11px] font-semibold text-[var(--text-3)] shrink-0">
                         {item.subText}
-                      </Typography>
+                      </span>
                     )}
-                  </Box>
+                  </div>
                 ))}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           {/* Other Quick Actions & Queries */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 700,
-                color: 'var(--text-3)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                fontSize: '11px',
-                px: 0.25,
-              }}
-            >
+          <div className="flex flex-col gap-2">
+            <span className="font-bold text-[var(--text-3)] uppercase tracking-wider text-[11px] px-0.5">
               Quick Insights & Actions
-            </Typography>
+            </span>
 
-            <Box
-              sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 0.75,
-              }}
-            >
+            <div className="flex flex-wrap gap-2">
               {otherActions.map((item, idx) => (
-                <Box
+                <div
                   key={idx}
                   onClick={() => handleSend(item.prompt)}
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 0.75,
-                    px: 1.25,
-                    py: 0.7,
-                    borderRadius: '8px',
-                    bgcolor: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-2)',
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    transition: 'all 0.15s ease',
-                    '&:hover': {
-                      bgcolor: 'var(--surface3)',
-                      borderColor: 'var(--accent)',
-                      color: 'var(--text)',
-                      transform: 'translateY(-1px)',
-                    },
-                    '&:active': {
-                      transform: 'translateY(0)',
-                    },
-                  }}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface2)] border border-[var(--border)] text-[var(--text-2)] text-xs font-medium cursor-pointer select-none transition-all hover:bg-[var(--surface3)] hover:border-[var(--accent)] hover:text-[var(--text)] hover:-translate-y-0.5 active:translate-y-0"
                 >
-                  <Box sx={{ color: 'var(--text-3)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <div className="text-[var(--text-3)] flex items-center justify-center shrink-0">
                     {item.icon}
-                  </Box>
+                  </div>
                   <span>{item.label}</span>
-                </Box>
+                </div>
               ))}
-            </Box>
-          </Box>
-        </Box>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Messages stream */}
       {messages.length > 0 && (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.5,
-            flex: 1,
-          }}
-        >
+        <div className="flex flex-col gap-3 flex-1">
           {messages.map((m) => (
-            <Box
+            <div
               key={m.id}
-              sx={{
-                display: 'flex',
-                justifyContent: m.sender === 'user' ? 'flex-end' : 'flex-start',
-                alignItems: 'flex-start',
-                gap: 1,
-              }}
+              className={`flex items-start gap-2.5 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {m.sender === 'bot' && (
-                <Box
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '8px',
-                    bgcolor: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--accent)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                    mt: 0.25,
-                  }}
-                >
+                <div className="w-7 h-7 rounded-lg bg-[var(--surface2)] border border-[var(--border)] text-[var(--accent)] flex items-center justify-center shrink-0 mt-0.5">
                   <Sparkles size={14} color="currentColor" />
-                </Box>
+                </div>
               )}
 
               {m.sender === 'bot' ? (
                 <BotMessageBubble text={m.text} />
               ) : (
-                <Paper
-                  elevation={0}
-                  sx={{
-                    px: 1.75,
-                    py: 1.25,
-                    borderRadius: '12px',
-                    background: 'var(--accent-gradient)',
-                    color: 'var(--accent-contrast, #ffffff)',
-                    maxWidth: { xs: '90%', sm: '82%' },
-                    whiteSpace: 'pre-line',
-                    border: '1px solid transparent',
-                  }}
+                <div
+                  className="px-3.5 py-2.5 rounded-xl text-[var(--accent-contrast,#ffffff)] max-w-[90%] sm:max-w-[82%] whitespace-pre-line text-[13px] leading-relaxed"
+                  style={{ background: 'var(--accent-gradient)' }}
                 >
-                  <Typography variant="body2" sx={{ lineHeight: 1.55, fontSize: '13px' }}>
-                    {m.text}
-                  </Typography>
-                </Paper>
+                  {m.text}
+                </div>
               )}
 
               {m.sender === 'user' && (
-                <Box
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '8px',
-                    bgcolor: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--accent)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                    mt: 0.25,
-                  }}
-                >
+                <div className="w-7 h-7 rounded-lg bg-[var(--surface2)] border border-[var(--border)] text-[var(--accent)] flex items-center justify-center shrink-0 mt-0.5">
                   <User size={14} color="currentColor" />
-                </Box>
+                </div>
               )}
-            </Box>
+            </div>
           ))}
 
           {loading && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, color: 'var(--text-2)', p: 1, ml: 4 }}>
-              <CircularProgress size={15} sx={{ color: 'var(--accent)' }} />
-              <Typography variant="body2" sx={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)' }}>
+            <div className="flex items-center gap-2.5 text-[var(--text-2)] p-2 ml-8">
+              <div className="w-4 h-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs font-medium text-[var(--text-2)]">
                 Extracting details...
-              </Typography>
-            </Box>
+              </span>
+            </div>
           )}
 
           <div ref={messagesEndRef} />
-        </Box>
+        </div>
       )}
 
       {/* Extracted Details & Live Form Box */}
       {activeDraft && (
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 2, sm: 2.25 },
-            borderRadius: '12px',
-            border: '1px solid var(--border)',
-            bgcolor: 'var(--surface2)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.75,
-            mt: 1,
-          }}
-        >
+        <div className="p-4 sm:p-5 rounded-xl border border-[var(--border)] bg-[var(--surface2)] flex flex-col gap-4 mt-2">
           {/* Header Row */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--text)' }}>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h4 className="font-bold text-sm text-[var(--text)]">
               Extracted Record Details
-            </Typography>
-            <Chip
-              label={`${currSym} ${activeDraft.amount != null && !isNaN(activeDraft.amount) ? activeDraft.amount : 0}`}
-              size="small"
-              sx={{
-                fontWeight: 700,
-                fontSize: '13px',
-                borderRadius: '6px',
-                px: 0.5,
-                bgcolor: activeDraft.flow === 'in' ? 'rgba(34, 197, 94, 0.15)' : 'var(--accent-soft)',
-                color: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--accent)',
-              }}
-            />
-          </Box>
+            </h4>
+            <span
+              className={`px-2.5 py-0.5 rounded-md text-xs font-bold ${
+                activeDraft.flow === 'in'
+                  ? 'bg-emerald-500/15 text-[var(--credit)]'
+                  : 'bg-[var(--accent-soft)] text-[var(--accent)]'
+              }`}
+            >
+              {currSym} {activeDraft.amount != null && !isNaN(activeDraft.amount) ? activeDraft.amount : 0}
+            </span>
+          </div>
 
           {/* Transaction Type & Mode Selection */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Flow: Expense / Income */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-3)', fontSize: '11px' }}>
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold text-[var(--text-3)] text-[11px]">
                 Type
-              </Typography>
-              <ToggleButtonGroup
-                value={activeDraft.flow || 'out'}
-                exclusive
-                onChange={(_, newFlow) => {
-                  if (!newFlow) return;
-                  setActiveDraft({
-                    ...activeDraft,
-                    flow: newFlow,
-                    category: newFlow === 'in' ? 'Income' : (activeDraft.category === 'Income' ? 'Food & Dining' : activeDraft.category),
-                    splitMode: newFlow === 'in' ? 'just_me' : activeDraft.splitMode,
-                    type: newFlow === 'in' ? 'personal' : activeDraft.type,
-                    whoPaid: newFlow === 'in' ? 'me' : activeDraft.whoPaid,
-                  });
-                }}
-                size="small"
-                fullWidth
-                sx={{
-                  bgcolor: 'var(--surface)',
-                  p: 0.4,
-                  borderRadius: '8px',
-                  border: '1px solid var(--border)',
-                  '& .MuiToggleButton-root': {
-                    flex: 1,
-                    borderRadius: '6px !important',
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '12px',
-                    py: 0.6,
-                    color: 'var(--text-2)',
-                    border: 'none !important',
-                    '&.Mui-selected': {
-                      bgcolor: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--debit)',
-                      color: '#ffffff !important',
-                    },
-                  },
-                }}
-              >
-                <ToggleButton value="out">
-                  <TrendingDown size={13} style={{ marginRight: 4 }} /> Expense
-                </ToggleButton>
-                <ToggleButton value="in">
-                  <TrendingUp size={13} style={{ marginRight: 4 }} /> Income
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
+              </span>
+              <div className="flex bg-[var(--surface)] p-1 rounded-lg border border-[var(--border)]">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveDraft({
+                      ...activeDraft,
+                      flow: 'out',
+                      category: activeDraft.category === 'Income' ? 'Food & Dining' : activeDraft.category,
+                    })
+                  }
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    activeDraft.flow !== 'in'
+                      ? 'bg-[var(--debit)] text-white shadow-xs'
+                      : 'text-[var(--text-2)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  <TrendingDown size={13} /> Expense
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveDraft({
+                      ...activeDraft,
+                      flow: 'in',
+                      category: 'Income',
+                      splitMode: 'just_me',
+                      type: 'personal',
+                      whoPaid: 'me',
+                    })
+                  }
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    activeDraft.flow === 'in'
+                      ? 'bg-[var(--credit)] text-white shadow-xs'
+                      : 'text-[var(--text-2)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  <TrendingUp size={13} /> Income
+                </button>
+              </div>
+            </div>
 
             {/* Payment & Split Mode Dropdown */}
             {activeDraft.flow !== 'in' && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-3)', fontSize: '11px' }}>
+              <div className="flex flex-col gap-1">
+                <span className="font-semibold text-[var(--text-3)] text-[11px]">
                   Split & Payment Mode
-                </Typography>
-                <FormControl size="small" fullWidth>
-                  <Select
-                    value={
-                      (activeDraft.whoPaid === 'other' || activeDraft.type === 'by_friend' || activeDraft.splitMode === 'by_friend')
-                        ? 'by_friend'
-                        : (activeDraft.splitMode || 'just_me')
-                    }
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const updated = { ...activeDraft };
-                      const friendCount = (updated.friendNames && updated.friendNames.length > 0) ? updated.friendNames.length : 1;
+                </span>
+                <select
+                  value={
+                    (activeDraft.whoPaid === 'other' || activeDraft.type === 'by_friend' || activeDraft.splitMode === 'by_friend')
+                      ? 'by_friend'
+                      : (activeDraft.splitMode || 'just_me')
+                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const updated = { ...activeDraft };
+                    const friendCount = (updated.friendNames && updated.friendNames.length > 0) ? updated.friendNames.length : 1;
 
-                      if (val === 'by_friend') {
-                        updated.splitMode = 'by_friend';
-                        updated.type = 'by_friend';
-                        updated.whoPaid = 'other';
-                        updated.myShare = updated.amount;
-                        updated.friendShare = 0;
-                      } else if (val === 'equal_split') {
-                        updated.splitMode = 'equal_split';
-                        updated.type = 'for_friend';
-                        updated.whoPaid = 'me';
-                        const share = Math.round((updated.amount / (friendCount + 1)) * 100) / 100;
-                        updated.myShare = share;
-                        updated.friendShare = Math.round((updated.amount - share) * 100) / 100;
-                      } else if (val === 'for_friend') {
-                        updated.splitMode = 'for_friend';
-                        updated.type = 'for_friend';
-                        updated.whoPaid = 'me';
-                        updated.myShare = 0;
-                        updated.friendShare = updated.amount;
-                      } else {
-                        updated.splitMode = 'just_me';
-                        updated.type = 'personal';
-                        updated.whoPaid = 'me';
-                        updated.myShare = updated.amount;
-                        updated.friendShare = 0;
-                      }
-                      setActiveDraft(updated);
-                    }}
-                    sx={{ borderRadius: '8px', bgcolor: 'var(--surface)' }}
-                  >
-                    <MenuItem value="just_me">Personal (Just Me)</MenuItem>
-                    <MenuItem value="equal_split">Split Equally (I Paid)</MenuItem>
-                    <MenuItem value="for_friend">100% Paid for Friend</MenuItem>
-                    <MenuItem value="by_friend">Friend Paid for Me</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
+                    if (val === 'by_friend') {
+                      updated.splitMode = 'by_friend';
+                      updated.type = 'by_friend';
+                      updated.whoPaid = 'other';
+                      updated.myShare = updated.amount;
+                      updated.friendShare = 0;
+                    } else if (val === 'equal_split') {
+                      updated.splitMode = 'equal_split';
+                      updated.type = 'for_friend';
+                      updated.whoPaid = 'me';
+                      const share = Math.round((updated.amount / (friendCount + 1)) * 100) / 100;
+                      updated.myShare = share;
+                      updated.friendShare = Math.round((updated.amount - share) * 100) / 100;
+                    } else if (val === 'for_friend') {
+                      updated.splitMode = 'for_friend';
+                      updated.type = 'for_friend';
+                      updated.whoPaid = 'me';
+                      updated.myShare = 0;
+                      updated.friendShare = updated.amount;
+                    } else {
+                      updated.splitMode = 'just_me';
+                      updated.type = 'personal';
+                      updated.whoPaid = 'me';
+                      updated.myShare = updated.amount;
+                      updated.friendShare = 0;
+                    }
+                    setActiveDraft(updated);
+                  }}
+                  className="w-full h-[36px] px-3 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-semibold text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)]"
+                >
+                  <option value="just_me">Personal (Just Me)</option>
+                  <option value="equal_split">Split Equally (I Paid)</option>
+                  <option value="for_friend">100% Paid for Friend</option>
+                  <option value="by_friend">Friend Paid for Me</option>
+                </select>
+              </div>
             )}
-          </Box>
+          </div>
 
           {/* Form Inputs Grid */}
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 1.5,
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '8px',
-                bgcolor: 'var(--surface)',
-              },
-            }}
-          >
-            <TextField
-              label="Item Name"
-              size="small"
-              fullWidth
-              value={activeDraft.description}
-              onChange={(e) => setActiveDraft({ ...activeDraft, description: e.target.value })}
-              placeholder="e.g. Coffee"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold text-[var(--text-3)]">
+                Item Name
+              </label>
+              <input
+                type="text"
+                value={activeDraft.description}
+                onChange={(e) => setActiveDraft({ ...activeDraft, description: e.target.value })}
+                placeholder="e.g. Coffee"
+                className="w-full h-9 px-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)]"
+              />
+            </div>
 
-            <TextField
-              label={`Amount (${currency})`}
-              type="number"
-              size="small"
-              fullWidth
-              value={activeDraft.amount != null && !isNaN(activeDraft.amount) ? activeDraft.amount : ''}
-              onChange={(e) => {
-                const newAmt = Number(e.target.value) || 0;
-                const mode = activeDraft.splitMode || 'just_me';
-                const friendCount = (activeDraft.friendNames && activeDraft.friendNames.length > 0) ? activeDraft.friendNames.length : 1;
-                let my = activeDraft.myShare;
-                let fr = activeDraft.friendShare;
-                if (mode === 'equal_split') {
-                  my = Math.round((newAmt / (friendCount + 1)) * 100) / 100;
-                  fr = Math.round((newAmt - my) * 100) / 100;
-                } else if (mode === 'for_friend') {
-                  my = 0;
-                  fr = newAmt;
-                } else if (mode === 'just_me') {
-                  my = newAmt;
-                  fr = 0;
-                } else if (mode === 'by_friend' || activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other') {
-                  my = newAmt;
-                  fr = 0;
-                }
-                setActiveDraft({ ...activeDraft, amount: newAmt, myShare: my, friendShare: fr });
-              }}
-            />
-
-            {(activeDraft.splitMode !== 'just_me' || activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other') && activeDraft.flow !== 'in' && (
-              <Autocomplete
-                multiple
-                freeSolo
-                size="small"
-                options={friends.map((f) => f.name)}
-                value={
-                  activeDraft.friendNames && activeDraft.friendNames.length > 0
-                    ? activeDraft.friendNames
-                    : (activeDraft.friendName ? [activeDraft.friendName] : [])
-                }
-                onChange={(_, newValue) => {
-                  const names = (newValue as string[]).map(s => s.trim()).filter(Boolean);
-                  const mode = activeDraft.splitMode || 'equal_split';
-                  const friendCount = Math.max(1, names.length);
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold text-[var(--text-3)]">
+                Amount ({currency})
+              </label>
+              <input
+                type="number"
+                value={activeDraft.amount != null && !isNaN(activeDraft.amount) ? activeDraft.amount : ''}
+                onChange={(e) => {
+                  const newAmt = Number(e.target.value) || 0;
+                  const mode = activeDraft.splitMode || 'just_me';
+                  const friendCount = (activeDraft.friendNames && activeDraft.friendNames.length > 0) ? activeDraft.friendNames.length : 1;
                   let my = activeDraft.myShare;
                   let fr = activeDraft.friendShare;
                   if (mode === 'equal_split') {
-                    my = Math.round((activeDraft.amount / (friendCount + 1)) * 100) / 100;
-                    fr = Math.round((activeDraft.amount - (my || 0)) * 100) / 100;
+                    my = Math.round((newAmt / (friendCount + 1)) * 100) / 100;
+                    fr = Math.round((newAmt - my) * 100) / 100;
+                  } else if (mode === 'for_friend') {
+                    my = 0;
+                    fr = newAmt;
+                  } else if (mode === 'just_me') {
+                    my = newAmt;
+                    fr = 0;
+                  } else if (mode === 'by_friend' || activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other') {
+                    my = newAmt;
+                    fr = 0;
                   }
-                  setActiveDraft({
-                    ...activeDraft,
-                    friendNames: names,
-                    friendName: names.join(', '),
-                    myShare: my,
-                    friendShare: fr,
-                  });
+                  setActiveDraft({ ...activeDraft, amount: newAmt, myShare: my, friendShare: fr });
                 }}
-                renderTags={(value: readonly string[], getTagProps) =>
-                  value.map((option: string, index: number) => (
-                    <Chip
-                      variant="outlined"
-                      label={option}
-                      size="small"
-                      {...getTagProps({ index })}
-                      key={option}
-                      sx={{ borderRadius: '6px', fontSize: '11.5px' }}
-                    />
-                  ))
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={
-                      (activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other' || activeDraft.splitMode === 'by_friend')
-                        ? "Paid By (Friend / Contact)"
-                        : "Friends / Contacts"
-                    }
-                    placeholder="Select friend..."
-                  />
-                )}
+                className="w-full h-9 px-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)]"
               />
+            </div>
+
+            {(activeDraft.splitMode !== 'just_me' || activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other') && activeDraft.flow !== 'in' && (
+              <div className="flex flex-col gap-1 sm:col-span-2">
+                <label className="text-[11px] font-semibold text-[var(--text-3)]">
+                  {(activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other' || activeDraft.splitMode === 'by_friend')
+                    ? "Paid By (Friend / Contact)"
+                    : "Friends / Contacts"}
+                </label>
+                <div className="min-h-[38px] p-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex flex-wrap items-center gap-1.5 focus-within:border-[var(--accent)]">
+                  {((activeDraft.friendNames && activeDraft.friendNames.length > 0)
+                    ? activeDraft.friendNames
+                    : (activeDraft.friendName ? [activeDraft.friendName] : [])
+                  ).map((name) => (
+                    <span
+                      key={name}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--surface2)] border border-[var(--border)] text-xs text-[var(--text)] font-medium"
+                    >
+                      <span>{name}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = activeDraft.friendNames && activeDraft.friendNames.length > 0
+                            ? activeDraft.friendNames
+                            : (activeDraft.friendName ? [activeDraft.friendName] : []);
+                          const updatedNames = current.filter(n => n !== name);
+                          const mode = activeDraft.splitMode || 'equal_split';
+                          const friendCount = Math.max(1, updatedNames.length);
+                          let my = activeDraft.myShare;
+                          let fr = activeDraft.friendShare;
+                          if (mode === 'equal_split') {
+                            my = Math.round((activeDraft.amount / (friendCount + 1)) * 100) / 100;
+                            fr = Math.round((activeDraft.amount - (my || 0)) * 100) / 100;
+                          }
+                          setActiveDraft({
+                            ...activeDraft,
+                            friendNames: updatedNames,
+                            friendName: updatedNames.join(', '),
+                            myShare: my,
+                            friendShare: fr,
+                          });
+                        }}
+                        className="text-[var(--text-3)] hover:text-rose-500"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const val = e.target.value.trim();
+                      if (!val) return;
+                      const current = activeDraft.friendNames && activeDraft.friendNames.length > 0
+                        ? [...activeDraft.friendNames]
+                        : (activeDraft.friendName ? [activeDraft.friendName] : []);
+                      if (!current.includes(val)) {
+                        const updatedNames = [...current, val];
+                        const mode = activeDraft.splitMode || 'equal_split';
+                        const friendCount = Math.max(1, updatedNames.length);
+                        let my = activeDraft.myShare;
+                        let fr = activeDraft.friendShare;
+                        if (mode === 'equal_split') {
+                          my = Math.round((activeDraft.amount / (friendCount + 1)) * 100) / 100;
+                          fr = Math.round((activeDraft.amount - (my || 0)) * 100) / 100;
+                        }
+                        setActiveDraft({
+                          ...activeDraft,
+                          friendNames: updatedNames,
+                          friendName: updatedNames.join(', '),
+                          myShare: my,
+                          friendShare: fr,
+                        });
+                      }
+                    }}
+                    className="bg-transparent border-none text-xs text-[var(--text-3)] focus:outline-hidden py-1 px-1 cursor-pointer"
+                  >
+                    <option value="">+ Add friend...</option>
+                    {friends.map((f) => (
+                      <option key={f.id} value={f.name}>
+                        {f.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             )}
 
             {activeDraft.splitMode === 'equal_split' && activeDraft.flow !== 'in' && (
               <>
-                <TextField
-                  label={`My Share (${currency})`}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={activeDraft.myShare != null && !isNaN(activeDraft.myShare) ? activeDraft.myShare : ''}
-                  onChange={(e) => {
-                    const my = Number(e.target.value) || 0;
-                    const fr = Math.max(0, activeDraft.amount - my);
-                    setActiveDraft({ ...activeDraft, myShare: my, friendShare: fr });
-                  }}
-                />
-                <TextField
-                  label={`Friend Share (${currency})`}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={activeDraft.friendShare != null && !isNaN(activeDraft.friendShare) ? activeDraft.friendShare : ''}
-                  onChange={(e) => {
-                    const fr = Number(e.target.value) || 0;
-                    const my = Math.max(0, activeDraft.amount - fr);
-                    setActiveDraft({ ...activeDraft, friendShare: fr, myShare: my });
-                  }}
-                />
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-[var(--text-3)]">
+                    My Share ({currency})
+                  </label>
+                  <input
+                    type="number"
+                    value={activeDraft.myShare != null && !isNaN(activeDraft.myShare) ? activeDraft.myShare : ''}
+                    onChange={(e) => {
+                      const my = Number(e.target.value) || 0;
+                      const fr = Math.max(0, activeDraft.amount - my);
+                      setActiveDraft({ ...activeDraft, myShare: my, friendShare: fr });
+                    }}
+                    className="w-full h-9 px-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-[var(--text-3)]">
+                    Friend Share ({currency})
+                  </label>
+                  <input
+                    type="number"
+                    value={activeDraft.friendShare != null && !isNaN(activeDraft.friendShare) ? activeDraft.friendShare : ''}
+                    onChange={(e) => {
+                      const fr = Number(e.target.value) || 0;
+                      const my = Math.max(0, activeDraft.amount - fr);
+                      setActiveDraft({ ...activeDraft, friendShare: fr, myShare: my });
+                    }}
+                    className="w-full h-9 px-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)]"
+                  />
+                </div>
               </>
             )}
 
-            <FormControl size="small" fullWidth>
-              <InputLabel>Category</InputLabel>
-              <Select
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold text-[var(--text-3)]">
+                Category
+              </label>
+              <select
                 value={activeDraft.category}
-                label="Category"
                 onChange={(e) => setActiveDraft({ ...activeDraft, category: e.target.value })}
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CategoryBadge category={selected} size={14} showLabel={true} />
-                  </Box>
-                )}
+                className="w-full h-9 px-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-medium text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)]"
               >
                 {categories.map((cat) => (
-                  <MenuItem key={cat} value={cat}>
-                    <CategoryBadge category={cat} size={14} showLabel={true} />
-                  </MenuItem>
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
                 ))}
-              </Select>
-            </FormControl>
+              </select>
+            </div>
 
-            <FormControl size="small" fullWidth>
-              <InputLabel>Wallet / Account</InputLabel>
-              <Select
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold text-[var(--text-3)]">
+                Wallet / Account
+              </label>
+              <select
                 value={activeDraft.walletName}
-                label="Wallet / Account"
                 onChange={(e) => setActiveDraft({ ...activeDraft, walletName: e.target.value })}
+                className="w-full h-9 px-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-medium text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)]"
               >
                 {wallets.map((w) => (
-                  <MenuItem key={w.id} value={w.name}>
+                  <option key={w.id} value={w.name}>
                     {w.name}
-                  </MenuItem>
+                  </option>
                 ))}
-              </Select>
-            </FormControl>
+              </select>
+            </div>
 
-            <TextField
-              label="Date"
-              type="date"
-              size="small"
-              fullWidth
-              value={activeDraft.date}
-              onChange={(e) => setActiveDraft({ ...activeDraft, date: e.target.value })}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Box>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold text-[var(--text-3)]">
+                Date
+              </label>
+              <input
+                type="date"
+                value={activeDraft.date}
+                onChange={(e) => setActiveDraft({ ...activeDraft, date: e.target.value })}
+                className="w-full h-9 px-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-medium text-[var(--text)] focus:outline-hidden focus:border-[var(--accent)]"
+              />
+            </div>
+          </div>
 
           {/* Action Buttons */}
-          <Box sx={{ display: 'flex', gap: 1.25, justifyContent: 'flex-end', alignItems: 'center', mt: 0.5 }}>
-            <Button
-              size="small"
-              color="inherit"
+          <div className="flex items-center justify-end gap-2.5 mt-1">
+            <button
+              type="button"
               onClick={() => setActiveDraft(null)}
-              sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, px: 2, color: 'var(--text-3)' }}
+              className="px-4 py-2 rounded-lg font-semibold text-xs text-[var(--text-3)] hover:bg-[var(--surface3)] hover:text-[var(--text)] transition-colors"
             >
               Discard
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<PlusCircle size={15} />}
+            </button>
+            <button
+              type="button"
               onClick={handleConfirmDraft}
-              sx={{
-                borderRadius: '8px',
-                fontWeight: 650,
-                px: 2.5,
-                py: 0.7,
-                fontSize: '13px',
-                textTransform: 'none',
-                bgcolor: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--accent)',
-                color: activeDraft.flow === 'in' ? '#ffffff' : 'var(--accent-contrast, #ffffff)',
-                boxShadow: '0 2px 8px var(--accent-soft)',
-              }}
+              className={`px-5 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all hover:opacity-90 ${
+                activeDraft.flow === 'in'
+                  ? 'bg-[var(--credit)] text-white'
+                  : 'bg-[var(--accent)] text-[var(--accent-contrast,#ffffff)]'
+              }`}
             >
+              <PlusCircle size={15} />
               {activeDraft.flow === 'in'
                 ? 'Add Income'
                 : ((activeDraft.whoPaid === 'other' || activeDraft.type === 'by_friend' || activeDraft.splitMode === 'by_friend')
                     ? 'Record Owed Debt'
                     : (activeDraft.splitMode === 'equal_split' ? 'Add Split Expense' : 'Add Expense'))
               }
-            </Button>
-          </Box>
-        </Paper>
+            </button>
+          </div>
+        </div>
       )}
       <div ref={contentEndRef} />
-    </Box>
+    </div>
   );
 
   // Footer Actions without any dividing top border line
   const footerActions = (
-    <Box
-      sx={{
-        px: { xs: 2, sm: 3 },
-        pb: { xs: 2, sm: 3 },
-        pt: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        bgcolor: 'var(--surface)',
-      }}
-    >
+    <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 flex flex-col bg-[var(--surface)]">
       {messages.length > 0 && frequentActions.length > 0 && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.75,
-            overflowX: 'auto',
-            pb: 1,
-            mb: 0.5,
-            width: '100%',
-            WebkitOverflowScrolling: 'touch',
-            '&::-webkit-scrollbar': { display: 'none' },
-            msOverflowStyle: 'none',
-            scrollbarWidth: 'none',
-          }}
-        >
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-1 w-full no-scrollbar">
           {frequentActions.map((item, idx) => {
             const t = item.taskItem;
             const names = t ? (t.friendNames && t.friendNames.length > 0 ? t.friendNames : (t.friendName ? [t.friendName] : [])) : [];
@@ -2235,10 +1751,9 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
               : `${item.label} ${item.subText ? `(${item.subText})` : ''}`;
 
             return (
-              <Chip
+              <button
                 key={idx}
-                label={chipLabel}
-                size="small"
+                type="button"
                 onClick={() => {
                   if (t) {
                     if (onOpenAddExpense) {
@@ -2294,53 +1809,26 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                     handleSend(item.prompt);
                   }
                 }}
-                sx={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  bgcolor: 'var(--surface2)',
-                  color: 'var(--text-2)',
-                  border: '1px solid var(--border)',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                  '&:hover': {
-                    bgcolor: 'var(--surface3)',
-                    color: 'var(--text)',
-                    borderColor: 'var(--accent)',
-                  },
-                }}
-              />
+                className="px-3 py-1 rounded-full text-[11px] font-semibold bg-[var(--surface2)] text-[var(--text-2)] border border-[var(--border)] shrink-0 transition-all hover:bg-[var(--surface3)] hover:text-[var(--text)] hover:border-[var(--accent)] whitespace-nowrap"
+              >
+                {chipLabel}
+              </button>
             );
           })}
-        </Box>
+        </div>
       )}
 
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          width: '100%',
-          px: 1.75,
-          py: 0.75,
-          bgcolor: 'var(--surface2)',
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: isListening ? 'var(--debit)' : 'var(--border)',
-          transition: 'all 0.15s ease',
-          '&:focus-within': {
-            borderColor: 'var(--accent)',
-            bgcolor: 'var(--surface)',
-            boxShadow: '0 2px 10px var(--accent-soft)',
-          },
-        }}
+      <div
+        className={`flex items-center gap-2.5 w-full px-3.5 py-2 bg-[var(--surface2)] rounded-xl border transition-all focus-within:border-[var(--accent)] focus-within:bg-[var(--surface)] focus-within:shadow-md ${
+          isListening ? 'border-[var(--debit)]' : 'border-[var(--border)]'
+        }`}
       >
         <AudioWaveVisualizer volume={volumeLevel} isListening={isListening} />
 
-        <InputBase
-          inputRef={textInputRef}
+        <input
+          ref={textInputRef}
+          type="text"
           placeholder={isListening ? 'Listening... Speak now...' : 'Describe transaction or ask Max...'}
-          fullWidth
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onKeyDown={(e) => {
@@ -2350,165 +1838,86 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             }
           }}
           disabled={loading}
-          sx={{
-            fontSize: '14px',
-            color: 'var(--text)',
-            fontFamily: 'inherit',
-            '& input::placeholder': {
-              color: 'var(--text-3)',
-              opacity: 0.9,
-            },
-          }}
+          className="flex-1 bg-transparent border-none text-sm text-[var(--text)] placeholder:text-[var(--text-3)] focus:outline-hidden"
         />
 
-        <Tooltip title={isListening ? 'Stop mic' : 'Speak to Max'}>
-          <IconButton
-            onClick={toggleListening}
-            size="small"
-            sx={{
-              color: isListening ? 'var(--debit)' : 'var(--text-2)',
-              p: 0.75,
-              borderRadius: '8px',
-              '&:hover': {
-                color: 'var(--text)',
-                bgcolor: 'var(--surface3)',
-              },
-            }}
-          >
-            {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-          </IconButton>
-        </Tooltip>
+        <button
+          type="button"
+          onClick={toggleListening}
+          title={isListening ? 'Stop mic' : 'Speak to Max'}
+          className={`p-2 rounded-lg transition-colors ${
+            isListening
+              ? 'text-[var(--debit)] hover:bg-rose-500/15'
+              : 'text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface3)]'
+          }`}
+        >
+          {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+        </button>
 
-        <IconButton
+        <button
+          type="button"
           onClick={() => handleSend()}
           disabled={!inputText.trim() || loading}
-          size="small"
-          sx={{
-            color: inputText.trim() ? 'var(--accent)' : 'var(--text-3)',
-            p: 0.75,
-            borderRadius: '8px',
-            '&:hover': {
-              color: 'var(--accent)',
-              bgcolor: 'var(--surface3)',
-            },
-            '&.Mui-disabled': {
-              color: 'var(--text-3)',
-              opacity: 0.4,
-            },
-          }}
+          className={`p-2 rounded-lg transition-colors ${
+            inputText.trim() && !loading
+              ? 'text-[var(--accent)] hover:bg-[var(--surface3)]'
+              : 'text-[var(--text-3)] opacity-40 cursor-not-allowed'
+          }`}
         >
           <Send size={17} />
-        </IconButton>
-      </Box>
-    </Box>
+        </button>
+      </div>
+    </div>
   );
 
-  if (isMobile) {
-    return (
-      <SwipeableDrawer
-        anchor="bottom"
-        open={open}
-        onClose={onClose}
-        onOpen={() => {}}
-        disableSwipeToOpen
-        disableAutoFocus
-        disableRestoreFocus
-        slotProps={{
-          backdrop: {
-            sx: {
-              backdropFilter: 'blur(8px)',
-              backgroundColor: 'rgba(0,0,0,0.65)',
-            },
-          },
-        }}
-        PaperProps={{
-          sx: {
-            borderTopLeftRadius: '20px',
-            borderTopRightRadius: '20px',
-            maxHeight: '90vh',
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            bgcolor: 'var(--surface)',
-            color: 'var(--text)',
-            border: 'none',
-            transform: dragOffsetY > 0 ? `translateY(${dragOffsetY}px) !important` : undefined,
-            transition: dragOffsetY > 0 ? 'none !important' : undefined,
-          },
-        }}
-      >
-        <Box
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          sx={{
-            touchAction: 'none',
-            pt: 1.5,
-            pb: 0.5,
-            px: 2,
-            bgcolor: 'var(--surface)',
-            cursor: 'grab',
-            userSelect: 'none',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <Box
-            sx={{
-              width: dragOffsetY > 0 ? 44 : 36,
-              height: 4,
-              bgcolor: 'var(--text-3)',
-              opacity: 0.5,
-              borderRadius: '99px',
-            }}
-          />
-        </Box>
-        {headerContent}
-        {mainBodyContent}
-        {footerActions}
-      </SwipeableDrawer>
-    );
-  }
-
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      disableAutoFocus
-      disableRestoreFocus
-      TransitionComponent={ModalFadeTransition}
-      maxWidth="xs"
-      fullWidth
-      slotProps={{
-        backdrop: {
-          sx: {
-            backdropFilter: 'blur(6px)',
-            backgroundColor: 'rgba(0,0,0,0.55)',
-          },
-        },
-      }}
-      PaperProps={{
-        sx: {
-          borderRadius: '16px',
-          overflow: 'hidden',
-          maxWidth: '520px',
-          width: '100%',
-          maxHeight: '84vh',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
-          border: '1px solid var(--border)',
-          bgcolor: 'var(--surface)',
-          color: 'var(--text)',
-          m: 2,
-        },
-      }}
-    >
-      {headerContent}
-      {mainBodyContent}
-      {footerActions}
-    </Dialog>
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+          />
+
+          {/* Modal / Drawer Surface */}
+          <motion.div
+            initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96 }}
+            animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1 }}
+            exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.96 }}
+            transition={isMobile ? { type: 'spring', damping: 28, stiffness: 320 } : { duration: 0.18 }}
+            style={{
+              transform: isMobile && dragOffsetY > 0 ? `translateY(${dragOffsetY}px)` : undefined,
+            }}
+            className={`relative z-10 w-full bg-[var(--surface)] text-[var(--text)] flex flex-col overflow-hidden ${
+              isMobile
+                ? 'rounded-t-[20px] max-h-[90vh] border-t border-[var(--border)]'
+                : 'rounded-2xl max-w-[520px] max-h-[84vh] shadow-2xl border border-[var(--border)]'
+            }`}
+          >
+            {isMobile && (
+              <div
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                className="pt-3 pb-1 px-4 bg-[var(--surface)] cursor-grab select-none flex justify-center items-center touch-none"
+              >
+                <div
+                  className="h-1 bg-[var(--border2)] opacity-75 rounded-full transition-all"
+                  style={{ width: dragOffsetY > 0 ? 44 : 36 }}
+                />
+              </div>
+            )}
+            {headerContent}
+            {mainBodyContent}
+            {footerActions}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

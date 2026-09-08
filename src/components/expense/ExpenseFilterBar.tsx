@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useTheme } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import {
   X,
   SlidersHorizontal,
@@ -64,8 +63,7 @@ export const ExpenseFilterBar: React.FC<Props> = ({
   allCollapsed,
   toggleAllDateCollapse,
 }) => {
-  const muiTheme = useTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+  const isMobile = useMediaQuery('(max-width: 899.95px)');
 
   // Close on escape key
   useEffect(() => {

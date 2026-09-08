@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useTheme } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import {
   X,
   SlidersHorizontal,
@@ -53,8 +52,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
   activeFilterCount,
 }) => {
   useBackButtonModal(isOpen, onClose, { priority: BackPriority.DRAWER });
-  const muiTheme = useTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+  const isMobile = useMediaQuery('(max-width: 899.95px)');
   const [friendSearch, setFriendSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -135,11 +133,11 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
         >
           <div
             style={{
-              width: '36px',
-              height: '4px',
-              borderRadius: '999px',
-              backgroundColor: 'var(--text-3)',
-              opacity: 0.4,
+              width: 'var(--drawer-handle-w, 36px)',
+              height: 'var(--drawer-handle-h, 4px)',
+              borderRadius: 'var(--radius-pill)',
+              backgroundColor: 'var(--border2)',
+              opacity: 0.75,
               margin: '0 auto',
             }}
           />

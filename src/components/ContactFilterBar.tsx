@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useTheme } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import {
   X,
   SlidersHorizontal,
@@ -86,8 +85,7 @@ export const ContactFilterBar: React.FC<Props> = ({
   vendorAndSubSpend,
   currency = 'USD',
 }) => {
-  const muiTheme = useTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+  const isMobile = useMediaQuery('(max-width: 899.95px)');
   const [showBreakdown, setShowBreakdown] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 

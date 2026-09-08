@@ -1,15 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { useTheme } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import Paper from '@mui/material/Paper';
-import BottomNavigation from '@mui/material/BottomNavigation';
-import BottomNavigationAction from '@mui/material/BottomNavigationAction';
-import Drawer from '@mui/material/Drawer';
-import Box from '@mui/material/Box';
+import { useMediaQuery } from './hooks/useMediaQuery';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   LayoutDashboard,
   ReceiptText,
@@ -31,7 +22,6 @@ import {
   ChevronDown,
   Plane,
   ArrowLeft,
-  X,
   HelpCircle,
   Search,
   Filter,
@@ -235,8 +225,7 @@ function AppInner() {
     setShowAddExpense(true);
   };
   const { mode, setMode, toggleMode: toggleDark, accent, setAccent, customColor, setCustomColor } = useColorMode();
-  const muiTheme = useTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+  const isMobile = useMediaQuery('(max-width: 899.95px)');
 
   const sidebarCollapsed = db.settings?.sidebarCollapsed ?? (localStorage.getItem('sidebar_collapsed') === 'true');
   const floatingSidebar = db.settings?.floatingSidebar ?? (localStorage.getItem('sidebar_floating') === 'true');
@@ -505,29 +494,15 @@ function AppInner() {
                 <div className="sidebar-logo-sub">おかね</div>
               </div>
             )}
-            <IconButton
-              size="small"
+            <button
+              type="button"
               onClick={toggleSidebar}
-              sx={{ 
-                color: 'text.secondary', 
-                p: 0.8, 
-                borderRadius: '10px',
-                border: '1px solid var(--border)',
-                bgcolor: 'var(--surface2)',
-                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease',
-                '&:hover': {
-                  transform: 'scale(1.1) rotate(-4deg)',
-                  bgcolor: 'action.hover',
-                  borderColor: 'var(--border2)',
-                },
-                '&:active': {
-                  transform: 'scale(0.92)',
-                }
-              }}
+              className="p-2 rounded-xl border border-[var(--border)] bg-[var(--surface2)] text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface3)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center"
               title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
-            </IconButton>
+            </button>
           </div>
 
           <div className="sidebar-nav">
@@ -623,85 +598,42 @@ function AppInner() {
           <div className="sidebar-footer">
             <div className="sidebar-footer-actions" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between', gap: 6 }}>
               <NotificationBell onNavigate={navigate} placement="top-left" />
-              <IconButton
-                size="small"
+              <button
+                type="button"
                 onClick={handleToggleDark}
-                sx={{ 
-                  width: 36,
-                  height: 36,
-                  color: 'text.secondary',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border)',
-                  bgcolor: 'var(--surface2)',
-                  transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.25s ease, border-color 0.2s ease',
-                  '&:hover': {
-                    transform: 'rotate(20deg) scale(1.1)',
-                    color: 'text.primary',
-                    borderColor: 'var(--border2)',
-                  },
-                  '&:active': {
-                    transform: 'scale(0.9)',
-                  }
-                }}
+                className="w-9 h-9 rounded-xl border border-[var(--border)] bg-[var(--surface2)] text-[var(--text-2)] hover:text-[var(--text)] hover:rotate-12 transition-all active:scale-90 flex items-center justify-center"
                 title={mode === 'dark' ? 'Switch to light' : 'Switch to dark'}
+                aria-label="Toggle color theme"
               >
                 {mode === 'dark'
                   ? <Sun size={18} />
                   : <Moon size={18} />}
-              </IconButton>
+              </button>
             </div>
           </div>
         </nav>
       )}
 
-      {/* Mobile top AppBar */}
+      {/* Mobile top Header */}
       {isMobile && (
-        <AppBar
-          position="fixed"
-          elevation={0}
-          sx={{
-            bgcolor: 'var(--bg)',
-            backdropFilter: 'none',
-            WebkitBackdropFilter: 'none',
-            borderBottom: 'none',
-            color: 'text.primary',
-            boxShadow: 'none',
-            transition: 'background-color 0.2s ease',
-            pt: 'env(safe-area-inset-top, 0px)',
-          }}
+        <header
+          className="fixed top-0 left-0 right-0 z-40 bg-[var(--bg)] text-[var(--text)] transition-colors duration-200"
+          style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
         >
-          <Toolbar variant="dense" sx={{ minHeight: { xs: '44px !important', sm: '56px' }, height: { xs: 44, sm: 56 }, px: 1.5, gap: 1, justifyContent: 'space-between' }}>
+          <div className="h-11 sm:h-14 px-3 flex items-center justify-between gap-2">
             {/* Left side: Back button or Branded view title */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flexShrink: 1 }}>
+            <div className="flex items-center gap-2 min-w-0 flex-shrink">
               {view === 'friend-detail' ? (
-                <IconButton
-                  size="small"
+                <button
+                  type="button"
                   onClick={() => setView('friends')}
-                  sx={{
-                    color: 'text.primary',
-                    bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                    p: 0.8,
-                    borderRadius: '10px',
-                    '&:active': { transform: 'scale(0.92)' }
-                  }}
+                  className="p-2 rounded-xl text-[var(--text)] bg-black/5 dark:bg-white/10 active:scale-95 flex items-center justify-center transition-transform"
                   title="Back to Contacts"
                 >
                   <ArrowLeft size={18} />
-                </IconButton>
+                </button>
               ) : (
-                <Box
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '10px',
-                    bgcolor: 'var(--accent-soft)',
-                    color: 'primary.main',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
+                <div className="w-8 h-8 rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center flex-shrink-0">
                   {view === 'dashboard' ? <LayoutDashboard size={18} /> :
                    view === 'expenses' ? <ReceiptText size={18} /> :
                    view === 'friends' ? <Users size={18} /> :
@@ -713,24 +645,11 @@ function AppInner() {
                    view === 'settings' ? <SettingsIconLucide size={18} /> :
                    view === 'dev-sql' ? <Database size={18} /> :
                    <LayoutDashboard size={18} />}
-                </Box>
+                </div>
               )}
 
-              <Box sx={{ minWidth: 0 }}>
-                <Typography
-                  variant="h6"
-                  component="span"
-                  sx={{
-                    fontWeight: 700,
-                    fontSize: { xs: '0.98rem', sm: '1.05rem' },
-                    letterSpacing: '-0.3px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    display: 'block',
-                    lineHeight: 1.2,
-                  }}
-                >
+              <div className="min-w-0">
+                <span className="font-bold text-sm sm:text-base tracking-tight truncate block leading-tight">
                   {view === 'dashboard' ? 'Dashboard' :
                    view === 'expenses' ? 'Expenses' :
                    view === 'friends' ? 'Contacts' :
@@ -742,124 +661,65 @@ function AppInner() {
                    view === 'split-trips' ? 'Trips & Splits' :
                    view === 'settings' ? 'Settings' :
                    view === 'dev-sql' ? 'Dev SQL' : 'Dashboard'}
-                </Typography>
-              </Box>
-            </Box>
+                </span>
+              </div>
+            </div>
 
             {/* Right side controls */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, flexShrink: 0 }}>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {/* Quick financial summaries */}
               {view === 'expenses' && (
-                <Box sx={{
-                  display: { xs: 'none', sm: 'flex' },
-                  alignItems: 'center',
-                  gap: { xs: 0.4, sm: 0.5 },
-                  maxWidth: { xs: '200px', sm: '320px', md: 'none' },
-                  overflowX: 'auto',
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none',
-                  '&::-webkit-scrollbar': { display: 'none' }
-                }}>
-                  <Box
+                <div className="hidden sm:flex items-center gap-1.5 max-w-[320px] overflow-x-auto no-scrollbar">
+                  <span
                     title={`-${fmtMoney(expOut, currency)}`}
-                    sx={{
-                      display: 'inline-flex', alignItems: 'center',
-                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
-                      bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
-                      color: 'error.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
-                    }}
+                    className="inline-flex items-center px-2.5 py-1 rounded-full bg-rose-500/15 text-[var(--debit)] text-xs font-semibold whitespace-nowrap truncate max-w-[160px]"
                   >
                     -{fmtMoney(expOut, currency)}
-                  </Box>
-                  <Box
+                  </span>
+                  <span
                     title={`+${fmtMoney(expIn, currency)}`}
-                    sx={{
-                      display: 'inline-flex', alignItems: 'center',
-                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
-                      bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
-                      color: 'success.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
-                    }}
+                    className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500/15 text-[var(--credit)] text-xs font-semibold whitespace-nowrap truncate max-w-[160px]"
                   >
                     +{fmtMoney(expIn, currency)}
-                  </Box>
-                </Box>
+                  </span>
+                </div>
               )}
 
               {view === 'friends' && (
-                <Box sx={{
-                  display: { xs: 'none', sm: 'flex' },
-                  alignItems: 'center',
-                  gap: { xs: 0.4, sm: 0.5 },
-                  maxWidth: { xs: '200px', sm: '320px', md: 'none' },
-                  overflowX: 'auto',
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none',
-                  '&::-webkit-scrollbar': { display: 'none' }
-                }}>
-                  <Box
+                <div className="hidden sm:flex items-center gap-1.5 max-w-[320px] overflow-x-auto no-scrollbar">
+                  <span
                     title={`+${fmtMoney(friendCredit, currency)}`}
-                    sx={{
-                      display: 'inline-flex', alignItems: 'center',
-                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
-                      bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
-                      color: 'success.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
-                    }}
+                    className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500/15 text-[var(--credit)] text-xs font-semibold whitespace-nowrap truncate max-w-[160px]"
                   >
                     +{fmtMoney(friendCredit, currency)}
-                  </Box>
-                  <Box
+                  </span>
+                  <span
                     title={`-${fmtMoney(friendDebt, currency)}`}
-                    sx={{
-                      display: 'inline-flex', alignItems: 'center',
-                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
-                      bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
-                      color: 'error.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
-                    }}
+                    className="inline-flex items-center px-2.5 py-1 rounded-full bg-rose-500/15 text-[var(--debit)] text-xs font-semibold whitespace-nowrap truncate max-w-[160px]"
                   >
                     -{fmtMoney(friendDebt, currency)}
-                  </Box>
-                </Box>
+                  </span>
+                </div>
               )}
 
-
               {view === 'analytics' && (
-                <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                <div className="inline-flex items-center">
                   <button
                     type="button"
                     onClick={() => {
                       const nextMode = spendingMode === 'all' ? 'me' : 'all';
                       updateSettings({ spendingMode: nextMode });
                     }}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '5px 12px',
-                      borderRadius: 999,
-                      background: spendingMode === 'me' ? 'var(--accent-soft)' : 'var(--surface2)',
-                      color: spendingMode === 'me' ? 'var(--accent)' : 'var(--text)',
-                      border: '1px solid',
-                      borderColor: spendingMode === 'me' ? 'var(--accent)' : 'var(--border)',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      transition: 'all 0.15s ease',
-                      whiteSpace: 'nowrap',
-                    }}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${
+                      spendingMode === 'me'
+                        ? 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]'
+                        : 'bg-[var(--surface2)] text-[var(--text)] border-[var(--border)]'
+                    }`}
                   >
-                    {spendingMode === 'me' ? <User size={14} style={{ color: 'var(--accent)' }} /> : <Users size={14} />}
+                    {spendingMode === 'me' ? <User size={14} className="text-[var(--accent)]" /> : <Users size={14} />}
                     <span>{spendingMode === 'me' ? 'Just Me' : 'All Expenses'}</span>
                   </button>
-                </Box>
+                </div>
               )}
 
               {showFilterInTopbar && (
@@ -945,9 +805,9 @@ function AppInner() {
               )}
 
               <NotificationBell onNavigate={navigate} />
-            </Box>
-          </Toolbar>
-        </AppBar>
+            </div>
+          </div>
+        </header>
       )}
 
       <main className={`main-content${isMobile ? ' mobile-layout' : ''}`}>
@@ -958,315 +818,189 @@ function AppInner() {
 
       {/* Mobile bottom navigation */}
       {isMobile && (
-        <Paper
-          elevation={3}
-          sx={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: 1100,
-            pb: 'env(safe-area-inset-bottom, 0px)',
-            bgcolor: 'background.paper',
-          }}
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface)] border-t border-[var(--border)] h-[62px] flex items-center justify-around px-2 shadow-lg"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <BottomNavigation
-            value={bottomNavValue}
-            onChange={(_, newValue) => {
-              if (newValue === 'add') {
-                setShowAddExpense(true);
-              } else if (newValue === 'more') {
-                setMoreOpen(true);
-              } else {
-                navigate(newValue as ViewName);
-              }
-            }}
-            showLabels
-            sx={{
-              height: 62,
-              '& .MuiBottomNavigationAction-root': {
-                minWidth: 'auto',
-                padding: '6px 0',
-                transition: 'color 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                '& .MuiBottomNavigationAction-label': {
-                  fontSize: '0.72rem',
-                  transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease, font-weight 0.2s ease, color 0.25s ease',
-                  fontWeight: 400,
-                  mt: 0.2,
-                },
-                '& .MuiSvgIcon-root, & svg': {
-                  transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease, opacity 0.2s ease',
-                },
-                '&:hover .MuiSvgIcon-root, &:hover svg': {
-                  transform: 'translateY(-2px) scale(1.14)',
-                },
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                  '& .MuiBottomNavigationAction-label': {
-                    fontSize: '0.74rem',
-                    fontWeight: 600,
-                    transform: 'translateY(-1px)',
-                  },
-                  '& .MuiSvgIcon-root, & svg': {
-                    transform: 'translateY(-3px) scale(1.18)',
-                    filter: 'drop-shadow(0 3px 6px var(--accent-soft))',
-                  },
-                },
-                '&:active .MuiSvgIcon-root, &:active svg': {
-                  transform: 'scale(0.92)',
-                },
-              },
-            }}
+          <button
+            type="button"
+            onClick={() => navigate('dashboard')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-all ${
+              bottomNavValue === 'dashboard' ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
+            }`}
           >
-            <BottomNavigationAction label="Dashboard" icon={<LayoutDashboard size={20} />} value="dashboard" />
-            <BottomNavigationAction label="Expenses" icon={<ReceiptText size={20} />} value="expenses" />
-            <BottomNavigationAction
-              value="add"
-              icon={
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: '50%',
-                    bgcolor: 'primary.main',
-                    color: 'primary.contrastText',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 4px 14px var(--accent-soft)',
-                    transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, background-color 0.2s ease',
-                    '&:hover': {
-                      transform: 'translateY(-3px) scale(1.1) rotate(90deg)',
-                      boxShadow: '0 6px 20px var(--accent-soft)',
-                    },
-                    '&:active': {
-                      transform: 'scale(0.92) rotate(90deg)',
-                    },
-                  }}
-                >
-                  <Plus size={22} strokeWidth={2.5} />
-                </Box>
-              }
-              sx={{
-                '& .MuiBottomNavigationAction-label': {
-                  display: 'none',
-                },
-              }}
-            />
-            <BottomNavigationAction
-              label="Contacts"
-              icon={
-                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                  <Users size={20} />
-                  {pendingSettlements > 0 && (
-                    <Box sx={{
-                      position: 'absolute', top: -2, right: -4,
-                      width: 8, height: 8, borderRadius: '50%',
-                      bgcolor: 'primary.main'
-                    }} />
-                  )}
-                </Box>
-              }
-              value="friends"
-            />
-            <BottomNavigationAction
-              label="More"
-              icon={
-                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                  <MoreHorizontal size={20} />
-                  {(dueAutopaysCount > 0 || pendingSettlements > 0) && (
-                    <Box sx={{
-                      position: 'absolute', top: -2, right: -4,
-                      width: 8, height: 8, borderRadius: '50%',
-                      bgcolor: dueAutopaysCount > 0 ? 'error.main' : 'primary.main'
-                    }} />
-                  )}
-                </Box>
-              }
-              value="more"
-            />
-          </BottomNavigation>
-        </Paper>
+            <LayoutDashboard size={20} className={bottomNavValue === 'dashboard' ? 'scale-110 drop-shadow-sm' : ''} />
+            <span className="text-[11px] mt-0.5">Dashboard</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('expenses')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-all ${
+              bottomNavValue === 'expenses' ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
+            }`}
+          >
+            <ReceiptText size={20} className={bottomNavValue === 'expenses' ? 'scale-110 drop-shadow-sm' : ''} />
+            <span className="text-[11px] mt-0.5">Expenses</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowAddExpense(true)}
+            className="flex items-center justify-center flex-shrink-0 -mt-3 mx-1 w-11 h-11 rounded-full bg-[var(--accent)] text-white shadow-lg hover:scale-105 active:scale-95 transition-transform"
+            aria-label="Add expense"
+          >
+            <Plus size={22} strokeWidth={2.5} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('friends')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-all relative ${
+              bottomNavValue === 'friends' ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
+            }`}
+          >
+            <div className="relative inline-flex">
+              <Users size={20} className={bottomNavValue === 'friends' ? 'scale-110 drop-shadow-sm' : ''} />
+              {pendingSettlements > 0 && (
+                <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-[var(--accent)]" />
+              )}
+            </div>
+            <span className="text-[11px] mt-0.5">Contacts</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-all relative ${
+              bottomNavValue === 'more' ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
+            }`}
+          >
+            <div className="relative inline-flex">
+              <MoreHorizontal size={20} className={bottomNavValue === 'more' ? 'scale-110 drop-shadow-sm' : ''} />
+              {(dueAutopaysCount > 0 || pendingSettlements > 0) && (
+                <span className={`absolute -top-1 -right-1.5 w-2 h-2 rounded-full ${dueAutopaysCount > 0 ? 'bg-rose-500' : 'bg-[var(--accent)]'}`} />
+              )}
+            </div>
+            <span className="text-[11px] mt-0.5">More</span>
+          </button>
+        </nav>
       )}
 
       {/* More drawer sheet */}
-      <Drawer
-        anchor="bottom"
-        open={moreOpen && isMobile}
-        onClose={() => setMoreOpen(false)}
-        disableAutoFocus
-        disableRestoreFocus
-        PaperProps={{
-          sx: {
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-            bgcolor: 'background.paper',
-            backgroundImage: 'none',
-            p: 2.5,
-            pb: 'calc(24px + env(safe-area-inset-bottom, 0px))',
-            maxHeight: '85vh',
-            borderTop: '1px solid var(--border)',
-          }
-        }}
-      >
-        <Box sx={{ width: 36, height: 4, bgcolor: 'divider', borderRadius: '2px', mx: 'auto', mb: 2 }} />
-
-        {/* Header close button: hidden on mobile drawer, shown on desktop */}
-        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
-          <IconButton size="small" onClick={() => setMoreOpen(false)} sx={{ bgcolor: 'action.hover' }}>
-            <X size={18} />
-          </IconButton>
-        </Box>
-
-        {/* Quick AI Assistant Card if enabled */}
-        {enableAIAssistant && (
-          <Paper
-            elevation={0}
-            onClick={() => { setMoreOpen(false); setShowAIAssistant(true); }}
-            sx={{
-              p: 1.5,
-              mb: 2,
-              borderRadius: '10px',
-              bgcolor: 'var(--accent-soft)',
-              border: '1px solid var(--border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              transition: 'transform 0.2s ease, filter 0.2s ease',
-              '&:active': { transform: 'scale(0.98)' }
-            }}
+      <AnimatePresence>
+        {moreOpen && isMobile && (
+          <div
+            className="fixed inset-0 z-50 flex items-end bg-black/50 backdrop-blur-sm"
+            onClick={() => setMoreOpen(false)}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Box sx={{
-                width: 36, height: 36, borderRadius: '8px',
-                bgcolor: 'primary.main', color: 'primary.contrastText',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 3px 10px var(--accent-soft)'
-              }}>
-                <Sparkles size={18} />
-              </Box>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                  Ask Max AI Assistant
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                  Smart expense logging & insights
-                </Typography>
-              </Box>
-            </Box>
-            <Box sx={{
-              px: 1.2, py: 0.4, borderRadius: '6px',
-              bgcolor: 'primary.main', color: 'primary.contrastText',
-              fontSize: '0.7rem', fontWeight: 700
-            }}>
-              Open
-            </Box>
-          </Paper>
-        )}
-
-        {/* Category Sections Grid */}
-        <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 700, color: 'text.secondary', mb: 1, display: 'block' }}>
-          Features & Modules
-        </Typography>
-
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.2, mb: 2 }}>
-          {moreItems.map(item => {
-            const isSelected = activeView === item.id;
-            return (
-              <Paper
-                key={item.id}
-                elevation={0}
-                onClick={() => navigate(item.id)}
-                sx={{
-                  p: 1.5,
-                  borderRadius: '10px',
-                  bgcolor: isSelected ? 'var(--accent-soft)' : 'var(--surface2)',
-                  border: '1px solid',
-                  borderColor: isSelected ? 'var(--accent)' : 'var(--border)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  transition: 'all 0.2s ease',
-                  '&:active': { transform: 'scale(0.95)' }
-                }}
-              >
-                <Box sx={{ color: isSelected ? 'primary.main' : 'text.primary' }}>
-                  {item.icon}
-                </Box>
-                <Typography variant="caption" sx={{ fontWeight: isSelected ? 700 : 500, color: isSelected ? 'primary.main' : 'text.primary', fontSize: '0.75rem', lineHeight: 1.1 }}>
-                  {item.label}
-                </Typography>
-
-                {item.id === 'settlements' && pendingSettlements > 0 && (
-                  <Box sx={{
-                    position: 'absolute', top: 6, right: 6,
-                    fontSize: 10, fontWeight: 700, px: 0.6, py: 0.1,
-                    bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: '4px',
-                  }}>
-                    {pendingSettlements}
-                  </Box>
-                )}
-
-                {item.id === 'recurring' && dueAutopaysCount > 0 && (
-                  <Box sx={{
-                    position: 'absolute', top: 6, right: 6,
-                    fontSize: 10, fontWeight: 700, px: 0.6, py: 0.1,
-                    bgcolor: 'error.main', color: '#ffffff', borderRadius: '4px',
-                  }}>
-                    {dueAutopaysCount}
-                  </Box>
-                )}
-              </Paper>
-            );
-          })}
-
-          {/* User guide shortcut - only shown if enabled in dev mode */}
-          {enableUserGuide && (
-            <Paper
-              elevation={0}
-              onClick={() => { setMoreOpen(false); setShowGuideModal(true); }}
-              sx={{
-                p: 1.5,
-                borderRadius: '10px',
-                bgcolor: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 1,
-                textAlign: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                '&:active': { transform: 'scale(0.95)' }
-              }}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full bg-[var(--surface)] text-[var(--text)] rounded-t-2xl border-t border-[var(--border)] p-5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] max-h-[85vh] overflow-y-auto shadow-2xl"
             >
-              <Box sx={{ color: 'text.primary' }}>
-                <HelpCircle size={20} />
-              </Box>
-              <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.75rem', lineHeight: 1.1 }}>
-                User Guide
-              </Typography>
-            </Paper>
-          )}
-        </Box>
+              <div className="w-9 h-1 bg-[var(--border2)] rounded-full mx-auto mb-4" />
 
-        {/* Bottom Row Controls */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 1, borderTop: '1px solid var(--border)' }}>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            Theme: <strong>{mode === 'dark' ? 'Dark Mode' : 'Light Mode'}</strong>
-          </Typography>
-          <IconButton size="small" onClick={handleToggleDark} sx={{ bgcolor: 'var(--surface2)' }}>
-            {mode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </IconButton>
-        </Box>
-      </Drawer>
+              {/* Quick AI Assistant Card if enabled */}
+              {enableAIAssistant && (
+                <div
+                  onClick={() => { setMoreOpen(false); setShowAIAssistant(true); }}
+                  className="p-3 mb-4 rounded-xl bg-[var(--accent-soft)] border border-[var(--border)] flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-[var(--accent)] text-white flex items-center justify-center shadow-md">
+                      <Sparkles size={18} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-[var(--text)]">
+                        Ask Max AI Assistant
+                      </div>
+                      <div className="text-xs text-[var(--text-2)]">
+                        Smart expense logging & insights
+                      </div>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-md bg-[var(--accent)] text-white text-xs font-bold">
+                    Open
+                  </span>
+                </div>
+              )}
+
+              {/* Category Sections Grid */}
+              <div className="text-xs uppercase tracking-wider font-bold text-[var(--text-3)] mb-2.5">
+                Features & Modules
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5 mb-4">
+                {moreItems.map(item => {
+                  const isSelected = activeView === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => navigate(item.id)}
+                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 text-center relative transition-all active:scale-95 ${
+                        isSelected
+                          ? 'bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]'
+                          : 'bg-[var(--surface2)] border-[var(--border)] text-[var(--text)]'
+                      }`}
+                    >
+                      <div>{item.icon}</div>
+                      <span className={`text-xs font-medium leading-tight ${isSelected ? 'font-bold text-[var(--accent)]' : 'text-[var(--text)]'}`}>
+                        {item.label}
+                      </span>
+
+                      {item.id === 'settlements' && pendingSettlements > 0 && (
+                        <span className="absolute top-1.5 right-1.5 text-[10px] font-bold px-1.5 py-0.5 bg-[var(--accent)] text-white rounded">
+                          {pendingSettlements}
+                        </span>
+                      )}
+
+                      {item.id === 'recurring' && dueAutopaysCount > 0 && (
+                        <span className="absolute top-1.5 right-1.5 text-[10px] font-bold px-1.5 py-0.5 bg-rose-500 text-white rounded">
+                          {dueAutopaysCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+
+                {/* User guide shortcut - only shown if enabled in dev mode */}
+                {enableUserGuide && (
+                  <button
+                    type="button"
+                    onClick={() => { setMoreOpen(false); setShowGuideModal(true); }}
+                    className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface2)] flex flex-col items-center justify-center gap-2 text-center transition-all active:scale-95 text-[var(--text)]"
+                  >
+                    <HelpCircle size={20} />
+                    <span className="text-xs font-medium leading-tight">
+                      User Guide
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              {/* Bottom Row Controls */}
+              <div className="flex items-center justify-between pt-3 border-t border-[var(--border)] text-xs text-[var(--text-3)]">
+                <span>
+                  Theme: <strong className="text-[var(--text)]">{mode === 'dark' ? 'Dark Mode' : 'Light Mode'}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleToggleDark}
+                  className="p-2 rounded-lg bg-[var(--surface2)] text-[var(--text)] hover:bg-[var(--surface3)] transition-colors"
+                  aria-label="Toggle color mode"
+                >
+                  {mode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Floating Action Buttons (Search & AI Assistant) */}
       <FloatingSearchButton

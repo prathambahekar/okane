@@ -102,16 +102,17 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
           flexDirection: 'column',
           background: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: 18,
+          borderRadius: 'var(--radius-modal, 16px)',
           overflow: 'hidden',
           animation: 'slidein 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
           boxShadow: 'var(--shadow-lg)',
           color: 'var(--text)',
+          fontFamily: 'var(--font-sans)',
         }}
       >
         {/* Top Handle for bottom-sheet gesture visual cue */}
         <div className="modal-handle-bar" style={{ padding: '6px 0 2px' }}>
-          <div className="modal-handle" style={{ width: 32, height: 4, background: 'var(--border)', borderRadius: 99 }} />
+          <div className="modal-handle" style={{ width: 'var(--drawer-handle-w, 36px)', height: 'var(--drawer-handle-h, 4px)', background: 'var(--border2)', borderRadius: 'var(--radius-pill)', opacity: 0.75 }} />
         </div>
 
         {/* Modal Header */}

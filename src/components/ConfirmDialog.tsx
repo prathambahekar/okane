@@ -19,14 +19,14 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
       style={{ zIndex: 100095 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="modal confirm-modal" onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)' }}>
+      <div className="modal confirm-modal" onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', color: 'var(--text)', fontFamily: 'var(--font-sans)', borderRadius: 'var(--radius-modal, 16px)' }}>
         <div className="modal-header" style={{ padding: '18px 20px 10px', borderBottom: 'none', background: 'transparent' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: 10,
+                borderRadius: 'var(--radius-md, 10px)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -45,7 +45,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
           <button
             className="btn-icon"
             onClick={onClose}
-            style={{ borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ borderRadius: 'var(--radius, 8px)', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             title="Close"
           >
             <X size={18} />
@@ -62,7 +62,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
           <button
             className="btn btn-secondary btn-sm"
             onClick={onClose}
-            style={{ padding: '8px 16px', borderRadius: 8, fontWeight: 600, fontSize: 13 }}
+            style={{ padding: '8px 16px', borderRadius: 'var(--radius, 8px)', fontWeight: 600, fontSize: 13 }}
           >
             Cancel
           </button>
@@ -71,7 +71,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
             onClick={() => { onConfirm(); onClose(); }}
             style={{
               padding: '8px 20px',
-              borderRadius: 8,
+              borderRadius: 'var(--radius, 8px)',
               fontWeight: 700,
               fontSize: 13,
               border: 'none',

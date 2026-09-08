@@ -181,7 +181,7 @@ export default function PinSetupDrawer({
               style={{
                 width: 42,
                 height: 42,
-                borderRadius: 14,
+                borderRadius: 'var(--radius-lg, 12px)',
                 background: 'var(--accent-soft)',
                 border: '1px solid var(--accent-border-soft)',
                 display: 'grid',
@@ -217,7 +217,7 @@ export default function PinSetupDrawer({
             style={{
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
-              borderRadius: 8,
+              borderRadius: 'var(--radius, 8px)',
               width: 32,
               height: 32,
               display: 'grid',
@@ -401,7 +401,7 @@ export default function PinSetupDrawer({
               onClick={() => handleDigitPress(digit)}
               style={{
                 height: 58,
-                borderRadius: 20,
+                borderRadius: 'var(--radius-xl, 16px)',
                 border: '1px solid var(--border-soft, var(--border))',
                 background: 'var(--surface2)',
                 color: 'var(--text)',
@@ -438,7 +438,7 @@ export default function PinSetupDrawer({
             title="Reset"
             style={{
               height: 58,
-              borderRadius: 20,
+              borderRadius: 'var(--radius-xl, 16px)',
               border: '1px solid transparent',
               background: 'transparent',
               color: 'var(--text-3)',
@@ -470,7 +470,7 @@ export default function PinSetupDrawer({
             onClick={() => handleDigitPress('0')}
             style={{
               height: 58,
-              borderRadius: 20,
+              borderRadius: 'var(--radius-xl, 16px)',
               border: '1px solid var(--border-soft, var(--border))',
               background: 'var(--surface2)',
               color: 'var(--text)',
@@ -507,7 +507,7 @@ export default function PinSetupDrawer({
             title="Delete"
             style={{
               height: 58,
-              borderRadius: 20,
+              borderRadius: 'var(--radius-xl, 16px)',
               border: '1px solid transparent',
               background: 'transparent',
               color: currentInput.length === 0 ? 'var(--text-3)' : 'var(--text-2)',

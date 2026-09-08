@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useTheme } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import {
   Search,
   X,
@@ -154,8 +153,7 @@ const SETTINGS_SEARCH_ITEMS: SettingsSearchItem[] = [
 
 export default function ContextualSearchModal({ open, onClose, activeView, onNavigate }: Props) {
   const { db } = useStore();
-  const muiTheme = useTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+  const isMobile = useMediaQuery('(max-width: 899.95px)');
 
   const { expenses = [], friends = [], wallets = [], settlements = [], recurringRules = [], settings } = db;
   const trips: Trip[] = useMemo(() => {
@@ -399,12 +397,14 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: 'var(--surface)',
+          color: 'var(--text)',
+          fontFamily: 'var(--font-sans)',
           border: isMobile ? 'none' : '1px solid var(--border)',
           borderTop: isMobile ? '1px solid var(--border)' : undefined,
-          borderTopLeftRadius: isMobile ? '20px' : '16px',
-          borderTopRightRadius: isMobile ? '20px' : '16px',
-          borderBottomLeftRadius: isMobile ? '0px' : '16px',
-          borderBottomRightRadius: isMobile ? '0px' : '16px',
+          borderTopLeftRadius: isMobile ? 'var(--radius-drawer, 20px)' : 'var(--radius-modal, 16px)',
+          borderTopRightRadius: isMobile ? 'var(--radius-drawer, 20px)' : 'var(--radius-modal, 16px)',
+          borderBottomLeftRadius: isMobile ? '0px' : 'var(--radius-modal, 16px)',
+          borderBottomRightRadius: isMobile ? '0px' : 'var(--radius-modal, 16px)',
           boxShadow: isMobile
             ? '0 -8px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05)'
             : '0 24px 48px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--border)',
@@ -426,11 +426,11 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
           >
             <div
               style={{
-                width: '36px',
-                height: '4px',
-                borderRadius: '2px',
-                backgroundColor: 'var(--text-3)',
-                opacity: 0.35,
+                width: 'var(--drawer-handle-w, 36px)',
+                height: 'var(--drawer-handle-h, 4px)',
+                borderRadius: 'var(--radius-pill)',
+                backgroundColor: 'var(--border2)',
+                opacity: 0.75,
               }}
             />
           </div>
@@ -455,7 +455,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
               gap: '12px',
               backgroundColor: 'var(--surface2)',
               border: '1px solid var(--border)',
-              borderRadius: '14px',
+              borderRadius: 'var(--radius-lg, 12px)',
               padding: isMobile ? '10px 14px' : '12px 16px',
               minWidth: 0,
             }}

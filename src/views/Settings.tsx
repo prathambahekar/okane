@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode, ACCENT_PRESETS } from '../theme';
-import Switch from '@mui/material/Switch';
+import Switch from '../components/common/Switch';
 import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, Sparkles, Zap, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet, Layout } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, downloadFile, importSQLDumpString } from '../db';

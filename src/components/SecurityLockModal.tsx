@@ -223,7 +223,7 @@ export default function SecurityLockModal({
         justifyContent: 'center',
         padding: 'calc(env(safe-area-inset-top, 24px) + 16px) 24px calc(env(safe-area-inset-bottom, 24px) + 24px)',
         boxSizing: 'border-box',
-        fontFamily: 'inherit',
+        fontFamily: 'var(--font-sans)',
         userSelect: 'none',
         WebkitUserSelect: 'none',
         gap: 'clamp(24px, 5vh, 44px)',
@@ -245,7 +245,7 @@ export default function SecurityLockModal({
           style={{
             width: 52,
             height: 52,
-            borderRadius: 18,
+            borderRadius: 'var(--radius-modal, 16px)',
             background: 'var(--surface2)',
             border: '1px solid var(--border-soft, var(--border))',
             display: 'grid',
@@ -356,7 +356,7 @@ export default function SecurityLockModal({
             onClick={() => handleKeyPress(digit)}
             style={{
               height: 62,
-              borderRadius: 22,
+              borderRadius: 'var(--radius-xl, 16px)',
               border: '1px solid var(--border-soft, var(--border))',
               background: 'var(--surface2)',
               color: 'var(--text)',
@@ -394,7 +394,7 @@ export default function SecurityLockModal({
             title={`Scan ${biometricType}`}
             style={{
               height: 62,
-              borderRadius: 22,
+              borderRadius: 'var(--radius-xl, 16px)',
               border: '1px solid transparent',
               background: 'transparent',
               color: 'var(--accent)',
@@ -427,7 +427,7 @@ export default function SecurityLockModal({
           onClick={() => handleKeyPress('0')}
           style={{
             height: 62,
-            borderRadius: 22,
+            borderRadius: 'var(--radius-xl, 16px)',
             border: '1px solid var(--border-soft, var(--border))',
             background: 'var(--surface2)',
             color: 'var(--text)',
@@ -463,7 +463,7 @@ export default function SecurityLockModal({
           title="Delete digit"
           style={{
             height: 62,
-            borderRadius: 22,
+            borderRadius: 'var(--radius-xl, 16px)',
             border: '1px solid transparent',
             background: 'transparent',
             color: pinInput.length === 0 ? 'var(--text-3)' : 'var(--text-2)',

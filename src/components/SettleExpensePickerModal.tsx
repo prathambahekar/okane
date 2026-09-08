@@ -274,7 +274,7 @@ export default function SettleExpensePickerModal({
       >
         {/* Mobile Drag Handle */}
         <div className="friend-picker-handle">
-          <div style={{ width: 36, height: 4.5, borderRadius: 99, background: 'var(--border2)' }} />
+          <div style={{ width: 'var(--drawer-handle-w, 36px)', height: 'var(--drawer-handle-h, 4px)', borderRadius: 'var(--radius-pill)', background: 'var(--border2)' }} />
         </div>
 
         {/* Modal Header */}

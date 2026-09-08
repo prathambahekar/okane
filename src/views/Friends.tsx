@@ -13,11 +13,7 @@ import {
   X,
   RotateCcw,
 } from 'lucide-react';
-import IconButton from '@mui/material/IconButton';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
+import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../store';
 import type { Friend, ContactType, ViewName } from '../types';
 import { friendBalance, contactTotalSpent, contactTransactionCount, contactLastTransaction, unsettledExpensesForFriend } from '../db';
@@ -671,16 +667,29 @@ export default function Friends({ onNavigate }: Props) {
                     </div>
                   </div>
 
-                  <IconButton
-                    size="small"
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleMenuOpen(e, f);
                     }}
-                    sx={{ color: 'text.secondary', p: 0.5 }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 28,
+                      height: 28,
+                      borderRadius: 'var(--radius-sm, 8px)',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-3)',
+                      cursor: 'pointer',
+                    }}
+                    className="hover:text-[var(--text)] hover:bg-[var(--surface2)] transition-colors"
+                    aria-label="Contact options"
                   >
                     <MoreVertical size={16} />
-                  </IconButton>
+                  </button>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -831,16 +840,29 @@ export default function Friends({ onNavigate }: Props) {
                     </button>
                   )}
 
-                  <IconButton
-                    size="small"
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleMenuOpen(e, f);
                     }}
-                    sx={{ color: 'text.secondary', p: 0.5 }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 28,
+                      height: 28,
+                      borderRadius: 'var(--radius-sm, 8px)',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-3)',
+                      cursor: 'pointer',
+                    }}
+                    className="hover:text-[var(--text)] hover:bg-[var(--surface2)] transition-colors"
+                    aria-label="Contact options"
                   >
                     <MoreVertical size={16} />
-                  </IconButton>
+                  </button>
                 </div>
               </div>
             );
@@ -915,16 +937,29 @@ export default function Friends({ onNavigate }: Props) {
                     </span>
                   )}
 
-                  <IconButton
-                    size="small"
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleMenuOpen(e, f);
                     }}
-                    sx={{ color: 'text.secondary', p: 0.25 }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 24,
+                      height: 24,
+                      borderRadius: 'var(--radius-sm, 8px)',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-3)',
+                      cursor: 'pointer',
+                    }}
+                    className="hover:text-[var(--text)] hover:bg-[var(--surface2)] transition-colors"
+                    aria-label="Contact options"
                   >
                     <MoreVertical size={16} />
-                  </IconButton>
+                  </button>
                 </div>
               </div>
             );
@@ -933,42 +968,58 @@ export default function Friends({ onNavigate }: Props) {
       )}
 
       {/* Overflow Menu for Edit / Delete */}
-      <Menu
-        anchorEl={menuAnchorEl}
-        open={Boolean(menuAnchorEl)}
-        onClose={handleMenuClose}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            minWidth: 140,
-            boxShadow: 'var(--shadow)',
-            bgcolor: 'background.paper',
-          },
-        }}
-      >
-        <MenuItem
-          onClick={() => {
-            if (menuFriend) setEditFriend(menuFriend);
-            handleMenuClose();
-          }}
-          sx={{ fontSize: 13, gap: 1.5 }}
-        >
-          <ListItemIcon><Edit2 size={16} /></ListItemIcon>
-          <ListItemText primary="Edit Contact" primaryTypographyProps={{ fontSize: 13 }} />
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            if (menuFriend) setDelId(menuFriend.id);
-            handleMenuClose();
-          }}
-          sx={{ fontSize: 13, gap: 1.5, color: 'error.main' }}
-        >
-          <ListItemIcon><Trash2 size={16} style={{ color: 'var(--debit)' }} /></ListItemIcon>
-          <ListItemText primary="Delete Contact" primaryTypographyProps={{ fontSize: 13, color: 'error.main' }} />
-        </MenuItem>
-      </Menu>
+      <AnimatePresence>
+        {menuAnchorEl && menuFriend && createPortal(
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 1200 }}
+            onClick={handleMenuClose}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'fixed',
+                top: Math.min(window.innerHeight - 100, menuAnchorEl.getBoundingClientRect().bottom + 4),
+                left: Math.max(16, menuAnchorEl.getBoundingClientRect().right - 148),
+                width: 148,
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-modal, 12px)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.28)',
+                padding: '4px',
+                zIndex: 1201,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  if (menuFriend) setEditFriend(menuFriend);
+                  handleMenuClose();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md hover:bg-[var(--surface2)] text-[var(--text)] transition-colors text-left"
+              >
+                <Edit2 size={14} className="text-[var(--text-2)]" />
+                <span>Edit Contact</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (menuFriend) setDelId(menuFriend.id);
+                  handleMenuClose();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md hover:bg-[var(--debit-bg,rgba(239,68,68,0.1))] text-[var(--debit)] transition-colors text-left"
+              >
+                <Trash2 size={14} className="text-[var(--debit)]" />
+                <span>Delete Contact</span>
+              </button>
+            </motion.div>
+          </div>,
+          document.body
+        )}
+      </AnimatePresence>
 
       {/* Contact Filter & Sorting Drawer */}
       <ContactFilterBar

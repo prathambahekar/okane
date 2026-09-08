@@ -210,8 +210,10 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
           max-width: 540px;
           margin: 0 auto;
           background: var(--surface);
-          border-top-left-radius: 24px;
-          border-top-right-radius: 24px;
+          color: var(--text);
+          font-family: var(--font-sans);
+          border-top-left-radius: var(--radius-drawer, 20px);
+          border-top-right-radius: var(--radius-drawer, 20px);
           border-bottom-left-radius: 0;
           border-bottom-right-radius: 0;
           border: 1px solid var(--border);
@@ -238,7 +240,7 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
             padding: 24px !important;
           }
           .drawer-card {
-            border-radius: 20px !important;
+            border-radius: var(--radius-modal, 16px) !important;
             border: 1px solid var(--border) !important;
             box-shadow: 0 20px 60px rgba(0,0,0,0.25) !important;
             max-height: 88vh !important;
@@ -267,7 +269,7 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
       <div className="drawer-card">
         {/* Top Handle bar (Mobile only) */}
         <div className="drawer-handle" onClick={onClose}>
-          <div style={{ width: '42px', height: '4px', borderRadius: '99px', background: 'var(--border2)' }} />
+          <div style={{ width: 'var(--drawer-handle-w, 36px)', height: 'var(--drawer-handle-h, 4px)', borderRadius: 'var(--radius-pill)', background: 'var(--border2)' }} />
         </div>
 
         {/* Drawer Header */}

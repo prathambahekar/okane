@@ -1,25 +1,6 @@
-import React, { useState, forwardRef } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  IconButton,
-  Typography,
-  Box,
-  Tabs,
-  Tab,
-  Button,
-  Chip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  InputBase,
-  Paper,
-  Slide,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import type { TransitionProps } from '@mui/material/transitions';
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   X,
   BookOpen,
@@ -35,16 +16,10 @@ import {
   CheckCircle2,
   Lightbulb,
   Zap,
-  Info,
+  ChevronDown,
 } from 'lucide-react';
 import type { ViewName } from '../types';
-
-const Transition = forwardRef(function Transition(
-  props: TransitionProps & { children: React.ReactElement },
-  ref: React.Ref<unknown>,
-) {
-  return <Slide direction="up" ref={ref} {...props} />;
-});
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 interface UserGuideModalProps {
   open: boolean;
@@ -63,8 +38,8 @@ export default function UserGuideModal({
 }: UserGuideModalProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(null);
+  const isMobile = useMediaQuery('(max-width: 639.98px)');
 
   const handleAction = (action: 'addExpense' | 'view' | 'tutorial', view?: ViewName) => {
     onClose();
@@ -124,722 +99,501 @@ export default function UserGuideModal({
       )
     : faqItems;
 
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      disableAutoFocus
-      disableRestoreFocus
-      maxWidth="md"
-      fullWidth
-      TransitionComponent={isMobile ? Transition : undefined}
-      PaperProps={{
-        sx: {
-          borderRadius: isMobile ? '24px 24px 0 0' : '18px',
-          m: isMobile ? 0 : 2,
-          position: isMobile ? 'fixed' : 'relative',
-          bottom: isMobile ? 0 : 'auto',
-          left: isMobile ? 0 : 'auto',
-          right: isMobile ? 0 : 'auto',
-          width: '100%',
-          maxHeight: isMobile ? '88vh' : '90vh',
-          bgcolor: 'var(--surface)',
-          color: 'var(--text-1)',
-          backgroundImage: 'none',
-          boxShadow: isMobile ? '0 -10px 40px rgba(0,0,0,0.35)' : '0 20px 50px rgba(0,0,0,0.3)',
-          overflow: 'hidden',
-        },
-      }}
-    >
-      {/* Mobile Drag Handle Indicator */}
-      {isMobile && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.2, pb: 0.2, bgcolor: 'var(--surface)' }}>
-          <Box sx={{ width: 38, height: 4, borderRadius: 2, bgcolor: 'var(--border2)' }} />
-        </Box>
-      )}
+  const tabs = [
+    { label: 'Overview', icon: Lightbulb },
+    { label: 'Expense Types', icon: ReceiptText },
+    { label: 'Settle Up & Debts', icon: Handshake },
+    { label: 'Wallets & Autopay', icon: Wallet },
+    { label: 'AI Assistant', icon: Sparkles },
+    { label: 'FAQs & Help', icon: HelpCircle },
+  ];
 
-      {/* Modal Header */}
-      <DialogTitle
-        sx={{
-          m: 0,
-          p: { xs: 2, sm: 2.5 },
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid var(--border)',
-          bgcolor: 'var(--surface)',
-        }}
+  if (!open) return null;
+
+  return createPortal(
+    <AnimatePresence>
+      <div
+        className="fixed inset-0 z-[1300] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
+        onClick={onClose}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 38,
-              height: 38,
-              borderRadius: '12px',
-              bgcolor: 'var(--accent-soft)',
-              color: 'var(--accent)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <BookOpen size={20} />
-          </Box>
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>
-              Okane User Guide & Help
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'var(--text-2)', fontSize: '0.78rem' }}>
-              Learn how to track expenses, manage debts, and settle up easily
-            </Typography>
-          </Box>
-        </Box>
-        <IconButton
-          onClick={onClose}
-          size="small"
-          sx={{
-            display: { xs: 'none', md: 'inline-flex' },
-            color: 'var(--text-2)',
-            borderRadius: '10px',
-            p: 0.8,
-            '&:hover': { bgcolor: 'var(--surface3)', color: 'var(--text-1)' },
-          }}
+        <motion.div
+          initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.95, y: 16 }}
+          animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+          exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.95, y: 16 }}
+          transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+          onClick={e => e.stopPropagation()}
+          className="w-full sm:max-w-3xl max-h-[88vh] sm:max-h-[90vh] flex flex-col bg-[var(--surface)] text-[var(--text)] rounded-t-2xl sm:rounded-2xl border border-[var(--border)] shadow-2xl overflow-hidden"
         >
-          <X size={18} />
-        </IconButton>
-      </DialogTitle>
+          {/* Mobile Handle */}
+          {isMobile && (
+            <div className="flex justify-center pt-2.5 pb-1 bg-[var(--surface)]">
+              <div className="w-9 h-1 rounded-full bg-[var(--border2)]" />
+            </div>
+          )}
 
-      {/* Tabs */}
-      <Box sx={{ borderBottom: '1px solid var(--border)', bgcolor: 'var(--surface)' }}>
-        <Tabs
-          value={activeTab}
-          onChange={(_, val) => setActiveTab(val)}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            px: 2,
-            minHeight: 44,
-            '& .MuiTab-root': {
-              minHeight: 44,
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              color: 'var(--text-2)',
-              py: 1,
-              px: 2,
-              '&.Mui-selected': {
-                color: 'var(--accent)',
-              },
-            },
-            '& .MuiTabs-indicator': {
-              bgcolor: 'var(--accent)',
-              height: 3,
-              borderRadius: '3px 3px 0 0',
-            },
-          }}
-        >
-          <Tab icon={<Lightbulb size={16} />} iconPosition="start" label="Overview" />
-          <Tab icon={<ReceiptText size={16} />} iconPosition="start" label="Expense Types" />
-          <Tab icon={<Handshake size={16} />} iconPosition="start" label="Settle Up & Debts" />
-          <Tab icon={<Wallet size={16} />} iconPosition="start" label="Wallets & Autopay" />
-          <Tab icon={<Sparkles size={16} />} iconPosition="start" label="AI Assistant" />
-          <Tab icon={<HelpCircle size={16} />} iconPosition="start" label="FAQs & Help" />
-        </Tabs>
-      </Box>
-
-      {/* Modal Content */}
-      <DialogContent sx={{ p: { xs: 2, sm: 3 }, overflowY: 'auto' }}>
-        {/* TAB 0: OVERVIEW */}
-        {activeTab === 0 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            <Box
-              sx={{
-                p: 2.5,
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg, var(--accent-soft) 0%, rgba(59, 130, 246, 0.08) 100%)',
-                border: '1px solid var(--accent-soft)',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 2,
-              }}
+          {/* Modal Header */}
+          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--border)] bg-[var(--surface)]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center flex-shrink-0">
+                <BookOpen size={20} />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-bold leading-tight">
+                  Okane User Guide & Help
+                </h2>
+                <p className="text-xs text-[var(--text-2)]">
+                  Learn how to track expenses, manage debts, and settle up easily
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface3)] transition-colors"
+              aria-label="Close user guide"
             >
-              <Box
-                sx={{
-                  p: 1.2,
-                  borderRadius: '12px',
-                  bgcolor: 'var(--surface)',
-                  color: 'var(--accent)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                }}
-              >
-                <Zap size={24} />
-              </Box>
-              <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5, color: 'var(--text-1)' }}>
-                  Welcome to Okane! 🌸
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', lineHeight: 1.6 }}>
-                  Okane is designed to make personal finance & shared group expenses completely effortless. Whether you are tracking daily coffee runs, splitting restaurant bills, or settling monthly rent with friends — Okane keeps everything clear and balanced.
-                </Typography>
-              </Box>
-            </Box>
+              <X size={18} />
+            </button>
+          </div>
 
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'var(--text-1)', fontSize: '0.95rem' }}>
-              Core Features at a Glance:
-            </Typography>
-
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: '12px',
-                  border: '1px solid var(--border)',
-                  bgcolor: 'var(--surface2)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: 'var(--accent)' }}>
-                  <ReceiptText size={18} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    1. Log Expenses Easily
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '0.82rem', lineHeight: 1.5 }}>
-                  Track personal spending, vendor payments, or expenses paid for/by friends with flexible wallet selection.
-                </Typography>
-              </Paper>
-
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: '12px',
-                  border: '1px solid var(--border)',
-                  bgcolor: 'var(--surface2)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: 'var(--credit)' }}>
-                  <Users size={18} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    2. Clear Friend Balances
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '0.82rem', lineHeight: 1.5 }}>
-                  See exactly who owes you money and whom you owe, down to the exact rupee or dollar without awkward math.
-                </Typography>
-              </Paper>
-
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: '12px',
-                  border: '1px solid var(--border)',
-                  bgcolor: 'var(--surface2)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: 'var(--info)' }}>
-                  <Handshake size={18} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    3. One-Click Settle Up
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '0.82rem', lineHeight: 1.5 }}>
-                  Settle up pending debts in full or partially. Payment updates wallet balances and friend ledgers instantly.
-                </Typography>
-              </Paper>
-
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: '12px',
-                  border: '1px solid var(--border)',
-                  bgcolor: 'var(--surface2)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: '#ec4899' }}>
-                  <Sparkles size={18} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    4. Smart AI Assistant
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '0.82rem', lineHeight: 1.5 }}>
-                  Simply speak or type natural phrases like "Dinner with Rahul $40" and let AI auto-fill your log!
-                </Typography>
-              </Paper>
-            </Box>
-
-            <Box sx={{ display: 'flex', gap: 1.5, mt: 1, flexWrap: 'wrap' }}>
-              <Button
-                variant="contained"
-                onClick={() => handleAction('tutorial')}
-                startIcon={<Sparkles size={16} />}
-                sx={{
-                  borderRadius: '10px',
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  bgcolor: 'var(--accent)',
-                  color: '#fff',
-                  boxShadow: '0 4px 14px var(--accent-soft)',
-                  '&:hover': { bgcolor: 'var(--accent)', filter: 'brightness(0.95)' },
-                }}
-              >
-                Start Interactive Expense Tutorial ✨
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => handleAction('addExpense')}
-                startIcon={<ReceiptText size={16} />}
-                sx={{
-                  borderRadius: '10px',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  borderColor: 'var(--border)',
-                  color: 'var(--text-1)',
-                  '&:hover': { borderColor: 'var(--border2)', bgcolor: 'var(--surface2)' },
-                }}
-              >
-                Add Real Expense
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => handleAction('view', 'friends')}
-                endIcon={<ArrowRight size={16} />}
-                sx={{
-                  borderRadius: '10px',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  borderColor: 'var(--border)',
-                  color: 'var(--text-1)',
-                  '&:hover': { borderColor: 'var(--border2)', bgcolor: 'var(--surface2)' },
-                }}
-              >
-                View Contacts
-              </Button>
-            </Box>
-          </Box>
-        )}
-
-        {/* TAB 1: EXPENSE TYPES */}
-        {activeTab === 1 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="body2" sx={{ color: 'var(--text-2)' }}>
-              Understanding the 4 expense modes in Okane prevents confusion about who paid and who owes what:
-            </Typography>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {/* Type 1: Personal */}
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: '12px',
-                  border: '1px solid var(--border)',
-                  bgcolor: 'var(--surface2)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', mb: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Chip label="Personal" size="small" sx={{ fontWeight: 700, bgcolor: 'var(--surface3)', color: 'var(--text-1)' }} />
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      My Own Personal Expense
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '0.85rem', mb: 1 }}>
-                  <strong>Who paid:</strong> You paid out of your wallet.<br />
-                  <strong>Impact:</strong> Reduces your wallet balance. No friends involved.
-                </Typography>
-                <Box sx={{ p: 1, borderRadius: '8px', bgcolor: 'var(--surface)', fontSize: '0.78rem', color: 'var(--text-3)', fontFamily: 'monospace' }}>
-                  Example: Coffee for $4 paid via Google Pay cash wallet.
-                </Box>
-              </Paper>
-
-              {/* Type 2: Paid for Friend */}
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: '12px',
-                  border: '1px solid var(--border)',
-                  bgcolor: 'var(--surface2)',
-                  borderLeft: '4px solid var(--credit)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Chip label="For Friend" size="small" sx={{ fontWeight: 700, bgcolor: 'rgba(74, 222, 128, 0.15)', color: 'var(--credit)' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    I Paid for a Friend (They owe me)
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '0.85rem', mb: 1 }}>
-                  <strong>Who paid:</strong> You paid the bill for a friend.<br />
-                  <strong>Impact:</strong> Reduces your wallet balance, but increases <em>Friend's Debt to You</em> (Credit badge).
-                </Typography>
-                <Box sx={{ p: 1, borderRadius: '8px', bgcolor: 'var(--surface)', fontSize: '0.78rem', color: 'var(--credit)', fontFamily: 'monospace' }}>
-                  Example: You paid $50 for Rahul's concert ticket. Rahul now owes you $50.
-                </Box>
-              </Paper>
-
-              {/* Type 3: Paid by Friend */}
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: '12px',
-                  border: '1px solid var(--border)',
-                  bgcolor: 'var(--surface2)',
-                  borderLeft: '4px solid var(--debit)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Chip label="By Friend" size="small" sx={{ fontWeight: 700, bgcolor: 'rgba(248, 113, 113, 0.15)', color: 'var(--debit)' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Paid by Friend for Me (I owe them)
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '0.85rem', mb: 1 }}>
-                  <strong>Who paid:</strong> A friend paid a bill on your behalf.<br />
-                  <strong>Impact:</strong> No cash leaves your wallet right now, but increases <em>Your Debt to Friend</em> (Debit badge).
-                </Typography>
-                <Box sx={{ p: 1, borderRadius: '8px', bgcolor: 'var(--surface)', fontSize: '0.78rem', color: 'var(--debit)', fontFamily: 'monospace' }}>
-                  Example: Priya paid $30 for your cab fare. You now owe Priya $30.
-                </Box>
-              </Paper>
-
-              {/* Type 4: Split Bill */}
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: '12px',
-                  border: '1px solid var(--border)',
-                  bgcolor: 'var(--surface2)',
-                  borderLeft: '4px solid var(--info)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Chip label="Split Bill" size="small" sx={{ fontWeight: 700, bgcolor: 'rgba(56, 189, 248, 0.15)', color: 'var(--info)' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Shared / Group Bill Split
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '0.85rem', mb: 1 }}>
-                  <strong>Who paid:</strong> You (or a friend) paid a total bill shared among 2+ people.<br />
-                  <strong>Impact:</strong> Automatically splits total amount equally or with custom percentages/amounts into individual friend debts.
-                </Typography>
-                <Box sx={{ p: 1, borderRadius: '8px', bgcolor: 'var(--surface)', fontSize: '0.78rem', color: 'var(--info)', fontFamily: 'monospace' }}>
-                  Example: $100 dinner bill paid by you. You split 50/50 with Amit. Your personal share is $50, and Amit owes you $50.
-                </Box>
-              </Paper>
-            </Box>
-
-            <Button
-              variant="contained"
-              onClick={() => handleAction('tutorial')}
-              startIcon={<Sparkles size={16} />}
-              sx={{
-                mt: 1,
-                borderRadius: '10px',
-                textTransform: 'none',
-                fontWeight: 700,
-                bgcolor: 'var(--accent)',
-                color: '#fff',
-                py: 1.2,
-                '&:hover': { bgcolor: 'var(--accent)', filter: 'brightness(0.95)' },
-              }}
-            >
-              Try Interactive Expense & Debt Tutorial ✨
-            </Button>
-          </Box>
-        )}
-
-        {/* TAB 2: SETTLE UP & DEBTS */}
-        {activeTab === 2 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2.5,
-                borderRadius: '14px',
-                bgcolor: 'var(--surface2)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5, color: 'var(--accent)' }}>
-                <Handshake size={22} />
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  How Debt Settlement Works
-                </Typography>
-              </Box>
-              <Typography variant="body2" sx={{ color: 'var(--text-2)', lineHeight: 1.6, mb: 2 }}>
-                Whenever you or a friend pay back money, use the <strong>"Settle Up"</strong> button in Settlements or Contact details instead of adding a new random expense. This ensures your friend ledger is cleanly cleared!
-              </Typography>
-
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                  <CheckCircle2 size={18} style={{ color: 'var(--credit)', marginTop: 2, flexShrink: 0 }} />
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Full Settlement:
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'var(--text-2)', display: 'block' }}>
-                      Marks all selected pending expenses as "Settled" in one tap and updates your chosen Wallet.
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                  <CheckCircle2 size={18} style={{ color: 'var(--info)', marginTop: 2, flexShrink: 0 }} />
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Partial Payment:
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'var(--text-2)', display: 'block' }}>
-                      If a friend pays back ₹500 out of ₹1,500 owed, record a custom partial settlement. It reduces the net balance directly without erasing history!
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                  <CheckCircle2 size={18} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Undo & History:
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'var(--text-2)', display: 'block' }}>
-                      Made a mistake? Every settlement is saved in Settlement History with a single-click "Undo" button to restore unsettled states effortlessly.
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-            </Paper>
-
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-              <Button
-                variant="contained"
-                onClick={() => handleAction('view', 'settlements')}
-                startIcon={<Handshake size={16} />}
-                sx={{
-                  borderRadius: '10px',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  bgcolor: 'var(--accent)',
-                }}
-              >
-                Go to Settlements Tab
-              </Button>
-            </Box>
-          </Box>
-        )}
-
-        {/* TAB 3: WALLETS & AUTOPAY */}
-        {activeTab === 3 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2.5,
-                  borderRadius: '14px',
-                  bgcolor: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: 'var(--accent)' }}>
-                  <Wallet size={20} />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Wallets & Transfers
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '0.84rem', lineHeight: 1.5, mb: 1.5 }}>
-                  Keep separate accounts for Cash, HDFC Bank, Credit Card, or UPI Wallets.
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'var(--text-2)', display: 'block', mb: 1 }}>
-                  💡 <strong>Internal Transfer:</strong> Moving ₹2,000 from Bank to Cash Wallet updates both balances instantly without affecting your monthly expense metrics!
-                </Typography>
-                <Button
-                  size="small"
-                  onClick={() => handleAction('view', 'wallets')}
-                  sx={{ textTransform: 'none', fontWeight: 600, color: 'var(--accent)', p: 0 }}
+          {/* Navigation Tabs */}
+          <div className="border-b border-[var(--border)] bg-[var(--surface)] overflow-x-auto no-scrollbar flex px-3">
+            {tabs.map((tab, idx) => {
+              const Icon = tab.icon;
+              const isSelected = activeTab === idx;
+              return (
+                <button
+                  key={tab.label}
+                  type="button"
+                  onClick={() => setActiveTab(idx)}
+                  className={`flex items-center gap-2 py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${
+                    isSelected
+                      ? 'border-[var(--accent)] text-[var(--accent)]'
+                      : 'border-transparent text-[var(--text-2)] hover:text-[var(--text)]'
+                  }`}
                 >
-                  Manage Wallets →
-                </Button>
-              </Paper>
+                  <Icon size={16} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2.5,
-                  borderRadius: '14px',
-                  bgcolor: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, color: '#ef5350' }}>
-                  <RefreshCw size={20} />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Autopay & Recurring Bills
-                  </Typography>
-                </Box>
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '0.84rem', lineHeight: 1.5, mb: 1.5 }}>
-                  Set up monthly rent, Wi-Fi bills, Spotify, or gym subscriptions once.
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'var(--text-2)', display: 'block', mb: 1 }}>
-                  🔔 <strong>Smart Reminders:</strong> Okane badges upcoming due dates in red so you never miss a bill or get hit with late fees.
-                </Typography>
-                <Button
-                  size="small"
-                  onClick={() => handleAction('view', 'recurring')}
-                  sx={{ textTransform: 'none', fontWeight: 600, color: '#ef5350', p: 0 }}
-                >
-                  View Autopays →
-                </Button>
-              </Paper>
-            </Box>
-          </Box>
-        )}
+          {/* Modal Content Body */}
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1 text-sm">
+            {/* TAB 0: OVERVIEW */}
+            {activeTab === 0 && (
+              <div className="flex flex-col gap-5">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-[var(--accent-soft)] to-blue-500/5 border border-[var(--accent-soft)] flex items-start gap-3.5">
+                  <div className="p-2 rounded-xl bg-[var(--surface)] text-[var(--accent)] shadow-sm flex-shrink-0">
+                    <Zap size={22} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm sm:text-base text-[var(--text)] mb-1">
+                      Welcome to Okane! 🌸
+                    </h3>
+                    <p className="text-xs sm:text-sm text-[var(--text-2)] leading-relaxed">
+                      Okane is designed to make personal finance & shared group expenses completely effortless. Whether you are tracking daily coffee runs, splitting restaurant bills, or settling monthly rent with friends — Okane keeps everything clear and balanced.
+                    </p>
+                  </div>
+                </div>
 
-        {/* TAB 4: AI ASSISTANT */}
-        {activeTab === 4 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2.5,
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)',
-                border: '1px solid rgba(168, 85, 247, 0.2)',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1, color: '#a855f7' }}>
-                <Sparkles size={22} />
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Okane Smart AI Assistant
-                </Typography>
-              </Box>
-              <Typography variant="body2" sx={{ color: 'var(--text-2)', lineHeight: 1.6, mb: 2 }}>
-                Skip manual form filling! Open the AI Assistant from the bottom floating bar or AI modal and type or speak naturally:
-              </Typography>
+                <h4 className="font-bold text-[var(--text)] text-sm">
+                  Core Features at a Glance:
+                </h4>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Paper sx={{ p: 1.5, borderRadius: '10px', bgcolor: 'var(--surface)', border: '1px solid var(--border)' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'var(--accent)' }}>
-                    💬 "Paid 450 for Tiffin with Aunty yesterday"
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'var(--text-2)' }}>
-                    → Automatically logs $450 under Food/Tiffin category linked to contact Tiffin Aunty!
-                  </Typography>
-                </Paper>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface2)]">
+                    <div className="flex items-center gap-2 mb-1.5 text-[var(--accent)]">
+                      <ReceiptText size={18} />
+                      <span className="font-bold text-sm">1. Log Expenses Easily</span>
+                    </div>
+                    <p className="text-xs text-[var(--text-2)] leading-relaxed">
+                      Track personal spending, vendor payments, or expenses paid for/by friends with flexible wallet selection.
+                    </p>
+                  </div>
 
-                <Paper sx={{ p: 1.5, borderRadius: '10px', bgcolor: 'var(--surface)', border: '1px solid var(--border)' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'var(--accent)' }}>
-                    💬 "Split 1200 restaurant bill equally with Hrishikesh and Parth"
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: 'var(--text-2)' }}>
-                    → Creates a 3-way equal split ($400 each) and assigns friend debts instantly!
-                  </Typography>
-                </Paper>
-              </Box>
-            </Paper>
-          </Box>
-        )}
+                  <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface2)]">
+                    <div className="flex items-center gap-2 mb-1.5 text-[var(--credit)]">
+                      <Users size={18} />
+                      <span className="font-bold text-sm">2. Clear Friend Balances</span>
+                    </div>
+                    <p className="text-xs text-[var(--text-2)] leading-relaxed">
+                      See exactly who owes you money and whom you owe, down to the exact rupee or dollar without awkward math.
+                    </p>
+                  </div>
 
-        {/* TAB 5: FAQs & SEARCH */}
-        {activeTab === 5 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: '6px 12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                borderRadius: '12px',
-                border: '1px solid var(--border)',
-                bgcolor: 'var(--surface2)',
-              }}
-            >
-              <Search size={18} style={{ color: 'var(--text-3)' }} />
-              <InputBase
-                placeholder="Search help topics (e.g. debt, settle, wallet, split)..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                sx={{ flex: 1, fontSize: '0.88rem', color: 'var(--text-1)' }}
-              />
-              {searchQuery && (
-                <IconButton size="small" onClick={() => setSearchQuery('')}>
-                  <X size={14} />
-                </IconButton>
-              )}
-            </Paper>
+                  <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface2)]">
+                    <div className="flex items-center gap-2 mb-1.5 text-[var(--info)]">
+                      <Handshake size={18} />
+                      <span className="font-bold text-sm">3. One-Click Settle Up</span>
+                    </div>
+                    <p className="text-xs text-[var(--text-2)] leading-relaxed">
+                      Settle up pending debts in full or partially. Payment updates wallet balances and friend ledgers instantly.
+                    </p>
+                  </div>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {filteredFaqs.length === 0 ? (
-                <Typography variant="body2" sx={{ color: 'var(--text-2)', textAlign: 'center', py: 3 }}>
-                  No matching help topics found for "{searchQuery}". Try searching for "wallet", "settle", or "split".
-                </Typography>
-              ) : (
-                filteredFaqs.map((faq, index) => (
-                  <Accordion
-                    key={index}
-                    elevation={0}
-                    sx={{
-                      bgcolor: 'var(--surface2)',
-                      color: 'var(--text-1)',
-                      borderRadius: '12px !important',
-                      border: '1px solid var(--border)',
-                      '&:before': { display: 'none' },
-                    }}
+                  <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface2)]">
+                    <div className="flex items-center gap-2 mb-1.5 text-pink-500">
+                      <Sparkles size={18} />
+                      <span className="font-bold text-sm">4. Smart AI Assistant</span>
+                    </div>
+                    <p className="text-xs text-[var(--text-2)] leading-relaxed">
+                      Simply speak or type natural phrases like "Dinner with Rahul $40" and let AI auto-fill your log!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 mt-1 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleAction('tutorial')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[var(--accent)] text-white shadow-md hover:brightness-95 transition-all"
                   >
-                    <AccordionSummary expandIcon={<Info size={16} style={{ color: 'var(--text-3)' }} />}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.88rem' }}>
-                        {faq.q}
-                      </Typography>
-                    </AccordionSummary>
-                    <AccordionDetails sx={{ pt: 0, pb: 2, px: 2 }}>
-                      <Typography variant="body2" sx={{ color: 'var(--text-2)', fontSize: '0.83rem', whiteSpace: 'pre-line', lineHeight: 1.6 }}>
-                        {faq.a}
-                      </Typography>
-                      <Chip label={faq.category} size="small" sx={{ mt: 1.5, height: 20, fontSize: '0.7rem', bgcolor: 'var(--surface3)' }} />
-                    </AccordionDetails>
-                  </Accordion>
-                ))
-              )}
-            </Box>
-          </Box>
-        )}
-      </DialogContent>
+                    <Sparkles size={16} />
+                    <span>Start Interactive Expense Tutorial ✨</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAction('addExpense')}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface2)] transition-colors"
+                  >
+                    <ReceiptText size={16} />
+                    <span>Add Real Expense</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAction('view', 'friends')}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface2)] transition-colors"
+                  >
+                    <span>View Contacts</span>
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
 
-      {/* Modal Footer */}
-      <Box
-        sx={{
-          p: 2,
-          borderTop: '1px solid var(--border)',
-          bgcolor: 'var(--surface2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Typography variant="caption" sx={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <HelpCircle size={14} /> Need more help? Tap AI Assistant anytime.
-        </Typography>
-        <Button
-          onClick={onClose}
-          variant="contained"
-          sx={{
-            borderRadius: '10px',
-            textTransform: 'none',
-            fontWeight: 600,
-            bgcolor: 'var(--accent)',
-            px: 3,
-          }}
-        >
-          Got it!
-        </Button>
-      </Box>
-    </Dialog>
+            {/* TAB 1: EXPENSE TYPES */}
+            {activeTab === 1 && (
+              <div className="flex flex-col gap-4">
+                <p className="text-xs sm:text-sm text-[var(--text-2)]">
+                  Understanding the 4 expense modes in Okane prevents confusion about who paid and who owes what:
+                </p>
+
+                <div className="flex flex-col gap-3">
+                  {/* Type 1: Personal */}
+                  <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface2)]">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[var(--surface3)] text-[var(--text)]">
+                        Personal
+                      </span>
+                      <h5 className="font-bold text-sm">My Own Personal Expense</h5>
+                    </div>
+                    <p className="text-xs sm:text-sm text-[var(--text-2)] mb-2">
+                      <strong>Who paid:</strong> You paid out of your wallet.<br />
+                      <strong>Impact:</strong> Reduces your wallet balance. No friends involved.
+                    </p>
+                    <div className="p-2 rounded-lg bg-[var(--surface)] text-xs text-[var(--text-3)] font-mono">
+                      Example: Coffee for $4 paid via Google Pay cash wallet.
+                    </div>
+                  </div>
+
+                  {/* Type 2: Paid for Friend */}
+                  <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface2)] border-l-4 border-l-[var(--credit)]">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-[var(--credit)]">
+                        For Friend
+                      </span>
+                      <h5 className="font-bold text-sm">I Paid for a Friend (They owe me)</h5>
+                    </div>
+                    <p className="text-xs sm:text-sm text-[var(--text-2)] mb-2">
+                      <strong>Who paid:</strong> You paid the bill for a friend.<br />
+                      <strong>Impact:</strong> Reduces your wallet balance, but increases <em>Friend's Debt to You</em> (Credit badge).
+                    </p>
+                    <div className="p-2 rounded-lg bg-[var(--surface)] text-xs text-[var(--credit)] font-mono">
+                      Example: You paid $50 for Rahul's concert ticket. Rahul now owes you $50.
+                    </div>
+                  </div>
+
+                  {/* Type 3: Paid by Friend */}
+                  <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface2)] border-l-4 border-l-[var(--debit)]">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-rose-500/15 text-[var(--debit)]">
+                        By Friend
+                      </span>
+                      <h5 className="font-bold text-sm">Paid by Friend for Me (I owe them)</h5>
+                    </div>
+                    <p className="text-xs sm:text-sm text-[var(--text-2)] mb-2">
+                      <strong>Who paid:</strong> A friend paid a bill on your behalf.<br />
+                      <strong>Impact:</strong> No cash leaves your wallet right now, but increases <em>Your Debt to Friend</em> (Debit badge).
+                    </p>
+                    <div className="p-2 rounded-lg bg-[var(--surface)] text-xs text-[var(--debit)] font-mono">
+                      Example: Priya paid $30 for your cab fare. You now owe Priya $30.
+                    </div>
+                  </div>
+
+                  {/* Type 4: Split Bill */}
+                  <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface2)] border-l-4 border-l-[var(--info)]">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-sky-500/15 text-[var(--info)]">
+                        Split Bill
+                      </span>
+                      <h5 className="font-bold text-sm">Shared / Group Bill Split</h5>
+                    </div>
+                    <p className="text-xs sm:text-sm text-[var(--text-2)] mb-2">
+                      <strong>Who paid:</strong> You (or a friend) paid a total bill shared among 2+ people.<br />
+                      <strong>Impact:</strong> Automatically splits total amount equally or with custom percentages/amounts into individual friend debts.
+                    </p>
+                    <div className="p-2 rounded-lg bg-[var(--surface)] text-xs text-[var(--info)] font-mono">
+                      Example: $100 dinner bill paid by you. You split 50/50 with Amit. Your personal share is $50, and Amit owes you $50.
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleAction('tutorial')}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold bg-[var(--accent)] text-white shadow-md hover:brightness-95 transition-all text-xs sm:text-sm mt-1"
+                >
+                  <Sparkles size={16} />
+                  <span>Try Interactive Expense & Debt Tutorial ✨</span>
+                </button>
+              </div>
+            )}
+
+            {/* TAB 2: SETTLE UP & DEBTS */}
+            {activeTab === 2 && (
+              <div className="flex flex-col gap-4">
+                <div className="p-4 sm:p-5 rounded-xl bg-[var(--surface2)] border border-[var(--border)]">
+                  <div className="flex items-center gap-2.5 mb-2.5 text-[var(--accent)]">
+                    <Handshake size={22} />
+                    <h5 className="font-bold text-sm sm:text-base">How Debt Settlement Works</h5>
+                  </div>
+                  <p className="text-xs sm:text-sm text-[var(--text-2)] leading-relaxed mb-4">
+                    Whenever you or a friend pay back money, use the <strong>"Settle Up"</strong> button in Settlements or Contact details instead of adding a new random expense. This ensures your friend ledger is cleanly cleared!
+                  </p>
+
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start gap-2.5">
+                      <CheckCircle2 size={18} className="text-[var(--credit)] mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h6 className="font-semibold text-xs sm:text-sm">Full Settlement:</h6>
+                        <p className="text-xs text-[var(--text-2)]">
+                          Marks all selected pending expenses as "Settled" in one tap and updates your chosen Wallet.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <CheckCircle2 size={18} className="text-[var(--info)] mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h6 className="font-semibold text-xs sm:text-sm">Partial Payment:</h6>
+                        <p className="text-xs text-[var(--text-2)]">
+                          If a friend pays back ₹500 out of ₹1,500 owed, record a custom partial settlement. It reduces the net balance directly without erasing history!
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <CheckCircle2 size={18} className="text-[var(--accent)] mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h6 className="font-semibold text-xs sm:text-sm">Undo & History:</h6>
+                        <p className="text-xs text-[var(--text-2)]">
+                          Made a mistake? Every settlement is saved in Settlement History with a single-click "Undo" button to restore unsettled states effortlessly.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end mt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleAction('view', 'settlements')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[var(--accent)] text-white hover:brightness-95 transition-all"
+                  >
+                    <Handshake size={16} />
+                    <span>Go to Settlements Tab</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: WALLETS & AUTOPAY */}
+            {activeTab === 3 && (
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="p-4 sm:p-5 rounded-xl bg-[var(--surface2)] border border-[var(--border)]">
+                    <div className="flex items-center gap-2 mb-2 text-[var(--accent)]">
+                      <Wallet size={20} />
+                      <h5 className="font-bold text-sm sm:text-base">Wallets & Transfers</h5>
+                    </div>
+                    <p className="text-xs sm:text-sm text-[var(--text-2)] leading-relaxed mb-3">
+                      Keep separate accounts for Cash, HDFC Bank, Credit Card, or UPI Wallets.
+                    </p>
+                    <p className="text-xs text-[var(--text-2)] mb-3">
+                      💡 <strong>Internal Transfer:</strong> Moving ₹2,000 from Bank to Cash Wallet updates both balances instantly without affecting your monthly expense metrics!
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleAction('view', 'wallets')}
+                      className="text-xs sm:text-sm font-semibold text-[var(--accent)] hover:underline flex items-center gap-1"
+                    >
+                      Manage Wallets →
+                    </button>
+                  </div>
+
+                  <div className="p-4 sm:p-5 rounded-xl bg-[var(--surface2)] border border-[var(--border)]">
+                    <div className="flex items-center gap-2 mb-2 text-rose-500">
+                      <RefreshCw size={20} />
+                      <h5 className="font-bold text-sm sm:text-base">Autopay & Recurring Bills</h5>
+                    </div>
+                    <p className="text-xs sm:text-sm text-[var(--text-2)] leading-relaxed mb-3">
+                      Set up monthly rent, Wi-Fi bills, Spotify, or gym subscriptions once.
+                    </p>
+                    <p className="text-xs text-[var(--text-2)] mb-3">
+                      🔔 <strong>Smart Reminders:</strong> Okane badges upcoming due dates in red so you never miss a bill or get hit with late fees.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleAction('view', 'recurring')}
+                      className="text-xs sm:text-sm font-semibold text-rose-500 hover:underline flex items-center gap-1"
+                    >
+                      View Autopays →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: AI ASSISTANT */}
+            {activeTab === 4 && (
+              <div className="flex flex-col gap-4">
+                <div className="p-4 sm:p-5 rounded-xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20">
+                  <div className="flex items-center gap-2 mb-2 text-purple-500">
+                    <Sparkles size={22} />
+                    <h5 className="font-bold text-sm sm:text-base">Okane Smart AI Assistant</h5>
+                  </div>
+                  <p className="text-xs sm:text-sm text-[var(--text-2)] leading-relaxed mb-4">
+                    Skip manual form filling! Open the AI Assistant from the bottom floating bar or AI modal and type or speak naturally:
+                  </p>
+
+                  <div className="flex flex-col gap-2">
+                    <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+                      <p className="font-semibold text-xs sm:text-sm text-[var(--accent)] mb-0.5">
+                        💬 "Paid 450 for Tiffin with Aunty yesterday"
+                      </p>
+                      <p className="text-xs text-[var(--text-2)]">
+                        → Automatically logs $450 under Food/Tiffin category linked to contact Tiffin Aunty!
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+                      <p className="font-semibold text-xs sm:text-sm text-[var(--accent)] mb-0.5">
+                        💬 "Split 1200 restaurant bill equally with Hrishikesh and Parth"
+                      </p>
+                      <p className="text-xs text-[var(--text-2)]">
+                        → Creates a 3-way equal split ($400 each) and assigns friend debts instantly!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 5: FAQs & HELP */}
+            {activeTab === 5 && (
+              <div className="flex flex-col gap-3.5">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface2)]">
+                  <Search size={18} className="text-[var(--text-3)] flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search help topics (e.g. debt, settle, wallet, split)..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="flex-1 bg-transparent text-xs sm:text-sm text-[var(--text)] placeholder:text-[var(--text-3)] outline-none"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="p-1 text-[var(--text-3)] hover:text-[var(--text)]"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {filteredFaqs.length === 0 ? (
+                    <p className="text-xs sm:text-sm text-[var(--text-2)] text-center py-6">
+                      No matching help topics found for "{searchQuery}". Try searching for "wallet", "settle", or "split".
+                    </p>
+                  ) : (
+                    filteredFaqs.map((faq, index) => {
+                      const isExpanded = expandedFaqIndex === index;
+                      return (
+                        <div
+                          key={faq.q}
+                          className="rounded-xl border border-[var(--border)] bg-[var(--surface2)] overflow-hidden"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setExpandedFaqIndex(isExpanded ? null : index)}
+                            className="w-full flex items-center justify-between p-3.5 text-left font-semibold text-xs sm:text-sm hover:bg-[var(--surface3)] transition-colors gap-2"
+                          >
+                            <span>{faq.q}</span>
+                            <ChevronDown
+                              size={16}
+                              className={`text-[var(--text-3)] transition-transform duration-200 flex-shrink-0 ${
+                                isExpanded ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </button>
+                          <AnimatePresence initial={false}>
+                            {isExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="px-3.5 pb-3.5 pt-1 text-xs sm:text-sm text-[var(--text-2)] leading-relaxed border-t border-[var(--border)]">
+                                  <p className="whitespace-pre-line mb-2">{faq.a}</p>
+                                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-[var(--surface3)] text-[var(--text-3)]">
+                                    {faq.category}
+                                  </span>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Modal Footer */}
+          <div className="px-4 sm:px-6 py-3 border-t border-[var(--border)] bg-[var(--surface2)] flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs text-[var(--text-3)]">
+              <HelpCircle size={14} />
+              <span>Need more help? Tap AI Assistant anytime.</span>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-[var(--accent)] text-white hover:brightness-95 transition-all shadow-sm"
+            >
+              Got it!
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>,
+    document.body
   );
 }

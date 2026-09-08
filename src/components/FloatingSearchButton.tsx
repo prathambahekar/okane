@@ -1,5 +1,4 @@
 import { Search, Sparkles } from 'lucide-react';
-import Box from '@mui/material/Box';
 
 interface Props {
   onClick: () => void;
@@ -12,11 +11,11 @@ export default function FloatingSearchButton({ onClick, hasAIAssistant = false, 
   if (hideSearchButton && !hasAIAssistant) return null;
 
   return (
-    <Box
-      sx={{
+    <div
+      style={{
         position: 'fixed',
-        bottom: { xs: 'calc(76px + env(safe-area-inset-bottom, 0px))', sm: '24px' },
-        right: { xs: '16px', sm: '24px' },
+        bottom: 'var(--floating-bottom, calc(76px + env(safe-area-inset-bottom, 0px)))',
+        right: 'var(--floating-right, 16px)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -24,6 +23,7 @@ export default function FloatingSearchButton({ onClick, hasAIAssistant = false, 
         zIndex: 998,
         pointerEvents: 'none',
       }}
+      className="floating-search-container"
     >
       <div id="floating-extra-actions-slot" style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }} />
 
@@ -105,7 +105,7 @@ export default function FloatingSearchButton({ onClick, hasAIAssistant = false, 
           <Sparkles size={21} />
         </button>
       )}
-    </Box>
+    </div>
   );
 }
 

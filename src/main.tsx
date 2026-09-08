@@ -1,11 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
 import App from './App';
 import { ErrorBoundary } from './ErrorBoundary';
-import { ColorModeContext, buildTheme, getAccentColors, type AccentPreset } from './theme';
+import { ColorModeContext, getAccentColors, type AccentPreset } from './theme';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 
@@ -150,14 +148,9 @@ function Root() {
     }
   }, []);
 
-  const theme = useMemo(() => buildTheme(mode, accent, customColor), [mode, accent, customColor]);
-
   return (
     <ColorModeContext.Provider value={{ mode, setMode, toggleMode, accent, setAccent, customColor, setCustomColor }}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <App />
-      </ThemeProvider>
+      <App />
     </ColorModeContext.Provider>
   );
 }

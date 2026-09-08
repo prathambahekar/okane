@@ -119,11 +119,12 @@ function NoteEditorContent({
         style={{
           background: 'var(--surface)',
           color: 'var(--text)',
+          fontFamily: 'var(--font-sans)',
         }}
       >
         {/* Mobile handle indicator */}
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 2 }}>
-          <div style={{ width: 38, height: 4.5, borderRadius: 999, backgroundColor: 'var(--border2, var(--text-3))', opacity: 0.5 }} />
+          <div style={{ width: 'var(--drawer-handle-w, 36px)', height: 'var(--drawer-handle-h, 4px)', borderRadius: 'var(--radius-pill)', backgroundColor: 'var(--border2)', opacity: 0.75 }} />
         </div>
 
         {/* Modal Header */}
@@ -141,7 +142,7 @@ function NoteEditorContent({
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 8,
+                borderRadius: 'var(--radius, 8px)',
                 background: 'var(--accent-soft)',
                 color: 'var(--accent)',
                 display: 'grid',
@@ -170,7 +171,7 @@ function NoteEditorContent({
               cursor: 'pointer',
               width: 30,
               height: 30,
-              borderRadius: 8,
+              borderRadius: 'var(--radius, 8px)',
               display: 'grid',
               placeItems: 'center',
               padding: 0,
@@ -204,7 +205,7 @@ function NoteEditorContent({
                 width: '100%',
                 background: 'var(--surface2)',
                 border: isFocused ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-                borderRadius: 12,
+                borderRadius: 'var(--radius-lg, 12px)',
                 padding: '12px 14px',
                 fontSize: 13.5,
                 color: 'var(--text)',
@@ -240,7 +241,7 @@ function NoteEditorContent({
                         fontSize: 11.5,
                         fontWeight: active ? 650 : 500,
                         padding: '4px 10px',
-                        borderRadius: 8,
+                        borderRadius: 'var(--radius, 8px)',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
                         whiteSpace: 'nowrap',
@@ -276,7 +277,7 @@ function NoteEditorContent({
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
               color: tempNote ? 'var(--danger, #ef4444)' : 'var(--text-3)',
-              borderRadius: 9,
+              borderRadius: 'var(--radius, 8px)',
               padding: '8px 14px',
               fontSize: 12.5,
               fontWeight: 600,
@@ -299,7 +300,7 @@ function NoteEditorContent({
                 background: 'var(--accent)',
                 color: 'var(--accent-contrast, #ffffff)',
                 border: 'none',
-                borderRadius: 9,
+                borderRadius: 'var(--radius, 8px)',
                 padding: '8px 16px',
                 fontSize: 12.5,
                 fontWeight: 650,
