@@ -979,7 +979,7 @@ export default function Friends({ onNavigate }: Props) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -4 }}
               transition={{ duration: 0.15, ease: 'easeOut' }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
               style={{
                 position: 'fixed',
                 top: Math.min(window.innerHeight - 100, menuAnchorEl.getBoundingClientRect().bottom + 4),

@@ -20,7 +20,7 @@ export default function FloatingSearchButton({ onClick, hasAIAssistant = false, 
         flexDirection: 'column',
         alignItems: 'center',
         gap: '12px',
-        zIndex: 998,
+        zIndex: 35,
         pointerEvents: 'none',
       }}
       className="floating-search-container"

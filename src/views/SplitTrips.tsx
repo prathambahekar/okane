@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { createPortal } from 'react-dom';
 import {
   Plus,
   Trash2,
@@ -28,6 +27,7 @@ import type { Trip, TripExpense, TripGroup, TripMember } from '../types';
 import { fmtMoney, currencySymbol } from '../utils';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
+import BottomSheet from '../components/common/BottomSheet';
 
 // Storage keys
 const STORAGE_KEY_ACTIVE_TRIP = 'okane_active_trip_v1';
@@ -158,186 +158,19 @@ interface BottomDrawerProps {
 }
 
 function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: BottomDrawerProps) {
-  useBackButtonModal(isOpen, onClose, { priority: BackPriority.DRAWER });
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  return createPortal(
-    <div
-      className="drawer-overlay"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 99999,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}
+  return (
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
+      icon={icon}
+      maxWidth="max-w-xl"
     >
-      <style>{`
-        @keyframes drawerSlideUp {
-          from { transform: translateY(100%); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes modalPopIn {
-          from { transform: scale(0.94); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        @keyframes drawerFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        .drawer-overlay {
-          justify-content: flex-end;
-          padding: 0;
-        }
-
-        .drawer-card {
-          position: relative;
-          width: 100%;
-          max-width: 540px;
-          margin: 0 auto;
-          background: var(--surface);
-          color: var(--text);
-          font-family: var(--font-sans);
-          border-top-left-radius: var(--radius-drawer, 20px);
-          border-top-right-radius: var(--radius-drawer, 20px);
-          border-bottom-left-radius: 0;
-          border-bottom-right-radius: 0;
-          border: 1px solid var(--border);
-          border-bottom: none;
-          box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
-          max-height: 85vh;
-          display: flex;
-          flex-direction: column;
-          z-index: 2;
-          animation: drawerSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-          overflow: hidden;
-        }
-
-        .drawer-handle {
-          padding: 12px 0 6px 0;
-          display: flex;
-          justify-content: center;
-          cursor: pointer;
-        }
-
-        @media (min-width: 640px) {
-          .drawer-overlay {
-            justify-content: center !important;
-            padding: 24px !important;
-          }
-          .drawer-card {
-            border-radius: var(--radius-modal, 16px) !important;
-            border: 1px solid var(--border) !important;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.25) !important;
-            max-height: 88vh !important;
-            animation: modalPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-          }
-          .drawer-handle {
-            display: none !important;
-          }
-        }
-      `}</style>
-
-      {/* Backdrop overlay */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.65)',
-          backdropFilter: 'blur(4px)',
-          animation: 'drawerFadeIn 0.2s ease',
-          zIndex: 1,
-        }}
-      />
-
-      {/* Drawer Card */}
-      <div className="drawer-card">
-        {/* Top Handle bar (Mobile only) */}
-        <div className="drawer-handle" onClick={onClose}>
-          <div style={{ width: 'var(--drawer-handle-w, 36px)', height: 'var(--drawer-handle-h, 4px)', borderRadius: 'var(--radius-pill)', background: 'var(--border2)' }} />
-        </div>
-
-        {/* Drawer Header */}
-        <div
-          style={{
-            padding: '16px 20px 8px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {icon && (
-              <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '12px',
-                  background: 'var(--accent-soft)',
-                  color: 'var(--accent)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                {icon}
-              </div>
-            )}
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.2px' }}>
-                {title}
-              </h3>
-              {subtitle && (
-                <p style={{ fontSize: '11.5px', color: 'var(--text-3)', margin: '2px 0 0 0' }}>
-                  {subtitle}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="drawer-close-btn"
-            onClick={onClose}
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: 8,
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-2)',
-              display: 'grid',
-              placeItems: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Drawer Body */}
-        <div style={{ padding: '18px 20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {children}
-        </div>
+      <div className="flex flex-col gap-3.5">
+        {children}
       </div>
-    </div>,
-    document.body
+    </BottomSheet>
   );
 }
 

@@ -3,6 +3,7 @@ import React from 'react';
 interface SwitchProps {
   checked?: boolean;
   onChange?: (event: React.ChangeEvent<HTMLInputElement> | { target: { checked: boolean } }) => void;
+  onClick?: (event: React.MouseEvent<HTMLLabelElement>) => void;
   disabled?: boolean;
   size?: 'small' | 'medium';
   color?: string;
@@ -10,17 +11,21 @@ interface SwitchProps {
   name?: string;
   'aria-label'?: string;
   className?: string;
+  sx?: Record<string, unknown>;
+  style?: React.CSSProperties;
 }
 
 export const Switch: React.FC<SwitchProps> = ({
   checked = false,
   onChange,
+  onClick,
   disabled = false,
   size = 'medium',
   id,
   name,
   'aria-label': ariaLabel,
   className = '',
+  style,
 }) => {
   const isSmall = size === 'small';
   const width = isSmall ? 34 : 42;
@@ -35,6 +40,7 @@ export const Switch: React.FC<SwitchProps> = ({
 
   return (
     <label
+      onClick={onClick}
       style={{
         position: 'relative',
         display: 'inline-flex',
@@ -43,6 +49,7 @@ export const Switch: React.FC<SwitchProps> = ({
         opacity: disabled ? 0.45 : 1,
         userSelect: 'none',
         verticalAlign: 'middle',
+        ...style,
       }}
       className={className}
     >

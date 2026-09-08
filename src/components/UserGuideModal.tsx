@@ -39,7 +39,7 @@ export default function UserGuideModal({
   const [activeTab, setActiveTab] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(null);
-  const isMobile = useMediaQuery('(max-width: 639.98px)');
+  const isMobile = useMediaQuery('(max-width: 899.95px)');
 
   const handleAction = (action: 'addExpense' | 'view' | 'tutorial', view?: ViewName) => {
     onClose();
@@ -113,7 +113,7 @@ export default function UserGuideModal({
   return createPortal(
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-[1300] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
+        className="fixed inset-0 z-[1300] flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm p-0 md:p-4"
         onClick={onClose}
       >
         <motion.div
@@ -121,8 +121,8 @@ export default function UserGuideModal({
           animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
           exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.95, y: 16 }}
           transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-          onClick={e => e.stopPropagation()}
-          className="w-full sm:max-w-3xl max-h-[88vh] sm:max-h-[90vh] flex flex-col bg-[var(--surface)] text-[var(--text)] rounded-t-2xl sm:rounded-2xl border border-[var(--border)] shadow-2xl overflow-hidden"
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          className="w-full md:max-w-3xl max-h-[88vh] md:max-h-[90vh] flex flex-col bg-[var(--surface)] text-[var(--text)] rounded-t-3xl md:rounded-2xl border border-[var(--border)] shadow-2xl overflow-hidden pb-[calc(8px+env(safe-area-inset-bottom,0px))]"
         >
           {/* Mobile Handle */}
           {isMobile && (

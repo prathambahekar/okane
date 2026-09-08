@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useMediaQuery } from './hooks/useMediaQuery';
-import { motion, AnimatePresence } from 'motion/react';
 import {
   LayoutDashboard,
   ReceiptText,
@@ -52,6 +51,7 @@ import NotificationBell from './components/NotificationBell';
 import FloatingSearchButton from './components/FloatingSearchButton';
 import ContextualSearchModal from './components/ContextualSearchModal';
 import SecurityLockModal from './components/SecurityLockModal';
+import BottomSheet from './components/common/BottomSheet';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { showSoftKeyboard } from './utils/keyboard';
@@ -617,39 +617,43 @@ function AppInner() {
       {/* Mobile top Header */}
       {isMobile && (
         <header
-          className="fixed top-0 left-0 right-0 z-40 bg-[var(--bg)] text-[var(--text)] transition-colors duration-200"
+          className="fixed top-0 left-0 right-0 z-40 bg-[var(--bg)]/95 backdrop-blur-md text-[var(--text)] transition-colors duration-200"
           style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
         >
-          <div className="h-11 sm:h-14 px-3 flex items-center justify-between gap-2">
-            {/* Left side: Back button or Branded view title */}
-            <div className="flex items-center gap-2 min-w-0 flex-shrink">
+          <div className="relative h-14 px-4 sm:px-6 flex items-center justify-between gap-2 max-w-5xl mx-auto w-full">
+            {/* Left side: Back button or placeholder for symmetry */}
+            <div className="flex items-center gap-2 z-10 min-w-[72px]">
               {view === 'friend-detail' ? (
                 <button
                   type="button"
                   onClick={() => setView('friends')}
-                  className="p-2 rounded-xl text-[var(--text)] bg-black/5 dark:bg-white/10 active:scale-95 flex items-center justify-center transition-transform"
+                  className="w-9 h-9 rounded-full text-[var(--text)] bg-[var(--surface2)] hover:bg-[var(--surface3)] border border-[var(--border)] active:scale-95 flex items-center justify-center transition-all flex-shrink-0 cursor-pointer"
                   title="Back to Contacts"
                 >
                   <ArrowLeft size={18} />
                 </button>
-              ) : (
-                <div className="w-8 h-8 rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center flex-shrink-0">
-                  {view === 'dashboard' ? <LayoutDashboard size={18} /> :
-                   view === 'expenses' ? <ReceiptText size={18} /> :
-                   view === 'friends' ? <Users size={18} /> :
-                   view === 'wallets' ? <Wallet size={18} /> :
-                   view === 'recurring' ? <RefreshCw size={18} /> :
-                   view === 'settlements' ? <Handshake size={18} /> :
-                   view === 'split-trips' ? <Plane size={18} /> :
-                   view === 'analytics' ? <BarChart3 size={18} /> :
-                   view === 'settings' ? <SettingsIconLucide size={18} /> :
-                   view === 'dev-sql' ? <Database size={18} /> :
-                   <LayoutDashboard size={18} />}
-                </div>
-              )}
+              ) : null}
+            </div>
 
-              <div className="min-w-0">
-                <span className="font-bold text-sm sm:text-base tracking-tight truncate block leading-tight">
+            {/* Center: Logo & View Title horizontally centered */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-20">
+              <div className="flex items-center gap-2 pointer-events-auto min-w-0 max-w-[200px] sm:max-w-xs justify-center">
+                <div className="w-8 h-8 rounded-xl bg-[var(--surface2)] border border-[var(--border)] text-[var(--text)] flex items-center justify-center flex-shrink-0">
+                  {view === 'dashboard' ? <LayoutDashboard size={17} /> :
+                   view === 'expenses' ? <ReceiptText size={17} /> :
+                   view === 'friends' ? <Users size={17} /> :
+                   view === 'friend-detail' ? <User size={17} /> :
+                   view === 'wallets' ? <Wallet size={17} /> :
+                   view === 'recurring' ? <RefreshCw size={17} /> :
+                   view === 'settlements' ? <Handshake size={17} /> :
+                   view === 'split-trips' ? <Plane size={17} /> :
+                   view === 'analytics' ? <BarChart3 size={17} /> :
+                   view === 'settings' ? <SettingsIconLucide size={17} /> :
+                   view === 'dev-sql' ? <Database size={17} /> :
+                   <LayoutDashboard size={17} />}
+                </div>
+
+                <span className="font-bold text-base tracking-tight truncate block leading-tight text-[var(--text)]">
                   {view === 'dashboard' ? 'Dashboard' :
                    view === 'expenses' ? 'Expenses' :
                    view === 'friends' ? 'Contacts' :
@@ -666,7 +670,7 @@ function AppInner() {
             </div>
 
             {/* Right side controls */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="flex items-center gap-2 z-10 flex-shrink-0 min-w-[72px] justify-end">
               {/* Quick financial summaries */}
               {view === 'expenses' && (
                 <div className="hidden sm:flex items-center gap-1.5 max-w-[320px] overflow-x-auto no-scrollbar">
@@ -703,7 +707,7 @@ function AppInner() {
               )}
 
               {view === 'analytics' && (
-                <div className="inline-flex items-center">
+                <div className="hidden sm:inline-flex items-center">
                   <button
                     type="button"
                     onClick={() => {
@@ -726,50 +730,20 @@ function AppInner() {
                 <button
                   type="button"
                   id="topbar-filter-btn"
-                  className={`btn-icon topbar-filter-btn ${topbarFilterCount > 0 ? 'active' : ''}`}
+                  className={`relative w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer active:scale-95 transition-all ${
+                    topbarFilterCount > 0
+                      ? 'bg-[var(--accent-soft)] border border-[var(--accent)] text-[var(--accent)]'
+                      : 'bg-[var(--surface2)] hover:bg-[var(--surface3)] border border-[var(--border)] text-[var(--text)]'
+                  }`}
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('app-open-filters', { detail: { view } }));
-                  }}
-                  style={{
-                    position: 'relative',
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    background: topbarFilterCount > 0 ? 'var(--accent-soft)' : 'var(--surface2)',
-                    border: `1px solid ${topbarFilterCount > 0 ? 'var(--accent)' : 'var(--border)'}`,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: topbarFilterCount > 0 ? 'var(--accent)' : 'var(--text)',
-                    flexShrink: 0,
-                    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
                   }}
                   title={topbarFilterCount > 0 ? `${topbarFilterCount} active filters` : "Filters & Sorting"}
                   aria-label="Filters & Sorting"
                 >
                   <Filter size={17} />
                   {topbarFilterCount > 0 && (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: -3,
-                        right: -3,
-                        minWidth: 16,
-                        height: 16,
-                        borderRadius: 999,
-                        background: 'var(--accent)',
-                        color: 'var(--accent-contrast, #ffffff)',
-                        fontSize: 10,
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '0 4px',
-                        lineHeight: 1,
-                        border: '1.5px solid var(--surface)',
-                      }}
-                    >
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center justify-center leading-none border border-[var(--surface)]">
                       {topbarFilterCount}
                     </span>
                   )}
@@ -780,23 +754,8 @@ function AppInner() {
                 <button
                   type="button"
                   id="topbar-search-btn"
-                  className="btn-icon topbar-search-btn"
+                  className="w-9 h-9 rounded-full bg-[var(--surface2)] hover:bg-[var(--surface3)] border border-[var(--border)] flex items-center justify-center text-[var(--text)] active:scale-95 transition-all flex-shrink-0 cursor-pointer"
                   onClick={() => setShowSearchModal(true)}
-                  style={{
-                    position: 'relative',
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    background: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text)',
-                    flexShrink: 0,
-                    transition: 'transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease',
-                  }}
                   title="Search (Ctrl + K)"
                   aria-label="Search"
                 >
@@ -819,196 +778,197 @@ function AppInner() {
       {/* Mobile bottom navigation */}
       {isMobile && (
         <nav
-          className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface)] border-t border-[var(--border)] h-[62px] flex items-center justify-around px-2 shadow-lg"
+          className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--bg)]/95 backdrop-blur-md h-[62px] flex items-center justify-center px-4"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <button
-            type="button"
-            onClick={() => navigate('dashboard')}
-            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-all ${
-              bottomNavValue === 'dashboard' ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
-            }`}
-          >
-            <LayoutDashboard size={20} className={bottomNavValue === 'dashboard' ? 'scale-110 drop-shadow-sm' : ''} />
-            <span className="text-[11px] mt-0.5">Dashboard</span>
-          </button>
+          <div className="w-full max-w-md mx-auto flex items-center justify-around">
+            <button
+              type="button"
+              onClick={() => navigate('dashboard')}
+              className={`flex flex-col items-center justify-center flex-1 py-1 text-center cursor-pointer transition-all active:scale-95 ${
+                bottomNavValue === 'dashboard' ? 'text-[var(--text)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
+              }`}
+            >
+              <LayoutDashboard size={20} className={bottomNavValue === 'dashboard' ? 'scale-105' : ''} />
+              <span className="text-[11px] mt-0.5">Dashboard</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => navigate('expenses')}
-            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-all ${
-              bottomNavValue === 'expenses' ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
-            }`}
-          >
-            <ReceiptText size={20} className={bottomNavValue === 'expenses' ? 'scale-110 drop-shadow-sm' : ''} />
-            <span className="text-[11px] mt-0.5">Expenses</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => navigate('expenses')}
+              className={`flex flex-col items-center justify-center flex-1 py-1 text-center cursor-pointer transition-all active:scale-95 ${
+                bottomNavValue === 'expenses' ? 'text-[var(--text)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
+              }`}
+            >
+              <ReceiptText size={20} className={bottomNavValue === 'expenses' ? 'scale-105' : ''} />
+              <span className="text-[11px] mt-0.5">Expenses</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setShowAddExpense(true)}
-            className="flex items-center justify-center flex-shrink-0 -mt-3 mx-1 w-11 h-11 rounded-full bg-[var(--accent)] text-white shadow-lg hover:scale-105 active:scale-95 transition-transform"
-            aria-label="Add expense"
-          >
-            <Plus size={22} strokeWidth={2.5} />
-          </button>
+            <button
+              type="button"
+              onClick={() => setShowAddExpense(true)}
+              className="flex items-center justify-center flex-shrink-0 -mt-3.5 mx-2 w-11 h-11 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              aria-label="Add expense"
+            >
+              <Plus size={22} strokeWidth={2.5} />
+            </button>
 
-          <button
-            type="button"
-            onClick={() => navigate('friends')}
-            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-all relative ${
-              bottomNavValue === 'friends' ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
-            }`}
-          >
-            <div className="relative inline-flex">
-              <Users size={20} className={bottomNavValue === 'friends' ? 'scale-110 drop-shadow-sm' : ''} />
-              {pendingSettlements > 0 && (
-                <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-[var(--accent)]" />
-              )}
-            </div>
-            <span className="text-[11px] mt-0.5">Contacts</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => navigate('friends')}
+              className={`flex flex-col items-center justify-center flex-1 py-1 text-center cursor-pointer transition-all active:scale-95 relative ${
+                bottomNavValue === 'friends' ? 'text-[var(--text)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
+              }`}
+            >
+              <div className="relative inline-flex">
+                <Users size={20} className={bottomNavValue === 'friends' ? 'scale-105' : ''} />
+                {pendingSettlements > 0 && (
+                  <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-[var(--accent)]" />
+                )}
+              </div>
+              <span className="text-[11px] mt-0.5">Contacts</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setMoreOpen(true)}
-            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-all relative ${
-              bottomNavValue === 'more' ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
-            }`}
-          >
-            <div className="relative inline-flex">
-              <MoreHorizontal size={20} className={bottomNavValue === 'more' ? 'scale-110 drop-shadow-sm' : ''} />
-              {(dueAutopaysCount > 0 || pendingSettlements > 0) && (
-                <span className={`absolute -top-1 -right-1.5 w-2 h-2 rounded-full ${dueAutopaysCount > 0 ? 'bg-rose-500' : 'bg-[var(--accent)]'}`} />
-              )}
-            </div>
-            <span className="text-[11px] mt-0.5">More</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setMoreOpen(true)}
+              className={`flex flex-col items-center justify-center flex-1 py-1 text-center cursor-pointer transition-all active:scale-95 relative ${
+                bottomNavValue === 'more' ? 'text-[var(--text)] font-semibold' : 'text-[var(--text-3)] hover:text-[var(--text)]'
+              }`}
+            >
+              <div className="relative inline-flex">
+                <MoreHorizontal size={20} className={bottomNavValue === 'more' ? 'scale-105' : ''} />
+                {(dueAutopaysCount > 0 || pendingSettlements > 0) && (
+                  <span className={`absolute -top-1 -right-1.5 w-2 h-2 rounded-full ${dueAutopaysCount > 0 ? 'bg-rose-500' : 'bg-[var(--accent)]'}`} />
+                )}
+              </div>
+              <span className="text-[11px] mt-0.5">More</span>
+            </button>
+          </div>
         </nav>
       )}
 
       {/* More drawer sheet */}
-      <AnimatePresence>
-        {moreOpen && isMobile && (
-          <div
-            className="fixed inset-0 z-50 flex items-end bg-black/50 backdrop-blur-sm"
-            onClick={() => setMoreOpen(false)}
-          >
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              onClick={e => e.stopPropagation()}
-              className="w-full bg-[var(--surface)] text-[var(--text)] rounded-t-2xl border-t border-[var(--border)] p-5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] max-h-[85vh] overflow-y-auto shadow-2xl"
+      <BottomSheet
+        isOpen={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        title="More Options"
+        subtitle="Features & settings"
+        icon={<MoreHorizontal size={18} />}
+        maxWidth="max-w-lg"
+        footer={
+          <div className="flex items-center justify-between text-xs text-[var(--text-3)] py-1">
+            <span className="font-medium">
+              Theme: <strong className="text-[var(--text)] font-semibold">{mode === 'dark' ? 'Dark Mode' : 'Light Mode'}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={handleToggleDark}
+              className="px-3 py-1.5 rounded-full bg-[var(--surface2)] text-[var(--text)] hover:bg-[var(--surface3)] border border-[var(--border)] transition-all active:scale-95 flex items-center gap-1.5 font-medium cursor-pointer"
+              aria-label="Toggle color mode"
             >
-              <div className="w-9 h-1 bg-[var(--border2)] rounded-full mx-auto mb-4" />
-
-              {/* Quick AI Assistant Card if enabled */}
-              {enableAIAssistant && (
-                <div
-                  onClick={() => { setMoreOpen(false); setShowAIAssistant(true); }}
-                  className="p-3 mb-4 rounded-xl bg-[var(--accent-soft)] border border-[var(--border)] flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-[var(--accent)] text-white flex items-center justify-center shadow-md">
-                      <Sparkles size={18} />
-                    </div>
-                    <div>
-                      <div className="font-bold text-sm text-[var(--text)]">
-                        Ask Max AI Assistant
-                      </div>
-                      <div className="text-xs text-[var(--text-2)]">
-                        Smart expense logging & insights
-                      </div>
-                    </div>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-md bg-[var(--accent)] text-white text-xs font-bold">
-                    Open
-                  </span>
-                </div>
-              )}
-
-              {/* Category Sections Grid */}
-              <div className="text-xs uppercase tracking-wider font-bold text-[var(--text-3)] mb-2.5">
-                Features & Modules
-              </div>
-
-              <div className="grid grid-cols-3 gap-2.5 mb-4">
-                {moreItems.map(item => {
-                  const isSelected = activeView === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => navigate(item.id)}
-                      className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 text-center relative transition-all active:scale-95 ${
-                        isSelected
-                          ? 'bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]'
-                          : 'bg-[var(--surface2)] border-[var(--border)] text-[var(--text)]'
-                      }`}
-                    >
-                      <div>{item.icon}</div>
-                      <span className={`text-xs font-medium leading-tight ${isSelected ? 'font-bold text-[var(--accent)]' : 'text-[var(--text)]'}`}>
-                        {item.label}
-                      </span>
-
-                      {item.id === 'settlements' && pendingSettlements > 0 && (
-                        <span className="absolute top-1.5 right-1.5 text-[10px] font-bold px-1.5 py-0.5 bg-[var(--accent)] text-white rounded">
-                          {pendingSettlements}
-                        </span>
-                      )}
-
-                      {item.id === 'recurring' && dueAutopaysCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 text-[10px] font-bold px-1.5 py-0.5 bg-rose-500 text-white rounded">
-                          {dueAutopaysCount}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-
-                {/* User guide shortcut - only shown if enabled in dev mode */}
-                {enableUserGuide && (
-                  <button
-                    type="button"
-                    onClick={() => { setMoreOpen(false); setShowGuideModal(true); }}
-                    className="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface2)] flex flex-col items-center justify-center gap-2 text-center transition-all active:scale-95 text-[var(--text)]"
-                  >
-                    <HelpCircle size={20} />
-                    <span className="text-xs font-medium leading-tight">
-                      User Guide
-                    </span>
-                  </button>
-                )}
-              </div>
-
-              {/* Bottom Row Controls */}
-              <div className="flex items-center justify-between pt-3 border-t border-[var(--border)] text-xs text-[var(--text-3)]">
-                <span>
-                  Theme: <strong className="text-[var(--text)]">{mode === 'dark' ? 'Dark Mode' : 'Light Mode'}</strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={handleToggleDark}
-                  className="p-2 rounded-lg bg-[var(--surface2)] text-[var(--text)] hover:bg-[var(--surface3)] transition-colors"
-                  aria-label="Toggle color mode"
-                >
-                  {mode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
-              </div>
-            </motion.div>
+              {mode === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+              <span>{mode === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
           </div>
-        )}
-      </AnimatePresence>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          {/* Quick AI Assistant Card if enabled */}
+          {enableAIAssistant && (
+            <div
+              onClick={() => { setMoreOpen(false); setShowAIAssistant(true); }}
+              className="p-3 rounded-xl bg-[var(--accent-soft)] border border-[var(--accent)]/30 hover:border-[var(--accent)]/60 flex items-center justify-between gap-2.5 cursor-pointer active:scale-[0.98] transition-all"
+            >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-8 h-8 rounded-lg bg-[var(--accent)] text-white flex items-center justify-center shadow-xs flex-shrink-0">
+                  <Sparkles size={16} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-xs text-[var(--text)] truncate">
+                    Ask Max AI Assistant
+                  </div>
+                  <div className="text-[11px] text-[var(--text-2)] truncate">
+                    Smart expense logging & insights
+                  </div>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 rounded-full bg-[var(--accent)] text-white text-[11px] font-bold shadow-xs flex-shrink-0">
+                Open
+              </span>
+            </div>
+          )}
+
+          {/* Category Sections Grid */}
+          <div className="text-[10.5px] uppercase tracking-wider font-bold text-[var(--text-3)]">
+            Features & Modules
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {moreItems.map(item => {
+              const isSelected = activeView === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    navigate(item.id);
+                  }}
+                  className={`py-3 px-2 rounded-xl border flex flex-col items-center justify-center gap-1.5 text-center relative transition-all active:scale-95 cursor-pointer ${
+                    isSelected
+                      ? 'bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)] shadow-xs font-semibold'
+                      : 'bg-[var(--surface2)] hover:bg-[var(--surface3)] border-[var(--border)] text-[var(--text)]'
+                  }`}
+                >
+                  <div className="w-6 h-6 flex items-center justify-center">{item.icon}</div>
+                  <span className={`text-[11px] leading-tight truncate max-w-full px-0.5 ${isSelected ? 'font-bold text-[var(--accent)]' : 'font-medium text-[var(--text)]'}`}>
+                    {item.label}
+                  </span>
+
+                  {item.id === 'settlements' && pendingSettlements > 0 && (
+                    <span className="absolute top-1.5 right-1.5 text-[9.5px] font-bold px-1.5 py-0.2 bg-[var(--accent)] text-white rounded-full">
+                      {pendingSettlements}
+                    </span>
+                  )}
+
+                  {item.id === 'recurring' && dueAutopaysCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 text-[9.5px] font-bold px-1.5 py-0.2 bg-rose-500 text-white rounded-full">
+                      {dueAutopaysCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* User guide shortcut - only shown if enabled in dev mode */}
+            {enableUserGuide && (
+              <button
+                type="button"
+                onClick={() => { setMoreOpen(false); setShowGuideModal(true); }}
+                className="py-3 px-2 rounded-xl border border-[var(--border)] bg-[var(--surface2)] hover:bg-[var(--surface3)] flex flex-col items-center justify-center gap-1.5 text-center transition-all active:scale-95 text-[var(--text)] cursor-pointer"
+              >
+                <div className="w-6 h-6 flex items-center justify-center">
+                  <HelpCircle size={18} />
+                </div>
+                <span className="text-[11px] font-medium leading-tight truncate max-w-full px-0.5 text-[var(--text)]">
+                  User Guide
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+      </BottomSheet>
 
       {/* Floating Action Buttons (Search & AI Assistant) */}
-      <FloatingSearchButton
-        onClick={() => setShowSearchModal(true)}
-        hasAIAssistant={enableAIAssistant}
-        onAIClick={() => setShowAIAssistant(true)}
-        hideSearchButton={isMobile && searchLocation === 'topbar'}
-      />
+      {!moreOpen && !showAddExpense && !showAIAssistant && !showSearchModal && (
+        <FloatingSearchButton
+          onClick={() => setShowSearchModal(true)}
+          hasAIAssistant={enableAIAssistant}
+          onAIClick={() => setShowAIAssistant(true)}
+          hideSearchButton={isMobile && searchLocation === 'topbar'}
+        />
+      )}
 
       {/* Contextual & Universal Search Modal */}
       <ContextualSearchModal

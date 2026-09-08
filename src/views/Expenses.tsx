@@ -501,8 +501,8 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
 
       {filtered.length === 0 ? (
         <div className="card" style={{ border: '1px solid var(--border)' }}>
-          <div className="empty-state" style={{ padding: '48px 24px' }}>
-            <div className="empty-state-icon" style={{ opacity: 0.65, color: 'var(--text-3)' }}>
+          <div className="empty-state flex flex-col items-center justify-center text-center" style={{ padding: '48px 24px' }}>
+            <div className="empty-state-icon flex items-center justify-center mx-auto" style={{ opacity: 0.65, color: 'var(--text-3)' }}>
               {hasActiveFilters ? (
                 <Filter size={40} />
               ) : flowFilter === 'out' ? (

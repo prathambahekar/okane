@@ -46,26 +46,13 @@ export default function NotificationBell({ onNavigate }: Props) {
     <>
       <button
         type="button"
-        className={`btn-icon notification-bell-btn ${totalCount > 0 ? 'has-badge' : ''}`}
+        id="topbar-notification-bell-btn"
+        className={`relative w-9 h-9 rounded-full bg-[var(--surface2)] hover:bg-[var(--surface3)] border border-[var(--border)] flex items-center justify-center text-[var(--text)] active:scale-95 transition-all flex-shrink-0 cursor-pointer ${open ? 'bg-[var(--surface3)]' : ''}`}
         onClick={() => setOpen(true)}
-        style={{
-          position: 'relative',
-          width: 36,
-          height: 36,
-          borderRadius: '50%',
-          background: open ? 'var(--surface3)' : 'var(--surface2)',
-          border: '1px solid var(--border)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text)',
-          flexShrink: 0,
-          transition: 'transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease',
-        }}
         title="Notifications"
+        aria-label="Notifications"
       >
-        <Bell size={18} className="bell-icon" />
+        <Bell size={17} className="bell-icon" />
         {totalCount > 0 && (
           <span className="bell-badge">
             {totalCount}

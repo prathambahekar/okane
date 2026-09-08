@@ -27,6 +27,7 @@ import {
   ArrowUpRight,
   Wallet,
   QrCode,
+  ArrowRight,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { currencySymbol } from '../utils';
@@ -509,7 +510,7 @@ interface AIAssistantModalProps {
 }
 
 export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AIAssistantModalProps) {
-  const isMobile = useMediaQuery('(max-width: 640px)');
+  const isMobile = useMediaQuery('(max-width: 899.95px)');
 
   const { db, addExpense, addFriend, showToast } = useStore();
   const [inputText, setInputText] = useState('');
@@ -1131,9 +1132,9 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
   }, [db]);
 
 
-  // Header without any horizontal divider lines
+  // Header
   const headerContent = (
-    <div className={`px-4 sm:px-6 ${isMobile ? 'pt-2' : 'pt-5'} pb-3 flex items-center justify-between bg-[var(--surface)] gap-2`}>
+    <div className={`px-4 sm:px-6 ${isMobile ? 'pt-2' : 'pt-4'} pb-3 flex items-center justify-between bg-[var(--surface)] border-b border-[var(--border)] gap-2 flex-shrink-0`}>
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-9 h-9 rounded-lg bg-[var(--surface2)] border border-[var(--border)] text-[var(--accent)] flex items-center justify-center shrink-0">
           <Sparkles size={17} color="currentColor" />
@@ -1173,12 +1174,25 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
     </div>
   );
 
-  // Main body without splitting lines
+  // Main body
   const mainBodyContent = (
-    <div className="px-4 sm:px-6 py-2 flex flex-col gap-4 flex-1 overflow-y-auto bg-[var(--surface)]">
-      {/* Empty State: Minimal, Clean Actions */}
+    <div className="px-4 sm:px-6 py-3 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto bg-[var(--surface)] overscroll-contain">
+      {/* Empty State: Welcoming Hero & Actions */}
       {messages.length === 0 && !activeDraft && (
-        <div className="flex flex-col gap-5 my-auto py-3">
+        <div className="flex flex-col gap-4 my-auto py-2">
+          {/* Welcome greeting card */}
+          <div className="flex flex-col items-center text-center px-3 py-1">
+            <div className="w-11 h-11 rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center mb-2 shadow-xs">
+              <Sparkles size={22} />
+            </div>
+            <h4 className="font-bold text-base text-[var(--text)]">
+              Ask Max Assistant
+            </h4>
+            <p className="text-xs text-[var(--text-3)] max-w-xs mt-0.5">
+              Speak or type to log expenses, check balances, or analyze spending.
+            </p>
+          </div>
+
           {/* Frequent Actions */}
           {frequentActions.length > 0 && (
             <div className="flex flex-col gap-2">
@@ -1304,16 +1318,41 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
 
             <div className="flex flex-wrap gap-2">
               {otherActions.map((item, idx) => (
-                <div
+                <button
                   key={idx}
+                  type="button"
                   onClick={() => handleSend(item.prompt)}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface2)] border border-[var(--border)] text-[var(--text-2)] text-xs font-medium cursor-pointer select-none transition-all hover:bg-[var(--surface3)] hover:border-[var(--accent)] hover:text-[var(--text)] hover:-translate-y-0.5 active:translate-y-0"
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--surface2)] border border-[var(--border)] text-[var(--text-2)] text-xs font-medium cursor-pointer select-none transition-all hover:bg-[var(--surface3)] hover:border-[var(--accent)] hover:text-[var(--text)] active:scale-98"
                 >
-                  <div className="text-[var(--text-3)] flex items-center justify-center shrink-0">
+                  <div className="text-[var(--accent)] flex items-center justify-center shrink-0">
                     {item.icon}
                   </div>
                   <span>{item.label}</span>
-                </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Example prompt suggestions */}
+          <div className="flex flex-col gap-2 pt-1">
+            <span className="font-bold text-[var(--text-3)] uppercase tracking-wider text-[11px] px-0.5">
+              Example Phrases
+            </span>
+            <div className="flex flex-col gap-1.5">
+              {[
+                'Coffee $4.50 at Starbucks',
+                'Paid $45 for dinner with Sarah',
+                'How much did I spend this month?',
+              ].map((promptText, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleSend(promptText)}
+                  className="px-3.5 py-2.5 rounded-xl bg-[var(--surface2)] hover:bg-[var(--surface3)] border border-[var(--border)] text-xs text-[var(--text-2)] hover:text-[var(--text)] text-left cursor-pointer flex items-center justify-between group transition-all"
+                >
+                  <span className="truncate">&ldquo;{promptText}&rdquo;</span>
+                  <ArrowRight size={13} className="text-[var(--text-3)] group-hover:text-[var(--accent)] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                </button>
               ))}
             </div>
           </div>
@@ -1737,9 +1776,9 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
     </div>
   );
 
-  // Footer Actions without any dividing top border line
+  // Footer Actions
   const footerActions = (
-    <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 flex flex-col bg-[var(--surface)]">
+    <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 flex flex-col bg-[var(--surface)] border-t border-[var(--border)] flex-shrink-0">
       {messages.length > 0 && frequentActions.length > 0 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-1 w-full no-scrollbar">
           {frequentActions.map((item, idx) => {
@@ -1873,7 +1912,15 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div
+          className={`fixed inset-0 z-[100050] flex flex-col ${
+            isMobile
+              ? 'justify-end items-center p-0'
+              : 'justify-center items-center p-4'
+          }`}
+          aria-modal="true"
+          role="dialog"
+        >
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -1881,7 +1928,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
           />
 
           {/* Modal / Drawer Surface */}
@@ -1893,10 +1940,10 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             style={{
               transform: isMobile && dragOffsetY > 0 ? `translateY(${dragOffsetY}px)` : undefined,
             }}
-            className={`relative z-10 w-full bg-[var(--surface)] text-[var(--text)] flex flex-col overflow-hidden ${
+            className={`relative z-10 w-full bg-[var(--surface)] text-[var(--text)] flex flex-col overflow-hidden shadow-2xl ${
               isMobile
-                ? 'rounded-t-[20px] max-h-[90vh] border-t border-[var(--border)]'
-                : 'rounded-2xl max-w-[520px] max-h-[84vh] shadow-2xl border border-[var(--border)]'
+                ? 'max-w-xl h-[85vh] max-h-[88dvh] min-h-[480px] rounded-t-3xl border-t border-x border-[var(--border)] pb-[calc(10px+env(safe-area-inset-bottom,0px))]'
+                : 'max-w-[540px] h-[600px] max-h-[85vh] rounded-2xl border border-[var(--border)]'
             }`}
           >
             {isMobile && (
@@ -1904,10 +1951,10 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className="pt-3 pb-1 px-4 bg-[var(--surface)] cursor-grab select-none flex justify-center items-center touch-none"
+                className="pt-3 pb-1 px-4 bg-[var(--surface)] cursor-grab select-none flex justify-center items-center touch-none flex-shrink-0"
               >
                 <div
-                  className="h-1 bg-[var(--border2)] opacity-75 rounded-full transition-all"
+                  className="h-1.5 bg-[var(--border2)] opacity-75 rounded-full transition-all"
                   style={{ width: dragOffsetY > 0 ? 44 : 36 }}
                 />
               </div>

@@ -2065,7 +2065,7 @@ export default function Settings({
                       updateSettings({ autoOpenKeyboard: val });
                       showToast(val ? 'Auto open keyboard enabled' : 'Auto open keyboard disabled');
                     }}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
                     sx={{
                       '& .MuiSwitch-switchBase.Mui-checked': {
                         color: 'var(--accent)',
