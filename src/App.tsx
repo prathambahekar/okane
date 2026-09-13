@@ -313,7 +313,7 @@ function AppInner() {
   const enableAIAssistant = db.settings?.enableAIAssistant ?? true;
   const searchLocation = db.settings?.searchLocation ?? 'topbar';
   const enableSplitTrips = db.settings?.enableSplitTrips ?? true;
-  const enableAutopay = db.settings?.enableAutopay ?? false;
+  const enableAutopay = db.settings?.enableAutopay ?? true;
   const enableUserGuide = isDevMode && (db.settings?.enableUserGuide ?? true);
 
   useEffect(() => {
@@ -357,7 +357,7 @@ function AppInner() {
     return () => window.removeEventListener('app-filter-count-update', handleCountUpdate);
   }, [view]);
 
-  const showFilterInTopbar = ['expenses', 'friends'].includes(view);
+  const showFilterInTopbar = ['expenses', 'friends', 'recurring'].includes(view);
 
   const { expenses, currency } = useMemo(() => ({
     expenses: db.expenses,
@@ -1010,6 +1010,36 @@ function AppInner() {
                   }}
                   title="Add Contact"
                   aria-label="Add Contact"
+                >
+                  <Plus size={18} />
+                </button>
+              )}
+
+              {view === 'recurring' && (
+                <button
+                  type="button"
+                  id="topbar-add-recurring-btn"
+                  className="btn-icon topbar-add-recurring-btn desktop-hidden"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('app-add-recurring'));
+                  }}
+                  style={{
+                    position: 'relative',
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    background: 'transparent',
+                    border: '1px solid transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text)',
+                    flexShrink: 0,
+                    transition: 'transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease',
+                  }}
+                  title="Add Subscription / Autopay"
+                  aria-label="Add Subscription / Autopay"
                 >
                   <Plus size={18} />
                 </button>

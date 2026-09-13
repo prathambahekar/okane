@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   CheckCircle2,
   Zap,
@@ -11,11 +11,13 @@ import {
   Play,
   Calendar,
   Wallet as WalletIcon,
+  MoreHorizontal,
 } from 'lucide-react';
 import type { RecurringRule, ViewName, Category, Friend, Wallet } from '../../types';
 import { fmtMoney, fmtDate } from '../../utils';
 import CategoryIcon from '../CategoryIcon';
 import { MarkdownNote } from '../common/MarkdownNote';
+import { renderWalletIcon } from '../WalletIconRenderer';
 
 interface Props {
   rule: RecurringRule;
@@ -52,6 +54,37 @@ export const AutopayCard: React.FC<Props> = ({
   const isDueToday = isAutopay && rule.nextDueDate === today;
   const isOverdue = isAutopay && Boolean(rule.nextDueDate && rule.nextDueDate < today);
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [hoveredAction, setHoveredAction] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpen]);
+
   const catColor = category?.color || 'var(--accent)';
   const catColorBg = catColor.startsWith('#') && catColor.length === 7
     ? `${catColor}15`
@@ -79,28 +112,29 @@ export const AutopayCard: React.FC<Props> = ({
   return (
     <div
       style={{
-        padding: '12px 14px',
+        padding: '16px 18px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 15,
         background: 'var(--surface)',
-        borderRadius: 14,
+        borderRadius: 16,
         border: '1px solid var(--border)',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
-        opacity: isPaused ? 0.65 : 1,
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+        opacity: isPaused ? 0.78 : 1,
         transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+        position: 'relative',
       }}
     >
-      {/* Top Main Row */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      {/* Top Main Row: Category Icon + Title & Clean Subtitle on Left, More Options on Right */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         {/* Left: Category Icon + Title & Clean Subtitle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
           {/* Category Icon Tile */}
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 11,
+              width: 42,
+              height: 42,
+              borderRadius: 13,
               backgroundColor: catColorBg,
               display: 'flex',
               alignItems: 'center',
@@ -110,115 +144,80 @@ export const AutopayCard: React.FC<Props> = ({
               color: catColor,
             }}
           >
-            <CategoryIcon category={rule.category} icon={category?.icon} size={19} style={{ color: catColor }} />
+            <CategoryIcon category={rule.category} icon={category?.icon} size={21} style={{ color: catColor }} />
           </div>
 
           {/* Title & Metadata Stack */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
-            {/* Top Line: Title + Status Pills */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3.5, minWidth: 0, flex: 1 }}>
+            {/* Top Line: Title + Frequency Badge + Status Pills */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6.5, minWidth: 0, flexWrap: 'nowrap' }}>
               <span
                 style={{
-                  fontWeight: 650,
-                  fontSize: 14,
+                  fontWeight: 700,
+                  fontSize: 15.5,
                   color: 'var(--text)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  letterSpacing: '-0.015em',
                 }}
               >
                 {rule.title}
               </span>
 
+              {/* Frequency Badge next to title */}
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '2px 7.5px',
+                  borderRadius: 9999,
+                  background: 'var(--surface2)',
+                  color: 'var(--text-2)',
+                  border: '1px solid var(--border)',
+                  flexShrink: 0,
+                  letterSpacing: '0.01em',
+                  lineHeight: '1.3',
+                }}
+              >
+                {getFrequencyLabel(rule)}
+              </span>
+
               {isPaused && (
                 <span
                   style={{
-                    fontSize: 9.5,
+                    fontSize: 10.5,
                     color: 'var(--text-3)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    padding: '1px 5px',
-                    borderRadius: 4,
-                    fontWeight: 600,
+                    padding: '2px 7px',
+                    borderRadius: 9999,
+                    fontWeight: 650,
                     flexShrink: 0,
+                    letterSpacing: '0.01em',
                   }}
                 >
-                  Paused
-                </span>
-              )}
-
-              {isDueToday && (
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    padding: '1.5px 6px',
-                    borderRadius: 5,
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    color: '#ef4444',
-                    border: '1px solid rgba(239, 68, 68, 0.25)',
-                    flexShrink: 0,
-                  }}
-                >
-                  Due today
-                </span>
-              )}
-
-              {isOverdue && (
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    padding: '1.5px 6px',
-                    borderRadius: 5,
-                    background: 'rgba(239, 68, 68, 0.16)',
-                    color: '#ef4444',
-                    border: '1px solid rgba(239, 68, 68, 0.35)',
-                    flexShrink: 0,
-                  }}
-                >
-                  Overdue
-                </span>
-              )}
-
-              {!isAutopay && isLoggedToday && (
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    padding: '1.5px 6px',
-                    borderRadius: 5,
-                    background: 'rgba(16, 185, 129, 0.12)',
-                    color: '#10b981',
-                    border: '1px solid rgba(16, 185, 129, 0.25)',
-                    flexShrink: 0,
-                  }}
-                >
-                  Logged ✓
+                  On Hold
                 </span>
               )}
             </div>
 
-            {/* Bottom Line: Category • Frequency • Contact / Vendor (Strict 1-line) */}
-            <div
-              style={{
-                fontSize: 12,
-                color: 'var(--text-3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span style={{ fontWeight: 500, flexShrink: 0 }}>{rule.category}</span>
-              <span style={{ color: 'var(--text-3)', opacity: 0.6 }}>•</span>
-              <span style={{ flexShrink: 0 }}>{getFrequencyLabel(rule)}</span>
-
-              {linkedFriend && (
-                <>
-                  <span style={{ color: 'var(--text-3)', opacity: 0.6 }}>•</span>
+            {/* Subtitle: Linked Contact and/or Wallet */}
+            {(linkedFriend || wallet) && (
+              <div
+                style={{
+                  fontSize: 12.5,
+                  color: 'var(--text-3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  fontWeight: 500,
+                }}
+              >
+                {linkedFriend && (
                   <button
                     type="button"
                     style={{
@@ -226,7 +225,7 @@ export const AutopayCard: React.FC<Props> = ({
                       border: 'none',
                       padding: 0,
                       color: 'var(--text-2)',
-                      fontSize: 12,
+                      fontSize: 12.5,
                       fontWeight: 500,
                       cursor: onNavigate ? 'pointer' : 'default',
                       display: 'inline-flex',
@@ -245,213 +244,350 @@ export const AutopayCard: React.FC<Props> = ({
                     title={`View ${linkedFriend.name}`}
                   >
                     {linkedFriend.type === 'vendor' ? (
-                      <Store size={11} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                      <Store size={11.5} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                     ) : linkedFriend.type === 'subscription' ? (
-                      <Tv size={11} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                      <Tv size={11.5} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                     ) : (
-                      <User size={11} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                      <User size={11.5} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                     )}
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{linkedFriend.name}</span>
                   </button>
-                </>
-              )}
+                )}
 
-              {wallet && (
-                <>
-                  <span style={{ color: 'var(--text-3)', opacity: 0.6 }}>•</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }} title={`Wallet: ${wallet.name}`}>
-                    <WalletIcon size={10.5} style={{ color: 'var(--text-3)' }} />
-                    <span>{wallet.name}</span>
+                {linkedFriend && wallet && <span style={{ opacity: 0.4 }}>·</span>}
+
+                {wallet && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4.5,
+                      flexShrink: 0,
+                    }}
+                    title={`Wallet: ${wallet.name}`}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {renderWalletIcon(wallet.icon || wallet.name, 15, wallet.color) || (
+                        <WalletIcon size={12} style={{ opacity: 0.75 }} />
+                      )}
+                    </span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {wallet.name}
+                    </span>
                   </span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Amount & Status Subtitle */}
-        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: 2, flexShrink: 0 }}>
-          <div
-            style={{
-              fontWeight: 750,
-              fontSize: 15.5,
-              color: 'var(--text)',
-              letterSpacing: '-0.02em',
-              fontVariantNumeric: 'tabular-nums',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {fmtMoney(rule.amount, currency)}
-          </div>
-
-          <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-            {isAutopay ? (
-              rule.nextDueDate ? `Due ${fmtDate(rule.nextDueDate)}` : 'No due date'
-            ) : isLoggedToday ? (
-              <span style={{ color: '#10b981', fontWeight: 600 }}>Logged today</span>
-            ) : (
-              'Not logged today'
+                )}
+              </div>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Bottom Action Row (Zero dividing lines, modern integrated controls) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 2 }}>
-        {/* Left: Last Logged Date / Note */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1, overflow: 'hidden' }}>
-          {rule.lastLoggedDate ? (
-            <span
-              style={{
-                fontSize: 11,
-                color: 'var(--text-3)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 3.5,
-                whiteSpace: 'nowrap',
-              }}
-              title={`Last logged on ${fmtDate(rule.lastLoggedDate)}`}
-            >
-              <Calendar size={11} style={{ opacity: 0.7 }} />
-              <span>Last: {fmtDate(rule.lastLoggedDate)}</span>
-            </span>
-          ) : rule.notes ? (
-            <span
-              style={{
-                fontSize: 11,
-                color: 'var(--text-3)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                fontStyle: 'italic',
-              }}
-              title={rule.notes}
-            >
-              <MarkdownNote content={rule.notes} inline />
-            </span>
-          ) : null}
-        </div>
-
-        {/* Right: Actions Cluster */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-          {/* Main Pay/Log Action Button */}
-          {isAutopay ? (
-            <button
-              type="button"
-              style={{
-                height: 29,
-                padding: '0 10px',
-                fontSize: 12,
-                fontWeight: 600,
-                borderRadius: 7,
-                background: 'var(--surface2)',
-                color: 'var(--text)',
-                border: '1px solid var(--border)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                cursor: isPaused ? 'not-allowed' : 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-              onClick={() => onPay(rule)}
-              disabled={isPaused}
-              title="Record autopay deduction"
-            >
-              <CheckCircle2 size={13} style={{ color: 'var(--credit)' }} />
-              <span>Pay</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              style={{
-                height: 29,
-                padding: '0 10px',
-                fontSize: 12,
-                fontWeight: 600,
-                borderRadius: 7,
-                background: isLoggedToday ? 'rgba(16, 185, 129, 0.12)' : 'var(--surface2)',
-                color: isLoggedToday ? '#10b981' : 'var(--text)',
-                border: isLoggedToday ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid var(--border)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                cursor: isPaused ? 'not-allowed' : 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-              onClick={() => onQuickLog(rule)}
-              disabled={isPaused}
-              title={isLoggedToday ? 'Logged for today (tap to log again)' : "Log today's expense"}
-            >
-              <Zap size={13} style={{ color: isLoggedToday ? '#10b981' : '#f59e0b' }} />
-              <span>{isLoggedToday ? 'Logged' : 'Log'}</span>
-            </button>
-          )}
-
-          {/* Pause / Resume Button */}
+        {/* Top Right: More Options Menu */}
+        <div style={{ flexShrink: 0, position: 'relative' }}>
           <button
+            ref={buttonRef}
             type="button"
-            style={{
-              width: 29,
-              height: 29,
-              borderRadius: 7,
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              color: isPaused ? 'var(--accent)' : 'var(--text-3)',
-              display: 'grid',
-              placeItems: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
+            className="btn-icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(!menuOpen);
             }}
-            onClick={() => onTogglePause(rule)}
-            title={isPaused ? 'Resume Rule' : 'Pause Rule'}
-            aria-label={isPaused ? 'Resume Rule' : 'Pause Rule'}
-          >
-            {isPaused ? <Play size={12} fill="currentColor" /> : <Pause size={12} />}
-          </button>
-
-          {/* Edit Button */}
-          <button
-            type="button"
+            aria-label="More options"
+            title="Options"
             style={{
-              width: 29,
-              height: 29,
-              borderRadius: 7,
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
+              width: 32,
+              height: 32,
+              borderRadius: 9999,
+              background: menuOpen ? 'var(--surface2)' : 'transparent',
+              border: `1px solid ${menuOpen ? 'var(--border)' : 'transparent'}`,
               color: 'var(--text-2)',
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
-            onClick={() => onEdit(rule)}
-            title="Edit Rule"
-            aria-label="Edit Rule"
           >
-            <Edit2 size={12} />
+            <MoreHorizontal size={17} />
           </button>
 
-          {/* Delete Button */}
-          <button
-            type="button"
+          {/* More Options Dropdown Menu */}
+          {menuOpen && (
+            <div
+              ref={menuRef}
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                right: 0,
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 14,
+                boxShadow: '0 10px 28px -4px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06)',
+                padding: 5,
+                minWidth: 145,
+                zIndex: 50,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+              }}
+            >
+              {/* Hold / Resume */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onTogglePause(rule);
+                }}
+                onMouseEnter={() => setHoveredAction('hold')}
+                onMouseLeave={() => setHoveredAction(null)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 9,
+                  padding: '8px 12px',
+                  borderRadius: 9,
+                  background: hoveredAction === 'hold' ? 'var(--surface2)' : 'transparent',
+                  border: 'none',
+                  color: 'var(--text)',
+                  fontSize: 13,
+                  fontWeight: 550,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%',
+                  transition: 'background 0.12s ease',
+                }}
+              >
+                {isPaused ? <Play size={14} style={{ color: 'var(--accent)' }} /> : <Pause size={14} style={{ color: 'var(--text-3)' }} />}
+                <span>{isPaused ? 'Resume' : 'Hold'}</span>
+              </button>
+
+              {/* Edit */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onEdit(rule);
+                }}
+                onMouseEnter={() => setHoveredAction('edit')}
+                onMouseLeave={() => setHoveredAction(null)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 9,
+                  padding: '8px 12px',
+                  borderRadius: 9,
+                  background: hoveredAction === 'edit' ? 'var(--surface2)' : 'transparent',
+                  border: 'none',
+                  color: 'var(--text)',
+                  fontSize: 13,
+                  fontWeight: 550,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%',
+                  transition: 'background 0.12s ease',
+                }}
+              >
+                <Edit2 size={14} style={{ color: 'var(--text-3)' }} />
+                <span>Edit</span>
+              </button>
+
+              {/* Delete */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onDelete(rule);
+                }}
+                onMouseEnter={() => setHoveredAction('delete')}
+                onMouseLeave={() => setHoveredAction(null)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 9,
+                  padding: '8px 12px',
+                  borderRadius: 9,
+                  background: hoveredAction === 'delete' ? 'rgba(239, 68, 68, 0.08)' : 'transparent',
+                  border: 'none',
+                  color: 'var(--debit, #ef4444)',
+                  fontSize: 13,
+                  fontWeight: 550,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%',
+                  transition: 'background 0.12s ease',
+                }}
+              >
+                <Trash2 size={14} style={{ color: 'var(--debit, #ef4444)' }} />
+                <span>Delete</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Action Row: Amount + Due Date on Left, Action Button on Right */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 14 }}>
+        {/* Bottom Left: Prominent Amount + Due Date / Status */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
+          <div
             style={{
-              width: 29,
-              height: 29,
-              borderRadius: 7,
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              color: 'var(--debit, #ef4444)',
-              display: 'grid',
-              placeItems: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
+              fontWeight: 800,
+              fontSize: 20,
+              color: 'var(--text)',
+              letterSpacing: '-0.025em',
+              fontVariantNumeric: 'tabular-nums',
+              lineHeight: 1.15,
             }}
-            onClick={() => onDelete(rule)}
-            title="Delete Rule"
-            aria-label="Delete Rule"
           >
-            <Trash2 size={12} />
-          </button>
+            {fmtMoney(rule.amount, currency)}
+          </div>
+
+          {/* Due date or log status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+            {isAutopay ? (
+              rule.nextDueDate ? (
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: isDueToday || isOverdue ? 650 : 500,
+                    color: isOverdue ? 'var(--debit, #ef4444)' : isDueToday ? '#ef4444' : 'var(--text-3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4.5,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Calendar size={12} style={{ opacity: 0.8, flexShrink: 0 }} />
+                  <span>Due {fmtDate(rule.nextDueDate)}</span>
+                  {isDueToday && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        color: '#ef4444',
+                      }}
+                    >
+                      Today
+                    </span>
+                  )}
+                  {isOverdue && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        background: 'rgba(239, 68, 68, 0.16)',
+                        color: '#ef4444',
+                      }}
+                    >
+                      Overdue
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span style={{ fontSize: 12, color: 'var(--text-3)' }}>No due date</span>
+              )
+            ) : rule.lastLoggedDate ? (
+              <span
+                style={{
+                  fontSize: 12,
+                  color: 'var(--text-3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4.5,
+                  whiteSpace: 'nowrap',
+                }}
+                title={`Last logged on ${fmtDate(rule.lastLoggedDate)}`}
+              >
+                <Calendar size={12} style={{ opacity: 0.8, flexShrink: 0 }} />
+                <span>Last: {fmtDate(rule.lastLoggedDate)}</span>
+              </span>
+            ) : rule.notes ? (
+              <span
+                style={{
+                  fontSize: 12,
+                  color: 'var(--text-3)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  fontStyle: 'italic',
+                }}
+                title={rule.notes}
+              >
+                <MarkdownNote content={rule.notes} inline />
+              </span>
+            ) : (
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                {isLoggedToday ? <span style={{ color: '#10b981', fontWeight: 600 }}>Logged today</span> : 'Not logged today'}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Right: Clean Primary Action Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {isAutopay ? (
+            <button
+              type="button"
+              style={{
+                height: 38,
+                padding: '0 20px',
+                fontSize: 14,
+                fontWeight: 700,
+                borderRadius: 9999,
+                background: 'var(--surface2)',
+                color: isPaused ? 'var(--text-3)' : 'var(--text)',
+                border: '1px solid var(--border)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 7,
+                cursor: isPaused ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+              }}
+              onClick={() => onPay(rule)}
+              disabled={isPaused}
+              title="Record autopay deduction"
+            >
+              <CheckCircle2 size={16.5} strokeWidth={2.2} style={{ color: isPaused ? 'var(--text-3)' : 'var(--credit, #10b981)' }} />
+              <span>Pay</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              style={{
+                height: 38,
+                padding: '0 20px',
+                fontSize: 14,
+                fontWeight: 700,
+                borderRadius: 9999,
+                background: isLoggedToday ? 'rgba(16, 185, 129, 0.12)' : 'var(--surface2)',
+                color: isLoggedToday ? '#10b981' : 'var(--text)',
+                border: isLoggedToday ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid var(--border)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 7,
+                cursor: isPaused ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+              }}
+              onClick={() => onQuickLog(rule)}
+              disabled={isPaused}
+              title={isLoggedToday ? 'Logged for today (tap to log again)' : "Log today's expense"}
+            >
+              <Zap size={16.5} strokeWidth={2.2} style={{ color: isLoggedToday ? '#10b981' : '#f59e0b' }} />
+              <span>{isLoggedToday ? 'Logged' : 'Log'}</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

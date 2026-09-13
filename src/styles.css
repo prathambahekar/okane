@@ -10464,6 +10464,7 @@ body.no-animations *::after,
 .topbar-bell-btn,
 .notification-bell-btn,
 .topbar-add-contact-btn,
+.topbar-add-recurring-btn,
 .topbar-settings-search-btn {
   width: 36px !important;
   height: 36px !important;
@@ -10485,6 +10486,7 @@ body.no-animations *::after,
 .topbar-bell-btn:hover,
 .notification-bell-btn:hover,
 .topbar-add-contact-btn:hover,
+.topbar-add-recurring-btn:hover,
 .topbar-settings-search-btn:hover {
   background: var(--surface2) !important;
   border-color: var(--border) !important;
@@ -10498,6 +10500,7 @@ body.no-animations *::after,
 .topbar-bell-btn:active,
 .notification-bell-btn:active,
 .topbar-add-contact-btn:active,
+.topbar-add-recurring-btn:active,
 .topbar-settings-search-btn:active {
   transform: scale(0.93) !important;
   background: var(--surface3) !important;

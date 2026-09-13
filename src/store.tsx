@@ -612,7 +612,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         },
         data.settings || {}
       ),
-      recurringRules: Array.isArray(data.recurringRules) ? data.recurringRules : [],
+      recurringRules: (() => {
+        const raw = Array.isArray(data.recurringRules) ? data.recurringRules : [];
+        const seen = new Set<string>();
+        return raw.filter(r => {
+          if (!r || !r.id) return false;
+          if (seen.has(r.id)) return false;
+          seen.add(r.id);
+          return true;
+        });
+      })(),
       activeTrip: parsedActiveTrip,
       tripHistory: Array.isArray(parsedTripHistory) ? parsedTripHistory : [],
       presetGroups: Array.isArray(parsedPresetGroups) ? parsedPresetGroups : [],

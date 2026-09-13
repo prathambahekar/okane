@@ -3241,7 +3241,7 @@ export default function Settings({
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {(settings.enableAutopay ?? false) && onNavigate && (
+                    {(settings.enableAutopay ?? true) && onNavigate && (
                       <button
                         type="button"
                         className="drawer-action-icon-btn"
@@ -3253,7 +3253,7 @@ export default function Settings({
                     )}
                     <Switch
                       className="custom-toggle-switch"
-                      checked={settings.enableAutopay ?? false}
+                      checked={settings.enableAutopay ?? true}
                       onChange={(e) => {
                         const enabled = e.target.checked;
                         updateSettings({ enableAutopay: enabled });

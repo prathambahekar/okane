@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
-  SlidersHorizontal,
+  Filter,
   RotateCcw,
   Check,
   Search,
@@ -155,34 +155,38 @@ export const AutopayFilterBar: React.FC<Props> = ({
             gap: 8,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <div
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 8,
+                borderRadius: '50%',
                 backgroundColor: 'var(--surface2)',
                 display: 'grid',
                 placeItems: 'center',
-                color: 'var(--accent)',
+                color: 'var(--text)',
                 flexShrink: 0,
               }}
             >
-              <SlidersHorizontal size={16} />
+              <Filter size={16} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '15px', fontWeight: 650, color: 'var(--text)', lineHeight: 1.2 }}>
+              <div style={{ fontSize: '15.5px', fontWeight: 650, color: 'var(--text)', lineHeight: 1.2 }}>
                 Filters & Search
               </div>
-              {activeFilterCount > 0 && (
-                <div style={{ fontSize: '11.5px', color: 'var(--accent)', fontWeight: 500 }}>
+              {activeFilterCount > 0 ? (
+                <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 550, marginTop: 2 }}>
                   {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}
+                </div>
+              ) : (
+                <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
+                  Refine subscriptions & autopay
                 </div>
               )}
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {activeFilterCount > 0 && (
               <button
                 type="button"
@@ -214,8 +218,8 @@ export const AutopayFilterBar: React.FC<Props> = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 4,
-                padding: '5px 9px',
-                borderRadius: 8,
+                padding: '5px 10px',
+                borderRadius: '9999px',
                 backgroundColor: showStats ? 'var(--surface)' : 'var(--surface2)',
                 border: showStats ? '1px solid var(--border2)' : '1px solid var(--border)',
                 color: showStats ? 'var(--text)' : 'var(--text-2)',
@@ -239,14 +243,15 @@ export const AutopayFilterBar: React.FC<Props> = ({
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 8,
+                borderRadius: '50%',
                 backgroundColor: 'var(--surface2)',
                 border: '1px solid var(--border)',
-                color: 'var(--text-2)',
+                color: 'var(--text)',
                 cursor: 'pointer',
                 display: 'grid',
                 placeItems: 'center',
                 padding: 0,
+                transition: 'all 0.15s ease',
               }}
               aria-label="Close filters"
             >
@@ -586,11 +591,11 @@ export const AutopayFilterBar: React.FC<Props> = ({
             className="btn btn-primary btn-sm"
             onClick={() => setShowFilters(false)}
             style={{
-              padding: '0 20px',
-              height: '36px',
-              fontSize: '13px',
+              padding: '0 22px',
+              height: '38px',
+              fontSize: '13.5px',
               fontWeight: 650,
-              borderRadius: '9px',
+              borderRadius: '9999px',
             }}
           >
             Done

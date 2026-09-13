@@ -173,9 +173,15 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
   const connectedRules = useMemo(() => {
     if (!friend) return [];
-    return (db.recurringRules || []).filter(
-      r => r.friendId === friend.id || (r.title && r.title.toLowerCase().includes(friend.name.toLowerCase()))
-    );
+    const seen = new Set<string>();
+    return (db.recurringRules || []).filter(r => {
+      if (!r || !r.id) return false;
+      const matches = r.friendId === friend.id || (r.title && r.title.toLowerCase().includes(friend.name.toLowerCase()));
+      if (!matches) return false;
+      if (seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    });
   }, [db.recurringRules, friend]);
 
   if (!friend) {
@@ -591,9 +597,9 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {connectedRules.map((r, idx) => (
+                    {connectedRules.map((r) => (
                       <div
-                        key={`${r.id}-${idx}`}
+                        key={r.id}
                         style={{
                           display: 'flex',
                           alignItems: 'center',

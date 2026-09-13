@@ -1,14 +1,12 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import {
   RefreshCw,
   Zap,
   Plus,
-  SlidersHorizontal,
+  Filter,
   X,
   RotateCcw,
   AlertTriangle,
-  Sparkles,
 } from 'lucide-react';
 import { useStore } from '../store';
 import type { RecurringRule, RecurringKind, ViewName } from '../types';
@@ -38,7 +36,6 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
   } = useStore();
 
   const currency = db.settings.currency;
-  const enableAIAssistant = db.settings.enableAIAssistant !== false;
   const today = todayISO();
 
   // Filters & Drawer State
@@ -76,28 +73,16 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
   const [modalDefaultKind, setModalDefaultKind] = useState<RecurringKind>('autopay');
   const [deletingRule, setDeletingRule] = useState<RecurringRule | null>(null);
 
-  // Floating Action Button Portal Target
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(() => {
-    if (typeof document !== 'undefined') {
-      return document.getElementById('floating-extra-actions-slot');
-    }
-    return null;
-  });
-
-  useEffect(() => {
-    if (!portalTarget) {
-      const interval = setInterval(() => {
-        const slot = document.getElementById('floating-extra-actions-slot');
-        if (slot) {
-          setPortalTarget(slot);
-          clearInterval(interval);
-        }
-      }, 50);
-      return () => clearInterval(interval);
-    }
-  }, [portalTarget]);
-
-  const rules = useMemo(() => db.recurringRules || [], [db.recurringRules]);
+  const rules = useMemo(() => {
+    const rawRules = db.recurringRules || [];
+    const seen = new Set<string>();
+    return rawRules.filter(r => {
+      if (!r || !r.id) return false;
+      if (seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    });
+  }, [db.recurringRules]);
   const autopayRules = useMemo(() => rules.filter(r => r.kind === 'autopay'), [rules]);
   const quickLogRules = useMemo(() => rules.filter(r => r.kind === 'quick_log'), [rules]);
 
@@ -131,6 +116,31 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
     if (sortBy !== 'due_asc') count++;
     return count;
   }, [search, statusFilter, freqFilter, sortBy]);
+
+  // Listen for top bar events (mobile filter and add buttons)
+  useEffect(() => {
+    const handleOpenFilters = () => {
+      setShowFilters(true);
+    };
+    const handleAddRecurring = () => {
+      setModalDefaultKind(kindFilter === 'quick_log' ? 'quick_log' : 'autopay');
+      setEditingRule(null);
+      setShowModal(true);
+    };
+    window.addEventListener('app-open-filters', handleOpenFilters);
+    window.addEventListener('app-add-recurring', handleAddRecurring);
+    return () => {
+      window.removeEventListener('app-open-filters', handleOpenFilters);
+      window.removeEventListener('app-add-recurring', handleAddRecurring);
+    };
+  }, [kindFilter]);
+
+  // Sync active filter count with top bar badge
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('app-filter-count-update', {
+      detail: { view: 'recurring', count: activeFilterCount }
+    }));
+  }, [activeFilterCount]);
 
   const handleClearAll = () => {
     setSearch('');
@@ -241,88 +251,54 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
 
   return (
     <div className="view-container">
-      {/* Header Bar */}
-      <div className="recurring-header-wrap" style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
-        <div className="desktop-only" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <h1 className="page-title" style={{ fontSize: '1.35rem', margin: 0, fontWeight: 700, letterSpacing: '-0.02em' }}>
-              Autopay
-            </h1>
-          </div>
-          <DesktopSearchBar placeholder="Search subscriptions, autopay..." defaultTab="recurring" />
-          <div className="desktop-only" style={{ width: 80 }} />
+      {/* Page Header Bar matching Expenses / Settlements */}
+      <div className="page-header" style={{ marginBottom: 14 }}>
+        <div>
+          <h1 className="page-title">Autopay</h1>
         </div>
-
-        {/* Segment Tabs + Filter Button (No Top Search Bar) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-          {/* Segment Pill Switcher */}
-          <div
-            className="contact-type-switch"
-            style={{
-              flex: 1,
-              width: '100%',
-            }}
-          >
-            <button
-              type="button"
-              className={`type-btn ${kindFilter === 'autopay' ? 'active' : ''}`}
-              onClick={() => setKindFilter('autopay')}
-              title="Subscriptions"
-              aria-label="Subscriptions"
-            >
-              <RefreshCw size={15} style={{ flexShrink: 0, color: 'inherit' }} />
-              <span className="type-label">Subscriptions</span>
-            </button>
-
-            <button
-              type="button"
-              className={`type-btn ${kindFilter === 'quick_log' ? 'active' : ''}`}
-              onClick={() => setKindFilter('quick_log')}
-              title="Custom Quick Log"
-              aria-label="Custom Quick Log"
-            >
-              <Zap size={15} style={{ flexShrink: 0, color: 'inherit' }} />
-              <span className="type-label">Custom</span>
-            </button>
-          </div>
-
-          {/* Filter Drawer Trigger Button */}
+        <div className="desktop-search-filter-wrap desktop-only">
+          <DesktopSearchBar placeholder="Search subscriptions, autopay..." defaultTab="recurring" />
           <button
             type="button"
+            id="desktop-filter-recurring-btn"
+            className={`btn btn-secondary ${activeFilterCount > 0 ? 'active' : ''}`}
             onClick={() => setShowFilters(true)}
+            title={activeFilterCount > 0 ? `${activeFilterCount} active filter${activeFilterCount === 1 ? '' : 's'}` : 'Filters'}
+            aria-label="Filter recurring"
             style={{
+              width: 40,
+              height: 40,
+              padding: 0,
+              borderRadius: '9999px',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 5,
-              height: 38,
-              padding: '0 10px',
-              borderRadius: '11px',
-              fontSize: '12px',
-              fontWeight: activeFilterCount > 0 ? 650 : 500,
-              backgroundColor: activeFilterCount > 0 ? 'var(--surface)' : 'var(--surface2)',
-              color: activeFilterCount > 0 ? 'var(--text)' : 'var(--text-2)',
-              border: activeFilterCount > 0 ? '1px solid var(--border2)' : '1px solid var(--border)',
-              boxShadow: activeFilterCount > 0 ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
+              position: 'relative',
               flexShrink: 0,
+              background: activeFilterCount > 0 ? 'var(--surface2)' : undefined,
+              borderColor: activeFilterCount > 0 ? 'var(--border2)' : undefined,
+              color: 'var(--text)',
             }}
-            title="Filters & Search"
-            aria-label="Open Filters"
           >
-            <SlidersHorizontal size={14} style={{ color: activeFilterCount > 0 ? 'var(--text)' : 'var(--text-2)' }} />
-            <span className="desktop-only">Filters</span>
+            <Filter size={17} strokeWidth={2} />
             {activeFilterCount > 0 && (
               <span
                 style={{
-                  backgroundColor: 'var(--text)',
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  minWidth: 16,
+                  height: 16,
+                  borderRadius: 999,
+                  background: 'var(--text)',
                   color: 'var(--surface)',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  borderRadius: '999px',
-                  padding: '1px 5px',
-                  lineHeight: 1.2,
+                  fontSize: 10,
+                  fontWeight: 750,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 4px',
+                  lineHeight: 1,
                 }}
               >
                 {activeFilterCount}
@@ -330,12 +306,53 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
             )}
           </button>
         </div>
+        <div className="page-header-actions desktop-only" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setModalDefaultKind(kindFilter === 'quick_log' ? 'quick_log' : 'autopay');
+              setEditingRule(null);
+              setShowModal(true);
+            }}
+          >
+            <Plus size={16} /> Create {kindFilter === 'quick_log' ? 'Custom Rule' : 'Subscription'}
+          </button>
+        </div>
+      </div>
+
+      {/* Clean Full-Width Segment Switcher */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+        <div className="contact-type-switch" style={{ width: '100%' }}>
+          <button
+            type="button"
+            className={`type-btn ${kindFilter === 'autopay' ? 'active' : ''}`}
+            onClick={() => setKindFilter('autopay')}
+            title="Subscriptions"
+            aria-label="Subscriptions"
+            style={{ fontSize: '13.5px', fontWeight: kindFilter === 'autopay' ? 650 : 500 }}
+          >
+            <RefreshCw size={15} style={{ flexShrink: 0, color: 'inherit' }} />
+            <span className="type-label" style={{ fontSize: '13.5px', letterSpacing: '-0.01em' }}>Subscriptions</span>
+          </button>
+
+          <button
+            type="button"
+            className={`type-btn ${kindFilter === 'quick_log' ? 'active' : ''}`}
+            onClick={() => setKindFilter('quick_log')}
+            title="Custom Quick Log"
+            aria-label="Custom Quick Log"
+            style={{ fontSize: '13.5px', fontWeight: kindFilter === 'quick_log' ? 650 : 500 }}
+          >
+            <Zap size={15} style={{ flexShrink: 0, color: 'inherit' }} />
+            <span className="type-label" style={{ fontSize: '13.5px', letterSpacing: '-0.01em' }}>Custom</span>
+          </button>
+        </div>
 
         {/* Active Filter Chips (Accent Themed) */}
         {activeFilterCount > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '2px 2px' }}>
             {search && (
-              <span className="app-filter-chip">
+              <span key="chip-search" className="app-filter-chip">
                 <span className="app-filter-chip-label">Search:</span>
                 <span className="app-filter-chip-value">"{search}"</span>
                 <button
@@ -351,7 +368,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
             )}
 
             {statusFilter !== 'all' && (
-              <span className="app-filter-chip">
+              <span key="chip-status" className="app-filter-chip">
                 <span className="app-filter-chip-label">Status:</span>
                 <span className="app-filter-chip-value">{statusLabel}</span>
                 <button
@@ -367,7 +384,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
             )}
 
             {freqFilter !== 'all' && (
-              <span className="app-filter-chip" style={{ textTransform: 'capitalize' }}>
+              <span key="chip-freq" className="app-filter-chip" style={{ textTransform: 'capitalize' }}>
                 <span className="app-filter-chip-label">Freq:</span>
                 <span className="app-filter-chip-value">{freqFilter}</span>
                 <button
@@ -383,7 +400,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
             )}
 
             {sortBy !== 'due_asc' && (
-              <span className="app-filter-chip">
+              <span key="chip-sort" className="app-filter-chip">
                 <span className="app-filter-chip-label">Sort:</span>
                 <span className="app-filter-chip-value">{sortLabel}</span>
                 <button
@@ -399,6 +416,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
             )}
 
             <button
+              key="chip-clear-all"
               type="button"
               onClick={handleClearAll}
               className="app-filter-clear-btn"
@@ -411,72 +429,165 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
         )}
       </div>
 
-      {/* Header Metric Card (Contextual to active tab, Clean Theme, Zero Divider Lines) */}
+      {/* Header Metric Card (Contextual to active tab, Clean Minimal Theme) */}
       <div style={{ marginBottom: 16 }}>
         <div
           className="card"
           style={{
-            padding: '14px 16px',
+            padding: '16px 18px',
             background: 'var(--surface)',
             border: '1px solid var(--border)',
-            borderRadius: '14px',
+            borderRadius: '16px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
             transition: 'all 0.15s ease',
           }}
         >
           {kindFilter === 'autopay' ? (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-3)', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em' }}>
-                <span>SUBSCRIPTION SPEND</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent)' }}>
-                  <RefreshCw size={12} />
-                  <span style={{ fontSize: 11 }}>{autopayRules.length} active</span>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
+                <span style={{ color: 'var(--text-3)', fontSize: 13, fontWeight: 500, letterSpacing: '-0.01em' }}>
+                  Projected spend
+                </span>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    color: 'var(--text-2)',
+                    background: 'var(--surface2)',
+                    padding: '2.5px 8.5px',
+                    borderRadius: 9999,
+                    border: '1px solid var(--border)',
+                    letterSpacing: '0.01em',
+                    lineHeight: '1.3',
+                  }}
+                >
+                  {autopayRules.filter(r => r.status === 'active').length} active
+                </span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                <div style={{ fontSize: 20, fontWeight: 750, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <div
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 750,
+                    color: 'var(--text)',
+                    letterSpacing: '-0.03em',
+                    fontVariantNumeric: 'tabular-nums',
+                    lineHeight: 1.1,
+                  }}
+                >
                   {fmtMoney(totalMonthlySubCost, currency)}
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-3)' }}>/month projected</span>
+                <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-3)' }}>/ month</span>
               </div>
 
               {dueAutopays.length > 0 && (
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 11.5,
                     color: '#ef4444',
-                    fontWeight: 650,
-                    marginTop: 8,
+                    fontWeight: 600,
+                    marginTop: 2,
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 5,
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.25)',
-                    padding: '2px 8px',
-                    borderRadius: 6,
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    padding: '3.5px 9px',
+                    borderRadius: 8,
+                    alignSelf: 'flex-start',
                   }}
                 >
-                  <AlertTriangle size={12} />
-                  <span>{dueAutopays.length} bill{dueAutopays.length > 1 ? 's' : ''} due or overdue</span>
+                  <AlertTriangle size={12} strokeWidth={2.2} />
+                  <span>{dueAutopays.length} {dueAutopays.length === 1 ? 'bill' : 'bills'} due or overdue</span>
                 </div>
               )}
             </>
           ) : (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-3)', fontSize: 11, fontWeight: 700, letterSpacing: '0.04em' }}>
-                <span>CUSTOM RECURRING</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--accent)' }}>
-                  <Zap size={12} />
-                  <span style={{ fontSize: 11 }}>{quickLogRules.length} rules</span>
-                </div>
-              </div>
+              {(() => {
+                const activeQuickLogs = quickLogRules.filter(r => r.status === 'active');
+                const loggedTodayCount = activeQuickLogs.filter(r => r.lastLoggedDate === today).length;
+                const totalActive = activeQuickLogs.length;
+                const isAllDone = totalActive > 0 && loggedTodayCount === totalActive;
 
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                <div style={{ fontSize: 20, fontWeight: 750, color: 'var(--text)', letterSpacing: '-0.02em' }}>
-                  {quickLogRules.filter(r => r.lastLoggedDate === today).length} of {quickLogRules.filter(r => r.status === 'active').length}
-                </div>
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-3)' }}>logged today</span>
-              </div>
+                return (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
+                      <span style={{ color: 'var(--text-3)', fontSize: 13, fontWeight: 500, letterSpacing: '-0.01em' }}>
+                        Today's logs
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          color: isAllDone ? 'var(--credit, #10b981)' : 'var(--text-2)',
+                          background: isAllDone ? 'rgba(16, 185, 129, 0.08)' : 'var(--surface2)',
+                          padding: '2.5px 8.5px',
+                          borderRadius: 9999,
+                          border: `1px solid ${isAllDone ? 'rgba(16, 185, 129, 0.2)' : 'var(--border)'}`,
+                          letterSpacing: '0.01em',
+                          lineHeight: '1.3',
+                        }}
+                      >
+                        {totalActive === 0
+                          ? '0 active'
+                          : isAllDone
+                          ? 'All logged'
+                          : `${totalActive - loggedTodayCount} left`}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                      <div
+                        style={{
+                          fontSize: 24,
+                          fontWeight: 800,
+                          color: 'var(--text)',
+                          letterSpacing: '-0.03em',
+                          fontVariantNumeric: 'tabular-nums',
+                          lineHeight: 1.1,
+                          display: 'inline-flex',
+                          alignItems: 'baseline',
+                          gap: 3,
+                        }}
+                      >
+                        <span>{loggedTodayCount}</span>
+                        <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-3)' }}>
+                          / {totalActive}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-3)' }}>logged today</span>
+                    </div>
+
+                    {totalActive > 0 && (
+                      <div
+                        style={{
+                          width: '100%',
+                          height: 4,
+                          borderRadius: 9999,
+                          background: 'var(--surface2)',
+                          overflow: 'hidden',
+                          marginTop: 1,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${Math.round((loggedTodayCount / totalActive) * 100)}%`,
+                            height: '100%',
+                            borderRadius: 9999,
+                            background: isAllDone ? 'var(--credit, #10b981)' : 'var(--accent)',
+                            transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                          }}
+                        />
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </>
           )}
         </div>
@@ -484,62 +595,60 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
 
       {/* Rules List */}
       {filteredRules.length === 0 ? (
-        <div
-          className="card"
-          style={{
-            padding: 36,
-            textAlign: 'center',
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: '14px',
-            color: 'var(--text-3)',
-          }}
-        >
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              backgroundColor: 'var(--surface2)',
-              color: 'var(--accent)',
-              display: 'grid',
-              placeItems: 'center',
-              margin: '0 auto 12px auto',
-            }}
-          >
-            <Sparkles size={20} />
+        <div className="empty-state-card">
+          <div className="empty-state">
+            <div className="empty-state-icon-badge">
+              {activeFilterCount > 0 ? (
+                <Filter size={24} strokeWidth={1.8} />
+              ) : kindFilter === 'quick_log' ? (
+                <Zap size={24} strokeWidth={1.8} />
+              ) : (
+                <RefreshCw size={24} strokeWidth={1.8} />
+              )}
+            </div>
+            <div className="empty-state-title">
+              {activeFilterCount > 0
+                ? 'No recurring rules found'
+                : kindFilter === 'quick_log'
+                ? 'No custom rules yet'
+                : 'No subscriptions yet'}
+            </div>
+            <p className="empty-state-desc">
+              {activeFilterCount > 0
+                ? 'No subscriptions match your active filters or search keywords.'
+                : kindFilter === 'quick_log'
+                ? 'Add custom recurring templates for one-tap daily or frequent expense logging.'
+                : 'Add subscriptions or fixed recurring bills to track automatic deductions.'}
+            </p>
+            {activeFilterCount > 0 ? (
+              <button className="btn btn-secondary btn-sm" onClick={handleClearAll} style={{ borderRadius: '9999px', padding: '0 20px', height: 38 }}>
+                Clear Filters
+              </button>
+            ) : (
+              <button
+                className="empty-state-btn"
+                onClick={() => {
+                  setModalDefaultKind(kindFilter === 'quick_log' ? 'quick_log' : 'autopay');
+                  setEditingRule(null);
+                  setShowModal(true);
+                }}
+              >
+                <Plus size={16} strokeWidth={2.2} />
+                <span>Create {kindFilter === 'quick_log' ? 'Custom Rule' : 'Subscription'}</span>
+              </button>
+            )}
           </div>
-          <p style={{ fontSize: 14.5, fontWeight: 650, color: 'var(--text)', margin: '0 0 6px 0' }}>
-            No recurring rules found
-          </p>
-          <p style={{ fontSize: 12.5, color: 'var(--text-3)', margin: '0 0 16px 0', maxWidth: 280, marginLeft: 'auto', marginRight: 'auto' }}>
-            {activeFilterCount > 0
-              ? 'Try changing your search keywords or resetting filters.'
-              : 'Add subscriptions or custom recurring expenses for one-tap tracking.'}
-          </p>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            style={{ margin: '0 auto', padding: '0 16px', height: 34, borderRadius: 8, fontWeight: 600 }}
-            onClick={() => {
-              setModalDefaultKind(kindFilter === 'quick_log' ? 'quick_log' : 'autopay');
-              setEditingRule(null);
-              setShowModal(true);
-            }}
-          >
-            <Plus size={14} /> Create {kindFilter === 'quick_log' ? 'Custom Rule' : 'Subscription'}
-          </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 80 }}>
-          {filteredRules.map((r, idx) => {
+          {filteredRules.map((r) => {
             const cat = db.settings?.categories?.find(c => c.name.toLowerCase() === r.category.toLowerCase());
             const linkedFriend = r.friendId ? db.friends?.find(f => f.id === r.friendId) : null;
             const wallet = r.walletId ? db.wallets?.find(w => w.id === r.walletId) : null;
 
             return (
               <AutopayCard
-                key={`${r.id}-${idx}`}
+                key={r.id}
                 rule={r}
                 category={cat}
                 linkedFriend={linkedFriend}
@@ -584,107 +693,6 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
         totalMonthlySpend={totalMonthlySubCost}
         currency={currency}
       />
-
-      {/* Floating Add Button - placed in floating action stack like in Contact Tab */}
-      {portalTarget ? (
-        createPortal(
-          <button
-            type="button"
-            id="floating-add-autopay-btn"
-            className="floating-add-autopay-btn"
-            onClick={() => {
-              setModalDefaultKind(kindFilter === 'quick_log' ? 'quick_log' : 'autopay');
-              setEditingRule(null);
-              setShowModal(true);
-            }}
-            style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--surface2)',
-              color: 'var(--text)',
-              border: '1px solid var(--border)',
-              boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              pointerEvents: 'auto',
-              transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = 'var(--surface3)';
-              e.currentTarget.style.borderColor = 'var(--accent)';
-              e.currentTarget.style.color = 'var(--accent)';
-              e.currentTarget.style.transform = 'scale(1.08)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'var(--surface2)';
-              e.currentTarget.style.borderColor = 'var(--border)';
-              e.currentTarget.style.color = 'var(--text)';
-              e.currentTarget.style.transform = 'none';
-            }}
-            onMouseDown={e => {
-              e.currentTarget.style.transform = 'scale(0.95)';
-            }}
-            title={kindFilter === 'quick_log' ? 'Add Custom Recurring Rule' : 'Add Subscription'}
-            aria-label={kindFilter === 'quick_log' ? 'Add Custom Recurring Rule' : 'Add Subscription'}
-          >
-            <Plus size={19} />
-          </button>,
-          portalTarget
-        )
-      ) : (
-        <button
-          type="button"
-          id="floating-add-autopay-btn"
-          className="floating-add-autopay-btn"
-          onClick={() => {
-            setModalDefaultKind(kindFilter === 'quick_log' ? 'quick_log' : 'autopay');
-            setEditingRule(null);
-            setShowModal(true);
-          }}
-          style={{
-            position: 'fixed',
-            bottom: enableAIAssistant
-              ? 'calc(env(safe-area-inset-bottom, 0px) + 192px)'
-              : 'calc(env(safe-area-inset-bottom, 0px) + 134px)',
-            right: '16px',
-            width: '46px',
-            height: '46px',
-            borderRadius: '50%',
-            backgroundColor: 'var(--surface2)',
-            color: 'var(--text)',
-            border: '1px solid var(--border)',
-            boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            zIndex: 998,
-            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.backgroundColor = 'var(--surface3)';
-            e.currentTarget.style.borderColor = 'var(--accent)';
-            e.currentTarget.style.color = 'var(--accent)';
-            e.currentTarget.style.transform = 'scale(1.08)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.backgroundColor = 'var(--surface2)';
-            e.currentTarget.style.borderColor = 'var(--border)';
-            e.currentTarget.style.color = 'var(--text)';
-            e.currentTarget.style.transform = 'none';
-          }}
-          onMouseDown={e => {
-            e.currentTarget.style.transform = 'scale(0.95)';
-          }}
-          title={kindFilter === 'quick_log' ? 'Add Custom Recurring Rule' : 'Add Subscription'}
-          aria-label={kindFilter === 'quick_log' ? 'Add Custom Recurring Rule' : 'Add Subscription'}
-        >
-          <Plus size={19} />
-        </button>
-      )}
 
       {/* Modal Dialog */}
       {showModal && (
