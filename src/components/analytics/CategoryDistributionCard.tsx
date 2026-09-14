@@ -15,9 +15,15 @@ interface CategoryDistributionCardProps {
   categories: CategoryBreakdownItem[];
   totalOutflow: number;
   currency: string;
-  selectedCategory: string | null;
-  onSelectCategory: (cat: string | null) => void;
+  selectedCategory?: string | null;
+  onSelectCategory?: (cat: string | null) => void;
   categorySettings: Category[];
+  maxDisplay?: number;
+  hideShowMore?: boolean;
+  title?: string;
+  headerAction?: React.ReactNode;
+  className?: string;
+  interactive?: boolean;
 }
 
 export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> = ({
@@ -27,13 +33,24 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
   selectedCategory,
   onSelectCategory,
   categorySettings,
+  maxDisplay = 5,
+  hideShowMore = false,
+  title = 'Category Breakdown',
+  headerAction,
+  className = '',
+  interactive = true,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [hoveredCat, setHoveredCat] = useState<string | null>(null);
 
-  const DISPLAY_LIMIT = 5;
-  const visibleCategories = expanded ? categories : categories.slice(0, DISPLAY_LIMIT);
-  const hasMore = categories.length > DISPLAY_LIMIT;
+  const isClickable = interactive && !!onSelectCategory;
+
+  const visibleCategories = hideShowMore
+    ? categories.slice(0, maxDisplay)
+    : expanded
+    ? categories
+    : categories.slice(0, maxDisplay);
+  const hasMore = !hideShowMore && categories.length > maxDisplay;
 
   // Find color and icon for a category
   const getCatMeta = (name: string) => {
@@ -45,14 +62,14 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
   };
 
   return (
-    <div className="analytics-v2-card">
+    <div className={`analytics-v2-card ${className}`}>
       {/* Header */}
       <div className="analytics-v2-card-header">
         <div className="analytics-v2-header-left">
           <span className="analytics-v2-header-icon-pill">
             <PieChart size={15} strokeWidth={2.2} />
           </span>
-          <h2 className="analytics-v2-card-title">Category Breakdown</h2>
+          <h2 className="analytics-v2-card-title">{title}</h2>
         </div>
 
         <div className="analytics-v2-header-right">
@@ -62,7 +79,9 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
             </span>
           )}
 
-          {selectedCategory && (
+          {headerAction}
+
+          {isClickable && selectedCategory && (
             <button
               type="button"
               onClick={() => onSelectCategory(null)}
@@ -91,26 +110,26 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
           {/* Multi-segment Distribution Bar */}
           <div className="analytics-v2-dist-bar-wrapper">
             <div className="analytics-v2-dist-bar">
-              {categories.map((item) => {
+              {categories.map((item, idx) => {
                 const meta = getCatMeta(item.cat);
-                const isHovered = hoveredCat === item.cat;
-                const isSelected = selectedCategory === item.cat;
+                const isHovered = isClickable && hoveredCat === item.cat;
+                const isSelected = isClickable && selectedCategory === item.cat;
                 const isDimmed =
-                  (hoveredCat && !isHovered) || (selectedCategory && !isSelected);
+                  isClickable && ((hoveredCat && !isHovered) || (selectedCategory && !isSelected));
 
                 return (
                   <div
-                    key={item.cat}
-                    className="analytics-v2-dist-segment"
+                    key={`seg-${item.cat || 'cat'}-${idx}`}
+                    className={`analytics-v2-dist-segment ${!isClickable ? 'non-interactive' : ''}`}
                     style={{
                       width: `${Math.max(2, item.pct)}%`,
                       backgroundColor: meta.color,
                       opacity: isDimmed ? 0.35 : 1,
                       transform: isHovered || isSelected ? 'scaleY(1.2)' : 'none',
                     }}
-                    onMouseEnter={() => setHoveredCat(item.cat)}
-                    onMouseLeave={() => setHoveredCat(null)}
-                    onClick={() => onSelectCategory(isSelected ? null : item.cat)}
+                    onMouseEnter={isClickable ? () => setHoveredCat(item.cat) : undefined}
+                    onMouseLeave={isClickable ? () => setHoveredCat(null) : undefined}
+                    onClick={isClickable ? () => onSelectCategory(isSelected ? null : item.cat) : undefined}
                     title={`${item.cat}: ${Math.round(item.pct)}% (${fmtMoney(item.amount, currency)})`}
                   />
                 );
@@ -120,22 +139,22 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
 
           {/* Category List */}
           <div className="analytics-v2-category-list">
-            {visibleCategories.map((item) => {
+            {visibleCategories.map((item, idx) => {
               const meta = getCatMeta(item.cat);
-              const isSelected = selectedCategory === item.cat;
-              const isHovered = hoveredCat === item.cat;
+              const isSelected = isClickable && selectedCategory === item.cat;
+              const isHovered = isClickable && hoveredCat === item.cat;
 
               return (
                 <div
-                  key={item.cat}
+                  key={`cat-${item.cat || 'cat'}-${idx}`}
                   className={`analytics-v2-cat-row ${isSelected ? 'active' : ''} ${
                     isHovered ? 'hovered' : ''
-                  }`}
-                  onClick={() => onSelectCategory(isSelected ? null : item.cat)}
-                  onMouseEnter={() => setHoveredCat(item.cat)}
-                  onMouseLeave={() => setHoveredCat(null)}
-                  role="button"
-                  tabIndex={0}
+                  } ${!isClickable ? 'non-interactive' : ''}`}
+                  onClick={isClickable ? () => onSelectCategory(isSelected ? null : item.cat) : undefined}
+                  onMouseEnter={isClickable ? () => setHoveredCat(item.cat) : undefined}
+                  onMouseLeave={isClickable ? () => setHoveredCat(null) : undefined}
+                  role={isClickable ? 'button' : undefined}
+                  tabIndex={isClickable ? 0 : undefined}
                 >
                   <div className="analytics-v2-cat-left">
                     {/* Icon avatar */}

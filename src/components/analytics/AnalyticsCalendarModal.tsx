@@ -9,7 +9,7 @@ import {
   Smartphone,
   Sparkles,
 } from 'lucide-react';
-import { fmtMoney, type GroupedExpense, getGroupedExpenseAmount } from '../../utils';
+import { fmtMoney, type GroupedExpense, getGroupedExpenseAmount, type SpendingMode } from '../../utils';
 import { useBackButtonModal, BackPriority } from '../../utils/backHandler';
 
 export type AnalyticsPeriodScope = 'day' | 'week' | 'month' | 'year';
@@ -21,7 +21,7 @@ interface AnalyticsCalendarModalProps {
   initialDateStr: string; // YYYY-MM-DD
   groupedExpenses: GroupedExpense[];
   currency: string;
-  spendingMode?: 'all' | 'my' | 'shared';
+  spendingMode?: SpendingMode;
   onApply: (selection: { scope: AnalyticsPeriodScope; dateStr: string }) => void;
 }
 
@@ -76,6 +76,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
   const todayStr = useMemo(() => formatISO(today), [today]);
 
   // Sync state when modal opens
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isOpen) {
       setScope(initialScope);
@@ -87,6 +88,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
       setShowYearPicker(false);
     }
   }, [isOpen, initialScope, initialDateStr]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useBackButtonModal(isOpen, onClose, { priority: BackPriority.DIALOG });
 

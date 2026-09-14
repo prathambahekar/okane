@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../store';
 import { groupExpenses, getGroupedExpenseAmount, type GroupedExpense } from '../utils';
@@ -49,6 +49,12 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
 
   const [period, setPeriod] = useState<'week' | 'month'>('week');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const handleSetPeriod = (p: 'week' | 'month') => {
+    setSlideDirection(null);
+    setSelectedDate(null);
+    setPeriod(p);
+  };
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
@@ -58,8 +64,47 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   const currentWeekMonStr = useMemo(() => formatISO(getMonday(now)), [now]);
   const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
 
-  const [activeWeekMonStr, setActiveWeekMonStr] = useState<string>(currentWeekMonStr);
+  const currentWeekSunStr = useMemo(() => {
+    const [wy, wm, wd] = currentWeekMonStr.split('-').map(Number);
+    const sunDate = new Date(wy, wm - 1, wd + 6);
+    return formatISO(sunDate);
+  }, [currentWeekMonStr]);
+
+  const prevWeekMonStr = useMemo(() => {
+    const [y, m, d] = currentWeekMonStr.split('-').map(Number);
+    const prevMon = new Date(y, m - 1, d - 7);
+    return formatISO(prevMon);
+  }, [currentWeekMonStr]);
+
+  // Check if current week has any logged outflow spending
+  const hasCurrentWeekSpending = useMemo(() => {
+    return expenses.some(exp => {
+      if (exp.flow !== 'out') return false;
+      const expDate = (exp.date || '').slice(0, 10);
+      return expDate >= currentWeekMonStr && expDate <= currentWeekSunStr;
+    });
+  }, [expenses, currentWeekMonStr, currentWeekSunStr]);
+
+  // When no spending for current week is found, default to previous week so the analytics page isn't empty
+  const [activeWeekMonStr, setActiveWeekMonStr] = useState<string>(() => {
+    const hasSpending = expenses.some(exp => {
+      if (exp.flow !== 'out') return false;
+      const expDate = (exp.date || '').slice(0, 10);
+      return expDate >= currentWeekMonStr && expDate <= currentWeekSunStr;
+    });
+    return hasSpending ? currentWeekMonStr : prevWeekMonStr;
+  });
   const [activeMonthStr, setActiveMonthStr] = useState<string>(currentMonthStr);
+
+  // Ref to ensure auto-switch only happens once automatically, allowing user to navigate freely
+  const hasAutoSwitchedRef = useRef<boolean>(!hasCurrentWeekSpending);
+
+  useEffect(() => {
+    if (!hasAutoSwitchedRef.current && expenses.length > 0 && !hasCurrentWeekSpending && activeWeekMonStr === currentWeekMonStr) {
+      setActiveWeekMonStr(prevWeekMonStr);
+      hasAutoSwitchedRef.current = true;
+    }
+  }, [expenses.length, hasCurrentWeekSpending, activeWeekMonStr, currentWeekMonStr, prevWeekMonStr]);
 
   const [selectedGroupExpense, setSelectedGroupExpense] = useState<GroupedExpense | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -80,8 +125,13 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   // Grouped expenses base
   const groupedExpenses = useMemo(() => groupExpenses(expenses, wallets), [expenses, wallets]);
 
+  // Slide direction tracking for smooth horizontal transition animations
+  const [slideDirection, setSlideDirection] = useState<'prev' | 'next' | null>(null);
+
   // Handle Date Navigation (Prev / Next)
   const handlePrevDate = () => {
+    hasAutoSwitchedRef.current = true;
+    setSlideDirection('prev');
     if (period === 'week') {
       const [y, m, d] = activeWeekMonStr.split('-').map(Number);
       const prevMon = new Date(y, m - 1, d - 7);
@@ -96,14 +146,17 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   };
 
   const handleNextDate = () => {
+    hasAutoSwitchedRef.current = true;
     if (period === 'week') {
       if (activeWeekMonStr >= currentWeekMonStr) return;
+      setSlideDirection('next');
       const [y, m, d] = activeWeekMonStr.split('-').map(Number);
       const nextMon = new Date(y, m - 1, d + 7);
       setActiveWeekMonStr(formatISO(nextMon));
       setSelectedDate(null);
     } else {
       if (activeMonthStr >= currentMonthStr) return;
+      setSlideDirection('next');
       const [y, m] = activeMonthStr.split('-').map(Number);
       const nextM = new Date(y, m, 1);
       setActiveMonthStr(`${nextM.getFullYear()}-${padZero(nextM.getMonth() + 1)}`);
@@ -112,6 +165,8 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   };
 
   const handleResetDate = () => {
+    hasAutoSwitchedRef.current = true;
+    setSlideDirection(isCurrentPeriod ? null : 'next');
     if (period === 'week') {
       setActiveWeekMonStr(currentWeekMonStr);
     } else {
@@ -144,9 +199,48 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
     } else {
       const [my, mm] = activeMonthStr.split('-').map(Number);
       const mDate = new Date(my, mm - 1, 1);
-      return mDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const shortM = mDate.toLocaleDateString('en-US', { month: 'short' });
+      const monthFormatted = shortM === 'Sep' ? 'Sept' : shortM;
+      return `${monthFormatted} ${mDate.getFullYear()}`;
     }
   }, [period, activeWeekMonStr, activeMonthStr]);
+
+  // Period badge descriptor (e.g., "This Week", "Prev Week", "This Month", "Prev Month")
+  const periodBadge = useMemo(() => {
+    if (period === 'week') {
+      if (activeWeekMonStr === currentWeekMonStr) {
+        return { label: 'This Week', isCurrent: true, isPrev: false };
+      }
+      if (activeWeekMonStr === prevWeekMonStr) {
+        return { label: 'Prev Week', isCurrent: false, isPrev: true };
+      }
+      const [ay, am, ad] = activeWeekMonStr.split('-').map(Number);
+      const [cy, cm, cd] = currentWeekMonStr.split('-').map(Number);
+      const aDate = new Date(ay, am - 1, ad);
+      const cDate = new Date(cy, cm - 1, cd);
+      const diffWeeks = Math.round((cDate.getTime() - aDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      if (diffWeeks > 0) {
+        return { label: `${diffWeeks}w ago`, isCurrent: false, isPrev: false };
+      }
+      return null;
+    } else {
+      if (activeMonthStr === currentMonthStr) {
+        return { label: 'This Month', isCurrent: true, isPrev: false };
+      }
+      const [cy, cm] = currentMonthStr.split('-').map(Number);
+      const prevM = new Date(cy, cm - 2, 1);
+      const prevMStr = `${prevM.getFullYear()}-${padZero(prevM.getMonth() + 1)}`;
+      if (activeMonthStr === prevMStr) {
+        return { label: 'Prev Month', isCurrent: false, isPrev: true };
+      }
+      const [ay, am] = activeMonthStr.split('-').map(Number);
+      const diffMonths = (cy - ay) * 12 + (cm - am);
+      if (diffMonths > 0) {
+        return { label: `${diffMonths}m ago`, isCurrent: false, isPrev: false };
+      }
+      return null;
+    }
+  }, [period, activeWeekMonStr, currentWeekMonStr, prevWeekMonStr, activeMonthStr, currentMonthStr]);
 
   // Active period boundaries
   const activeDateRange = useMemo(() => {
@@ -298,9 +392,14 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   }, [chartDays, todayStr]);
 
   const daysPassedCount = useMemo(() => {
+    // If viewing the current active period, count days elapsed up to today; if past period, count all days in period
     const elapsed = chartDays.filter(d => d.dateStr <= todayStr).length;
     return Math.max(1, elapsed);
   }, [chartDays, todayStr]);
+
+  const totalDaysInPeriod = useMemo(() => {
+    return Math.max(1, chartDays.length);
+  }, [chartDays]);
 
   const dailyAvg = useMemo(() => {
     return totalSpent / daysPassedCount;
@@ -333,8 +432,20 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
     });
   }, [periodExpenses, selectedDate]);
 
-  const timeframeExpenses = periodExpenses;
-  const timeframeOutflowTotal = totalSpent;
+  // Base period expenses across ALL categories for the active period (unfiltered by selectedCategory)
+  const basePeriodExpenses = useMemo(() => {
+    return groupedExpenses.filter(ge => {
+      if (ge.date < activeDateRange.startDate || ge.date > activeDateRange.endDate) return false;
+      if (selectedWalletId && ge.walletId !== selectedWalletId) return false;
+      return true;
+    });
+  }, [groupedExpenses, activeDateRange, selectedWalletId]);
+
+  const basePeriodTotalSpent = useMemo(() => {
+    return basePeriodExpenses
+      .filter(ge => ge.flow === 'out')
+      .reduce((sum, ge) => sum + getGroupedExpenseAmount(ge, spendingMode), 0);
+  }, [basePeriodExpenses, spendingMode]);
 
   // Daily log breakdown
   const perDayList = useMemo(() => {
@@ -355,6 +466,34 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
         map[d].categories[ge.category] = (map[d].categories[ge.category] || 0) + amt;
       }
     });
+
+    // In monthly view without a single-day filter or category filter, populate all days of the month (newest to oldest)
+    if (period === 'month' && !selectedDate && !selectedCategory) {
+      const [my, mm] = activeMonthStr.split('-').map(Number);
+      const totalDays = new Date(my, mm, 0).getDate();
+      const allDays = [];
+
+      for (let d = totalDays; d >= 1; d--) {
+        const cur = new Date(my, mm - 1, d);
+        const dateStr = formatISO(cur);
+        const data = map[dateStr] || { spend: 0, income: 0, items: [], categories: {} };
+        const topCatEntry = Object.entries(data.categories).sort((a, b) => b[1] - a[1])[0];
+        const dayName = cur.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+
+        allDays.push({
+          dateStr,
+          dayName,
+          spend: data.spend,
+          income: data.income,
+          count: data.items.length,
+          items: data.items,
+          topCategory: topCatEntry ? topCatEntry[0] : (data.items[0]?.category || "General"),
+          isToday: dateStr === todayStr,
+          isYesterday: dateStr === yesterdayStr,
+        });
+      }
+      return allDays;
+    }
 
     return Object.entries(map)
       .map(([dateStr, data]) => {
@@ -377,12 +516,12 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
         };
       })
       .sort((a, b) => b.dateStr.localeCompare(a.dateStr));
-  }, [filteredExpenses, todayStr, yesterdayStr, spendingMode]);
+  }, [filteredExpenses, period, activeMonthStr, selectedDate, selectedCategory, todayStr, yesterdayStr, spendingMode]);
 
-  // Category breakdown
+  // Category breakdown across all categories for the active period
   const categoryBreakdown = useMemo(() => {
     const map: Record<string, { amount: number; count: number }> = {};
-    timeframeExpenses.forEach(ge => {
+    basePeriodExpenses.forEach(ge => {
       if (ge.flow !== "out") return;
       const amt = getGroupedExpenseAmount(ge, spendingMode);
       if (amt === 0) return;
@@ -396,10 +535,10 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
         cat,
         amount: data.amount,
         count: data.count,
-        pct: timeframeOutflowTotal > 0 ? (data.amount / timeframeOutflowTotal) * 100 : 0,
+        pct: basePeriodTotalSpent > 0 ? (data.amount / basePeriodTotalSpent) * 100 : 0,
       }))
       .sort((a, b) => b.amount - a.amount);
-  }, [timeframeExpenses, timeframeOutflowTotal, spendingMode]);
+  }, [basePeriodExpenses, basePeriodTotalSpent, spendingMode]);
 
   // Toggle date selection from bar chart or list
   const handleToggleDate = (dateStr: string) => {
@@ -423,33 +562,42 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
       <div className="analytics-v2-container">
         {/* 1. Header & Period / Date Range Navigator */}
         <AnalyticsHeader
-        period={period}
-        setPeriod={setPeriod}
-        dateRangeLabel={dateRangeLabel}
-        onPrevDate={handlePrevDate}
-        onNextDate={handleNextDate}
-        onResetDate={handleResetDate}
-        isCurrentPeriod={isCurrentPeriod}
-        onNavigate={onNavigate}
-      />
-
-      {/* 2. Card 1: Total Spending Overview & Interactive Visual Bar Chart */}
-      <div style={{ width: '100%' }}>
-        <TotalSpendingCard
           period={period}
-          totalSpent={totalSpent}
-          prevPeriodSpent={prevPeriodSpent}
-          dailyAvg={dailyAvg}
-          highestDayAmount={highestDayAmount}
-          noSpendDaysCount={noSpendDaysCount}
-          chartDays={chartDays}
-          currency={currency}
-          onOpenFilter={() => setShowFilterDrawer(true)}
-          activeFilterCount={activeFilterCount}
-          onSelectDay={handleToggleDate}
-          selectedDateStr={selectedDate}
+          setPeriod={handleSetPeriod}
+          dateRangeLabel={dateRangeLabel}
+          onPrevDate={handlePrevDate}
+          onNextDate={handleNextDate}
+          onResetDate={handleResetDate}
+          isCurrentPeriod={isCurrentPeriod}
+          onNavigate={onNavigate}
         />
-      </div>
+
+        {/* 2. Card 1: Total Spending Overview & Interactive Visual Bar Chart */}
+        <div style={{ width: '100%' }}>
+          <TotalSpendingCard
+            period={period}
+            periodBadge={periodBadge}
+            periodKey={period === 'week' ? activeWeekMonStr : activeMonthStr}
+            slideDirection={slideDirection}
+            onPrevDate={handlePrevDate}
+            onNextDate={handleNextDate}
+            isCurrentPeriod={isCurrentPeriod}
+            totalSpent={totalSpent}
+            prevPeriodSpent={prevPeriodSpent}
+            dailyAvg={dailyAvg}
+            daysPassedCount={daysPassedCount}
+            totalDaysInPeriod={totalDaysInPeriod}
+            highestDayAmount={highestDayAmount}
+            noSpendDaysCount={noSpendDaysCount}
+            chartDays={chartDays}
+            currency={currency}
+            onOpenFilter={() => setShowFilterDrawer(true)}
+            activeFilterCount={activeFilterCount}
+            onSelectDay={handleToggleDate}
+            selectedDateStr={selectedDate}
+            selectedCategory={selectedCategory}
+          />
+        </div>
 
       {/* Quick Filter Modal / Drawer */}
       {showFilterDrawer && createPortal(
@@ -766,20 +914,22 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
         document.body
       )}
 
-      {/* 3. Cards Grid: Category Breakdown & Daily Activity */}
+      {/* 3. Cards Grid: Category Breakdown & Activity */}
       <div className="analytics-v2-grid">
         {/* Category Breakdown Card */}
         <CategoryDistributionCard
+          className="analytics-v2-card-category"
           categories={categoryBreakdown}
-          totalOutflow={timeframeOutflowTotal}
+          totalOutflow={basePeriodTotalSpent}
           currency={currency}
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
           categorySettings={db.settings.categories}
         />
 
-        {/* Daily Activity Card */}
+        {/* Activity Card */}
         <DailyExpenditureCard
+          className="analytics-v2-card-activity"
           days={perDayList}
           currency={currency}
           selectedDate={selectedDate}
@@ -789,6 +939,14 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
             setShowDailyBalanceDrawer(true);
           }}
           categorySettings={db.settings.categories}
+          period={period}
+          selectedCategory={selectedCategory}
+          onClearCategory={() => setSelectedCategory(null)}
+          categoryExpenses={filteredExpenses}
+          onSelectExpense={(ge) => setSelectedGroupExpense(ge)}
+          spendingMode={spendingMode}
+          wallets={db.wallets}
+          friends={db.friends}
         />
       </div>
 

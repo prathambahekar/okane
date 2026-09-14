@@ -2,6 +2,12 @@ import React from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ViewName } from '../../types';
 
+export interface PeriodBadgeInfo {
+  label: string;
+  isCurrent: boolean;
+  isPrev: boolean;
+}
+
 interface AnalyticsHeaderProps {
   period: 'week' | 'month' | 'day' | 'year';
   setPeriod: (p: 'week' | 'month') => void;

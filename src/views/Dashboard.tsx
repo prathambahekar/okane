@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Plus, TrendingUp, TrendingDown, Users, ReceiptText, ArrowLeftRight, Store, ArrowRight, Eye, EyeOff, PieChart, ChevronDown, Check, Flame } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Users, ReceiptText, ArrowLeftRight, Store, ArrowRight, Eye, EyeOff, Flame } from 'lucide-react';
 import { useStore } from '../store';
 import { walletBalance, totalWalletBalance, expenseFlow, monthKey, allFriendBalances } from '../db';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, getGroupedExpenseAmount, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../utils';
 import type { Friend, ViewName, Expense } from '../types';
 import { CategoryBadge } from '../components/CategoryIcon';
+import CategoryDistributionCard, { type CategoryBreakdownItem } from '../components/analytics/CategoryDistributionCard';
 import TransferModal from '../components/TransferModal';
 import { ExpenseDetailDrawer } from '../components/ExpenseDetailDrawer';
 import ExpenseModal from '../components/ExpenseModal';
@@ -31,39 +32,6 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
 
   const now = new Date();
   const thisKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  const [selectedCatMonth, setSelectedCatMonth] = useState<string>(thisKey);
-  const [isCatMonthPickerOpen, setIsCatMonthPickerOpen] = useState(false);
-  const activeCatMonth = selectedCatMonth || thisKey;
-
-  const expenseMonths = useMemo(() => {
-    const set = new Set<string>([thisKey]);
-    expenses.forEach(e => {
-      if (e.type === 'personal' && e.date) {
-        const k = monthKey(e.date);
-        if (k) set.add(k);
-      }
-    });
-    // Add past 6 months to ensure user can select previous months even if empty
-    const [yStr, mStr] = thisKey.split('-');
-    const baseDate = new Date(parseInt(yStr, 10), parseInt(mStr, 10) - 1, 1);
-    for (let i = 0; i < 6; i++) {
-      const k = baseDate.getFullYear() + '-' + String(baseDate.getMonth() + 1).padStart(2, '0');
-      set.add(k);
-      baseDate.setMonth(baseDate.getMonth() - 1);
-    }
-    return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [expenses, thisKey]);
-
-  const formatMonthLabel = (key: string) => {
-    const parts = key.split('-');
-    if (parts.length !== 2) return key;
-    const year = parseInt(parts[0], 10);
-    const monthIdx = parseInt(parts[1], 10) - 1;
-    const d = new Date(year, monthIdx, 1);
-    const mName = d.toLocaleDateString(undefined, { month: 'long' });
-    if (key === thisKey) return mName;
-    return year === now.getFullYear() ? mName : `${mName} ${year}`;
-  };
 
   const totalBalance = useMemo(() => totalWalletBalance(db), [db]);
 
@@ -147,30 +115,35 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
     [allBalances]
   );
 
-  const { catTotals, totalCatSpend } = useMemo(() => {
-    const totals: Record<string, number> = {};
-    let grandTotal = 0;
-    expenses.forEach(e => {
-      if (e.type !== 'personal' || expenseFlow(e) !== 'out') return;
-      const key = monthKey(e.date);
-      if (key !== activeCatMonth) return;
-      const catLower = (e.category || '').toLowerCase();
-      if (
-        catLower.includes('refund') ||
-        catLower.includes('income') ||
-        catLower.includes('salary') ||
-        catLower.includes('cashback') ||
-        catLower.includes('deposit') ||
-        catLower.includes('transfer') ||
-        e.category === 'Transfer'
-      ) return;
-      const amt = Number(e.amount) || 0;
-      totals[e.category] = (totals[e.category] || 0) + amt;
-      grandTotal += amt;
+  // Group all expenses for accurate month category breakdown (matching Analytics view)
+  const allGroupedExpenses = useMemo(() => {
+    return groupExpenses(expenses, db.wallets, db.friends, db.settlements);
+  }, [expenses, db.wallets, db.friends, db.settlements]);
+
+  const { catBreakdown, totalCatSpend } = useMemo(() => {
+    const map: Record<string, { amount: number; count: number }> = {};
+    allGroupedExpenses.forEach(ge => {
+      if (monthKey(ge.date) !== thisKey) return;
+      if (ge.flow !== 'out') return;
+      const amt = getGroupedExpenseAmount(ge, 'all');
+      if (amt === 0) return;
+      if (!map[ge.category]) map[ge.category] = { amount: 0, count: 0 };
+      map[ge.category].amount += amt;
+      map[ge.category].count += 1;
     });
-    const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    return { catTotals: sorted, totalCatSpend: grandTotal };
-  }, [expenses, activeCatMonth]);
+
+    const grandTotal = Object.values(map).reduce((sum, item) => sum + item.amount, 0);
+    const sorted: CategoryBreakdownItem[] = Object.entries(map)
+      .map(([cat, data]) => ({
+        cat,
+        amount: data.amount,
+        count: data.count,
+        pct: grandTotal > 0 ? (data.amount / grandTotal) * 100 : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    return { catBreakdown: sorted, totalCatSpend: grandTotal };
+  }, [allGroupedExpenses, thisKey]);
 
   const monthName = now.toLocaleDateString(undefined, { month: 'long' });
   const shortMonthName = now.toLocaleDateString(undefined, { month: 'short' });
@@ -655,155 +628,16 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         </div>
 
         {/* Category Spend */}
-        <div className="card" style={{ minWidth: 0, width: '100%', boxSizing: 'border-box', padding: '18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, minHeight: 30 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div className="dashboard-card-icon">
-                <PieChart size={17} />
-              </div>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0, display: 'flex', alignItems: 'center' }}>Top Categories</h2>
-            </div>
-
-            {/* Month Selector Badge */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <button
-                type="button"
-                className="btn-header-pill"
-                onClick={() => setIsCatMonthPickerOpen(prev => !prev)}
-                title="Select month for top categories"
-              >
-                <span>{formatMonthLabel(activeCatMonth)}</span>
-                <ChevronDown
-                  size={13}
-                  className="btn-header-pill-chevron"
-                  style={{
-                    transform: isCatMonthPickerOpen ? 'rotate(180deg)' : 'none',
-                  }}
-                />
-              </button>
-
-              {isCatMonthPickerOpen && (
-                <>
-                  <div
-                    style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-                    onClick={() => setIsCatMonthPickerOpen(false)}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 6px)',
-                      right: 0,
-                      zIndex: 100,
-                      background: 'var(--surface)',
-                      border: '1px solid var(--border-soft, rgba(255, 255, 255, 0.08))',
-                      borderRadius: 12,
-                      boxShadow: 'var(--shadow-lg)',
-                      padding: '6px',
-                      minWidth: 150,
-                      maxHeight: 220,
-                      overflowY: 'auto',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 2,
-                    }}
-                  >
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', padding: '4px 8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Select Month
-                    </div>
-                    {expenseMonths.map(mKey => {
-                      const isSelected = mKey === activeCatMonth;
-                      const label = formatMonthLabel(mKey);
-                      return (
-                        <button
-                          key={mKey}
-                          type="button"
-                          onClick={() => {
-                            setSelectedCatMonth(mKey);
-                            setIsCatMonthPickerOpen(false);
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '7px 10px',
-                            borderRadius: 8,
-                            fontSize: 12,
-                            fontWeight: isSelected ? 700 : 500,
-                            background: isSelected ? 'var(--surface2)' : 'transparent',
-                            color: isSelected ? 'var(--text)' : 'var(--text-2)',
-                            border: 'none',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            width: '100%',
-                            transition: 'all 0.12s ease',
-                          }}
-                        >
-                          <span>{label}</span>
-                          {isSelected && <Check size={13} style={{ color: 'var(--text)' }} />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {catTotals.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {catTotals.map(([cat, total]) => {
-                const catObj = db.settings.categories.find(c => c.name === cat);
-                const catColor = catObj?.color ?? '#6B7280';
-                const pct = totalCatSpend > 0 ? Math.round((total / totalCatSpend) * 100) : 0;
-                const fillPct = totalCatSpend > 0 ? Math.min(100, Math.max(2, (total / totalCatSpend) * 100)) : 0;
-
-                return (
-                  <div key={cat} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                        <CategoryBadge category={cat} color={catColor} icon={catObj?.icon} size={14} showLabel={true} />
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                        <span style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          padding: '1px 6px',
-                          borderRadius: 4,
-                          background: 'var(--surface2)',
-                          color: 'var(--text-3)'
-                        }}>
-                          {pct}%
-                        </span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
-                          {fmtMoney(total, currency)}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{
-                      width: '100%',
-                      height: 6,
-                      borderRadius: 999,
-                      background: 'var(--surface2)',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${fillPct}%`,
-                        background: catColor,
-                        borderRadius: 999,
-                        transition: 'width 0.4s ease'
-                      }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
-              No personal spending recorded in {formatMonthLabel(activeCatMonth)}
-            </div>
-          )}
-        </div>
+        <CategoryDistributionCard
+          title="Top Categories"
+          categories={catBreakdown}
+          totalOutflow={totalCatSpend}
+          currency={currency}
+          categorySettings={db.settings.categories}
+          maxDisplay={6}
+          hideShowMore={true}
+          interactive={false}
+        />
       </div>
 
       <TransferModal

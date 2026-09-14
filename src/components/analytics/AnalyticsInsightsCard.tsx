@@ -275,9 +275,9 @@ export const AnalyticsInsightsCard: React.FC<AnalyticsInsightsCardProps> = ({
           ref={scrollRef}
           className="analytics-v2-insights-horizontal-track"
         >
-          {insights.map((item) => (
+          {insights.map((item, idx) => (
             <div
-              key={item.id}
+              key={`${item.id}-${idx}`}
               className={`analytics-v2-insight-card-compact tone-${item.type}`}
             >
               {/* Header inside mini card */}
