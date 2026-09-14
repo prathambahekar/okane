@@ -9,13 +9,14 @@ interface Props {
   danger?: boolean;
   onConfirm: () => void;
   onClose: () => void;
+  zIndex?: number;
 }
 
-export default function ConfirmDialog({ title, message, confirmLabel = 'Delete', danger = true, onConfirm, onClose }: Props) {
+export default function ConfirmDialog({ title, message, confirmLabel = 'Delete', danger = true, onConfirm, onClose, zIndex }: Props) {
   const isDeleteAction = confirmLabel.toLowerCase().includes('delete') || confirmLabel.toLowerCase().includes('remove');
 
   return createPortal(
-    <div className="modal-backdrop-motion" style={{ alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div className="modal-backdrop-motion" style={{ alignItems: 'center', justifyContent: 'center', padding: 16, ...(zIndex ? { zIndex } : {}) }}>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

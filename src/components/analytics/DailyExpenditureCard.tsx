@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, ChevronRight, RotateCcw } from 'lucide-react';
+import { Calendar, ChevronRight, FilterX } from 'lucide-react';
 import { fmtMoney, type GroupedExpense } from '../../utils';
 import CategoryIcon from '../CategoryIcon';
 import type { Category } from '../../types';
@@ -46,6 +46,9 @@ export const DailyExpenditureCard: React.FC<DailyExpenditureCardProps> = ({
       {/* Header */}
       <div className="analytics-v2-card-header">
         <div className="analytics-v2-header-left">
+          <span className="analytics-v2-header-icon-pill">
+            <Calendar size={15} strokeWidth={2.2} />
+          </span>
           <h2 className="analytics-v2-card-title">Daily Activity</h2>
           <span className="analytics-v2-pill-badge">
             {days.length} {days.length === 1 ? 'day' : 'days'}
@@ -58,11 +61,10 @@ export const DailyExpenditureCard: React.FC<DailyExpenditureCardProps> = ({
               type="button"
               onClick={() => onSelectDate(selectedDate)}
               className="analytics-v2-clear-btn"
-              title="Clear date filter"
+              title="Show all days"
               aria-label="Show all days"
             >
-              <RotateCcw size={13} strokeWidth={2.2} />
-              <span className="analytics-v2-btn-label">Show all</span>
+              <FilterX size={13} strokeWidth={2.2} />
             </button>
           </div>
         )}

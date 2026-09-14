@@ -32,6 +32,7 @@ interface ExpenseDetailDrawerProps {
   wallets?: Wallet[];
   categories?: Category[];
   settlements?: Settlement[];
+  zIndex?: number;
 }
 
 export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
@@ -45,6 +46,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
   wallets: walletsProp,
   categories: categoriesProp,
   settlements: settlementsProp,
+  zIndex = 1400,
 }) => {
   const { db } = useStore();
   const friends = friendsProp || db.friends;
@@ -260,7 +262,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
   }, []);
 
   return createPortal(
-    <div className="modal-backdrop-motion" style={{ position: 'fixed', inset: 0, zIndex: 1400, display: 'flex', alignItems: isMobileScreen ? 'flex-end' : 'center', justifyContent: 'center' }}>
+    <div className="modal-backdrop-motion" style={{ position: 'fixed', inset: 0, zIndex, display: 'flex', alignItems: isMobileScreen ? 'flex-end' : 'center', justifyContent: 'center' }}>
       {/* Backdrop overlay */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -268,7 +270,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         className="modal-backdrop-overlay"
-        style={{ position: 'fixed', inset: 0, zIndex: 1401, background: 'rgba(0, 0, 0, 0.65)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
+        style={{ position: 'fixed', inset: 0, zIndex: zIndex + 1, background: 'rgba(0, 0, 0, 0.65)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
         onClick={onClose}
       />
 
@@ -281,7 +283,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
         className="modal expense-drawer-modal modal-dialog-panel"
         style={{
           position: 'relative',
-          zIndex: 1402,
+          zIndex: zIndex + 2,
           maxWidth: 420,
           width: '100%',
           maxHeight: 'min(88vh, 88dvh)',

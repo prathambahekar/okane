@@ -11,9 +11,10 @@ interface SettlementDetailModalProps {
   settlement: Settlement;
   onClose: () => void;
   onUndo?: (id: string) => void;
+  zIndex?: number;
 }
 
-export default function SettlementDetailModal({ settlement, onClose, onUndo }: SettlementDetailModalProps) {
+export default function SettlementDetailModal({ settlement, onClose, onUndo, zIndex = 100050 }: SettlementDetailModalProps) {
   useBackButtonModal(true, onClose, { priority: BackPriority.MODAL });
 
   const { db } = useStore();
@@ -41,7 +42,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo }: S
   return createPortal(
     <div
       className="modal-backdrop"
-      style={{ zIndex: 100050 }}
+      style={{ zIndex }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="modal modal-dialog-panel" style={{ maxWidth: 420, width: '100%', borderRadius: 22 }}>

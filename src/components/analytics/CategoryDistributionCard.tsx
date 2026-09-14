@@ -49,6 +49,9 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
       {/* Header */}
       <div className="analytics-v2-card-header">
         <div className="analytics-v2-header-left">
+          <span className="analytics-v2-header-icon-pill">
+            <PieChart size={15} strokeWidth={2.2} />
+          </span>
           <h2 className="analytics-v2-card-title">Category Breakdown</h2>
         </div>
 
@@ -64,11 +67,10 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
               type="button"
               onClick={() => onSelectCategory(null)}
               className="analytics-v2-clear-btn"
-              title="Clear category filter"
+              title="Reset category filter"
               aria-label="Reset category filter"
             >
               <RotateCcw size={13} strokeWidth={2.2} />
-              <span className="analytics-v2-btn-label">Reset</span>
             </button>
           )}
         </div>
@@ -135,54 +137,40 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
                   role="button"
                   tabIndex={0}
                 >
-                  {/* Top info row */}
-                  <div className="analytics-v2-cat-top">
-                    <div className="analytics-v2-cat-left">
-                      {/* Icon bubble */}
-                      <div
-                        className="analytics-v2-cat-icon-wrap"
-                        style={{
-                          backgroundColor: `${meta.color}18`,
-                          color: meta.color,
-                        }}
-                      >
-                        <CategoryIcon
-                          category={item.cat}
-                          icon={meta.icon}
-                          size={15}
-                          style={{ color: meta.color }}
-                        />
-                      </div>
-
-                      {/* Name & Count */}
-                      <div className="analytics-v2-cat-name-group">
-                        <span className="analytics-v2-cat-name">{item.cat}</span>
-                        <span className="analytics-v2-cat-count">
-                          {item.count} {item.count === 1 ? 'transaction' : 'transactions'}
-                        </span>
-                      </div>
+                  <div className="analytics-v2-cat-left">
+                    {/* Icon avatar */}
+                    <div
+                      className="analytics-v2-cat-icon-wrap"
+                      style={{
+                        backgroundColor: `${meta.color}18`,
+                        color: meta.color,
+                      }}
+                    >
+                      <CategoryIcon
+                        category={item.cat}
+                        icon={meta.icon}
+                        size={17}
+                        style={{ color: meta.color }}
+                      />
                     </div>
 
-                    {/* Right side: Amount & Percent */}
-                    <div className="analytics-v2-cat-right">
-                      <span className="analytics-v2-cat-amount">
-                        {fmtMoney(item.amount, currency)}
-                      </span>
-                      <span className="analytics-v2-cat-pct">
-                        {Math.round(item.pct)}%
+                    {/* Name & Count */}
+                    <div className="analytics-v2-cat-name-group">
+                      <span className="analytics-v2-cat-name">{item.cat}</span>
+                      <span className="analytics-v2-cat-count">
+                        {item.count} {item.count === 1 ? 'transaction' : 'transactions'}
                       </span>
                     </div>
                   </div>
 
-                  {/* Progress bar */}
-                  <div className="analytics-v2-progress-track">
-                    <div
-                      className="analytics-v2-progress-fill"
-                      style={{
-                        width: `${Math.min(100, Math.max(2, item.pct))}%`,
-                        backgroundColor: meta.color,
-                      }}
-                    />
+                  {/* Right side: Amount & Percent */}
+                  <div className="analytics-v2-cat-right">
+                    <span className="analytics-v2-cat-amount">
+                      {fmtMoney(item.amount, currency)}
+                    </span>
+                    <span className="analytics-v2-cat-pct">
+                      {Math.round(item.pct)}%
+                    </span>
                   </div>
                 </div>
               );

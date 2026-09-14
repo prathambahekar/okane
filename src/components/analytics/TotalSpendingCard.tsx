@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Filter, ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
-import { fmtMoney } from '../../utils';
+import { Filter, ArrowDownRight, ArrowUpRight, Minus, TrendingUp } from 'lucide-react';
+import { fmtMoney, fmtMoneyCompact } from '../../utils';
 
 export interface ChartDayData {
   dateStr: string;
@@ -97,20 +97,13 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
 
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
 
-  const activeDay = useMemo(() => {
-    const targetDate = hoveredDate || selectedDateStr;
-    if (targetDate) {
-      const found = chartDays.find(d => d.dateStr === targetDate);
-      if (found) return found;
-    }
+  // Target date for initial centering in month view: selected date, today, or latest day
+  const scrollTargetDateStr = useMemo(() => {
+    if (selectedDateStr) return selectedDateStr;
     const todayDay = chartDays.find(d => d.isToday);
-    if (todayDay && todayDay.spend > 0) return todayDay;
-
-    const highest = [...chartDays].sort((a, b) => b.spend - a.spend)[0];
-    if (highest && highest.spend > 0) return highest;
-
-    return chartDays[chartDays.length - 1] || null;
-  }, [chartDays, hoveredDate, selectedDateStr]);
+    if (todayDay) return todayDay.dateStr;
+    return chartDays[chartDays.length - 1]?.dateStr || null;
+  }, [chartDays, selectedDateStr]);
 
   // Auto-scroll to active bar in month view or when selectedDate changes
   useEffect(() => {
@@ -128,15 +121,20 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
         behavior: 'smooth',
       });
     }
-  }, [activeDay?.dateStr, period, chartDays.length]);
+  }, [scrollTargetDateStr, period, chartDays.length]);
 
   const isMonthView = period === 'month' || chartDays.length > 7;
 
   return (
     <div className="analytics-v2-card">
-      {/* Header: Title & Filters Button */}
+      {/* Header: Icon Pill, Title & Filters Button */}
       <div className="analytics-v2-card-header">
-        <h2 className="analytics-v2-card-title">Total Spending</h2>
+        <div className="analytics-v2-header-left">
+          <span className="analytics-v2-header-icon-pill">
+            <TrendingUp size={15} strokeWidth={2.2} />
+          </span>
+          <h2 className="analytics-v2-card-title">Total Spending</h2>
+        </div>
 
         {onOpenFilter && (
           <button
@@ -146,7 +144,7 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
             title={activeFilterCount > 0 ? `${activeFilterCount} active filters` : 'Filters'}
             aria-label="Filter analytics"
           >
-            <Filter size={15} strokeWidth={2.2} />
+            <Filter size={14} strokeWidth={2.2} />
             <span className="analytics-v2-filter-text">Filters</span>
             {activeFilterCount > 0 && (
               <span className="analytics-v2-filter-badge">
@@ -195,12 +193,15 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
       </div>
 
       {/* Interactive Visual Bar Chart with Fixed Y-Axis & Scrollable Days */}
-      <div className="analytics-v2-chart-stage">
+      <div
+        className="analytics-v2-chart-stage"
+        onMouseLeave={() => setHoveredDate(null)}
+      >
         {/* Fixed Y-Axis Column on Left */}
         <div className="analytics-v2-y-axis-col">
           {yAxisMarkers.map((marker, idx) => (
             <span key={idx} className="analytics-v2-grid-label">
-              {currency === 'INR' ? '₹' : '$'}{marker.toLocaleString()}
+              {fmtMoneyCompact(marker, currency)}
             </span>
           ))}
           {/* Spacer for bottom day meta label row */}
@@ -226,10 +227,14 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
             </div>
 
             {/* Bars Row */}
-            <div className="analytics-v2-bars-row">
+            <div
+              className="analytics-v2-bars-row"
+              onMouseLeave={() => setHoveredDate(null)}
+            >
               {chartDays.map((day, idx) => {
                 const heightPercent = maxDaySpend > 0 ? (day.spend / maxDaySpend) * 100 : 0;
-                const isSelected = activeDay?.dateStr === day.dateStr;
+                const isHovered = hoveredDate === day.dateStr;
+                const isSelected = selectedDateStr === day.dateStr;
                 const hasSpend = day.spend > 0;
 
                 // Edge-aware tooltip alignment to avoid clipping on left/right edges
@@ -247,14 +252,18 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
                 return (
                   <div
                     key={day.dateStr}
-                    ref={isSelected ? activeBarRef : null}
-                    className={`analytics-v2-bar-col ${isSelected ? 'active' : ''} ${isMonthView ? 'month-col' : ''}`}
+                    ref={day.dateStr === scrollTargetDateStr ? activeBarRef : null}
+                    className={`analytics-v2-bar-col ${isSelected ? 'selected active' : ''} ${isHovered ? 'hovered' : ''} ${isMonthView ? 'month-col' : ''}`}
                     onMouseEnter={() => setHoveredDate(day.dateStr)}
                     onMouseLeave={() => setHoveredDate(null)}
-                    onClick={() => onSelectDay?.(day.dateStr)}
+                    onClick={() => {
+                      onSelectDay?.(day.dateStr);
+                      // Toggle tooltip on tap for touch/mobile devices
+                      setHoveredDate(prev => prev === day.dateStr ? null : day.dateStr);
+                    }}
                   >
-                    {/* Floating Tooltip Bubble with Edge-Aware Alignment */}
-                    {isSelected && (
+                    {/* Floating Tooltip Bubble - ONLY shown when actively hovered or tapped */}
+                    {isHovered && (
                       <div className={`analytics-v2-tooltip-bubble ${tooltipAlign}`}>
                         <div className="analytics-v2-tooltip-content">
                           <div className="analytics-v2-tooltip-date">{day.fullDateLabel}</div>
@@ -270,7 +279,7 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
                     {/* Bar Track & Fill */}
                     <div className="analytics-v2-bar-track">
                       <div
-                        className={`analytics-v2-bar-fill ${isSelected ? 'active' : ''}`}
+                        className={`analytics-v2-bar-fill ${isSelected ? 'selected active' : ''} ${isHovered ? 'hovered' : ''}`}
                         style={{
                           height: hasSpend ? `${Math.max(8, Math.min(100, heightPercent))}%` : '4px',
                         }}

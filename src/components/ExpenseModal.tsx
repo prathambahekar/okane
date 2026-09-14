@@ -40,9 +40,10 @@ interface Props {
   initialData?: ExpenseInitialData;
   isTutorialMode?: boolean;
   onClose: () => void;
+  zIndex?: number;
 }
 
-export default function ExpenseModal({ expense, initialData, isTutorialMode, onClose }: Props) {
+export default function ExpenseModal({ expense, initialData, isTutorialMode, onClose, zIndex }: Props) {
   const { db, addExpense, updateExpense, deleteExpense, addFriend, showToast } = useStore();
   const s = db.settings;
 
@@ -700,7 +701,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
   };
 
   return createPortal(
-    <div className="modal-backdrop-motion">
+    <div className="modal-backdrop-motion" style={zIndex ? { zIndex } : undefined}>
       {/* Backdrop overlay */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -708,6 +709,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         className="modal-backdrop-overlay"
+        style={zIndex ? { zIndex: zIndex + 1 } : undefined}
         onClick={onClose}
       />
 
@@ -718,6 +720,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
         exit={isMobileScreen ? { y: '100%' } : { opacity: 0, scale: 0.95, y: 16 }}
         transition={{ duration: isMobileScreen ? 0.32 : 0.2, ease: [0.22, 1, 0.36, 1] }}
         className="modal expense-drawer-modal modal-dialog-panel"
+        style={zIndex ? { zIndex: zIndex + 2 } : undefined}
       >
         {/* Drag Handle Indicator for Mobile Bottom Sheet */}
         <div className="modal-drag-handle" />

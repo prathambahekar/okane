@@ -1,6 +1,7 @@
 import React from 'react';
 import { Users } from 'lucide-react';
 import CategoryIcon from '../CategoryIcon';
+import { renderWalletIcon } from '../WalletIconRenderer';
 import { fmtMoney, friendInitial, getAvatarStyle, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../../utils';
 import type { Expense, Friend, Wallet, Category, Settlement } from '../../types';
 
@@ -28,7 +29,9 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
   onToggleExpand,
   groupStatus,
   categoryObj,
+  walletObj,
   friendsMap,
+  walletsMap,
 }) => {
   const isTransfer = ge.category === 'Transfer' || ge.items.some((i: Expense) => i.category === 'Transfer');
   const isIn = ge.flow === 'in' && !isTransfer;
@@ -36,6 +39,8 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
   const vendorId = ge.vendorId || ge.items.find((i: Expense) => i.vendorId)?.vendorId;
   const vendor = vendorId ? friendsMap.get(vendorId) : null;
   const friendsToShow = ge.isSettlementGroup ? rawFriends : (vendor ? rawFriends.filter(f => f.id !== vendor.id) : rawFriends);
+
+  const activeWallet = walletObj || (walletsMap && (ge.walletId ? walletsMap.get(ge.walletId) : (ge.items[0]?.walletId ? walletsMap.get(ge.items[0].walletId) : undefined)));
 
   const catMeta = resolveCategoryMeta(ge.category, categoryObj, ge.isSettlementGroup);
 
@@ -142,7 +147,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
               )}
             </div>
 
-            {/* Bottom Row: Category · Contacts (with avatar badge) */}
+            {/* Bottom Row: Category · Wallet · Contacts (with avatar badge) */}
             <div
               style={{
                 display: 'flex',
@@ -160,10 +165,22 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                 <span style={{ fontWeight: 500, flexShrink: 0 }}>{ge.category}</span>
               )}
 
+              {activeWallet && !ge.isSettlementGroup && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3.5, color: 'var(--text-2)', fontWeight: 500, flexShrink: 0 }}>
+                  <span style={{ color: 'var(--text-3)', opacity: 0.6, fontSize: 8 }}>•</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3.5 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1 }}>
+                      {renderWalletIcon(activeWallet.icon || activeWallet.name, 12, activeWallet.color)}
+                    </span>
+                    <span style={{ maxWidth: 75, overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeWallet.name}</span>
+                  </span>
+                </span>
+              )}
+
               {friendsToShow.length > 0 && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {!ge.isSettlementGroup && (
-                    <span style={{ color: 'var(--text-3)', marginRight: 1, flexShrink: 0 }}>•</span>
+                  {(!ge.isSettlementGroup || activeWallet) && (
+                    <span style={{ color: 'var(--text-3)', marginRight: 1, flexShrink: 0, fontSize: 8, opacity: 0.6 }}>•</span>
                   )}
                   {friendsToShow.length === 1 ? (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>

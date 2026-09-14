@@ -160,15 +160,14 @@ export const AutopayFilterBar: React.FC<Props> = ({
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: '50%',
-                backgroundColor: 'var(--surface2)',
                 display: 'grid',
                 placeItems: 'center',
                 color: 'var(--text)',
+                backgroundColor: 'transparent',
                 flexShrink: 0,
               }}
             >
-              <Filter size={16} />
+              <Filter size={18} />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: '15.5px', fontWeight: 650, color: 'var(--text)', lineHeight: 1.2 }}>

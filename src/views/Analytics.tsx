@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useStore } from '../store';
 import { groupExpenses, getGroupedExpenseAmount, type GroupedExpense } from '../utils';
 import ExpenseModal from '../components/ExpenseModal';
@@ -8,12 +9,17 @@ import AnalyticsHeader from '../components/analytics/AnalyticsHeader';
 import TotalSpendingCard, { type ChartDayData } from '../components/analytics/TotalSpendingCard';
 import CategoryDistributionCard from '../components/analytics/CategoryDistributionCard';
 import DailyExpenditureCard from '../components/analytics/DailyExpenditureCard';
-import AnalyticsInsightsCard from '../components/analytics/AnalyticsInsightsCard';
-import { friendBalance } from '../db';
+import CategoryIcon from '../components/CategoryIcon';
+import { renderWalletIcon } from '../components/WalletIconRenderer';
+import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 import type { Expense, ViewName } from '../types';
+import { DesktopSearchBar } from '../components/DesktopSearchBar';
 import {
   X,
   Filter,
+  Check,
+  RotateCcw,
+  Plus,
 } from 'lucide-react';
 
 function padZero(n: number): string {
@@ -35,9 +41,10 @@ function getMonday(d: Date): Date {
 
 interface AnalyticsProps {
   onNavigate?: (v: ViewName) => void;
+  onAddExpense?: () => void;
 }
 
-export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
+export default function Analytics({ onNavigate, onAddExpense }: AnalyticsProps = {}) {
   const { db, deleteExpense, showToast } = useStore();
   const { expenses, wallets, settings: { currency } } = db;
   const spendingMode = db.settings?.spendingMode || 'all';
@@ -60,6 +67,17 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDailyBalanceDrawer, setShowDailyBalanceDrawer] = useState(false);
+
+  useBackButtonModal(showFilterDrawer, () => setShowFilterDrawer(false), { priority: BackPriority.DIALOG });
+
+  useEffect(() => {
+    if (!showFilterDrawer) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowFilterDrawer(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showFilterDrawer]);
 
   // Grouped expenses base
   const groupedExpenses = useMemo(() => groupExpenses(expenses, wallets), [expenses, wallets]);
@@ -297,15 +315,6 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
     return c;
   }, [selectedCategory, selectedWalletId]);
 
-  const friendsWithBalance = useMemo(() => {
-    return (db.friends || [])
-      .map((f) => {
-        const bal = friendBalance(db, f.id);
-        return { name: f.name, net: bal.net };
-      })
-      .filter((f) => Math.abs(f.net) > 0.01);
-  }, [db]);
-
   const handleDeleteExpense = (id: string) => {
     deleteExpense(id);
     showToast('Expense deleted');
@@ -404,9 +413,26 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   };
 
   return (
-    <div className="view-container analytics-v2-container" style={{ paddingBottom: 80 }}>
-      {/* 1. Header & Period / Date Range Navigator */}
-      <AnalyticsHeader
+    <div className="view-container">
+      {/* Desktop Top Bar: Title, Search Bar & Quick Add */}
+      <div className="page-header stats-page-header">
+        <div>
+          <h1 className="page-title">Stats</h1>
+        </div>
+        <DesktopSearchBar placeholder="Search expenses, contacts, wallets..." defaultTab="all" />
+        <div className="desktop-only" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {onAddExpense && (
+            <button className="btn btn-primary desktop-only" onClick={onAddExpense}>
+              <Plus size={16} />
+              <span>Add Expense</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="analytics-v2-container">
+        {/* 1. Header & Period / Date Range Navigator */}
+        <AnalyticsHeader
         period={period}
         setPeriod={setPeriod}
         dateRangeLabel={dateRangeLabel}
@@ -436,124 +462,322 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
       </div>
 
       {/* Quick Filter Modal / Drawer */}
-      {showFilterDrawer && (
-        <div className="modal-backdrop" onClick={() => setShowFilterDrawer(false)}>
+      {showFilterDrawer && createPortal(
+        <div
+          className="filter-drawer-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowFilterDrawer(false);
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="analytics-filter-title"
+        >
           <div
-            className="modal"
-            style={{ maxWidth: 420, padding: '20px 22px', borderRadius: 24 }}
+            className="filter-drawer-panel"
+            style={{ maxWidth: 440 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Filter size={18} color="var(--text)" />
-                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Filter Analytics</h3>
+            {/* Mobile Drag Handle */}
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border2)', margin: '12px auto 4px', flexShrink: 0 }} />
+
+            {/* Header (No splitting lines) */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 20px 8px',
+                backgroundColor: 'var(--surface)',
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text)',
+                    backgroundColor: 'transparent',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Filter size={18} strokeWidth={2.2} />
+                </div>
+                <div>
+                  <h3
+                    id="analytics-filter-title"
+                    style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', lineHeight: 1.2 }}
+                  >
+                    Filter Stats
+                  </h3>
+                  <div style={{ fontSize: '11.5px', color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
+                    {activeFilterCount > 0
+                      ? `${activeFilterCount} active filter${activeFilterCount === 1 ? '' : 's'}`
+                      : 'Filter by category and wallet'}
+                  </div>
+                </div>
               </div>
+
               <button
+                type="button"
                 onClick={() => setShowFilterDrawer(false)}
                 className="btn-icon"
-                style={{ width: 32, height: 32, border: 'none', background: 'transparent' }}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 9999,
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface2)',
+                  color: 'var(--text)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  cursor: 'pointer',
+                }}
+                aria-label="Close"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            {/* Category Filter */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 8 }}>
-                Category
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 150, overflowY: 'auto', paddingRight: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory(null)}
-                  className={`chip ${!selectedCategory ? 'active' : ''}`}
-                >
-                  All Categories
-                </button>
-                {db.settings.categories.map((c) => (
+            {/* Scrollable Filter Content */}
+            <div
+              className="filter-drawer-content"
+              style={{
+                padding: '14px 20px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 18,
+              }}
+            >
+              {/* Category Filter */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Category
+                  </label>
+                  {selectedCategory && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory(null)}
+                      style={{ fontSize: 11, color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, maxHeight: 170, overflowY: 'auto', paddingRight: 2 }}>
                   <button
-                    key={c.name}
                     type="button"
-                    onClick={() => setSelectedCategory(selectedCategory === c.name ? null : c.name)}
-                    className={`chip ${selectedCategory === c.name ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(null)}
+                    style={{
+                      padding: '7px 13px',
+                      borderRadius: 9999,
+                      border: !selectedCategory ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      background: !selectedCategory ? 'var(--accent)' : 'var(--surface2)',
+                      color: !selectedCategory ? 'var(--accent-contrast)' : 'var(--text-2)',
+                      fontSize: 12,
+                      fontWeight: !selectedCategory ? 650 : 500,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: !selectedCategory ? '0 2px 8px var(--accent-soft)' : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
                   >
-                    <span>{c.name}</span>
+                    {!selectedCategory && <Check size={13} strokeWidth={2.5} />}
+                    <span>All Categories</span>
                   </button>
-                ))}
+
+                  {db.settings.categories.map((c) => {
+                    const isSelected = selectedCategory === c.name;
+                    return (
+                      <button
+                        key={c.name}
+                        type="button"
+                        onClick={() => setSelectedCategory(isSelected ? null : c.name)}
+                        style={{
+                          padding: '7px 13px',
+                          borderRadius: 9999,
+                          border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                          background: isSelected ? 'var(--accent)' : 'var(--surface2)',
+                          color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
+                          fontSize: 12,
+                          fontWeight: isSelected ? 650 : 500,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: isSelected ? '0 2px 8px var(--accent-soft)' : 'none',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {isSelected ? (
+                          <Check size={13} strokeWidth={2.5} />
+                        ) : (
+                          <CategoryIcon category={c.name} icon={c.icon} size={13} style={{ color: 'inherit' }} />
+                        )}
+                        <span>{c.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Wallet Filter */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Wallet / Account
+                  </label>
+                  {selectedWalletId && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedWalletId(null)}
+                      style={{ fontSize: 11, color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, maxHeight: 170, overflowY: 'auto', paddingRight: 2 }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedWalletId(null)}
+                    style={{
+                      padding: '7px 13px',
+                      borderRadius: 9999,
+                      border: !selectedWalletId ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      background: !selectedWalletId ? 'var(--accent)' : 'var(--surface2)',
+                      color: !selectedWalletId ? 'var(--accent-contrast)' : 'var(--text-2)',
+                      fontSize: 12,
+                      fontWeight: !selectedWalletId ? 650 : 500,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: !selectedWalletId ? '0 2px 8px var(--accent-soft)' : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {!selectedWalletId && <Check size={13} strokeWidth={2.5} />}
+                    <span>All Wallets</span>
+                  </button>
+
+                  {wallets.map((w) => {
+                    const isSelected = selectedWalletId === w.id;
+                    return (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => setSelectedWalletId(isSelected ? null : w.id)}
+                        style={{
+                          padding: '7px 13px',
+                          borderRadius: 9999,
+                          border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                          background: isSelected ? 'var(--accent)' : 'var(--surface2)',
+                          color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
+                          fontSize: 12,
+                          fontWeight: isSelected ? 650 : 500,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: isSelected ? '0 2px 8px var(--accent-soft)' : 'none',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {isSelected ? (
+                          <Check size={13} strokeWidth={2.5} />
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {renderWalletIcon(w.icon || w.name, 13, w.color)}
+                          </span>
+                        )}
+                        <span>{w.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Wallet Filter */}
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 8 }}>
-                Wallet / Account
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 150, overflowY: 'auto', paddingRight: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedWalletId(null)}
-                  className={`chip ${!selectedWalletId ? 'active' : ''}`}
-                >
-                  All Wallets
-                </button>
-                {wallets.map((w) => (
-                  <button
-                    key={w.id}
-                    type="button"
-                    onClick={() => setSelectedWalletId(selectedWalletId === w.id ? null : w.id)}
-                    className={`chip ${selectedWalletId === w.id ? 'active' : ''}`}
-                  >
-                    <span>{w.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+            {/* Actions / Bottom buttons (No splitting line, rounded aesthetic matching Image 3) */}
+            <div
+              style={{
+                padding: '12px 20px calc(14px + env(safe-area-inset-bottom, 0px))',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                backgroundColor: 'var(--surface)',
+                flexShrink: 0,
+              }}
+            >
               <button
                 type="button"
                 onClick={() => {
                   setSelectedCategory(null);
                   setSelectedWalletId(null);
                 }}
-                className="btn btn-secondary"
-                style={{ fontSize: 12, padding: '8px 14px' }}
+                disabled={activeFilterCount === 0}
+                style={{
+                  flex: 1,
+                  height: 42,
+                  borderRadius: 9999,
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface2)',
+                  color: activeFilterCount > 0 ? 'var(--text)' : 'var(--text-3)',
+                  fontSize: 13,
+                  fontWeight: 650,
+                  cursor: activeFilterCount > 0 ? 'pointer' : 'default',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  opacity: activeFilterCount > 0 ? 1 : 0.5,
+                  transition: 'all 0.15s ease',
+                }}
               >
-                Reset
+                <RotateCcw size={14} />
+                <span>Clear</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => setShowFilterDrawer(false)}
-                className="btn btn-primary"
-                style={{ fontSize: 13, padding: '8px 20px', borderRadius: 9999 }}
+                style={{
+                  flex: 1.5,
+                  height: 42,
+                  borderRadius: 9999,
+                  border: 'none',
+                  background: 'var(--accent)',
+                  color: 'var(--accent-contrast)',
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  boxShadow: '0 3px 12px var(--accent-soft)',
+                  transition: 'all 0.15s ease',
+                }}
               >
-                Apply
+                <Check size={16} strokeWidth={2.5} />
+                <span>Apply</span>
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* 3. Cards Grid: Smart Insights, Category Breakdown & Daily Activity */}
+      {/* 3. Cards Grid: Category Breakdown & Daily Activity */}
       <div className="analytics-v2-grid">
-        {/* Smart Insights Card (Full Width Span) */}
-        <div className="analytics-v2-grid-full">
-          <AnalyticsInsightsCard
-            period={period}
-            totalSpent={timeframeOutflowTotal}
-            prevTotalSpent={prevPeriodSpent}
-            dailyAvg={dailyAvg}
-            noSpendDaysCount={noSpendDaysCount}
-            categoryBreakdown={categoryBreakdown}
-            chartDays={chartDays}
-            currency={currency}
-            friendsWithBalance={friendsWithBalance}
-            onSelectCategory={setSelectedCategory}
-            onSelectDate={handleToggleDate}
-          />
-        </div>
-
         {/* Category Breakdown Card */}
         <CategoryDistributionCard
           categories={categoryBreakdown}
@@ -636,6 +860,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

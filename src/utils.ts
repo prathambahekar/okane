@@ -25,6 +25,34 @@ export function fmtMoney(n: number, currency: string, hideAmount?: boolean): str
   return (v < 0 ? '-' : '') + sym + s;
 }
 
+export function fmtCompactNumber(n: number): string {
+  const v = Number(n) || 0;
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+
+  if (abs >= 10000000) {
+    const val = abs / 10000000;
+    const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, '');
+    return `${sign}${formatted}Cr`;
+  }
+  if (abs >= 100000) {
+    const val = abs / 100000;
+    const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, '');
+    return `${sign}${formatted}L`;
+  }
+  if (abs >= 1000) {
+    const val = abs / 1000;
+    const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, '');
+    return `${sign}${formatted}k`;
+  }
+  return `${sign}${abs % 1 === 0 ? abs.toFixed(0) : abs.toFixed(1)}`;
+}
+
+export function fmtMoneyCompact(n: number, currency: string): string {
+  const sym = currencySymbol(currency);
+  return `${sym}${fmtCompactNumber(n)}`;
+}
+
 export function fmtDate(iso: string): string {
   if (!iso) return '—';
   const d = new Date(iso + 'T00:00:00');
