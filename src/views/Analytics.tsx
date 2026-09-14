@@ -1,23 +1,19 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useMemo } from 'react';
 import { useStore } from '../store';
-import { fmtMoney, groupExpenses, getGroupedExpenseAmount, type GroupedExpense } from '../utils';
-import { CategoryBadge } from '../components/CategoryIcon';
+import { groupExpenses, getGroupedExpenseAmount, type GroupedExpense } from '../utils';
 import ExpenseModal from '../components/ExpenseModal';
 import ExpenseDetailDrawer from '../components/ExpenseDetailDrawer';
 import DailyWalletBalanceDrawer from '../components/DailyWalletBalanceDrawer';
-import DesktopSearchBar from '../components/DesktopSearchBar';
-import type { Expense } from '../types';
+import AnalyticsHeader from '../components/analytics/AnalyticsHeader';
+import TotalSpendingCard, { type ChartDayData } from '../components/analytics/TotalSpendingCard';
+import CategoryDistributionCard from '../components/analytics/CategoryDistributionCard';
+import DailyExpenditureCard from '../components/analytics/DailyExpenditureCard';
+import AnalyticsInsightsCard from '../components/analytics/AnalyticsInsightsCard';
+import { friendBalance } from '../db';
+import type { Expense, ViewName } from '../types';
 import {
-  BarChart2,
-  PieChart,
-  Calendar,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Award,
-  Check,
   X,
+  Filter,
 } from 'lucide-react';
 
 function padZero(n: number): string {
@@ -28,50 +24,293 @@ function formatISO(d: Date): string {
   return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`;
 }
 
-function fmtCompactMoney(amount: number, currency: string): string {
-  const sym = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
-  if (amount === 0) return '-';
-  if (amount >= 1000000) {
-    const val = (amount / 1000000).toFixed(1).replace(/\.0$/, '');
-    return `${sym}${val}M`;
-  }
-  if (amount >= 10000) {
-    const val = (amount / 1000).toFixed(1).replace(/\.0$/, '');
-    return `${sym}${val}k`;
-  }
-  return `${sym}${Math.round(amount).toLocaleString()}`;
+function getMonday(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = (day + 6) % 7; // Monday = 0
+  date.setDate(date.getDate() - diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
 }
 
-export default function Analytics() {
+interface AnalyticsProps {
+  onNavigate?: (v: ViewName) => void;
+}
+
+export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   const { db, deleteExpense, showToast } = useStore();
   const { expenses, wallets, settings: { currency } } = db;
   const spendingMode = db.settings?.spendingMode || 'all';
 
+  const [period, setPeriod] = useState<'week' | 'month'>('week');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
-  const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [chartMode, setChartMode] = useState<'weekly' | 'monthly'>('weekly');
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [selectedGroupExpense, setSelectedGroupExpense] = useState<GroupedExpense | null>(null);
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [showCategoryDrawer, setShowCategoryDrawer] = useState(false);
-  const [showDailyBalanceDrawer, setShowDailyBalanceDrawer] = useState(false);
-
-  // Lock body scroll when Category Drawer is open
-  useEffect(() => {
-    if (showCategoryDrawer) {
-      const origOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = origOverflow;
-      };
-    }
-  }, [showCategoryDrawer]);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
 
   const now = useMemo(() => new Date(), []);
   const todayStr = useMemo(() => formatISO(now), [now]);
+  const currentWeekMonStr = useMemo(() => formatISO(getMonday(now)), [now]);
+  const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
+
+  const [activeWeekMonStr, setActiveWeekMonStr] = useState<string>(currentWeekMonStr);
+  const [activeMonthStr, setActiveMonthStr] = useState<string>(currentMonthStr);
+
+  const [selectedGroupExpense, setSelectedGroupExpense] = useState<GroupedExpense | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDailyBalanceDrawer, setShowDailyBalanceDrawer] = useState(false);
+
+  // Grouped expenses base
+  const groupedExpenses = useMemo(() => groupExpenses(expenses, wallets), [expenses, wallets]);
+
+  // Handle Date Navigation (Prev / Next)
+  const handlePrevDate = () => {
+    if (period === 'week') {
+      const [y, m, d] = activeWeekMonStr.split('-').map(Number);
+      const prevMon = new Date(y, m - 1, d - 7);
+      setActiveWeekMonStr(formatISO(prevMon));
+      setSelectedDate(null);
+    } else {
+      const [y, m] = activeMonthStr.split('-').map(Number);
+      const prevM = new Date(y, m - 2, 1);
+      setActiveMonthStr(`${prevM.getFullYear()}-${padZero(prevM.getMonth() + 1)}`);
+      setSelectedDate(null);
+    }
+  };
+
+  const handleNextDate = () => {
+    if (period === 'week') {
+      if (activeWeekMonStr >= currentWeekMonStr) return;
+      const [y, m, d] = activeWeekMonStr.split('-').map(Number);
+      const nextMon = new Date(y, m - 1, d + 7);
+      setActiveWeekMonStr(formatISO(nextMon));
+      setSelectedDate(null);
+    } else {
+      if (activeMonthStr >= currentMonthStr) return;
+      const [y, m] = activeMonthStr.split('-').map(Number);
+      const nextM = new Date(y, m, 1);
+      setActiveMonthStr(`${nextM.getFullYear()}-${padZero(nextM.getMonth() + 1)}`);
+      setSelectedDate(null);
+    }
+  };
+
+  const handleResetDate = () => {
+    if (period === 'week') {
+      setActiveWeekMonStr(currentWeekMonStr);
+    } else {
+      setActiveMonthStr(currentMonthStr);
+    }
+    setSelectedDate(null);
+  };
+
+  const isCurrentPeriod = useMemo(() => {
+    return period === 'week'
+      ? activeWeekMonStr >= currentWeekMonStr
+      : activeMonthStr >= currentMonthStr;
+  }, [period, activeWeekMonStr, currentWeekMonStr, activeMonthStr, currentMonthStr]);
+
+  // Date Range Label (e.g. "Sep 8 – Sep 14" or "September 2026")
+  const dateRangeLabel = useMemo(() => {
+    if (period === 'week') {
+      const [wy, wm, wd] = activeWeekMonStr.split('-').map(Number);
+      const monDate = new Date(wy, wm - 1, wd);
+      const sunDate = new Date(wy, wm - 1, wd + 6);
+      const monMonth = monDate.toLocaleDateString('en-US', { month: 'short' });
+      const sunMonth = sunDate.toLocaleDateString('en-US', { month: 'short' });
+      const monD = monDate.getDate();
+      const sunD = sunDate.getDate();
+
+      if (monMonth === sunMonth) {
+        return `${monMonth} ${monD} – ${sunD}`;
+      }
+      return `${monMonth} ${monD} – ${sunMonth} ${sunD}`;
+    } else {
+      const [my, mm] = activeMonthStr.split('-').map(Number);
+      const mDate = new Date(my, mm - 1, 1);
+      return mDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+  }, [period, activeWeekMonStr, activeMonthStr]);
+
+  // Active period boundaries
+  const activeDateRange = useMemo(() => {
+    if (period === 'week') {
+      const [wy, wm, wd] = activeWeekMonStr.split('-').map(Number);
+      const monDate = new Date(wy, wm - 1, wd);
+      const sunDate = new Date(wy, wm - 1, wd + 6);
+      return {
+        startDate: formatISO(monDate),
+        endDate: formatISO(sunDate),
+      };
+    } else {
+      const [my, mm] = activeMonthStr.split('-').map(Number);
+      const firstDay = new Date(my, mm - 1, 1);
+      const lastDay = new Date(my, mm, 0);
+      return {
+        startDate: formatISO(firstDay),
+        endDate: formatISO(lastDay),
+      };
+    }
+  }, [period, activeWeekMonStr, activeMonthStr]);
+
+  // Preceding period boundaries for comparison
+  const prevDateRange = useMemo(() => {
+    if (period === 'week') {
+      const [wy, wm, wd] = activeWeekMonStr.split('-').map(Number);
+      const prevMon = new Date(wy, wm - 1, wd - 7);
+      const prevSun = new Date(wy, wm - 1, wd - 1);
+      return {
+        startDate: formatISO(prevMon),
+        endDate: formatISO(prevSun),
+      };
+    } else {
+      const [my, mm] = activeMonthStr.split('-').map(Number);
+      const firstDay = new Date(my, mm - 2, 1);
+      const lastDay = new Date(my, mm - 1, 0);
+      return {
+        startDate: formatISO(firstDay),
+        endDate: formatISO(lastDay),
+      };
+    }
+  }, [period, activeWeekMonStr, activeMonthStr]);
+
+  // Filtered expenses for active period
+  const periodExpenses = useMemo(() => {
+    return groupedExpenses.filter(ge => {
+      if (ge.date < activeDateRange.startDate || ge.date > activeDateRange.endDate) return false;
+      if (selectedCategory && ge.category !== selectedCategory) return false;
+      if (selectedWalletId && ge.walletId !== selectedWalletId) return false;
+      return true;
+    });
+  }, [groupedExpenses, activeDateRange, selectedCategory, selectedWalletId]);
+
+  // Preceding period expenses
+  const prevPeriodExpenses = useMemo(() => {
+    return groupedExpenses.filter(ge => {
+      if (ge.date < prevDateRange.startDate || ge.date > prevDateRange.endDate) return false;
+      if (selectedCategory && ge.category !== selectedCategory) return false;
+      if (selectedWalletId && ge.walletId !== selectedWalletId) return false;
+      return true;
+    });
+  }, [groupedExpenses, prevDateRange, selectedCategory, selectedWalletId]);
+
+  // Total spent in active period & previous period
+  const totalSpent = useMemo(() => {
+    return periodExpenses
+      .filter(ge => ge.flow === 'out')
+      .reduce((sum, ge) => sum + getGroupedExpenseAmount(ge, spendingMode), 0);
+  }, [periodExpenses, spendingMode]);
+
+  const prevPeriodSpent = useMemo(() => {
+    return prevPeriodExpenses
+      .filter(ge => ge.flow === 'out')
+      .reduce((sum, ge) => sum + getGroupedExpenseAmount(ge, spendingMode), 0);
+  }, [prevPeriodExpenses, spendingMode]);
+
+  // Chart days computation
+  const chartDays: ChartDayData[] = useMemo(() => {
+    if (period === 'week') {
+      const [wy, wm, wd] = activeWeekMonStr.split('-').map(Number);
+      const days: ChartDayData[] = [];
+      for (let i = 0; i < 7; i++) {
+        const cur = new Date(wy, wm - 1, wd + i);
+        const dateStr = formatISO(cur);
+        const dayName = cur.toLocaleDateString('en-US', { weekday: 'short' });
+        const dayNum = cur.getDate();
+        const fullDateLabel = cur.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+        
+        const dayExps = periodExpenses.filter(ge => ge.date === dateStr);
+        const spend = dayExps
+          .filter(ge => ge.flow === 'out')
+          .reduce((s, ge) => s + getGroupedExpenseAmount(ge, spendingMode), 0);
+
+        days.push({
+          dateStr,
+          dayName,
+          dayNum,
+          fullDateLabel,
+          spend,
+          count: dayExps.length,
+          isToday: dateStr === todayStr,
+          isYesterday: false,
+        });
+      }
+      return days;
+    } else {
+      // Month mode: 7 days or days of month (for clean visual display, provide days in month or 4-5 weekly buckets)
+      const [my, mm] = activeMonthStr.split('-').map(Number);
+      const totalDays = new Date(my, mm, 0).getDate();
+      const days: ChartDayData[] = [];
+
+      for (let d = 1; d <= totalDays; d++) {
+        const cur = new Date(my, mm - 1, d);
+        const dateStr = formatISO(cur);
+        const dayName = cur.toLocaleDateString('en-US', { weekday: 'narrow' });
+        const fullDateLabel = cur.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+        
+        const dayExps = periodExpenses.filter(ge => ge.date === dateStr);
+        const spend = dayExps
+          .filter(ge => ge.flow === 'out')
+          .reduce((s, ge) => s + getGroupedExpenseAmount(ge, spendingMode), 0);
+
+        days.push({
+          dateStr,
+          dayName,
+          dayNum: d,
+          fullDateLabel,
+          spend,
+          count: dayExps.length,
+          isToday: dateStr === todayStr,
+          isYesterday: false,
+        });
+      }
+      return days;
+    }
+  }, [period, activeWeekMonStr, activeMonthStr, periodExpenses, spendingMode, todayStr]);
+
+  // Highest day amount & No-spend days
+  const highestDayAmount = useMemo(() => {
+    return Math.max(...chartDays.map(d => d.spend), 0);
+  }, [chartDays]);
+
+  const noSpendDaysCount = useMemo(() => {
+    // Count days where spend is 0, up to today if in current period
+    return chartDays.filter(d => {
+      if (d.dateStr > todayStr) return false; // Don't count future days in current week as no-spend
+      return d.spend === 0;
+    }).length;
+  }, [chartDays, todayStr]);
+
+  const daysPassedCount = useMemo(() => {
+    const elapsed = chartDays.filter(d => d.dateStr <= todayStr).length;
+    return Math.max(1, elapsed);
+  }, [chartDays, todayStr]);
+
+  const dailyAvg = useMemo(() => {
+    return totalSpent / daysPassedCount;
+  }, [totalSpent, daysPassedCount]);
+
+  const activeFilterCount = useMemo(() => {
+    let c = 0;
+    if (selectedCategory) c++;
+    if (selectedWalletId) c++;
+    return c;
+  }, [selectedCategory, selectedWalletId]);
+
+  const friendsWithBalance = useMemo(() => {
+    return (db.friends || [])
+      .map((f) => {
+        const bal = friendBalance(db, f.id);
+        return { name: f.name, net: bal.net };
+      })
+      .filter((f) => Math.abs(f.net) > 0.01);
+  }, [db]);
+
+  const handleDeleteExpense = (id: string) => {
+    deleteExpense(id);
+    showToast('Expense deleted');
+    setDeletingId(null);
+  };
 
   const yesterdayStr = useMemo(() => {
     const y = new Date(now);
@@ -79,387 +318,16 @@ export default function Analytics() {
     return formatISO(y);
   }, [now]);
 
-  // Base expense filter using grouped expenses
-  const groupedExpenses = useMemo(() => groupExpenses(expenses, wallets), [expenses, wallets]);
-
-  // Filtered expenses according to category, date, week, or month
+  // Filtered expenses according to category, wallet, or specific selected date
   const filteredExpenses = useMemo(() => {
-    return groupedExpenses.filter(ge => {
-      if (selectedCategory && ge.category !== selectedCategory) return false;
-      if (selectedDate) return ge.date === selectedDate;
-      if (chartMode === 'weekly' && selectedWeek) {
-        const [wy, wm, wd] = selectedWeek.split('-').map(Number);
-        const monD = new Date(wy, wm - 1, wd);
-        const sunD = new Date(monD.getFullYear(), monD.getMonth(), monD.getDate() + 6);
-        const sunStr = formatISO(sunD);
-        if (ge.date < selectedWeek || ge.date > sunStr) return false;
-      } else if (chartMode === 'monthly' && selectedMonth) {
-        if (ge.date.slice(0, 7) !== selectedMonth) return false;
-      }
+    return periodExpenses.filter(ge => {
+      if (selectedDate && ge.date !== selectedDate) return false;
       return true;
     });
-  }, [groupedExpenses, selectedCategory, selectedDate, chartMode, selectedWeek, selectedMonth]);
+  }, [periodExpenses, selectedDate]);
 
-  // Timeframe expenses (ignoring selectedCategory filter so drawer shows full distribution)
-  const timeframeExpenses = useMemo(() => {
-    return groupedExpenses.filter(ge => {
-      if (selectedDate) return ge.date === selectedDate;
-      if (chartMode === 'weekly' && selectedWeek) {
-        const [wy, wm, wd] = selectedWeek.split('-').map(Number);
-        const monD = new Date(wy, wm - 1, wd);
-        const sunD = new Date(monD.getFullYear(), monD.getMonth(), monD.getDate() + 6);
-        const sunStr = formatISO(sunD);
-        if (ge.date < selectedWeek || ge.date > sunStr) return false;
-      } else if (chartMode === 'monthly' && selectedMonth) {
-        if (ge.date.slice(0, 7) !== selectedMonth) return false;
-      }
-      return true;
-    });
-  }, [groupedExpenses, selectedDate, chartMode, selectedWeek, selectedMonth]);
-
-  // Outflow total for filtered view
-  const totalSpent = useMemo(() =>
-    filteredExpenses.filter(ge => ge.flow === 'out').reduce((sum, ge) => sum + getGroupedExpenseAmount(ge, spendingMode), 0),
-  [filteredExpenses, spendingMode]);
-
-  // Outflow total across the active timeframe (for category share % and summary)
-  const timeframeOutflowTotal = useMemo(() =>
-    timeframeExpenses.filter(ge => ge.flow === 'out').reduce((sum, ge) => sum + getGroupedExpenseAmount(ge, spendingMode), 0),
-  [timeframeExpenses, spendingMode]);
-
-  // Days in selected timeframe or selected month / week
-  const daysInPeriod = useMemo(() => {
-    if (selectedDate) return 1;
-    if (chartMode === 'weekly' && selectedWeek) return 7;
-    if (chartMode === 'monthly' && selectedMonth) {
-      const [y, m] = selectedMonth.split('-').map(Number);
-      const isCurrentM = selectedMonth === todayStr.slice(0, 7);
-      const totalDaysInM = new Date(y, m, 0).getDate();
-      return Math.max(1, isCurrentM ? Math.min(now.getDate(), totalDaysInM) : totalDaysInM);
-    }
-    if (groupedExpenses.length === 0) return 30;
-    const dates = groupedExpenses.map(ge => new Date(ge.date).getTime()).filter(t => !isNaN(t));
-    if (dates.length === 0) return 30;
-    const minDate = Math.min(...dates);
-    const diffDays = Math.ceil((now.getTime() - minDate) / (1000 * 60 * 60 * 24));
-    return Math.max(1, diffDays);
-  }, [now, groupedExpenses, selectedDate, chartMode, selectedWeek, selectedMonth, todayStr]);
-
-  const dailyAvgSpend = totalSpent / daysInPeriod;
-
-  const chartScrollRef = useRef<HTMLDivElement>(null);
-
-  // Desktop mouse drag-to-scroll & wheel scrolling
-  const [isMouseDown, setIsMouseDown] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeftStart, setScrollLeftStart] = useState(0);
-  const [hasMoved, setHasMoved] = useState(false);
-  const isWheelScrolling = useRef(false);
-
-  useEffect(() => {
-    const el = chartScrollRef.current;
-    if (!el) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      if (Math.abs(delta) < 5) return;
-
-      e.preventDefault();
-
-      if (isWheelScrolling.current) return;
-      isWheelScrolling.current = true;
-
-      const step = el.clientWidth;
-      const dir = delta > 0 ? 1 : -1;
-      el.scrollBy({ left: dir * step, behavior: 'smooth' });
-
-      setTimeout(() => {
-        isWheelScrolling.current = false;
-      }, 300);
-    };
-
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
-  }, [chartMode]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    const el = chartScrollRef.current;
-    if (!el) return;
-    setIsMouseDown(true);
-    setHasMoved(false);
-    setStartX(e.clientX);
-    setScrollLeftStart(el.scrollLeft);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isMouseDown) return;
-    const el = chartScrollRef.current;
-    if (!el) return;
-    e.preventDefault();
-    const diff = e.clientX - startX;
-    if (Math.abs(diff) > 5) {
-      setHasMoved(true);
-    }
-    el.scrollLeft = scrollLeftStart - diff;
-  };
-
-  const handleMouseUpOrLeave = (e: React.MouseEvent) => {
-    if (!isMouseDown) return;
-    setIsMouseDown(false);
-
-    const el = chartScrollRef.current;
-    if (!el) return;
-
-    const diff = e.clientX - startX;
-    if (Math.abs(diff) > 20) {
-      const dir = diff < 0 ? 1 : -1;
-      const targetScroll = scrollLeftStart + dir * el.clientWidth;
-      el.scrollTo({ left: targetScroll, behavior: 'smooth' });
-    }
-  };
-
-  // Multi-month Chart Data for Interactive Monthly Spending Chart
-  const monthlyMonths = useMemo(() => {
-    const baseList = groupedExpenses.filter(ge => !selectedCategory || ge.category === selectedCategory);
-    const currentMonthKey = todayStr.slice(0, 7);
-
-    let numMonths = 12;
-    if (baseList.length > 0) {
-      const earliest = baseList.reduce((min, ge) => (ge.date < min ? ge.date : min), todayStr);
-      const [ey, em] = earliest.split('-').map(Number);
-      const [cy, cm] = todayStr.split('-').map(Number);
-      const monthsDiff = (cy - ey) * 12 + (cm - em) + 1;
-      numMonths = Math.max(6, Math.min(24, monthsDiff));
-    }
-
-    const [cy, cm] = todayStr.split('-').map(Number);
-    const months = [];
-
-    for (let i = numMonths - 1; i >= 0; i--) {
-      const d = new Date(cy, cm - 1 - i, 1);
-      const monthKey = `${d.getFullYear()}-${padZero(d.getMonth() + 1)}`;
-      const monthName = d.toLocaleDateString(undefined, { month: 'short' });
-      const fullMonthName = d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
-      const isCurrentMonth = monthKey === currentMonthKey;
-
-      const monthExps = baseList.filter(ge => ge.date.slice(0, 7) === monthKey);
-      const spend = monthExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + getGroupedExpenseAmount(ge, spendingMode), 0);
-      const count = monthExps.length;
-
-      const daysInM = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-      const daysPassed = isCurrentMonth ? Math.min(now.getDate(), daysInM) : daysInM;
-      const dailyAvg = spend / Math.max(1, daysPassed);
-
-      months.push({
-        monthKey,
-        year: d.getFullYear(),
-        monthName,
-        fullMonthName,
-        isCurrentMonth,
-        spend,
-        count,
-        dailyAvg,
-      });
-    }
-
-    return months;
-  }, [groupedExpenses, selectedCategory, todayStr, now, spendingMode]);
-
-  const maxMonthlyVal = useMemo(() => {
-    return Math.max(...monthlyMonths.map(m => m.spend), dailyAvgSpend, 10);
-  }, [monthlyMonths, dailyAvgSpend]);
-
-  // Selected Month details
-  const selectedMonthObj = useMemo(() => {
-    if (!selectedMonth) return null;
-    return monthlyMonths.find(m => m.monthKey === selectedMonth) || null;
-  }, [selectedMonth, monthlyMonths]);
-
-  // Multi-week Chart Data for Horizontal Scrolling across Past Weeks or Weeks of Selected Month
-  const weeklyWeeks = useMemo(() => {
-    const baseList = groupedExpenses.filter(ge => !selectedCategory || ge.category === selectedCategory);
-
-    if (selectedMonth) {
-      const [sy, sm] = selectedMonth.split('-').map(Number);
-      const firstDayOfMonth = new Date(sy, sm - 1, 1);
-      const lastDayOfMonth = new Date(sy, sm, 0);
-
-      const firstDayOfWeek = firstDayOfMonth.getDay();
-      const diffToMon = (firstDayOfWeek + 6) % 7;
-      const startMon = new Date(sy, sm - 1, 1 - diffToMon);
-
-      const weeks = [];
-      let currentMon = new Date(startMon);
-      let weekIndex = 1;
-
-      while (currentMon <= lastDayOfMonth) {
-        const mon = new Date(currentMon);
-        const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
-
-        const monStr = formatISO(mon);
-        const sunStr = formatISO(sun);
-
-        const monMonth = mon.toLocaleDateString(undefined, { month: 'short' });
-        const sunMonth = sun.toLocaleDateString(undefined, { month: 'short' });
-        const dateRange = monMonth === sunMonth
-          ? `${monMonth} ${mon.getDate()}–${sun.getDate()}`
-          : `${monMonth} ${mon.getDate()} – ${sunMonth} ${sun.getDate()}`;
-
-        const isCurrentWeek = monStr <= todayStr && todayStr <= sunStr;
-        const label = `Week ${weekIndex} (${dateRange})`;
-
-        const days = [];
-        let weekTotal = 0;
-
-        for (let i = 0; i < 7; i++) {
-          const cur = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
-          const dateStr = formatISO(cur);
-          const dayName = cur.toLocaleDateString(undefined, { weekday: 'short' });
-          const dayNum = cur.getDate();
-
-          const inSelectedMonth = dateStr.slice(0, 7) === selectedMonth;
-          const dayExps = baseList.filter(ge => ge.date === dateStr && inSelectedMonth);
-          const spend = dayExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + getGroupedExpenseAmount(ge, spendingMode), 0);
-
-          weekTotal += spend;
-
-          days.push({
-            dateStr,
-            label: `${dayName} ${dayNum}`,
-            dayName,
-            dayNum,
-            spend,
-            count: dayExps.length,
-            isToday: dateStr === todayStr,
-            isYesterday: dateStr === yesterdayStr,
-            inSelectedMonth,
-          });
-        }
-
-        weeks.push({
-          weekMonStr: monStr,
-          weekSunStr: sunStr,
-          label,
-          dateRange,
-          isCurrentWeek,
-          days,
-          weekTotal,
-        });
-
-        currentMon = new Date(currentMon.getFullYear(), currentMon.getMonth(), currentMon.getDate() + 7);
-        weekIndex++;
-      }
-
-      return weeks;
-    }
-
-    const [y, m, d] = todayStr.split('-').map(Number);
-    const todayObj = new Date(y, m - 1, d);
-    const day = todayObj.getDay();
-    const diffToMonday = (day + 6) % 7;
-    const currentMon = new Date(y, m - 1, d - diffToMonday);
-
-    // Determine how many weeks back to generate (min 8 weeks, up to 26)
-    let numWeeks = 8;
-    if (baseList.length > 0) {
-      const earliest = baseList.reduce((min, ge) => (ge.date < min ? ge.date : min), todayStr);
-      const [ey, em, ed] = earliest.split('-').map(Number);
-      const earliestObj = new Date(ey, em - 1, ed);
-      const msDiff = currentMon.getTime() - earliestObj.getTime();
-      if (msDiff > 0) {
-        const weeksDiff = Math.ceil(msDiff / (7 * 24 * 60 * 60 * 1000)) + 1;
-        numWeeks = Math.max(8, Math.min(26, weeksDiff));
-      }
-    }
-
-    const weeks = [];
-    for (let w = numWeeks - 1; w >= 0; w--) {
-      const mon = new Date(currentMon.getFullYear(), currentMon.getMonth(), currentMon.getDate() - w * 7);
-      const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
-
-      const monStr = formatISO(mon);
-      const sunStr = formatISO(sun);
-
-      const isCurrentWeek = w === 0;
-      const isLastWeek = w === 1;
-
-      const monMonth = mon.toLocaleDateString(undefined, { month: 'short' });
-      const sunMonth = sun.toLocaleDateString(undefined, { month: 'short' });
-      const dateRange = monMonth === sunMonth
-        ? `${monMonth} ${mon.getDate()}–${sun.getDate()}`
-        : `${monMonth} ${mon.getDate()} – ${sunMonth} ${sun.getDate()}`;
-
-      let label = dateRange;
-      if (isCurrentWeek) label = 'This Week';
-      else if (isLastWeek) label = 'Last Week';
-
-      const days = [];
-      let weekTotal = 0;
-
-      for (let i = 0; i < 7; i++) {
-        const cur = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
-        const dateStr = formatISO(cur);
-        const dayName = cur.toLocaleDateString(undefined, { weekday: 'short' });
-        const dayNum = cur.getDate();
-        const dayExps = baseList.filter(ge => ge.date === dateStr);
-        const spend = dayExps.filter(ge => ge.flow === 'out').reduce((s, ge) => s + getGroupedExpenseAmount(ge, spendingMode), 0);
-
-        weekTotal += spend;
-
-        days.push({
-          dateStr,
-          label: `${dayName} ${dayNum}`,
-          dayName,
-          dayNum,
-          spend,
-          count: dayExps.length,
-          isToday: dateStr === todayStr,
-          isYesterday: dateStr === yesterdayStr,
-          inSelectedMonth: true,
-        });
-      }
-
-      weeks.push({
-        weekMonStr: monStr,
-        weekSunStr: sunStr,
-        label,
-        dateRange,
-        isCurrentWeek,
-        days,
-        weekTotal,
-      });
-    }
-
-    return weeks;
-  }, [groupedExpenses, selectedCategory, selectedMonth, todayStr, yesterdayStr, spendingMode]);
-
-  // Selected Week details
-  const selectedWeekObj = useMemo(() => {
-    if (!selectedWeek) return null;
-    return weeklyWeeks.find(w => w.weekMonStr === selectedWeek) || null;
-  }, [selectedWeek, weeklyWeeks]);
-
-  // Auto-scroll when selectedWeek or chartMode changes
-  useEffect(() => {
-    if (!chartScrollRef.current) return;
-    if (chartMode === 'weekly') {
-      if (selectedWeek) {
-        const target = chartScrollRef.current.querySelector(`[data-week-id="${selectedWeek}"]`) as HTMLElement;
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-        }
-      } else {
-        chartScrollRef.current.scrollTo({ left: chartScrollRef.current.scrollWidth, behavior: 'smooth' });
-      }
-    }
-  }, [selectedWeek, chartMode]);
-
-  // Initial scroll to rightmost week (This Week) on load or week list recalculation
-  useEffect(() => {
-    if (chartScrollRef.current && chartMode === 'weekly' && !selectedWeek) {
-      chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
-    }
-  }, [weeklyWeeks, chartMode, selectedWeek]);
+  const timeframeExpenses = periodExpenses;
+  const timeframeOutflowTotal = totalSpent;
 
   // Daily log breakdown
   const perDayList = useMemo(() => {
@@ -472,7 +340,7 @@ export default function Analytics() {
       }
       map[d].items.push(ge);
       const amt = getGroupedExpenseAmount(ge, spendingMode);
-      if (ge.flow === 'out') {
+      if (ge.flow === "out") {
         map[d].spend += amt;
         map[d].categories[ge.category] = (map[d].categories[ge.category] || 0) + amt;
       } else {
@@ -484,11 +352,11 @@ export default function Analytics() {
     return Object.entries(map)
       .map(([dateStr, data]) => {
         const topCatEntry = Object.entries(data.categories).sort((a, b) => b[1] - a[1])[0];
-        const [y, m, d] = dateStr.split('-').map(Number);
+        const [y, m, d] = dateStr.split("-").map(Number);
         const dObj = new Date(y, m - 1, d);
         const dayName = isNaN(dObj.getTime())
           ? dateStr
-          : dObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+          : dObj.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
         return {
           dateStr,
           dayName,
@@ -496,7 +364,7 @@ export default function Analytics() {
           income: data.income,
           count: data.items.length,
           items: data.items,
-          topCategory: topCatEntry ? topCatEntry[0] : (data.items[0]?.category || 'General'),
+          topCategory: topCatEntry ? topCatEntry[0] : (data.items[0]?.category || "General"),
           isToday: dateStr === todayStr,
           isYesterday: dateStr === yesterdayStr,
         };
@@ -508,7 +376,7 @@ export default function Analytics() {
   const categoryBreakdown = useMemo(() => {
     const map: Record<string, { amount: number; count: number }> = {};
     timeframeExpenses.forEach(ge => {
-      if (ge.flow !== 'out') return;
+      if (ge.flow !== "out") return;
       const amt = getGroupedExpenseAmount(ge, spendingMode);
       if (amt === 0) return;
       if (!map[ge.category]) map[ge.category] = { amount: 0, count: 0 };
@@ -535,1321 +403,180 @@ export default function Analytics() {
     }
   };
 
-  const handleDeleteExpense = (id: string) => {
-    deleteExpense(id);
-    showToast('Expense deleted');
-    setDeletingId(null);
-  };
-
   return (
-    <div className="view-container" style={{ paddingBottom: 24 }}>
-      {/* Header */}
-      <div className="page-header" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <h1 className="page-title">Analytics</h1>
-        </div>
-        <DesktopSearchBar placeholder="Search analytics, insights..." defaultTab="all" />
-        <div className="desktop-only" style={{ width: 100 }} />
+    <div className="view-container analytics-v2-container" style={{ paddingBottom: 80 }}>
+      {/* 1. Header & Period / Date Range Navigator */}
+      <AnalyticsHeader
+        period={period}
+        setPeriod={setPeriod}
+        dateRangeLabel={dateRangeLabel}
+        onPrevDate={handlePrevDate}
+        onNextDate={handleNextDate}
+        onResetDate={handleResetDate}
+        isCurrentPeriod={isCurrentPeriod}
+        onNavigate={onNavigate}
+      />
+
+      {/* 2. Card 1: Total Spending Overview & Interactive Visual Bar Chart */}
+      <div style={{ width: '100%' }}>
+        <TotalSpendingCard
+          period={period}
+          totalSpent={totalSpent}
+          prevPeriodSpent={prevPeriodSpent}
+          dailyAvg={dailyAvg}
+          highestDayAmount={highestDayAmount}
+          noSpendDaysCount={noSpendDaysCount}
+          chartDays={chartDays}
+          currency={currency}
+          onOpenFilter={() => setShowFilterDrawer(true)}
+          activeFilterCount={activeFilterCount}
+          onSelectDay={handleToggleDate}
+          selectedDateStr={selectedDate}
+        />
       </div>
 
-      {/* Spending Bar Chart (Interactive Weekly / Monthly View) */}
-      <div className="card" style={{ padding: '18px 20px', marginBottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
-        {/* Top Header Row: Title & Icon on Left, Segmented Control on Right */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: 'var(--accent-soft)',
-                color: 'var(--accent)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <BarChart2 size={16} strokeWidth={2.2} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: 0, lineHeight: 1.2 }}>
-                {chartMode === 'monthly' ? 'Monthly Spending' : 'Weekly Spending'}
-              </h3>
-            </div>
-          </div>
-
-          {/* Segmented Mode Switcher */}
-          <div style={{ display: 'inline-flex', background: 'var(--surface2)', padding: 3, borderRadius: 'var(--radius)', border: '1px solid var(--border)', flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => {
-                setChartMode('weekly');
-                setSelectedMonth(null);
-                setSelectedDate(null);
-                setIsPickerOpen(false);
-              }}
-              style={{
-                padding: '4px 11px',
-                fontSize: 12,
-                fontWeight: chartMode === 'weekly' ? 650 : 500,
-                borderRadius: 6,
-                border: 'none',
-                background: chartMode === 'weekly' ? 'var(--accent)' : 'transparent',
-                color: chartMode === 'weekly' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              Weekly
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setChartMode('monthly');
-                setSelectedWeek(null);
-                setSelectedDate(null);
-                setIsPickerOpen(false);
-              }}
-              style={{
-                padding: '4px 11px',
-                fontSize: 12,
-                fontWeight: chartMode === 'monthly' ? 650 : 500,
-                borderRadius: 6,
-                border: 'none',
-                background: chartMode === 'monthly' ? 'var(--accent)' : 'transparent',
-                color: chartMode === 'monthly' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              Monthly
-            </button>
-          </div>
-        </div>
-
-        {/* Sub Header Toolbar Row: Period Filter Dropdown on Left, Average Metric Badge and Nav Arrows on Right */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
-          {/* Custom Period (Week / Month) Selector Popover */}
-          <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => setIsPickerOpen(!isPickerOpen)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                padding: selectedWeekObj ? '4px 10px' : '6px 11px',
-                borderRadius: 'var(--radius)',
-                border: '1px solid var(--border)',
-                background: (chartMode === 'weekly' ? selectedWeek : selectedMonth) ? 'var(--accent-soft)' : 'var(--surface2)',
-                color: (chartMode === 'weekly' ? selectedWeek : selectedMonth) ? 'var(--accent)' : 'var(--text)',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                outline: 'none',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <Calendar size={13} style={{ color: (chartMode === 'weekly' ? selectedWeek : selectedMonth) ? 'var(--accent)' : 'var(--text-3)', flexShrink: 0 }} />
-              {chartMode === 'weekly' ? (
-                selectedWeekObj ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: 1.25 }}>
-                    <span style={{ fontSize: 12, fontWeight: 650, whiteSpace: 'nowrap' }}>{selectedWeekObj.label}</span>
-                    <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.85, color: 'inherit', whiteSpace: 'nowrap' }}>
-                      ({selectedWeekObj.dateRange})
-                    </span>
-                  </div>
-                ) : (
-                  <span style={{ whiteSpace: 'nowrap' }}>All Weeks</span>
-                )
-              ) : (
-                <span style={{ whiteSpace: 'nowrap' }}>{selectedMonthObj ? selectedMonthObj.fullMonthName : 'All Months'}</span>
-              )}
-              <ChevronDown size={13} style={{ opacity: 0.7, transform: isPickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }} />
-            </button>
-
-            {isPickerOpen && (
-              <>
-                <div
-                  style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-                  onClick={() => setIsPickerOpen(false)}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 6px)',
-                    left: 0,
-                    zIndex: 100,
-                    width: 250,
-                    maxHeight: 280,
-                    overflowY: 'auto',
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-lg)',
-                    boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
-                    padding: 5,
-                    animation: 'fadein 0.15s ease',
-                  }}
-                >
-                  {chartMode === 'weekly' ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedWeek(null);
-                          setSelectedDate(null);
-                          setIsPickerOpen(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '7px 10px',
-                          borderRadius: 'var(--radius)',
-                          background: !selectedWeek ? 'var(--surface2)' : 'transparent',
-                          border: 'none',
-                          color: !selectedWeek ? 'var(--accent)' : 'var(--text)',
-                          fontSize: 12,
-                          fontWeight: !selectedWeek ? 700 : 500,
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                        }}
-                      >
-                        <span>All Weeks</span>
-                        {!selectedWeek && <Check size={14} style={{ color: 'var(--accent)' }} />}
-                      </button>
-
-                      {[...weeklyWeeks].reverse().map((w) => {
-                        const isSelected = selectedWeek === w.weekMonStr;
-                        return (
-                          <button
-                            key={w.weekMonStr}
-                            type="button"
-                            onClick={() => {
-                              setSelectedWeek(w.weekMonStr);
-                              setSelectedDate(null);
-                              setIsPickerOpen(false);
-                            }}
-                            style={{
-                              width: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '7px 10px',
-                              borderRadius: 'var(--radius)',
-                              background: isSelected ? 'var(--accent-soft)' : 'transparent',
-                              border: 'none',
-                              color: isSelected ? 'var(--accent)' : 'var(--text)',
-                              fontSize: 12,
-                              fontWeight: isSelected ? 700 : 500,
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                            }}
-                          >
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Calendar size={12} style={{ opacity: 0.6 }} />
-                                <span>{w.label}</span>
-                              </div>
-                              <span style={{ fontSize: 10, color: 'var(--text-3)', paddingLeft: 18 }}>
-                                {w.dateRange}
-                              </span>
-                            </div>
-                            <span style={{ fontSize: 11, color: isSelected ? 'var(--accent)' : 'var(--text-3)', fontWeight: 600 }}>
-                              {fmtMoney(w.weekTotal, currency)}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedMonth(null);
-                          setSelectedDate(null);
-                          setIsPickerOpen(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '7px 10px',
-                          borderRadius: 'var(--radius)',
-                          background: !selectedMonth ? 'var(--surface2)' : 'transparent',
-                          border: 'none',
-                          color: !selectedMonth ? 'var(--accent)' : 'var(--text)',
-                          fontSize: 12,
-                          fontWeight: !selectedMonth ? 700 : 500,
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                        }}
-                      >
-                        <span>All Months</span>
-                        {!selectedMonth && <Check size={14} style={{ color: 'var(--accent)' }} />}
-                      </button>
-
-                      {monthlyMonths.map((m) => {
-                        const isSelected = selectedMonth === m.monthKey;
-                        return (
-                          <button
-                            key={m.monthKey}
-                            type="button"
-                            onClick={() => {
-                              setSelectedMonth(m.monthKey);
-                              setSelectedDate(null);
-                              setIsPickerOpen(false);
-                            }}
-                            style={{
-                              width: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '7px 10px',
-                              borderRadius: 'var(--radius)',
-                              background: isSelected ? 'var(--accent-soft)' : 'transparent',
-                              border: 'none',
-                              color: isSelected ? 'var(--accent)' : 'var(--text)',
-                              fontSize: 12,
-                              fontWeight: isSelected ? 700 : 500,
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <Calendar size={12} style={{ opacity: 0.6 }} />
-                              <span>{m.fullMonthName}</span>
-                            </div>
-                            <span style={{ fontSize: 11, color: isSelected ? 'var(--accent)' : 'var(--text-3)', fontWeight: 600 }}>
-                              {fmtMoney(m.spend, currency)}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Average Metric Badge (Top) & Scroll Arrows (Below) */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-            <div
-              style={{
-                fontSize: 12,
-                color: 'var(--text-2)',
-                background: 'var(--surface2)',
-                padding: '4px 10px',
-                borderRadius: 'var(--radius)',
-                border: '1px solid var(--border)',
-                whiteSpace: 'nowrap',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-              }}
-            >
-              <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>Avg</span>
-              <strong style={{ color: 'var(--text)', fontWeight: 700 }}>
-                {fmtMoney(
-                  chartMode === 'monthly'
-                    ? monthlyMonths.reduce((s, m) => s + m.spend, 0) / Math.max(1, monthlyMonths.length)
-                    : dailyAvgSpend,
-                  currency
-                )}
-              </strong>
-              <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>/ {chartMode === 'monthly' ? 'month' : 'day'}</span>
-            </div>
-
-            {/* Prev / Next Scroll Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <button
-                type="button"
-                title="Previous"
-                onClick={() => {
-                  const el = chartScrollRef.current;
-                  if (!el) return;
-                  el.scrollBy({ left: -el.clientWidth, behavior: 'smooth' });
-                }}
-                style={{
-                  height: 24,
-                  padding: '0 8px',
-                  borderRadius: 'var(--radius)',
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface2)',
-                  color: 'var(--text-2)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  fontSize: 11,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'var(--text)';
-                  e.currentTarget.style.borderColor = 'var(--border2, var(--border))';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'var(--text-2)';
-                  e.currentTarget.style.borderColor = 'var(--border)';
-                }}
-              >
-                <ChevronLeft size={13} />
-                <span>Prev</span>
-              </button>
-              <button
-                type="button"
-                title="Next"
-                onClick={() => {
-                  const el = chartScrollRef.current;
-                  if (!el) return;
-                  el.scrollBy({ left: el.clientWidth, behavior: 'smooth' });
-                }}
-                style={{
-                  height: 24,
-                  padding: '0 8px',
-                  borderRadius: 'var(--radius)',
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface2)',
-                  color: 'var(--text-2)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  fontSize: 11,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'var(--text)';
-                  e.currentTarget.style.borderColor = 'var(--border2, var(--border))';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'var(--text-2)';
-                  e.currentTarget.style.borderColor = 'var(--border)';
-                }}
-              >
-                <span>Next</span>
-                <ChevronRight size={13} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Chart Content Container */}
-        {chartMode === 'monthly' ? (
-          /* Horizontally Scrollable Interactive Monthly Spending Chart Container */
+      {/* Quick Filter Modal / Drawer */}
+      {showFilterDrawer && (
+        <div className="modal-backdrop" onClick={() => setShowFilterDrawer(false)}>
           <div
-            style={{
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '16px 14px 12px 14px',
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              overflow: 'hidden',
-            }}
+            className="modal"
+            style={{ maxWidth: 420, padding: '20px 22px', borderRadius: 24 }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              ref={chartScrollRef}
-              className="analytics-chart-scroll"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUpOrLeave}
-              onMouseLeave={handleMouseUpOrLeave}
-              style={{
-                position: 'relative',
-                overflowX: 'auto',
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none',
-                WebkitOverflowScrolling: 'touch',
-                cursor: isMouseDown ? 'grabbing' : 'grab',
-                userSelect: isMouseDown ? 'none' : 'auto',
-                scrollBehavior: 'smooth',
-                width: '100%',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-end',
-                  justifyContent: 'space-between',
-                  gap: 6,
-                  width: '100%',
-                  minWidth: monthlyMonths.length > 8 ? `${monthlyMonths.length * 56}px` : '100%',
-                  height: 180,
-                  position: 'relative',
-                  zIndex: 1,
-                  boxSizing: 'border-box',
-                }}
-              >
-                {monthlyMonths.map((m) => {
-                  const isSelected = selectedMonth === m.monthKey;
-                  const barHeightPct = m.spend > 0 ? Math.max(10, Math.round((m.spend / maxMonthlyVal) * 100)) : 0;
-
-                  return (
-                    <div
-                      key={m.monthKey}
-                      data-month-id={m.monthKey}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        height: '100%',
-                        cursor: 'pointer',
-                        flex: 1,
-                        minWidth: 48,
-                        borderRadius: 'var(--radius)',
-                        background: isSelected ? 'var(--accent-soft)' : 'transparent',
-                        padding: '6px 2px',
-                        transition: 'all 0.15s ease',
-                        position: 'relative',
-                      }}
-                      onClick={() => {
-                        if (hasMoved) return;
-                        if (selectedMonth === m.monthKey) {
-                          setSelectedMonth(null);
-                        } else {
-                          setSelectedMonth(m.monthKey);
-                          setSelectedDate(null);
-                        }
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) e.currentTarget.style.background = 'var(--surface)';
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) e.currentTarget.style.background = 'transparent';
-                      }}
-                    >
-                      {/* Amount Badge directly above the bar */}
-                      <div style={{ minHeight: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                        {m.spend > 0 ? (
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: isSelected || m.isCurrentMonth ? 700 : 600,
-                              color: isSelected ? 'var(--accent)' : m.isCurrentMonth ? 'var(--text)' : 'var(--text-2)',
-                              whiteSpace: 'nowrap',
-                              letterSpacing: '-0.2px',
-                            }}
-                          >
-                            {fmtCompactMoney(m.spend, currency)}
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 10, color: 'var(--text-3)', opacity: 0.3 }}>-</span>
-                        )}
-                      </div>
-
-                      {/* Bar Column Container */}
-                      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 4, marginBottom: 6 }}>
-                        <div
-                          style={{
-                            width: '55%',
-                            maxWidth: 28,
-                            minWidth: 14,
-                            background: 'var(--accent)',
-                            borderRadius: m.spend > 0 ? '6px 6px 3px 3px' : '2px',
-                            height: m.spend > 0 ? `${barHeightPct}%` : '4px',
-                            opacity: m.spend > 0 ? (selectedMonth ? (isSelected ? 1 : 0.45) : (m.isCurrentMonth ? 1 : 0.8)) : 0.2,
-                            transition: 'all 0.2s ease',
-                            boxShadow: isSelected
-                              ? '0 0 0 2px var(--surface), 0 0 10px var(--accent-soft)'
-                              : undefined,
-                          }}
-                          title={`${m.fullMonthName}: ${fmtMoney(m.spend, currency)} (${m.count} items, Avg ${fmtMoney(m.dailyAvg, currency)}/day)`}
-                        />
-                      </div>
-
-                      {/* Month Label */}
-                      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <span
-                          style={{
-                            fontSize: 11.5,
-                            color: isSelected || m.isCurrentMonth ? 'var(--accent)' : 'var(--text-2)',
-                            fontWeight: isSelected || m.isCurrentMonth ? 750 : 500,
-                            whiteSpace: 'nowrap',
-                            lineHeight: 1.1,
-                          }}
-                        >
-                          {m.monthName}
-                        </span>
-                        {m.isCurrentMonth && (
-                          <span
-                            style={{
-                              fontSize: 8,
-                              color: 'var(--accent)',
-                              background: 'var(--accent-soft)',
-                              fontWeight: 700,
-                              padding: '1px 4px',
-                              borderRadius: 3,
-                              marginTop: 2,
-                              display: 'inline-block',
-                              letterSpacing: '0.3px',
-                            }}
-                          >
-                            NOW
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Horizontally scrollable container across past weeks */
-          <div
-            ref={chartScrollRef}
-            className="analytics-chart-scroll"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUpOrLeave}
-            onMouseLeave={handleMouseUpOrLeave}
-            style={{
-              position: 'relative',
-              overflowX: 'auto',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch',
-              paddingTop: 4,
-              paddingBottom: 4,
-              cursor: isMouseDown ? 'grabbing' : 'grab',
-              userSelect: isMouseDown ? 'none' : 'auto',
-              scrollSnapType: isMouseDown ? 'none' : 'x mandatory',
-              scrollBehavior: 'smooth',
-              scrollPadding: 0,
-              width: '100%',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'stretch',
-                paddingTop: 4,
-                paddingBottom: 4,
-                width: '100%',
-                position: 'relative',
-                zIndex: 1,
-              }}
-            >
-              {weeklyWeeks.map((week) => {
-                const isSelected = selectedWeek === week.weekMonStr;
-                const isCurrent = week.isCurrentWeek;
-                const isActiveCard = isSelected || (!selectedWeek && isCurrent);
-
-                return (
-                  <div
-                    key={week.weekMonStr}
-                    data-week-id={week.weekMonStr}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      scrollSnapAlign: 'start',
-                      scrollSnapStop: 'always',
-                      flexShrink: 0,
-                      width: '100%',
-                      minWidth: '100%',
-                      boxSizing: 'border-box',
-                      background: isActiveCard ? 'var(--surface)' : 'var(--surface2)',
-                      border: isActiveCard ? '1px solid var(--border2)' : '1px solid var(--border)',
-                      borderRadius: 'var(--radius-lg)',
-                      padding: '12px 14px',
-                      boxShadow: isActiveCard ? '0 2px 8px rgba(0, 0, 0, 0.1)' : undefined,
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    {/* Week Label & Total - Click to select/filter by this week */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: 8,
-                        padding: '2px 4px',
-                        gap: 12,
-                        cursor: 'pointer',
-                        borderRadius: 'var(--radius)',
-                      }}
-                      onClick={() => {
-                        if (hasMoved) return;
-                        if (selectedWeek === week.weekMonStr) {
-                          setSelectedWeek(null);
-                        } else {
-                          setSelectedWeek(week.weekMonStr);
-                          setSelectedDate(null);
-                        }
-                      }}
-                      title={isSelected ? 'Click to show All Weeks' : `Click to select ${week.label}`}
-                    >
-                      <span style={{
-                        fontSize: 11,
-                        fontWeight: isActiveCard ? 700 : 600,
-                        color: isActiveCard ? 'var(--accent)' : 'var(--text-2)',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {week.label}
-                      </span>
-                      <span style={{ fontSize: 10.5, color: isActiveCard ? 'var(--text)' : 'var(--text-3)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        {fmtMoney(week.weekTotal, currency)}
-                      </span>
-                    </div>
-
-                    {/* 7 Days Columns */}
-                    {(() => {
-                      const weekMaxSpend = Math.max(...week.days.map(d => d.spend), dailyAvgSpend, 10);
-                      return (
-                        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 4, height: 140, width: '100%' }}>
-                          {week.days.map(d => {
-                            const isSelected = selectedDate === d.dateStr;
-                            const barHeightPct = d.spend > 0 ? Math.max(8, Math.round((d.spend / weekMaxSpend) * 100)) : 0;
-
-                            return (
-                              <div
-                                key={d.dateStr}
-                                style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  height: '100%',
-                                  cursor: 'pointer',
-                                  flex: 1,
-                                  minWidth: 0,
-                                }}
-                                onClick={() => {
-                                  if (!hasMoved) handleToggleDate(d.dateStr);
-                                }}
-                              >
-                                {/* Amount Badge directly above the bar */}
-                                <div style={{ minHeight: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  {d.spend > 0 ? (
-                                    <span style={{
-                                      fontSize: 9,
-                                      fontWeight: isSelected || d.isToday ? 700 : 600,
-                                      color: isSelected ? 'var(--accent)' : d.isToday ? 'var(--text)' : 'var(--text-2)',
-                                      whiteSpace: 'nowrap',
-                                      letterSpacing: '-0.2px',
-                                      background: isSelected ? 'var(--accent-soft)' : undefined,
-                                      padding: isSelected ? '1px 4px' : undefined,
-                                      borderRadius: 4,
-                                    }}>
-                                      {fmtMoney(d.spend, currency)}
-                                    </span>
-                                  ) : (
-                                    <span style={{ fontSize: 9, color: 'var(--text-3)', opacity: 0.3 }}>-</span>
-                                  )}
-                                </div>
-
-                                {/* Bar Column */}
-                                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center', marginTop: 2 }}>
-                                  <div
-                                    style={{
-                                      width: 22,
-                                      background: 'var(--accent)',
-                                      borderRadius: d.spend > 0 ? '4px 4px 2px 2px' : '2px',
-                                      height: d.spend > 0 ? `${barHeightPct}%` : '4px',
-                                      opacity: d.spend > 0 ? (selectedDate ? (isSelected ? 1 : 0.6) : (d.isToday ? 1 : 0.85)) : 0.2,
-                                      transition: 'all 0.2s ease',
-                                      boxShadow: isSelected
-                                        ? '0 0 0 2px var(--surface), 0 0 8px var(--accent-soft)'
-                                        : undefined,
-                                    }}
-                                    title={`${d.label}: ${fmtMoney(d.spend, currency)} (${d.count} items)`}
-                                  />
-                                </div>
-
-                                {/* Day Label */}
-                                <div style={{ marginTop: 6, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                  <span style={{
-                                    fontSize: 10,
-                                    color: isSelected || d.isToday ? 'var(--text)' : 'var(--text-2)',
-                                    fontWeight: isSelected || d.isToday ? 700 : 500,
-                                    whiteSpace: 'nowrap',
-                                    display: 'block',
-                                    lineHeight: 1.1,
-                                  }}>
-                                    {d.label}
-                                  </span>
-                                  {d.isToday && (
-                                    <span style={{
-                                      fontSize: 8,
-                                      color: 'var(--accent)',
-                                      background: 'var(--accent-soft)',
-                                      fontWeight: 700,
-                                      padding: '1px 4px',
-                                      borderRadius: 4,
-                                      marginTop: 2,
-                                      display: 'inline-block',
-                                      letterSpacing: '0.3px',
-                                    }}>
-                                      TODAY
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-
-      </div>
-
-      {/* Grid: Daily Expenditure Log & Category Share */}
-      <div className="dashboard-grid" style={{ gap: 16, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-        {/* Category Distribution Button in Daily Log Header */}
-        <div className="card" style={{ padding: '16px', overflow: 'hidden', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'nowrap', gap: 8, width: '100%', minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
-              <Award size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.2px', flexShrink: 1 }}>
-                Daily Expenditure
-              </span>
-              <span
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 600,
-                  color: 'var(--text-2)',
-                  background: 'var(--surface2)',
-                  padding: '2px 6px',
-                  borderRadius: 6,
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  lineHeight: '1.2',
-                }}
-              >
-                {perDayList.length} {perDayList.length === 1 ? 'day' : 'days'}
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm btn-mobile-icon-only mobile-only"
-                style={{
-                  fontSize: 11,
-                  padding: '3px 8px',
-                  height: 26,
-                  gap: 4,
-                  alignItems: 'center',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  border: 'none',
-                  background: 'var(--surface2)',
-                  fontWeight: 600,
-                }}
-                onClick={() => setShowCategoryDrawer(true)}
-                title="Categories - View category breakdown"
-              >
-                <PieChart size={13} style={{ color: 'var(--accent)' }} />
-                <span className="btn-text-label">Categories</span>
-              </button>
-              {selectedDate && (
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  style={{
-                    fontSize: 11,
-                    padding: '3px 8px',
-                    height: 26,
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                    border: 'none',
-                    background: 'var(--surface2)',
-                    fontWeight: 600,
-                  }}
-                  onClick={() => setSelectedDate(null)}
-                >
-                  Clear Date
-                </button>
-              )}
-            </div>
-          </div>
-
-          {perDayList.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: 'var(--text-3)', padding: '28px 0', textAlign: 'center' }}>
-              No transactions recorded for this selection
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {perDayList.map(row => {
-                const catObj = db.settings.categories.find(c => c.name === row.topCategory);
-                const isSelected = selectedDate === row.dateStr;
-
-                return (
-                  <div
-                    key={row.dateStr}
-                    className="daily-expenditure-group"
-                    style={{
-                      width: '100%',
-                      boxSizing: 'border-box',
-                      border: isSelected ? '1px solid var(--border2)' : undefined,
-                      boxShadow: isSelected ? '0 1px 4px rgba(0, 0, 0, 0.1)' : undefined,
-                    }}
-                  >
-                    {/* Day Row Header - Opens Day Details Drawer directly */}
-                    <button
-                      type="button"
-                      className="daily-expenditure-header"
-                      style={{ width: '100%', boxSizing: 'border-box', cursor: 'pointer' }}
-                      onClick={() => {
-                        setSelectedDate(row.dateStr);
-                        setShowDailyBalanceDrawer(true);
-                      }}
-                      title={`View balance details & movements for ${row.dayName}`}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-                        <CategoryBadge category={row.topCategory} color={catObj?.color} icon={catObj?.icon} size={15} showLabel={false} />
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontWeight: 650, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
-                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text)', fontSize: 13.5 }}>{row.dayName}</span>
-                            {row.isToday && <span style={{ background: 'var(--surface3)', color: 'var(--text)', fontSize: 9.5, fontWeight: 700, padding: '1.5px 6px', borderRadius: 5, flexShrink: 0 }}>Today</span>}
-                            {row.isYesterday && <span style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', fontSize: 9.5, fontWeight: 700, padding: '1.5px 6px', borderRadius: 5, flexShrink: 0 }}>Yest.</span>}
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {row.count} {row.count === 1 ? 'item' : 'items'} · {row.topCategory}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                        {(() => {
-                          const net = row.income - row.spend;
-                          let amountText = fmtMoney(0, currency);
-                          let amountColor = 'var(--text-3)';
-
-                          if (row.spend > 0 && row.income === 0) {
-                            amountText = fmtMoney(row.spend, currency);
-                            amountColor = 'var(--debit)';
-                          } else if (row.income > 0 && row.spend === 0) {
-                            amountText = `+${fmtMoney(row.income, currency)}`;
-                            amountColor = 'var(--credit)';
-                          } else if (net > 0) {
-                            amountText = `+${fmtMoney(net, currency)}`;
-                            amountColor = 'var(--credit)';
-                          } else if (net < 0) {
-                            amountText = `-${fmtMoney(Math.abs(net), currency)}`;
-                            amountColor = 'var(--debit)';
-                          }
-
-                          return (
-                            <div style={{ textAlign: 'right', fontWeight: 750, fontSize: 14, color: amountColor, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                              {amountText}
-                            </div>
-                          );
-                        })()}
-                        <div style={{ color: 'var(--text-3)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                          <ChevronRight size={15} />
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Category Distribution Desktop Card (Fills right side empty space on desktop) */}
-        <div className="card desktop-only" style={{ padding: '16px', overflow: 'hidden', width: '100%', maxWidth: '100%', boxSizing: 'border-box', height: 'fit-content' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'nowrap', gap: 8, width: '100%', minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
-              <PieChart size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.2px', flexShrink: 1 }}>
-                Category Distribution
-              </span>
-              <span
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 600,
-                  color: 'var(--text-2)',
-                  background: 'var(--surface2)',
-                  padding: '2px 6px',
-                  borderRadius: 6,
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  lineHeight: '1.2',
-                }}
-              >
-                {categoryBreakdown.length} {categoryBreakdown.length === 1 ? 'category' : 'categories'}
-              </span>
-            </div>
-            {selectedCategory && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                style={{
-                  fontSize: 11,
-                  padding: '3px 8px',
-                  height: 26,
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  border: 'none',
-                  background: 'var(--surface2)',
-                  fontWeight: 600,
-                }}
-                onClick={() => setSelectedCategory(null)}
-              >
-                Clear Category
-              </button>
-            )}
-          </div>
-
-          {/* Body */}
-          {categoryBreakdown.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: 'var(--text-3)', padding: '28px 0', textAlign: 'center' }}>
-              No outflow expenses recorded for this timeframe
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {/* Summary Bar */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '6px 10px',
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  fontSize: 11.5,
-                  color: 'var(--text-2)',
-                  marginBottom: 2,
-                }}
-              >
-                <span>Total Spending</span>
-                <strong style={{ color: 'var(--text)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                  {fmtMoney(timeframeOutflowTotal, currency)}
-                </strong>
-              </div>
-
-              {/* Category Cards List */}
-              {categoryBreakdown.map(({ cat, amount, pct, count }) => {
-                const catObj = db.settings.categories.find(c => c.name === cat);
-                const catColor = catObj?.color ?? '#6B7280';
-                const isSelectedCat = selectedCategory === cat;
-
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    className={`category-dist-card ${isSelectedCat ? 'active' : ''}`}
-                    onClick={() => setSelectedCategory(isSelectedCat ? null : cat)}
-                    title={`Click to filter log by ${cat}`}
-                    style={{ textAlign: 'left', width: '100%' }}
-                  >
-                    {/* Top Info Row */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, width: '100%' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-                        <CategoryBadge
-                          category={cat}
-                          color={catColor}
-                          icon={catObj?.icon}
-                          size={14}
-                          showLabel={false}
-                        />
-                        <span
-                          style={{
-                            fontWeight: 600,
-                            fontSize: 13,
-                            color: isSelectedCat ? 'var(--accent)' : 'var(--text)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {cat}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            color: isSelectedCat ? 'var(--accent)' : 'var(--text-3)',
-                            background: isSelectedCat ? 'var(--accent-soft)' : 'var(--surface3)',
-                            padding: '1px 6px',
-                            borderRadius: 5,
-                            fontWeight: 500,
-                            whiteSpace: 'nowrap',
-                            flexShrink: 0,
-                            lineHeight: '1.4',
-                          }}
-                        >
-                          {count} {count === 1 ? 'item' : 'items'}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                        <span
-                          style={{
-                            color: isSelectedCat ? 'var(--accent)' : 'var(--text-3)',
-                            fontSize: 11.5,
-                            fontWeight: 600,
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
-                          {Math.round(pct)}%
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 13.5,
-                            fontWeight: 700,
-                            color: 'var(--text)',
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
-                          {fmtMoney(amount, currency)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="category-dist-progress-track">
-                      <div
-                        className="category-dist-progress-fill"
-                        style={{
-                          width: `${Math.min(100, Math.max(1.5, pct))}%`,
-                          background: isSelectedCat ? 'var(--accent)' : catColor,
-                        }}
-                      />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Category Distribution Modal Drawer */}
-      {showCategoryDrawer && createPortal(
-        <div
-          className="modal-backdrop"
-          onClick={e => {
-            if (e.target === e.currentTarget) setShowCategoryDrawer(false);
-          }}
-        >
-          <div className="modal category-dist-modal">
-            {/* Header */}
-            <div className="category-dist-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 11,
-                    background: 'var(--accent-soft)',
-                    color: 'var(--accent)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <PieChart size={19} strokeWidth={2.2} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: 15.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.3px' }}>
-                    Category Distribution
-                  </h3>
-                  <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
-                    {selectedCategory ? `Filtering by ${selectedCategory} · Click to reset` : 'Breakdown of spending across categories'}
-                  </p>
-                </div>
-              </div>
-
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {selectedCategory && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    style={{ fontSize: 11.5, padding: '4px 10px', height: 30, borderRadius: 8 }}
-                    onClick={() => setSelectedCategory(null)}
-                  >
-                    Clear Filter
-                  </button>
-                )}
+                <Filter size={18} color="var(--text)" />
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Filter Analytics</h3>
+              </div>
+              <button
+                onClick={() => setShowFilterDrawer(false)}
+                className="btn-icon"
+                style={{ width: 32, height: 32, border: 'none', background: 'transparent' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Category Filter */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 8 }}>
+                Category
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 150, overflowY: 'auto', paddingRight: 4 }}>
                 <button
                   type="button"
-                  className="compact-close-btn"
-                  onClick={() => setShowCategoryDrawer(false)}
-                  title="Close drawer"
-                  aria-label="Close drawer"
+                  onClick={() => setSelectedCategory(null)}
+                  className={`chip ${!selectedCategory ? 'active' : ''}`}
                 >
-                  <X size={16} />
+                  All Categories
                 </button>
+                {db.settings.categories.map((c) => (
+                  <button
+                    key={c.name}
+                    type="button"
+                    onClick={() => setSelectedCategory(selectedCategory === c.name ? null : c.name)}
+                    className={`chip ${selectedCategory === c.name ? 'active' : ''}`}
+                  >
+                    <span>{c.name}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Content Body */}
-            <div className="category-dist-body">
-              {categoryBreakdown.length === 0 ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '48px 20px',
-                    textAlign: 'center',
-                  }}
+            {/* Wallet Filter */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 8 }}>
+                Wallet / Account
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 150, overflowY: 'auto', paddingRight: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedWalletId(null)}
+                  className={`chip ${!selectedWalletId ? 'active' : ''}`}
                 >
-                  <div
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: '50%',
-                      background: 'var(--surface2)',
-                      color: 'var(--text-3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginBottom: 14,
-                    }}
+                  All Wallets
+                </button>
+                {wallets.map((w) => (
+                  <button
+                    key={w.id}
+                    type="button"
+                    onClick={() => setSelectedWalletId(selectedWalletId === w.id ? null : w.id)}
+                    className={`chip ${selectedWalletId === w.id ? 'active' : ''}`}
                   >
-                    <PieChart size={26} strokeWidth={1.8} style={{ opacity: 0.6 }} />
-                  </div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)', marginBottom: 4, letterSpacing: '-0.2px' }}>
-                    No Category Data
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-3)', maxWidth: 260, lineHeight: 1.45 }}>
-                    There are no outflow expenses recorded for the selected timeframe.
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Summary Bar */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '6px 12px',
-                      background: 'var(--surface2)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 8,
-                      fontSize: 11.5,
-                      color: 'var(--text-2)',
-                      marginBottom: 4,
-                    }}
-                  >
-                    <span>{categoryBreakdown.length} {categoryBreakdown.length === 1 ? 'Category' : 'Categories'}</span>
-                    <span>
-                      Total:{' '}
-                      <strong style={{ color: 'var(--text)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                        {fmtMoney(timeframeOutflowTotal, currency)}
-                      </strong>
-                    </span>
-                  </div>
+                    <span>{w.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                  {/* Category Cards List */}
-                  {categoryBreakdown.map(({ cat, amount, pct, count }) => {
-                    const catObj = db.settings.categories.find(c => c.name === cat);
-                    const catColor = catObj?.color ?? '#6B7280';
-                    const isSelectedCat = selectedCategory === cat;
-
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        className={`category-dist-card ${isSelectedCat ? 'active' : ''}`}
-                        onClick={() => setSelectedCategory(isSelectedCat ? null : cat)}
-                        title={`Click to filter log by ${cat}`}
-                      >
-                        {/* Top Info Row */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, width: '100%' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-                            <CategoryBadge
-                              category={cat}
-                              color={catColor}
-                              icon={catObj?.icon}
-                              size={14}
-                              showLabel={false}
-                            />
-                            <span
-                              style={{
-                                fontWeight: 600,
-                                fontSize: 13,
-                                color: isSelectedCat ? 'var(--accent)' : 'var(--text)',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {cat}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 10.5,
-                                color: isSelectedCat ? 'var(--accent)' : 'var(--text-3)',
-                                background: isSelectedCat ? 'var(--accent-soft)' : 'var(--surface3)',
-                                padding: '1px 6px',
-                                borderRadius: 5,
-                                fontWeight: 500,
-                                whiteSpace: 'nowrap',
-                                flexShrink: 0,
-                                lineHeight: '1.4',
-                              }}
-                            >
-                              {count} {count === 1 ? 'item' : 'items'}
-                            </span>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                            <span
-                              style={{
-                                color: isSelectedCat ? 'var(--accent)' : 'var(--text-3)',
-                                fontSize: 11.5,
-                                fontWeight: 600,
-                                fontVariantNumeric: 'tabular-nums',
-                              }}
-                            >
-                              {Math.round(pct)}%
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 13.5,
-                                fontWeight: 700,
-                                color: 'var(--text)',
-                                fontVariantNumeric: 'tabular-nums',
-                              }}
-                            >
-                              {fmtMoney(amount, currency)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="category-dist-progress-track">
-                          <div
-                            className="category-dist-progress-fill"
-                            style={{
-                              width: `${Math.min(100, Math.max(1.5, pct))}%`,
-                              background: isSelectedCat ? 'var(--accent)' : catColor,
-                            }}
-                          />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </>
-              )}
+            {/* Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setSelectedWalletId(null);
+                }}
+                className="btn btn-secondary"
+                style={{ fontSize: 12, padding: '8px 14px' }}
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFilterDrawer(false)}
+                className="btn btn-primary"
+                style={{ fontSize: 13, padding: '8px 20px', borderRadius: 9999 }}
+              >
+                Apply
+              </button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
+
+      {/* 3. Cards Grid: Smart Insights, Category Breakdown & Daily Activity */}
+      <div className="analytics-v2-grid">
+        {/* Smart Insights Card (Full Width Span) */}
+        <div className="analytics-v2-grid-full">
+          <AnalyticsInsightsCard
+            period={period}
+            totalSpent={timeframeOutflowTotal}
+            prevTotalSpent={prevPeriodSpent}
+            dailyAvg={dailyAvg}
+            noSpendDaysCount={noSpendDaysCount}
+            categoryBreakdown={categoryBreakdown}
+            chartDays={chartDays}
+            currency={currency}
+            friendsWithBalance={friendsWithBalance}
+            onSelectCategory={setSelectedCategory}
+            onSelectDate={handleToggleDate}
+          />
+        </div>
+
+        {/* Category Breakdown Card */}
+        <CategoryDistributionCard
+          categories={categoryBreakdown}
+          totalOutflow={timeframeOutflowTotal}
+          currency={currency}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+          categorySettings={db.settings.categories}
+        />
+
+        {/* Daily Activity Card */}
+        <DailyExpenditureCard
+          days={perDayList}
+          currency={currency}
+          selectedDate={selectedDate}
+          onSelectDate={handleToggleDate}
+          onOpenDayDetails={(dateStr) => {
+            setSelectedDate(dateStr);
+            setShowDailyBalanceDrawer(true);
+          }}
+          categorySettings={db.settings.categories}
+        />
+      </div>
 
       {/* Transaction Detail Drawer */}
       {selectedGroupExpense && (
@@ -1884,7 +611,7 @@ export default function Analytics() {
       <DailyWalletBalanceDrawer
         isOpen={showDailyBalanceDrawer}
         onClose={() => setShowDailyBalanceDrawer(false)}
-        initialMonth={selectedMonth || undefined}
+        initialMonth={period === 'month' ? activeMonthStr : undefined}
         initialDate={selectedDate || undefined}
       />
 

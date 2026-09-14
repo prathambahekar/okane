@@ -3,14 +3,18 @@ import { createPortal } from 'react-dom';
 import {
   X,
   Wallet as WalletIcon,
+  Activity,
+  Flag,
+  Layers,
+  Receipt,
   TrendingUp,
   TrendingDown,
   Calendar,
   ChevronLeft,
   ChevronRight,
+  ArrowLeft,
+  ArrowRight,
   Search,
-  ArrowUpRight,
-  ArrowDownLeft,
   RotateCcw,
   SlidersHorizontal,
   Check,
@@ -20,6 +24,8 @@ import { fmtMoney, cleanExpenseDescription } from '../utils';
 import { expenseFlow, expenseWalletDelta } from '../db';
 import type { Expense, Settlement, Wallet } from '../types';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
+import CategoryIcon from './CategoryIcon';
+import { renderWalletIcon } from './WalletIconRenderer';
 
 interface Props {
   isOpen: boolean;
@@ -534,26 +540,43 @@ export default function DailyWalletBalanceDrawer({
     return dailyRecords.find(r => r.dateStr === selectedDayDate) || null;
   }, [dailyRecords, selectedDayDate]);
 
-  const selectedDayIndexInList = useMemo(() => {
-    if (!selectedDayDate) return -1;
-    return displayedRecords.findIndex(r => r.dateStr === selectedDayDate);
-  }, [displayedRecords, selectedDayDate]);
+  const formattedDateTitle = useMemo(() => {
+    if (!selectedDayRecord) return '';
+    const [y, m, d] = selectedDayRecord.dateStr.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const dayNum = dateObj.getDate();
+    const monthName = dateObj.toLocaleDateString('en-US', { month: 'short' });
+    const yearNum = dateObj.getFullYear();
+    return `${dayNum} ${monthName} ${yearNum}`;
+  }, [selectedDayRecord]);
 
   const handlePrevDayInDetail = () => {
-    if (selectedDayIndexInList > 0) {
-      setSelectedDayDate(displayedRecords[selectedDayIndexInList - 1].dateStr);
+    if (!selectedDayRecord) return;
+    const [y, m, d] = selectedDayRecord.dateStr.split('-').map(Number);
+    const prevDate = new Date(y, m - 1, d - 1);
+    const prevStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
+    setSelectedDayDate(prevStr);
+    if (prevStr.slice(0, 7) !== selectedMonth) {
+      setSelectedMonth(prevStr.slice(0, 7));
     }
   };
 
   const handleNextDayInDetail = () => {
-    if (selectedDayIndexInList >= 0 && selectedDayIndexInList < displayedRecords.length - 1) {
-      setSelectedDayDate(displayedRecords[selectedDayIndexInList + 1].dateStr);
+    if (!selectedDayRecord) return;
+    const [y, m, d] = selectedDayRecord.dateStr.split('-').map(Number);
+    const nextDate = new Date(y, m - 1, d + 1);
+    const nextStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
+    if (nextStr <= todayStr) {
+      setSelectedDayDate(nextStr);
+      if (nextStr.slice(0, 7) !== selectedMonth) {
+        setSelectedMonth(nextStr.slice(0, 7));
+      }
     }
   };
 
   if (!isOpen) return null;
 
-  // If a day is selected, directly render the single clean Day Details Modal without any background drawer underneath
+  // If a day is selected, render the clean Day Details sheet matching the reference design with app color consistency
   if (selectedDayRecord) {
     return createPortal(
       <div
@@ -569,98 +592,37 @@ export default function DailyWalletBalanceDrawer({
         aria-labelledby="day-details-title"
         style={{ zIndex: 100050 }}
       >
-        <div
-          className="modal"
-          style={{
-            maxWidth: 500,
-            width: '100%',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            borderRadius: 'var(--radius-xl, 16px)',
-            overflow: 'hidden',
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.45)',
-          }}
-        >
-          {/* Day Details Header */}
-          <div
-            style={{
-              padding: '14px 18px 10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: 'var(--surface)',
-              flexShrink: 0,
-              borderBottom: 'none',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  backgroundColor: 'transparent',
-                  color: 'var(--text)',
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
+        <div className="day-sheet-modal-container">
+          {/* Drag Handle */}
+          <div className="day-sheet-drag-pill" />
+
+          {/* Header */}
+          <div className="day-sheet-top-header">
+            <div className="day-sheet-header-left">
+              <div className="day-sheet-cal-icon-box">
                 <Calendar size={18} strokeWidth={2.2} />
               </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <h3
-                    id="day-details-title"
-                    style={{
-                      fontSize: 15.5,
-                      fontWeight: 750,
-                      color: 'var(--text)',
-                      margin: 0,
-                      lineHeight: 1.2,
-                      letterSpacing: '-0.2px',
-                    }}
-                  >
-                    {selectedDayRecord.fullDateLabel}
+              <div className="day-sheet-title-group">
+                <div className="day-sheet-title-row">
+                  <h3 id="day-details-title" className="day-sheet-title-text">
+                    {formattedDateTitle}
                   </h3>
                   {selectedDayRecord.isToday && (
-                    <span
-                      style={{
-                        fontSize: 9.5,
-                        fontWeight: 700,
-                        color: 'var(--accent)',
-                        background: 'var(--accent-soft)',
-                        padding: '1px 6px',
-                        borderRadius: 99,
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      Today
-                    </span>
+                    <span className="day-sheet-today-badge">Today</span>
                   )}
                 </div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
+                <span className="day-sheet-subtitle">
                   Daily balance details & movements
-                </div>
+                </span>
               </div>
             </div>
 
             <button
               type="button"
-              className="btn-icon"
+              className="day-sheet-close-btn"
               onClick={() => {
                 setSelectedDayDate(null);
                 onClose();
-              }}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 9999,
-                display: 'grid',
-                placeItems: 'center',
-                cursor: 'pointer',
               }}
               title="Close"
               aria-label="Close"
@@ -669,83 +631,44 @@ export default function DailyWalletBalanceDrawer({
             </button>
           </div>
 
-          {/* Scrollable Day Details Content */}
-          <div
-            className="filter-drawer-content"
-            style={{
-              padding: '12px 18px 20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 14,
-              overflowY: 'auto',
-              flex: '1 1 auto',
-            }}
-          >
-            {/* Day Metrics Bento Card (Clean, no split lines) */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                background: 'var(--surface2)',
-                borderRadius: 12,
-                padding: '12px 14px',
-                gap: 8,
-                border: '1px solid var(--border)',
-              }}
-            >
-              {/* Start of Day Opening */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {/* Scrollable Body */}
+          <div className="day-sheet-scrollable-body">
+            {/* 1. Hero 3-column Metrics Card */}
+            <div className="day-sheet-hero-card">
+              {/* Opening */}
+              <div className="day-sheet-hero-col col-left">
+                <div className="day-sheet-hero-label-row">
+                  <WalletIcon size={13} strokeWidth={2.2} />
+                  <span>Opening</span>
+                </div>
                 <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 650,
-                    color: 'var(--text-3)',
-                    letterSpacing: '0.2px',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Opening
-                </span>
-                <span
-                  style={{
-                    fontSize: 13.5,
-                    fontWeight: 700,
-                    color: 'var(--text)',
-                    marginTop: 3,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
+                  className={`day-sheet-hero-amount ${
+                    selectedDayRecord.previousBalance < 0
+                      ? 'amount-negative'
+                      : selectedDayRecord.previousBalance > 0
+                      ? 'amount-positive'
+                      : ''
+                  }`}
                 >
                   {fmtMoney(selectedDayRecord.previousBalance, currency)}
                 </span>
-                <span style={{ fontSize: 9.5, color: 'var(--text-3)', marginTop: 2 }}>Start of Day</span>
+                <span className="day-sheet-hero-sub">Start of Day</span>
               </div>
 
-              {/* Day Net Movement */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              {/* Day Flow */}
+              <div className="day-sheet-hero-col col-mid">
+                <div className="day-sheet-hero-label-row">
+                  <Activity size={13} strokeWidth={2.2} />
+                  <span>Day Flow</span>
+                </div>
                 <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 650,
-                    color: 'var(--text-3)',
-                    letterSpacing: '0.2px',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Day Flow
-                </span>
-                <span
-                  style={{
-                    fontSize: 13.5,
-                    fontWeight: 750,
-                    color:
-                      selectedDayRecord.dayNetChange > 0
-                        ? 'var(--credit)'
-                        : selectedDayRecord.dayNetChange < 0
-                        ? 'var(--debit)'
-                        : 'var(--text-3)',
-                    marginTop: 3,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
+                  className={`day-sheet-hero-amount ${
+                    selectedDayRecord.dayNetChange < 0
+                      ? 'amount-negative'
+                      : selectedDayRecord.dayNetChange > 0
+                      ? 'amount-positive'
+                      : ''
+                  }`}
                 >
                   {selectedDayRecord.dayNetChange > 0
                     ? `+${fmtMoney(selectedDayRecord.dayNetChange, currency)}`
@@ -753,207 +676,137 @@ export default function DailyWalletBalanceDrawer({
                     ? `-${fmtMoney(Math.abs(selectedDayRecord.dayNetChange), currency)}`
                     : fmtMoney(0, currency)}
                 </span>
-                {(selectedDayRecord.dayCashIn > 0 || selectedDayRecord.dayCashOut > 0) && (
-                  <span
-                    style={{
-                      fontSize: 9.5,
-                      marginTop: 2,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 3,
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    <span style={{ color: 'var(--credit)', fontWeight: 600 }}>+{fmtMoney(selectedDayRecord.dayCashIn, currency)}</span>
-                    <span style={{ color: 'var(--text-3)', opacity: 0.5 }}>·</span>
-                    <span style={{ color: 'var(--debit)', fontWeight: 600 }}>-{fmtMoney(selectedDayRecord.dayCashOut, currency)}</span>
+                <div className="day-sheet-hero-flow-pill">
+                  <span className="day-sheet-flow-in">
+                    + {fmtMoney(selectedDayRecord.dayCashIn, currency)}
                   </span>
-                )}
+                  <span className="day-sheet-flow-sep">|</span>
+                  <span className="day-sheet-flow-out">
+                    - {fmtMoney(selectedDayRecord.dayCashOut, currency)}
+                  </span>
+                </div>
               </div>
 
-              {/* End of Day Closing */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right' }}>
+              {/* Closing */}
+              <div className="day-sheet-hero-col col-right">
+                <div className="day-sheet-hero-label-row">
+                  <Flag size={13} strokeWidth={2.2} />
+                  <span>{selectedDayRecord.isToday ? 'Current' : 'Closing'}</span>
+                </div>
                 <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 650,
-                    color: 'var(--accent)',
-                    letterSpacing: '0.2px',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {selectedDayRecord.isToday ? 'Current' : 'Closing'}
-                </span>
-                <span
-                  style={{
-                    fontSize: 13.5,
-                    fontWeight: 750,
-                    color: 'var(--text)',
-                    marginTop: 3,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
+                  className={`day-sheet-hero-amount ${
+                    selectedDayRecord.closingBalance < 0
+                      ? 'amount-negative'
+                      : selectedDayRecord.closingBalance > 0
+                      ? 'amount-positive'
+                      : ''
+                  }`}
                 >
                   {fmtMoney(selectedDayRecord.closingBalance, currency)}
                 </span>
-                <span style={{ fontSize: 9.5, color: 'var(--text-3)', marginTop: 2 }}>
+                <span className="day-sheet-hero-sub">
                   {selectedDayRecord.isToday ? 'As of now' : 'End of Day'}
                 </span>
               </div>
             </div>
 
-            {/* Account Balances at End of Day */}
-            {selectedWalletId === 'all' && wallets.length > 1 && (
-              <div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: 'var(--text-3)',
-                    marginBottom: 7,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.3px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <span>Accounts Breakdown</span>
-                  <span style={{ fontSize: 10, fontWeight: 500, textTransform: 'none', color: 'var(--text-3)' }}>
-                    End of Day
-                  </span>
+            {/* 2. Accounts Breakdown Card */}
+            {selectedDayRecord.walletBreakdown && selectedDayRecord.walletBreakdown.length > 0 && (
+              <div className="day-sheet-section-card">
+                <div className="day-sheet-sec-header">
+                  <div className="day-sheet-sec-title-wrap">
+                    <Layers size={15} strokeWidth={2.2} />
+                    <span>Accounts Breakdown</span>
+                  </div>
+                  <span className="day-sheet-sec-badge">End of Day</span>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {selectedDayRecord.walletBreakdown.map(wb => (
-                    <div
-                      key={wb.walletId}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        padding: '4px 9px',
-                        borderRadius: 8,
-                        background: 'var(--surface2)',
-                        border: '1px solid var(--border)',
-                        fontSize: 11.5,
-                        color: 'var(--text-2)',
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 6.5,
-                          height: 6.5,
-                          borderRadius: '50%',
-                          backgroundColor: wb.walletColor,
-                          flexShrink: 0,
-                        }}
-                      />
-                      <span style={{ fontWeight: 500 }}>{wb.walletName}</span>
-                      <strong style={{ color: 'var(--text)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                        {fmtMoney(wb.closingBalance, currency)}
-                      </strong>
-                    </div>
-                  ))}
+
+                <div className="day-sheet-accounts-grid">
+                  {selectedDayRecord.walletBreakdown.map(wb => {
+                    const walletObj = wallets.find(w => w.id === wb.walletId);
+                    const color = wb.walletColor || walletObj?.color || 'var(--accent)';
+                    const iconKey = walletObj?.icon;
+
+                    return (
+                      <div key={wb.walletId} className="day-account-item-card">
+                        <div className="day-account-item-left">
+                          <div
+                            className="day-account-icon-wrap"
+                            style={{
+                              background: `${color}1a`,
+                              color: color,
+                            }}
+                          >
+                            {iconKey ? (
+                              renderWalletIcon(iconKey, 15, color)
+                            ) : (
+                              <WalletIcon size={14} color={color} strokeWidth={2.2} />
+                            )}
+                          </div>
+                          <div className="day-account-meta">
+                            <span className="day-account-name">{wb.walletName}</span>
+                            <span
+                              className={`day-account-bal ${
+                                wb.closingBalance < 0 ? 'amount-negative' : ''
+                              }`}
+                            >
+                              {fmtMoney(wb.closingBalance, currency)}
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight size={14} style={{ color: 'var(--text-3)', opacity: 0.6 }} />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* Transactions Section */}
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: 'var(--text-3)',
-                  marginBottom: 7,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.3px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <span>Transactions</span>
-                <span style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'none', color: 'var(--text-3)' }}>
-                  {selectedDayRecord.transactions.length} {selectedDayRecord.transactions.length === 1 ? 'item' : 'items'}
+            {/* 3. Transactions Card */}
+            <div className="day-sheet-section-card">
+              <div className="day-sheet-sec-header">
+                <div className="day-sheet-sec-title-wrap">
+                  <Receipt size={15} strokeWidth={2.2} />
+                  <span>Transactions</span>
+                </div>
+                <span className="day-sheet-sec-badge">
+                  {selectedDayRecord.transactions.length}{' '}
+                  {selectedDayRecord.transactions.length === 1 ? 'item' : 'items'}
                 </span>
               </div>
 
               {selectedDayRecord.transactions.length > 0 ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 6,
-                  }}
-                >
+                <div className="day-sheet-tx-list">
                   {selectedDayRecord.transactions.map(tx => {
                     const isCredit = tx.flow === 'in';
+                    const cleanDesc = cleanExpenseDescription(tx.description);
+
                     return (
-                      <div
-                        key={tx.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '9px 12px',
-                          borderRadius: 9,
-                          background: 'var(--surface2)',
-                          border: '1px solid var(--border)',
-                          gap: 10,
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div key={tx.id} className="day-tx-item-card">
+                        <div className="day-tx-item-left">
                           <div
+                            className="day-tx-icon-wrap"
                             style={{
-                              width: 26,
-                              height: 26,
-                              borderRadius: '50%',
                               background: isCredit
-                                ? 'var(--credit-soft, rgba(16, 185, 129, 0.12))'
-                                : 'var(--debit-soft, rgba(239, 68, 68, 0.12))',
-                              color: isCredit ? 'var(--credit)' : 'var(--debit)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
+                                ? 'rgba(16, 185, 129, 0.12)'
+                                : 'rgba(239, 68, 68, 0.12)',
+                              color: isCredit ? '#10b981' : '#f87171',
                             }}
                           >
-                            {isCredit ? <ArrowDownLeft size={13} strokeWidth={2.5} /> : <ArrowUpRight size={13} strokeWidth={2.5} />}
+                            <CategoryIcon category={tx.category} size={16} />
                           </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontSize: 12.5,
-                                color: 'var(--text)',
-                                fontWeight: 600,
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                lineHeight: 1.3,
-                              }}
-                            >
-                              {tx.description}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 10.5,
-                                color: 'var(--text-3)',
-                                lineHeight: 1.2,
-                                marginTop: 2,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 5,
-                              }}
-                            >
+                          <div className="day-tx-meta">
+                            <span className="day-tx-title">{cleanDesc || tx.description}</span>
+                            <div className="day-tx-subtitle">
                               <span>{tx.category}</span>
-                              <span>·</span>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3.5 }}>
+                              <span>•</span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                 <span
                                   style={{
-                                    width: 5,
-                                    height: 5,
+                                    width: 5.5,
+                                    height: 5.5,
                                     borderRadius: '50%',
-                                    backgroundColor: tx.walletColor,
+                                    backgroundColor: tx.walletColor || 'var(--accent)',
                                     display: 'inline-block',
                                   }}
                                 />
@@ -963,111 +816,50 @@ export default function DailyWalletBalanceDrawer({
                           </div>
                         </div>
 
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 750,
-                            color: isCredit ? 'var(--credit)' : 'var(--debit)',
-                            fontVariantNumeric: 'tabular-nums',
-                            whiteSpace: 'nowrap',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {isCredit ? `+${fmtMoney(tx.amount, currency)}` : `-${fmtMoney(tx.amount, currency)}`}
-                        </span>
+                        <div className="day-tx-right">
+                          <span
+                            className={`day-tx-amount ${isCredit ? 'tx-credit' : 'tx-debit'}`}
+                          >
+                            {isCredit
+                              ? `+${fmtMoney(tx.amount, currency)}`
+                              : `-${fmtMoney(tx.amount, currency)}`}
+                          </span>
+                          <ChevronRight size={14} style={{ color: 'var(--text-3)', opacity: 0.6 }} />
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '24px 16px',
-                    borderRadius: 10,
-                    background: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    textAlign: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--text-2)' }}>No transactions on this date</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                <div className="day-sheet-empty-tx">
+                  <span className="day-sheet-empty-tx-title">No transactions on this date</span>
+                  <span className="day-sheet-empty-tx-sub">
                     The balance carried forward without any inflows or outflows.
-                  </div>
+                  </span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Day Details Drawer Footer with Quick Step Navigation */}
-          <div
-            style={{
-              padding: '10px 18px',
-              borderTop: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: 'var(--surface)',
-              flexShrink: 0,
-              gap: 8,
-            }}
-          >
+          {/* Bottom Navigation */}
+          <div className="day-sheet-footer">
             <button
               type="button"
+              className="day-sheet-nav-pill-btn"
               onClick={handlePrevDayInDetail}
-              disabled={selectedDayIndexInList <= 0}
-              style={{
-                height: 34,
-                padding: '0 12px',
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                background: 'var(--surface2)',
-                color: selectedDayIndexInList <= 0 ? 'var(--text-3)' : 'var(--text-2)',
-                opacity: selectedDayIndexInList <= 0 ? 0.35 : 1,
-                cursor: selectedDayIndexInList <= 0 ? 'not-allowed' : 'pointer',
-                fontSize: 11.5,
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
             >
-              <ChevronLeft size={14} />
+              <ArrowLeft size={15} strokeWidth={2.2} />
               <span>Prev Day</span>
             </button>
 
             <button
               type="button"
+              className="day-sheet-nav-pill-btn"
               onClick={handleNextDayInDetail}
-              disabled={selectedDayIndexInList < 0 || selectedDayIndexInList >= displayedRecords.length - 1}
-              style={{
-                height: 34,
-                padding: '0 10px',
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                background: 'var(--surface2)',
-                color:
-                  selectedDayIndexInList < 0 || selectedDayIndexInList >= displayedRecords.length - 1
-                    ? 'var(--text-3)'
-                    : 'var(--text-2)',
-                opacity: selectedDayIndexInList < 0 || selectedDayIndexInList >= displayedRecords.length - 1 ? 0.35 : 1,
-                cursor:
-                  selectedDayIndexInList < 0 || selectedDayIndexInList >= displayedRecords.length - 1
-                    ? 'not-allowed'
-                    : 'pointer',
-                fontSize: 11.5,
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
+              disabled={selectedDayRecord.dateStr >= todayStr}
             >
               <span>Next Day</span>
-              <ChevronRight size={14} />
+              <ArrowRight size={15} strokeWidth={2.2} />
             </button>
           </div>
         </div>

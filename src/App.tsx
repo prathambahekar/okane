@@ -17,7 +17,6 @@ import {
   ReceiptText,
   Wallet,
   Users,
-  User,
   Handshake,
   BarChart3,
   Settings as SettingsIconLucide,
@@ -342,8 +341,6 @@ function AppInner() {
     updateSettings({ colorMode: nextMode });
   };
 
-  const spendingMode = db.settings?.spendingMode || 'all';
-
   const [topbarFilterCount, setTopbarFilterCount] = useState(0);
 
   useEffect(() => {
@@ -535,7 +532,7 @@ function AppInner() {
         return <Recurring onNavigate={navigate} initialArg={viewArg} onClearViewArg={clearViewArg} />;
       case 'settlements': return <Settlements initialArg={viewArg} onClearViewArg={clearViewArg} />;
       case 'split-trips': return <SplitTrips initialArg={viewArg} onClearViewArg={clearViewArg} />;
-      case 'analytics': return <Analytics />;
+      case 'analytics': return <Analytics onNavigate={navigate} />;
       case 'settings':
         return (
           <Settings
@@ -952,38 +949,6 @@ function AppInner() {
               )}
 
 
-              {view === 'analytics' && (
-                <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextMode = spendingMode === 'all' ? 'me' : 'all';
-                      updateSettings({ spendingMode: nextMode });
-                    }}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '5px 12px',
-                      borderRadius: 999,
-                      background: spendingMode === 'me' ? 'var(--surface)' : 'var(--surface2)',
-                      color: 'var(--text)',
-                      border: '1px solid',
-                      borderColor: spendingMode === 'me' ? 'var(--border2)' : 'var(--border)',
-                      fontSize: 12,
-                      fontWeight: spendingMode === 'me' ? 650 : 500,
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      boxShadow: spendingMode === 'me' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
-                      transition: 'all 0.15s ease',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {spendingMode === 'me' ? <User size={14} style={{ color: 'var(--text)' }} /> : <Users size={14} />}
-                    <span>{spendingMode === 'me' ? 'Just Me' : 'All Expenses'}</span>
-                  </button>
-                </Box>
-              )}
 
               {view === 'friends' && (
                 <button
