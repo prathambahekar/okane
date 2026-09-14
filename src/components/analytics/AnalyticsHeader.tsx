@@ -3,12 +3,13 @@ import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ViewName } from '../../types';
 
 interface AnalyticsHeaderProps {
-  period: 'week' | 'month';
+  period: 'week' | 'month' | 'day' | 'year';
   setPeriod: (p: 'week' | 'month') => void;
   dateRangeLabel: string;
   onPrevDate: () => void;
   onNextDate: () => void;
   onResetDate?: () => void;
+  onOpenCalendar?: () => void;
   isCurrentPeriod?: boolean;
   onNavigate?: (v: ViewName) => void;
 }
@@ -20,6 +21,7 @@ export const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({
   onPrevDate,
   onNextDate,
   onResetDate,
+  onOpenCalendar,
   isCurrentPeriod = false,
 }) => {
   return (
@@ -62,9 +64,9 @@ export const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({
 
           <button
             type="button"
-            onClick={onResetDate}
+            onClick={onOpenCalendar || onResetDate}
             className="analytics-v2-date-label-btn"
-            title={isCurrentPeriod ? 'Current period' : 'Jump to current period'}
+            title="Open calendar to pick specific day, week, month, or year"
           >
             <Calendar size={15} className="analytics-v2-date-icon" strokeWidth={2.2} />
             <span className="analytics-v2-date-text">{dateRangeLabel}</span>

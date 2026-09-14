@@ -66,6 +66,13 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
   const settlementObj = ge.settlementId ? settlementsMap.get(ge.settlementId) : null;
   const groupStatus = getGroupSettlementStatus(ge);
 
+  const isUnpaid =
+    groupStatus.statusKey === 'unpaid' ||
+    groupStatus.statusLabel?.toLowerCase() === 'unpaid' ||
+    ge.items.some((i: Expense) => i.status === 'unpaid') ||
+    primaryItem.status === 'unpaid' ||
+    (ge.items.some((i: Expense) => i.type === 'by_friend') && !groupStatus.isAllSettled);
+
   let effectiveWalletName = walletObj?.name || settlementObj?.paymentMethod || '—';
   if (ge.category === 'Transfer') {
     if (ge.fromWalletName && ge.toWalletName) {
@@ -80,6 +87,8 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
       }
     }
   }
+
+  const showWallet = !isUnpaid && Boolean(walletObj || (effectiveWalletName && effectiveWalletName !== '—'));
 
   const isSettlement = ge.isSettlementGroup || ge.category === 'Settlement';
   const isTransfer = ge.category === 'Transfer' || ge.items.some((i: Expense) => i.category === 'Transfer');
@@ -251,6 +260,116 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
           <X size={12} strokeWidth={2.8} style={{ color: friendColor, flexShrink: 0, marginLeft: -1 }} />
         )}
       </button>
+    );
+  };
+
+  const renderCategorizedFriends = (isSideBySide = false) => {
+    if (categorizedFriends.length === 0) return null;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: isSideBySide ? 8 : 11, minWidth: 0 }}>
+        {/* 1. Friends the user owes ("I owe some") */}
+        {friendsIOwe.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isSideBySide ? 4 : 6, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, height: 16 }}>
+              <span style={{ fontSize: 10, fontWeight: 750, color: 'var(--debit, #ef4444)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 3.5 }}>
+                <ArrowDownLeft size={11.5} strokeWidth={2.6} />
+                You Owe
+              </span>
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 750,
+                  minWidth: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 3px',
+                  background: 'rgba(239, 68, 68, 0.16)',
+                  color: 'var(--debit, #ef4444)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  lineHeight: 1,
+                }}
+              >
+                {friendsIOwe.length}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 1, minWidth: 0 }}>
+              {friendsIOwe.map(cf => renderFriendChip(cf, 'var(--debit, #ef4444)'))}
+            </div>
+          </div>
+        )}
+
+        {/* 2. Friends who owe the user ("Some owe me") */}
+        {friendsOweMe.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isSideBySide ? 4 : 6, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, height: 16 }}>
+              <span style={{ fontSize: 10, fontWeight: 750, color: 'var(--credit, #10b981)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 3.5 }}>
+                <ArrowUpRight size={11.5} strokeWidth={2.6} />
+                They Owe
+              </span>
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 750,
+                  minWidth: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 3px',
+                  background: 'rgba(16, 185, 129, 0.16)',
+                  color: 'var(--credit, #10b981)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  lineHeight: 1,
+                }}
+              >
+                {friendsOweMe.length}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 1, minWidth: 0 }}>
+              {friendsOweMe.map(cf => renderFriendChip(cf, 'var(--credit, #10b981)'))}
+            </div>
+          </div>
+        )}
+
+        {/* 3. Neutral or general participants if any */}
+        {friendsNeutral.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isSideBySide ? 4 : 6, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, height: 16 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 3.5 }}>
+                <Users size={11.5} />
+                Participants
+              </span>
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 750,
+                  minWidth: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 3px',
+                  background: 'var(--accent-soft)',
+                  color: 'var(--text-2)',
+                  border: '1px solid var(--border)',
+                  lineHeight: 1,
+                }}
+              >
+                {friendsNeutral.length}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 1, minWidth: 0 }}>
+              {friendsNeutral.map(cf => renderFriendChip(cf, 'var(--accent)'))}
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -501,43 +620,54 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               borderRadius: 20,
             }}
           >
-            {/* Top Row: Wallet and Category (Date is already displayed cleanly in the header) */}
+            {/* Top Row: Wallet and Category (when wallet exists) OR Category and You Owe / They Owe (when wallet is hidden) */}
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                gridTemplateColumns: showWallet
+                  ? '1fr 1fr'
+                  : (categorizedFriends.length > 0 ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr'),
                 gap: 14,
-                alignItems: 'center',
+                alignItems: 'flex-start',
               }}
             >
-              {/* Wallet */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <WalletIcon size={11} style={{ color: 'var(--text-3)' }} />
-                  Wallet
-                </span>
-                <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--text)', wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {walletObj ? (
-                    <>
-                      {renderWalletIcon(walletObj.icon || walletObj.name, 13, walletObj.color)}
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{effectiveWalletName}</span>
-                    </>
-                  ) : (
-                    <span style={{ color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{effectiveWalletName}</span>
-                  )}
-                </span>
-              </div>
+              {/* Wallet (Hidden when unpaid or without wallet) */}
+              {showWallet && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4, height: 16 }}>
+                    <WalletIcon size={11} style={{ color: 'var(--text-3)' }} />
+                    Wallet
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--text)', wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: 6, marginTop: 1, minHeight: 28 }}>
+                    {walletObj ? (
+                      <>
+                        {renderWalletIcon(walletObj.icon || walletObj.name, 13, walletObj.color)}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{effectiveWalletName}</span>
+                      </>
+                    ) : (
+                      <span style={{ color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{effectiveWalletName}</span>
+                    )}
+                  </span>
+                </div>
+              )}
 
               {/* Category */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start', minWidth: 0 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4, height: 16 }}>
                   <Tag size={11} style={{ color: 'var(--text-3)' }} />
                   Category
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1, minHeight: 28 }}>
                   <CategoryBadge category={ge.category} color={categoryObj?.color} icon={categoryObj?.icon} size={11.5} />
                 </div>
               </div>
+
+              {/* When wallet is not there, place You Owe / They Owe on the right side */}
+              {!showWallet && categorizedFriends.length > 0 && (
+                <div style={{ minWidth: 0 }}>
+                  {renderCategorizedFriends(true)}
+                </div>
+              )}
             </div>
 
             {/* Vendor / Store Section if detected */}
@@ -606,112 +736,8 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               );
             })()}
 
-            {/* Friends Categorized: "You Owe" vs "Owes You" vs "Participants" */}
-            {categorizedFriends.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-                {/* 1. Friends the user owes ("I owe some") */}
-                {friendsIOwe.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10, fontWeight: 750, color: 'var(--debit, #ef4444)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <ArrowDownLeft size={12} strokeWidth={2.5} />
-                        You Owe
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 750,
-                          minWidth: 18,
-                          height: 18,
-                          borderRadius: '50%',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '0 4px',
-                          background: 'rgba(239, 68, 68, 0.16)',
-                          color: 'var(--debit, #ef4444)',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          lineHeight: 1,
-                        }}
-                      >
-                        {friendsIOwe.length}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      {friendsIOwe.map(cf => renderFriendChip(cf, 'var(--debit, #ef4444)'))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 2. Friends who owe the user ("Some owe me") */}
-                {friendsOweMe.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10, fontWeight: 750, color: 'var(--credit, #10b981)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <ArrowUpRight size={12} strokeWidth={2.5} />
-                        Owes You
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 750,
-                          minWidth: 18,
-                          height: 18,
-                          borderRadius: '50%',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '0 4px',
-                          background: 'rgba(16, 185, 129, 0.16)',
-                          color: 'var(--credit, #10b981)',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
-                          lineHeight: 1,
-                        }}
-                      >
-                        {friendsOweMe.length}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      {friendsOweMe.map(cf => renderFriendChip(cf, 'var(--credit, #10b981)'))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. Neutral or general participants if any */}
-                {friendsNeutral.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Users size={12} />
-                        Participants
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 750,
-                          minWidth: 18,
-                          height: 18,
-                          borderRadius: '50%',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '0 4px',
-                          background: 'var(--accent-soft)',
-                          color: 'var(--text-2)',
-                          border: '1px solid var(--border)',
-                          lineHeight: 1,
-                        }}
-                      >
-                        {friendsNeutral.length}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      {friendsNeutral.map(cf => renderFriendChip(cf, 'var(--accent)'))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Friends Categorized: "You Owe" vs "They Owe" vs "Participants" (Rendered full-width below ONLY if wallet is present) */}
+            {showWallet && categorizedFriends.length > 0 && renderCategorizedFriends(false)}
 
             {/* Notes if exists */}
             {primaryItem.notes && (

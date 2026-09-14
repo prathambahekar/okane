@@ -41,6 +41,13 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
 }) => {
   const primaryItem = ge.items[0];
 
+  const isUnpaid =
+    groupStatus.statusKey === 'unpaid' ||
+    groupStatus.statusLabel?.toLowerCase() === 'unpaid' ||
+    ge.items.some((i: Expense) => i.status === 'unpaid') ||
+    primaryItem?.status === 'unpaid' ||
+    (ge.items.some((i: Expense) => i.type === 'by_friend') && groupStatus.statusKey !== 'settled');
+
   let effectiveWalletName = walletObj?.name || settlementObj?.paymentMethod || '—';
   if (ge.category === 'Transfer') {
     if (ge.fromWalletName && ge.toWalletName) {
@@ -169,14 +176,18 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
           </div>
         </td>
         <td>
-          <span className="tx-wallet-pill" style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {walletObj ? (
-              renderWalletIcon(walletObj.icon || walletObj.name, 12, walletObj.color)
-            ) : (
-              <WalletIcon size={11} style={{ color: 'var(--text-3)' }} />
-            )}
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{effectiveWalletName}</span>
-          </span>
+          {isUnpaid ? (
+            <span style={{ color: 'var(--text-3)', fontSize: 13, opacity: 0.5, paddingLeft: 6 }}>—</span>
+          ) : (
+            <span className="tx-wallet-pill" style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {walletObj ? (
+                renderWalletIcon(walletObj.icon || walletObj.name, 12, walletObj.color)
+              ) : (
+                <WalletIcon size={11} style={{ color: 'var(--text-3)' }} />
+              )}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{effectiveWalletName}</span>
+            </span>
+          )}
         </td>
         <td>
           {groupStatus.statusKey !== 'none' && groupStatus.statusLabel ? (

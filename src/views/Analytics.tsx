@@ -19,7 +19,6 @@ import {
   Filter,
   Check,
   RotateCcw,
-  Plus,
 } from 'lucide-react';
 
 function padZero(n: number): string {
@@ -41,10 +40,9 @@ function getMonday(d: Date): Date {
 
 interface AnalyticsProps {
   onNavigate?: (v: ViewName) => void;
-  onAddExpense?: () => void;
 }
 
-export default function Analytics({ onNavigate, onAddExpense }: AnalyticsProps = {}) {
+export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   const { db, deleteExpense, showToast } = useStore();
   const { expenses, wallets, settings: { currency } } = db;
   const spendingMode = db.settings?.spendingMode || 'all';
@@ -414,20 +412,12 @@ export default function Analytics({ onNavigate, onAddExpense }: AnalyticsProps =
 
   return (
     <div className="view-container">
-      {/* Desktop Top Bar: Title, Search Bar & Quick Add */}
+      {/* Desktop Top Bar: Title & Search Bar */}
       <div className="page-header stats-page-header">
         <div>
-          <h1 className="page-title">Stats</h1>
+          <h1 className="page-title">Statistics</h1>
         </div>
         <DesktopSearchBar placeholder="Search expenses, contacts, wallets..." defaultTab="all" />
-        <div className="desktop-only" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {onAddExpense && (
-            <button className="btn btn-primary desktop-only" onClick={onAddExpense}>
-              <Plus size={16} />
-              <span>Add Expense</span>
-            </button>
-          )}
-        </div>
       </div>
 
       <div className="analytics-v2-container">
@@ -510,7 +500,7 @@ export default function Analytics({ onNavigate, onAddExpense }: AnalyticsProps =
                     id="analytics-filter-title"
                     style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', lineHeight: 1.2 }}
                   >
-                    Filter Stats
+                    Filter Statistics
                   </h3>
                   <div style={{ fontSize: '11.5px', color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
                     {activeFilterCount > 0

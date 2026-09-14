@@ -42,6 +42,14 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
 
   const activeWallet = walletObj || (walletsMap && (ge.walletId ? walletsMap.get(ge.walletId) : (ge.items[0]?.walletId ? walletsMap.get(ge.items[0].walletId) : undefined)));
 
+  const isUnpaid =
+    groupStatus.statusKey === 'unpaid' ||
+    groupStatus.statusLabel?.toLowerCase() === 'unpaid' ||
+    ge.items.some((i: Expense) => i.status === 'unpaid') ||
+    (ge.items.some((i: Expense) => i.type === 'by_friend') && groupStatus.statusKey !== 'settled');
+
+  const showWallet = !isUnpaid && Boolean(activeWallet) && !ge.isSettlementGroup;
+
   const catMeta = resolveCategoryMeta(ge.category, categoryObj, ge.isSettlementGroup);
 
   const handleClick = () => {
@@ -165,7 +173,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                 <span style={{ fontWeight: 500, flexShrink: 0 }}>{ge.category}</span>
               )}
 
-              {activeWallet && !ge.isSettlementGroup && (
+              {showWallet && activeWallet && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3.5, color: 'var(--text-2)', fontWeight: 500, flexShrink: 0 }}>
                   <span style={{ color: 'var(--text-3)', opacity: 0.6, fontSize: 8 }}>•</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3.5 }}>
@@ -179,7 +187,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
 
               {friendsToShow.length > 0 && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {(!ge.isSettlementGroup || activeWallet) && (
+                  {(!ge.isSettlementGroup || showWallet) && (
                     <span style={{ color: 'var(--text-3)', marginRight: 1, flexShrink: 0, fontSize: 8, opacity: 0.6 }}>•</span>
                   )}
                   {friendsToShow.length === 1 ? (

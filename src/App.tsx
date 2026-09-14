@@ -481,7 +481,7 @@ function AppInner() {
     {
       title: 'Insights',
       items: [
-        { id: 'analytics' as ViewName, label: 'Stats', icon: <BarChart3 size={18} /> },
+        { id: 'analytics' as ViewName, label: 'Statistics', icon: <BarChart3 size={18} /> },
       ]
     },
     {
@@ -503,9 +503,9 @@ function AppInner() {
     ...(enableAutopay ? [{ id: 'recurring' as ViewName, label: 'Autopay', icon: <RefreshCw size={20} /> }] : []),
     { id: 'wallets', label: 'Wallets', icon: <Wallet size={20} /> },
     { id: 'settlements', label: 'Settlements', icon: <Handshake size={20} /> },
-    { id: 'analytics', label: 'Stats', icon: <BarChart3 size={20} /> },
+    { id: 'analytics', label: 'Statistics', icon: <BarChart3 size={20} /> },
     { id: 'settings', label: 'Settings', icon: <SettingsIconLucide size={20} /> },
-    ...(enableDevSQLConsole ? [{ id: 'dev-sql' as ViewName, label: 'Dev SQL Console', icon: <Database size={20} /> }] : []),
+    ...(enableDevSQLConsole ? [{ id: 'dev-sql' as ViewName, label: 'Dev SQL Console', icon: <Database size={18} /> }] : []),
   ];
 
   const activeView = view === 'friend-detail' ? 'friends' : view;
@@ -532,7 +532,7 @@ function AppInner() {
         return <Recurring onNavigate={navigate} initialArg={viewArg} onClearViewArg={clearViewArg} />;
       case 'settlements': return <Settlements initialArg={viewArg} onClearViewArg={clearViewArg} />;
       case 'split-trips': return <SplitTrips initialArg={viewArg} onClearViewArg={clearViewArg} />;
-      case 'analytics': return <Analytics onNavigate={navigate} onAddExpense={() => setShowAddExpense(true)} />;
+      case 'analytics': return <Analytics onNavigate={navigate} />;
       case 'settings':
         return (
           <Settings
@@ -854,7 +854,7 @@ function AppInner() {
                    view === 'friend-detail' ? 'Contact Details' :
                    view === 'wallets' ? 'Wallets' :
                    view === 'recurring' ? 'Autopay' :
-                   view === 'analytics' ? 'Stats' :
+                   view === 'analytics' ? 'Statistics' :
                    view === 'settlements' ? 'Settlements' :
                    view === 'split-trips' ? 'Trips & Splits' :
                    view === 'settings' ? 'Settings' :

@@ -501,7 +501,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
             onClick={() => onNavigate('analytics')}
             style={{ fontSize: 11, padding: '4px 8px', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: 'auto' }}
           >
-            Stats →
+            Statistics →
           </button>
         )}
       </div>
