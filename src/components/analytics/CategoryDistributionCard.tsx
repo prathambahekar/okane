@@ -129,7 +129,7 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
       {categories.length === 0 ? (
         <div className="analytics-v2-empty-box">
           <div className="analytics-v2-empty-icon">
-            <PieChart size={24} strokeWidth={1.75} />
+            <PieChart size={20} strokeWidth={1.8} />
           </div>
           <div className="analytics-v2-empty-title">
             {selectedDate ? 'No spending on this day' : 'No spending yet'}

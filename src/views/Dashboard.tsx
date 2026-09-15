@@ -442,12 +442,31 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             </button>
           </div>
           {recentExpenses.length === 0 ? (
-            <div className="empty-state" style={{ padding: '32px 16px' }}>
-              <div className="empty-state-icon-badge" style={{ width: 44, height: 44, borderRadius: 14, marginBottom: 12 }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '28px 16px',
+              textAlign: 'center',
+              borderRadius: 12,
+              background: 'transparent'
+            }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                color: 'var(--text-3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 10
+              }}>
                 <ReceiptText size={20} strokeWidth={1.8} />
               </div>
-              <div className="empty-state-title" style={{ fontSize: '14.5px', marginBottom: 4 }}>No expenses yet</div>
-              <p className="empty-state-desc" style={{ fontSize: '13px', marginBottom: 0 }}>
+              <div style={{ fontSize: '14px', fontWeight: 650, color: 'var(--text)', marginBottom: 4 }}>No expenses yet</div>
+              <p style={{ fontSize: '13px', color: 'var(--text-3)', margin: 0, lineHeight: 1.45 }}>
                 Transactions you log will show up here.
               </p>
             </div>
@@ -582,29 +601,28 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '24px 16px',
+              padding: '28px 16px',
               textAlign: 'center',
               borderRadius: 12,
-              background: 'var(--surface2)',
-              border: '1px dashed var(--border)'
+              background: 'transparent'
             }}>
               <div style={{
-                width: 38,
-                height: 38,
-                borderRadius: 12,
-                background: 'var(--credit-bg, rgba(34, 197, 94, 0.12))',
-                color: 'var(--credit)',
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                background: 'var(--surface2)',
+                color: 'var(--text-3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: 8
+                marginBottom: 10
               }}>
-                <CheckCircle2 size={19} strokeWidth={2.2} />
+                <CheckCircle2 size={20} strokeWidth={1.8} />
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+              <div style={{ fontSize: '14px', fontWeight: 650, color: 'var(--text)', marginBottom: 4 }}>
                 All settled up
               </div>
-              <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '3px 0 0 0' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-3)', margin: 0, lineHeight: 1.45 }}>
                 No outstanding balances with friends
               </p>
             </div>

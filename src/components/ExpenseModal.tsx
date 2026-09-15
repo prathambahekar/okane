@@ -1040,15 +1040,15 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                                 type="button"
                                 title={itemText}
                                 style={{
-                                  fontSize: 11.5,
-                                  fontWeight: isSelected ? 750 : 600,
-                                  height: 26,
-                                  padding: '0 12px',
+                                  fontSize: 12.5,
+                                  fontWeight: isSelected ? 700 : 600,
+                                  height: 28,
+                                  padding: '0 13px',
                                   borderRadius: 9999,
-                                  border: isSelected ? '1px solid var(--border)' : '1px solid transparent',
-                                  background: isSelected ? 'var(--surface2)' : 'var(--surface3)',
-                                  color: isSelected ? 'var(--text)' : 'var(--text-2)',
-                                  boxShadow: isSelected ? '0 1px 3px rgba(0, 0, 0, 0.18)' : 'none',
+                                  border: isSelected ? 'none' : '1px solid var(--border)',
+                                  background: isSelected ? 'var(--text)' : 'var(--surface2)',
+                                  color: isSelected ? 'var(--bg)' : 'var(--text-2)',
+                                  boxShadow: isSelected ? '0 1px 4px rgba(0, 0, 0, 0.2)' : 'none',
                                   flexShrink: 0,
                                   display: 'inline-flex',
                                   alignItems: 'center',

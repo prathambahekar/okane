@@ -888,52 +888,50 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
         )}
 
         {sorted.length === 0 ? (
-          <div className="empty-state" style={{ padding: '36px 20px', textAlign: 'center' }}>
+          <div className="empty-state" style={{ padding: '32px 20px', textAlign: 'center' }}>
             <div
-              className="empty-state-icon-badge"
               style={{
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 borderRadius: 14,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: 'var(--surface2)',
                 color: 'var(--text-3)',
-                margin: '0 auto 14px',
+                margin: '0 auto 10px',
               }}
             >
-              <Handshake size={24} strokeWidth={1.8} />
+              <Handshake size={20} strokeWidth={1.8} />
             </div>
-            <div className="empty-state-title" style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+            <div className="empty-state-title" style={{ fontSize: '14px', fontWeight: 650, color: 'var(--text)', marginBottom: 4 }}>
               No settlements yet
             </div>
-            <p className="empty-state-desc" style={{ fontSize: '13px', color: 'var(--text-3)', maxWidth: 280, margin: '0 auto' }}>
+            <p className="empty-state-desc" style={{ fontSize: '13px', color: 'var(--text-2)', maxWidth: 300, margin: '0 auto', lineHeight: 1.45 }}>
               When you settle up with friends, detailed settlement records will appear here.
             </p>
           </div>
         ) : filteredSettlements.length === 0 ? (
-          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <div className="empty-state" style={{ padding: '32px 20px', textAlign: 'center' }}>
             <div
-              className="empty-state-icon-badge"
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 16,
+                width: 44,
+                height: 44,
+                borderRadius: 14,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: 'var(--surface2)',
                 color: 'var(--text-3)',
-                margin: '0 auto 14px',
+                margin: '0 auto 10px',
               }}
             >
-              <Filter size={24} strokeWidth={1.8} />
+              <Filter size={20} strokeWidth={1.8} />
             </div>
-            <div className="empty-state-title" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+            <div className="empty-state-title" style={{ fontSize: '14px', fontWeight: 650, color: 'var(--text)', marginBottom: 4 }}>
               No matching settlements
             </div>
-            <p className="empty-state-desc" style={{ fontSize: '13.5px', color: 'var(--text-3)', marginBottom: 20, maxWidth: 300, margin: '0 auto 20px' }}>
+            <p className="empty-state-desc" style={{ fontSize: '13px', color: 'var(--text-2)', maxWidth: 300, margin: '0 auto 16px', lineHeight: 1.45 }}>
               Try adjusting your search query or filters.
             </p>
             <button
@@ -945,17 +943,15 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                padding: '10px 24px',
+                padding: '8px 20px',
                 borderRadius: 12,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: 600,
-                minHeight: 42,
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
                 cursor: 'pointer',
               }}
             >
-              <RotateCcw size={15} strokeWidth={2.2} />
-              Reset Filters
+              <RotateCcw size={15} strokeWidth={2} />
+              <span>Reset Filters</span>
             </button>
           </div>
         ) : (

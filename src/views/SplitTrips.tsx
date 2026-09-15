@@ -14,7 +14,6 @@ import {
   X,
   PieChart,
   Check,
-  UserPlus,
   Handshake,
   Pencil,
   Users,
@@ -22,13 +21,28 @@ import {
   ChevronDown,
   ChevronUp,
   Compass,
+  User,
 } from 'lucide-react';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import { useStore } from '../store';
 import type { Trip, TripExpense, TripGroup, TripMember } from '../types';
-import { fmtMoney, currencySymbol } from '../utils';
+import { fmtMoney, currencySymbol, friendInitial, getAvatarStyle } from '../utils';
+import { FRIEND_PALETTE } from '../db';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
+
+// Helper to deterministically get contact-palette color for trip members
+function getTripMemberAvatarColor(name: string, index: number, contactColor?: string): string {
+  if (contactColor) return contactColor;
+  if (name.trim().toLowerCase() === 'you') return 'var(--accent)';
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i);
+    hash |= 0;
+  }
+  const paletteIndex = Math.abs(hash + index) % FRIEND_PALETTE.length;
+  return FRIEND_PALETTE[paletteIndex];
+}
 
 // Storage keys
 const STORAGE_KEY_ACTIVE_TRIP = 'okane_active_trip_v1';
@@ -146,6 +160,21 @@ function simplifyDebts(members: TripMember[], expenses: TripExpense[]) {
   return { balances, transactions, totalSpend, perPersonAvg };
 }
 
+const GROUP_AVATAR_COLORS = [
+  { bg: 'rgba(99, 102, 241, 0.22)', text: '#818cf8', border: 'rgba(99, 102, 241, 0.4)' }, // Indigo
+  { bg: 'rgba(16, 185, 129, 0.22)', text: '#34d399', border: 'rgba(16, 185, 129, 0.4)' }, // Emerald
+  { bg: 'rgba(245, 158, 11, 0.22)', text: '#fbbf24', border: 'rgba(245, 158, 11, 0.4)' }, // Amber
+  { bg: 'rgba(236, 72, 153, 0.22)', text: '#f472b6', border: 'rgba(236, 72, 153, 0.4)' }, // Pink
+  { bg: 'rgba(6, 182, 212, 0.22)',  text: '#22d3ee', border: 'rgba(6, 182, 212, 0.4)' }, // Cyan
+  { bg: 'rgba(168, 85, 247, 0.22)', text: '#c084fc', border: 'rgba(168, 85, 247, 0.4)' }, // Purple
+];
+
+function getGroupAvatarStyle(name: string) {
+  let charSum = 0;
+  for (let i = 0; i < name.length; i++) charSum += name.charCodeAt(i);
+  return GROUP_AVATAR_COLORS[charSum % GROUP_AVATAR_COLORS.length];
+}
+
 // -------------------------------------------------------------
 // REUSABLE BOTTOM DRAWER MODAL
 // -------------------------------------------------------------
@@ -153,7 +182,7 @@ interface BottomDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   children: React.ReactNode;
   icon?: React.ReactNode;
 }
@@ -285,12 +314,11 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
             {icon && (
               <div
                 style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '12px',
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--accent)',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'transparent',
+                  color: 'var(--text)',
                   display: 'grid',
                   placeItems: 'center',
                   flexShrink: 0,
@@ -304,9 +332,9 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
                 {title}
               </h3>
               {subtitle && (
-                <p style={{ fontSize: '11.5px', color: 'var(--text-3)', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: '12.5px', fontWeight: 450, color: 'var(--text-2)', margin: '3px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {subtitle}
-                </p>
+                </div>
               )}
             </div>
           </div>
@@ -1038,7 +1066,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
             onClick={() => setGroupsDrawerOpen(true)}
             title="Saved Groups"
           >
-            <Users size={16} style={{ color: 'var(--accent)' }} />
+            <Users size={16} />
             <span>Groups</span>
             <span className="split-trips-tab-badge">
               {presetGroups.length}
@@ -1051,7 +1079,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
             onClick={() => setHistoryDrawerOpen(true)}
             title="Trip History"
           >
-            <HistoryIcon size={16} style={{ color: 'var(--accent)' }} />
+            <HistoryIcon size={16} />
             <span>History</span>
             {tripHistory.length > 0 && (
               <span className="split-trips-tab-badge">
@@ -1071,98 +1099,162 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
           {activeTrip && activeTripSummary && (
             <div
               style={{
-                background: 'var(--accent-surface-gradient)',
-                border: '1px solid var(--accent-border-soft)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
                 borderRadius: '16px',
-                padding: '16px 20px',
+                padding: '22px 24px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '14px',
-                boxShadow: 'var(--shadow)',
+                gap: '18px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', width: '100%' }}>
-                <div>
-                  <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--accent)', fontWeight: 800 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px', width: '100%' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)', fontWeight: 800 }}>
                     Active Group Split
                   </div>
-                  <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text)', marginTop: '4px', letterSpacing: '-0.3px' }}>
                     {activeTrip.name}
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-2)', marginTop: '2px' }}>
-                    Total Spend: <strong style={{ color: 'var(--text)' }}>{fmtMoney(activeTripSummary.totalSpend, currency)}</strong> • {activeTrip.expenses.length} Expenses • {activeTrip.members.length} Members
+                  
+                  {/* Metadata Chips: Total Spend & Expenses (Always side-by-side on 1 row) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px', flexWrap: 'nowrap' }}>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '5px 10px',
+                      borderRadius: '9999px',
+                      background: 'var(--surface2)',
+                      border: '1px solid var(--border)',
+                      fontSize: '12px',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total Spend</span>
+                      <strong style={{ color: 'var(--text)', fontWeight: 800 }}>{fmtMoney(activeTripSummary.totalSpend, currency)}</strong>
+                    </div>
+
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '5px 10px',
+                      borderRadius: '9999px',
+                      background: 'var(--surface2)',
+                      border: '1px solid var(--border)',
+                      fontSize: '12px',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}>
+                      <Receipt size={13} style={{ color: 'var(--text-2)' }} />
+                      <strong style={{ color: 'var(--text)', fontWeight: 750 }}>{activeTrip.expenses.length}</strong>
+                      <span className="split-expense-text" style={{ color: 'var(--text-2)', fontWeight: 550 }}>Expenses</span>
+                    </div>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleCancelActiveTrip}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: 'var(--debit-bg)',
-                    color: 'var(--debit)',
-                    border: '1px solid var(--debit-border)',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    flexShrink: 0,
-                  }}
-                  title="Delete / Cancel Active Split"
-                >
-                  <Trash2 size={18} />
-                </button>
+                {/* Top Right Header Controls: Members Button + Delete Button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowMembersDrawer(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '5px',
+                      height: '38px',
+                      padding: '0 12px',
+                      borderRadius: '12px',
+                      background: 'var(--surface2)',
+                      color: 'var(--text)',
+                      border: '1px solid var(--border)',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    title={`View Members (${activeTrip.members.length})`}
+                  >
+                    <Users size={15} style={{ color: 'var(--text-2)' }} />
+                    <span>{activeTrip.members.length}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCancelActiveTrip}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '12px',
+                      background: 'var(--debit-bg)',
+                      color: 'var(--debit)',
+                      border: '1px solid var(--debit-border)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      flexShrink: 0,
+                    }}
+                    title="Delete / Cancel Active Split"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => setSubView('expenses')}
-                  style={{
-                    flex: '1 1 140px',
-                    padding: '10px 16px',
-                    borderRadius: '10px',
-                    background: 'var(--accent-gradient)',
-                    color: 'var(--accent-contrast, #ffffff)',
-                    border: 'none',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    boxShadow: '0 2px 8px var(--accent-soft)',
-                  }}
-                >
-                  <Receipt size={16} />
-                  <span>Resume Split</span>
-                </button>
-
+              {/* Action Buttons: New Split (Left) & Resume Split (Right) strictly side-by-side on 1 row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', marginTop: '2px' }}>
                 <button
                   type="button"
                   onClick={() => setAddTripDrawerOpen(true)}
                   style={{
-                    flex: '1 1 140px',
-                    padding: '10px 16px',
-                    borderRadius: '10px',
-                    background: 'var(--surface)',
+                    width: '100%',
+                    padding: '11px 16px',
+                    borderRadius: '9999px',
+                    background: 'var(--surface2)',
                     color: 'var(--text)',
                     border: '1px solid var(--border)',
-                    fontSize: '13px',
-                    fontWeight: 700,
+                    fontSize: '13.5px',
+                    fontWeight: 650,
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '6px',
+                    gap: '7px',
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  <Plus size={16} style={{ color: 'var(--accent)' }} />
+                  <Plus size={16} />
                   <span>New Split</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSubView('expenses')}
+                  style={{
+                    width: '100%',
+                    padding: '11px 16px',
+                    borderRadius: '9999px',
+                    background: 'var(--text)',
+                    color: 'var(--bg)',
+                    border: 'none',
+                    fontSize: '13.5px',
+                    fontWeight: 750,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '7px',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Receipt size={16} />
+                  <span>Resume Split</span>
                 </button>
               </div>
             </div>
@@ -1173,12 +1265,15 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
             <div className="split-hero-main">
               <div className="split-hero-info">
                 <div className="split-hero-icon">
-                  <Compass size={22} />
+                  <Compass size={22} strokeWidth={2} />
                 </div>
                 <div className="split-hero-text">
-                  <p className="split-hero-subtitle">
-                    Split bills, event expenses, and track shared costs with friends.
-                  </p>
+                  <div className="split-hero-eyebrow">
+                    Group Expenses
+                  </div>
+                  <h3 className="split-hero-title">
+                    Split bills & shared costs with friends.
+                  </h3>
                 </div>
               </div>
 
@@ -1201,7 +1296,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
             <div className="split-groups-strip">
               <div className="split-groups-strip-header">
                 <div className="split-groups-strip-title">
-                  <Users size={14} style={{ color: 'var(--accent)' }} />
+                  <Users size={14} style={{ color: 'var(--text-2)' }} />
                   <span>Saved Groups</span>
                   {presetGroups.length > 0 && (
                     <span className="split-groups-count-badge">
@@ -1212,42 +1307,54 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 {presetGroups.length > 0 && (
                   <button
                     type="button"
-                    className="split-groups-manage-btn"
+                    className="split-groups-manage-icon-btn"
                     onClick={() => setGroupsDrawerOpen(true)}
+                    title="Manage Groups"
                   >
-                    Manage
+                    <Users size={14} />
                   </button>
                 )}
               </div>
 
               <div className="split-groups-grid">
-                {presetGroups.map(grp => (
-                  <div
-                    key={grp.id}
-                    className="split-group-pill"
-                    onClick={() => {
-                      setSelectedGroupId(grp.id);
-                      setAddTripDrawerOpen(true);
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.key === ' ') {
+                {presetGroups.map(grp => {
+                  const avatarStyle = getGroupAvatarStyle(grp.name);
+                  return (
+                    <div
+                      key={grp.id}
+                      className="split-group-pill"
+                      onClick={() => {
                         setSelectedGroupId(grp.id);
                         setAddTripDrawerOpen(true);
-                      }
-                    }}
-                    title={`Start trip with ${grp.name}`}
-                  >
-                    <div className="split-group-avatar">
-                      {grp.name.charAt(0).toUpperCase()}
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setSelectedGroupId(grp.id);
+                          setAddTripDrawerOpen(true);
+                        }
+                      }}
+                      title={`Start trip with ${grp.name}`}
+                    >
+                      <div
+                        className="split-group-avatar"
+                        style={{
+                          background: avatarStyle.bg,
+                          color: avatarStyle.text,
+                          border: `1px solid ${avatarStyle.border}`
+                        }}
+                      >
+                        {grp.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="split-group-name">{grp.name}</span>
+                      <span className="split-group-member-badge">
+                        <span>{grp.memberNames.length}</span>
+                        <span className="split-group-member-unit"> {grp.memberNames.length === 1 ? 'member' : 'members'}</span>
+                      </span>
                     </div>
-                    <span className="split-group-name">{grp.name}</span>
-                    <span className="split-group-badge">
-                      {grp.memberNames.length} {grp.memberNames.length === 1 ? 'member' : 'members'}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
 
                 <button
                   type="button"
@@ -1255,7 +1362,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                   onClick={handleOpenAddGroupDrawer}
                   title="Create a new saved group"
                 >
-                  <Plus size={14} style={{ color: 'var(--accent)' }} />
+                  <Plus size={14} style={{ color: 'var(--text-2)' }} />
                   <span>{presetGroups.length === 0 ? 'Create a group' : 'New Group'}</span>
                 </button>
               </div>
@@ -1277,7 +1384,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
             <div
               style={{
                 background: 'var(--surface)',
-                borderRadius: '20px',
+                borderRadius: '16px',
                 border: '1px solid var(--border)',
                 padding: '20px',
                 display: 'flex',
@@ -1300,28 +1407,15 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                   <button
                     type="button"
                     onClick={() => setSubView('home')}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '34px',
-                      height: '34px',
-                      borderRadius: '10px',
-                      background: 'var(--surface2)',
-                      border: '1px solid var(--border-subtle)',
-                      color: 'var(--text)',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      transition: 'all 0.15s ease',
-                    }}
+                    className="split-card-back-btn"
                     title="Back to Home"
                   >
-                    <ArrowLeft size={16} />
+                    <ArrowLeft size={17} />
                   </button>
                   <div>
                     <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span>{activeTrip.name}</span>
-                      <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                      <span className="split-trip-group-badge">
                         {activeTrip.groupName}
                       </span>
                     </div>
@@ -1338,7 +1432,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                       justifyContent: 'center',
                       width: '36px',
                       height: '36px',
-                      borderRadius: '10px',
+                      borderRadius: '12px',
                       background: 'var(--surface2)',
                       border: '1px solid var(--border)',
                       color: 'var(--text)',
@@ -1376,22 +1470,22 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               <button
                 type="button"
                 onClick={() => setAddExpenseDrawerOpen(true)}
+                className="split-trip-add-expense-btn"
                 style={{
                   width: '100%',
                   padding: '13px 20px',
-                  borderRadius: '12px',
+                  borderRadius: '9999px',
                   background: 'var(--accent-gradient)',
                   color: 'var(--accent-contrast, #ffffff)',
                   border: 'none',
                   fontSize: '14px',
-                  fontWeight: 700,
+                  fontWeight: 750,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
                   boxShadow: '0 4px 14px var(--accent-soft)',
-                  transition: 'transform 0.15s ease, opacity 0.15s ease',
                 }}
               >
                 <Plus size={18} />
@@ -1550,27 +1644,11 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               <button
                 type="button"
                 onClick={() => setSubView('settle')}
-                style={{
-                  width: '100%',
-                  padding: '13px 20px',
-                  borderRadius: '12px',
-                  background: 'var(--surface2)',
-                  color: 'var(--text)',
-                  border: '1px solid var(--border)',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  marginTop: '4px',
-                  transition: 'all 0.15s ease',
-                }}
+                className="split-settle-up-btn"
               >
-                <Handshake size={17} style={{ color: 'var(--accent)' }} />
+                <Handshake size={17} className="split-settle-up-icon" />
                 <span>Settle Up & View Stats</span>
-                <ArrowRight size={15} style={{ color: 'var(--text-3)' }} />
+                <ArrowRight size={15} className="split-settle-up-arrow" />
               </button>
             </div>
           )}
@@ -1635,7 +1713,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               <div
                 style={{
                   background: 'var(--accent-surface-gradient)',
-                  borderRadius: '18px',
+                  borderRadius: '16px',
                   border: '1px solid var(--accent-border-soft)',
                   padding: '16px 18px',
                   display: 'flex',
@@ -1782,7 +1860,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               <div
                 style={{
                   background: 'var(--surface)',
-                  borderRadius: '20px',
+                  borderRadius: '16px',
                   border: '1px solid var(--border)',
                   padding: '16px 12px',
                   display: 'flex',
@@ -1818,7 +1896,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 </div>
 
                 {activeTripSummary.transactions.length === 0 ? (
-                  <div style={{ padding: '20px 16px', background: 'var(--surface2)', borderRadius: '14px', border: '1px solid var(--border-subtle)', fontSize: '13px', color: 'var(--text-2)', fontWeight: 600, textAlign: 'center' }}>
+                  <div style={{ padding: '20px 16px', background: 'var(--surface2)', borderRadius: '12px', border: '1px solid var(--border-subtle)', fontSize: '13px', color: 'var(--text-2)', fontWeight: 600, textAlign: 'center' }}>
                     🎉 Everyone is completely settled up! No transfers needed.
                   </div>
                 ) : (
@@ -1832,7 +1910,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                         }}
                         style={{
                           padding: '12px 14px',
-                          borderRadius: '14px',
+                          borderRadius: '12px',
                           background: 'var(--surface2)',
                           border: '1px solid var(--border-subtle)',
                           display: 'flex',
@@ -1932,7 +2010,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
           <div
             style={{
               background: 'var(--surface)',
-              borderRadius: '20px',
+              borderRadius: '16px',
               border: '1px solid var(--border)',
               padding: '20px',
               display: 'flex',
@@ -1958,28 +2036,15 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                     setSelectedArchivedTrip(null);
                     setSubView('home');
                   }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '10px',
-                    background: 'var(--surface2)',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--text)',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                    transition: 'all 0.15s ease',
-                  }}
+                  className="split-card-back-btn"
                   title="Back to Home"
                 >
-                  <ArrowLeft size={16} />
+                  <ArrowLeft size={17} />
                 </button>
                 <div>
                   <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span>{selectedArchivedTrip.name}</span>
-                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                    <span className="split-trip-group-badge">
                       {selectedArchivedTrip.groupName}
                     </span>
                     <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: 'var(--surface2)', color: 'var(--text-2)', border: '1px solid var(--border)' }}>
@@ -1999,7 +2064,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                     justifyContent: 'center',
                     width: '36px',
                     height: '36px',
-                    borderRadius: '10px',
+                    borderRadius: '12px',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
@@ -2038,7 +2103,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '12px 14px',
-                borderRadius: '14px',
+                borderRadius: '12px',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border-subtle)',
                 cursor: 'pointer',
@@ -2201,13 +2266,13 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 type="button"
                 onClick={handleClearAllHistory}
                 style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '9999px',
                   fontSize: '11px',
                   fontWeight: 700,
                   color: 'var(--debit)',
                   background: 'var(--debit-bg)',
-                  border: 'none',
+                  border: '1px solid var(--debit-border, transparent)',
                   cursor: 'pointer',
                 }}
               >
@@ -2309,12 +2374,12 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
             </div>
           ) : (
             <div className="drawer-groups-list">
-              {presetGroups.map(grp => {
+              {presetGroups.map((grp) => {
                 const isSelected = selectedGroupId === grp.id;
+                const avatarStyle = getGroupAvatarStyle(grp.name);
                 return (
                   <div
                     key={grp.id}
-                    className={`drawer-group-card ${isSelected ? 'is-selected' : ''}`}
                     onClick={() => {
                       setSelectedGroupId(grp.id);
                       setGroupsDrawerOpen(false);
@@ -2329,41 +2394,99 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                         showToast(`Selected group "${grp.name}"`);
                       }
                     }}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '16px',
+                      border: isSelected ? '1px solid var(--border2)' : '1px solid var(--border)',
+                      background: isSelected ? 'var(--surface3)' : 'var(--surface2)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '14px',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 2px 10px rgba(0, 0, 0, 0.08)' : 'none'
+                    }}
                   >
-                    <div className="drawer-group-card-left">
-                      <div className="drawer-group-icon">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '12px',
+                          background: avatarStyle.bg,
+                          color: avatarStyle.text,
+                          border: `1px solid ${avatarStyle.border}`,
+                          fontWeight: 800,
+                          fontSize: '15px',
+                          display: 'grid',
+                          placeItems: 'center',
+                          flexShrink: 0
+                        }}
+                      >
                         {grp.name.charAt(0).toUpperCase()}
                       </div>
-                      <div className="drawer-group-info">
-                        <div className="drawer-group-title-row">
-                          <span className="drawer-group-name">{grp.name}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {grp.name}
+                          </span>
+                          <span className="split-group-member-badge">
+                            <span>{grp.memberNames.length}</span>
+                            <span className="split-group-member-unit"> {grp.memberNames.length === 1 ? 'member' : 'members'}</span>
+                          </span>
                           {isSelected && (
-                            <CheckCircle2 size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                            <CheckCircle2 size={16} style={{ color: 'var(--text)', flexShrink: 0 }} />
                           )}
                         </div>
-                        <div className="drawer-group-members">
-                          {grp.memberNames.join(', ')} • {grp.memberNames.length} {grp.memberNames.length === 1 ? 'member' : 'members'}
+                        <div style={{ color: 'var(--text-2)', fontSize: '12.5px', fontWeight: 450, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {grp.memberNames.join(', ')}
                         </div>
                       </div>
                     </div>
 
-                    <div className="drawer-group-actions" onClick={e => e.stopPropagation()}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                       <button
                         type="button"
                         onClick={() => handleOpenEditGroupDrawer(grp)}
                         title="Edit Group"
-                        className="drawer-action-btn"
+                        className="split-group-edit-btn"
+                        style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          background: 'rgba(99, 102, 241, 0.14)',
+                          border: '1px solid rgba(99, 102, 241, 0.28)',
+                          color: '#818cf8',
+                          cursor: 'pointer',
+                          display: 'grid',
+                          placeItems: 'center',
+                          transition: 'all 0.15s ease',
+                          flexShrink: 0
+                        }}
                       >
-                        <Pencil size={13} />
+                        <Pencil size={14} />
                       </button>
 
                       <button
                         type="button"
                         onClick={(e) => handleDeleteGroup(grp.id, e)}
                         title="Delete Group"
-                        className="drawer-action-btn btn-delete"
+                        style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          background: 'var(--debit-bg)',
+                          border: '1px solid var(--debit-border)',
+                          color: 'var(--debit)',
+                          cursor: 'pointer',
+                          display: 'grid',
+                          placeItems: 'center',
+                          transition: 'all 0.15s ease',
+                          flexShrink: 0
+                        }}
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} style={{ color: 'var(--debit)' }} />
                       </button>
                     </div>
                   </div>
@@ -2376,9 +2499,26 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
           <button
             type="button"
             onClick={handleOpenAddGroupDrawer}
-            className="drawer-create-group-btn"
+            style={{
+              width: '100%',
+              padding: '13px 20px',
+              borderRadius: '9999px',
+              background: 'var(--accent-gradient)',
+              color: 'var(--accent-contrast, #ffffff)',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 14px var(--accent-soft)',
+              marginTop: '6px',
+              transition: 'transform 0.15s ease, opacity 0.15s ease'
+            }}
           >
-            <Plus size={15} style={{ color: 'var(--accent)' }} />
+            <Plus size={16} strokeWidth={2.5} style={{ color: 'var(--accent-contrast, #ffffff)' }} />
             <span>Create New Group</span>
           </button>
         </div>
@@ -2397,7 +2537,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
         <form onSubmit={handleSaveGroupFromDrawer} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Group Name */}
           <div>
-            <label style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 650, color: 'var(--text-2)', display: 'block', marginBottom: '6px' }}>
               Group Name
             </label>
             <input
@@ -2409,10 +2549,10 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               style={{
                 width: '100%',
                 fontSize: '13.5px',
-                padding: '10px 14px',
-                borderRadius: '10px',
+                padding: '11px 14px',
+                borderRadius: '12px',
                 border: '1px solid var(--border)',
-                background: 'var(--surface)',
+                background: 'var(--surface2)',
                 color: 'var(--text)',
                 boxSizing: 'border-box'
               }}
@@ -2423,7 +2563,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
           {/* Group Members Input */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <label style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+              <label style={{ fontSize: '12px', fontWeight: 650, color: 'var(--text-2)', margin: 0 }}>
                 Group Members ({drawerMembers.length})
               </label>
             </div>
@@ -2443,11 +2583,11 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 className="form-control"
                 style={{
                   width: '100%',
-                  fontSize: '13px',
-                  padding: '10px 80px 10px 14px',
-                  borderRadius: '10px',
+                  fontSize: '13.5px',
+                  padding: '11px 48px 11px 14px',
+                  borderRadius: '12px',
                   border: '1px solid var(--border)',
-                  background: 'var(--surface)',
+                  background: 'var(--surface2)',
                   color: 'var(--text)',
                   boxSizing: 'border-box'
                 }}
@@ -2455,53 +2595,52 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               <button
                 type="button"
                 onClick={handleAddMemberToDrawer}
+                title="Add member"
                 style={{
                   position: 'absolute',
-                  right: '4px',
-                  top: '4px',
-                  bottom: '4px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  padding: '0 12px',
-                  borderRadius: '7px',
-                  background: 'var(--accent-soft)',
-                  color: 'var(--accent)',
+                  right: '6px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '50%',
+                  background: 'var(--accent-gradient)',
+                  color: 'var(--accent-contrast, #ffffff)',
                   border: 'none',
                   cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  transition: 'background-color 0.15s ease, opacity 0.15s ease'
+                  display: 'grid',
+                  placeItems: 'center',
+                  boxShadow: '0 2px 6px var(--accent-soft)',
+                  transition: 'transform 0.15s ease, opacity 0.15s ease'
                 }}
               >
-                <UserPlus size={13} />
-                <span>Add</span>
+                <Plus size={16} strokeWidth={2.6} />
               </button>
             </div>
 
             {/* Member Chips */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
               {drawerMembers.map(mName => (
                 <span
                   key={mName}
                   style={{
-                    padding: '5px 12px',
-                    borderRadius: '99px',
-                    background: 'var(--surface2)',
-                    border: '1px solid var(--border)',
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    background: 'var(--accent-gradient)',
+                    color: 'var(--accent-contrast, #ffffff)',
                     fontSize: '12.5px',
-                    fontWeight: 600,
-                    color: 'var(--text)',
+                    fontWeight: 700,
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
+                    boxShadow: '0 2px 6px var(--accent-soft)',
                   }}
                 >
                   <span>{mName}</span>
                   {drawerMembers.length > 1 && (
                     <X
                       size={13}
-                      style={{ cursor: 'pointer', color: 'var(--text-3)', opacity: 0.8 }}
+                      style={{ cursor: 'pointer', opacity: 0.85 }}
                       onClick={() => handleRemoveMemberFromDrawer(mName)}
                     />
                   )}
@@ -2509,62 +2648,66 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               ))}
             </div>
 
-            {/* Import from Okane Contacts */}
-            {db.friends && db.friends.length > 0 && (
+            {/* Import from Okane Contacts (excluding Vendors) */}
+            {db.friends && db.friends.filter(f => f.type !== 'vendor').length > 0 && (
               <div style={{
-                padding: '12px',
+                padding: '12px 14px',
                 borderRadius: '12px',
                 background: 'var(--surface2)',
-                border: '1px solid var(--border-subtle)',
+                border: '1px solid var(--border)',
                 marginTop: '4px'
               }}>
-                <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: '8px' }}>
+                <span style={{ fontSize: '11.5px', fontWeight: 650, color: 'var(--text-2)', display: 'block', marginBottom: '8px' }}>
                   Quick add from Contacts:
                 </span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {db.friends.map(f => {
-                    const exists = drawerMembers.some(m => m.toLowerCase() === f.name.toLowerCase());
-                    return (
-                      <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => {
-                          if (!exists) setDrawerMembers([...drawerMembers, f.name]);
-                        }}
-                        disabled={exists}
-                        style={{
-                          fontSize: '11.5px',
-                          fontWeight: 600,
-                          padding: '5px 10px',
-                          borderRadius: '8px',
-                          border: exists ? '1px solid var(--border)' : '1px solid var(--border-subtle)',
-                          background: exists ? 'var(--surface3)' : 'var(--surface)',
-                          color: exists ? 'var(--text-3)' : 'var(--text)',
-                          cursor: exists ? 'default' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <span>{exists ? '✓' : '+'}</span>
-                        <span>{f.name}</span>
-                      </button>
-                    );
-                  })}
+                  {db.friends
+                    .filter(f => f.type !== 'vendor')
+                    .slice(0, 8)
+                    .map(f => {
+                      const exists = drawerMembers.some(m => m.toLowerCase() === f.name.toLowerCase());
+                      return (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => {
+                            if (!exists) setDrawerMembers([...drawerMembers, f.name]);
+                          }}
+                          disabled={exists}
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            padding: '6px 13px',
+                            borderRadius: '9999px',
+                            border: exists ? '1px solid var(--border)' : 'none',
+                            background: exists ? 'var(--surface3)' : 'var(--accent-gradient)',
+                            color: exists ? 'var(--text-3)' : 'var(--accent-contrast, #ffffff)',
+                            cursor: exists ? 'default' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            boxShadow: exists ? 'none' : '0 2px 6px var(--accent-soft)',
+                            transition: 'transform 0.15s ease, opacity 0.15s ease'
+                          }}
+                        >
+                          <span style={{ fontWeight: 800 }}>{exists ? '✓' : '+'}</span>
+                          <span>{f.name}</span>
+                        </button>
+                      );
+                    })}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Save Button (Full Width, No Bottom Cancel) */}
+          {/* Save Button */}
           <div style={{ width: '100%', paddingTop: '8px' }}>
             <button
               type="submit"
               style={{
                 width: '100%',
-                padding: '12px 20px',
-                borderRadius: '12px',
+                padding: '13px 20px',
+                borderRadius: '9999px',
                 background: 'var(--accent-gradient)',
                 color: 'var(--accent-contrast, #ffffff)',
                 border: 'none',
@@ -2599,7 +2742,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Split Name Input */}
           <div>
-            <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 650, color: 'var(--text)', display: 'block', marginBottom: '6px' }}>
               Split Name
             </label>
             <input
@@ -2611,10 +2754,11 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               style={{
                 width: '100%',
                 fontSize: '13.5px',
-                padding: '12px 14px',
+                padding: '11px 14px',
                 borderRadius: '12px',
                 border: '1px solid var(--border)',
-                background: 'var(--surface)',
+                background: 'var(--surface2)',
+                color: 'var(--text)',
               }}
             />
           </div>
@@ -2622,7 +2766,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
           {/* Select Group */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+              <label style={{ fontSize: '12px', fontWeight: 650, color: 'var(--text-2)', margin: 0 }}>
                 Select Group
               </label>
               <button
@@ -2634,9 +2778,9 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--accent)',
+                  color: 'var(--text-2)',
                   fontSize: '12px',
-                  fontWeight: 700,
+                  fontWeight: 650,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -2658,61 +2802,71 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                     setAddTripDrawerOpen(false);
                     handleOpenAddGroupDrawer();
                   }}
-                  style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                  style={{ background: 'none', border: 'none', color: 'var(--text)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
                 >
                   Create a group
                 </button>{' '}
                 first to start a trip.
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
-                {presetGroups.map(grp => {
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {presetGroups.map((grp) => {
                   const isSelected = selectedGroupId === grp.id;
+                  const avatarStyle = getGroupAvatarStyle(grp.name);
                   return (
                     <div
                       key={grp.id}
                       onClick={() => setSelectedGroupId(grp.id)}
                       style={{
-                        padding: '12px 14px',
-                        borderRadius: '12px',
+                        padding: '14px 16px',
+                        borderRadius: '16px',
                         border: isSelected ? '1px solid var(--border2)' : '1px solid var(--border)',
-                        background: isSelected ? 'var(--surface)' : 'var(--surface2)',
-                        boxShadow: isSelected ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                        background: isSelected ? 'var(--surface3)' : 'var(--surface2)',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        gap: '10px',
+                        gap: '12px',
+                        boxShadow: isSelected ? '0 2px 10px rgba(0, 0, 0, 0.08)' : 'none'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden', flex: 1 }}>
                         <div
                           style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '10px',
-                            background: isSelected ? 'var(--accent-gradient)' : 'var(--surface)',
-                            color: isSelected ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '12px',
+                            background: avatarStyle.bg,
+                            color: avatarStyle.text,
+                            border: `1px solid ${avatarStyle.border}`,
                             display: 'grid',
                             placeItems: 'center',
                             flexShrink: 0,
+                            fontSize: '15px',
+                            fontWeight: 800,
                           }}
                         >
-                          <Users size={16} />
+                          {grp.name.charAt(0).toUpperCase()}
                         </div>
-                        <div style={{ overflow: 'hidden' }}>
-                          <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {grp.name}
+                        <div style={{ overflow: 'hidden', minWidth: 0, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {grp.name}
+                            </span>
+                            <span className="split-group-member-badge">
+                              <span>{grp.memberNames.length}</span>
+                              <span className="split-group-member-unit"> {grp.memberNames.length === 1 ? 'member' : 'members'}</span>
+                            </span>
                           </div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontSize: '12.5px', fontWeight: 450, color: 'var(--text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {grp.memberNames.join(', ')}
                           </div>
                         </div>
                       </div>
 
                       {isSelected && (
-                        <CheckCircle2 size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                        <CheckCircle2 size={18} style={{ color: 'var(--text)', flexShrink: 0 }} />
                       )}
                     </div>
                   );
@@ -2728,8 +2882,8 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               onClick={handleStartTrip}
               style={{
                 width: '100%',
-                padding: '12px 20px',
-                borderRadius: '12px',
+                padding: '13px 20px',
+                borderRadius: '9999px',
                 background: 'var(--accent-gradient)',
                 color: 'var(--accent-contrast, #ffffff)',
                 border: 'none',
@@ -2789,7 +2943,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
 
             {/* Description */}
             <div>
-              <label style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: '6px' }}>
+              <label style={{ fontSize: '12.5px', fontWeight: 650, color: 'var(--text-2)', display: 'block', marginBottom: '6px' }}>
                 Description
               </label>
               <input
@@ -2801,10 +2955,10 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 style={{
                   width: '100%',
                   fontSize: '13.5px',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
+                  padding: '11px 14px',
+                  borderRadius: '12px',
                   border: '1px solid var(--border)',
-                  background: 'var(--surface)',
+                  background: 'var(--surface2)',
                   color: 'var(--text)',
                   boxSizing: 'border-box'
                 }}
@@ -2814,7 +2968,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
 
             {/* Who Paid */}
             <div>
-              <label style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: '6px' }}>
+              <label style={{ fontSize: '12.5px', fontWeight: 650, color: 'var(--text-2)', display: 'block', marginBottom: '6px' }}>
                 Who Paid?
               </label>
               <select
@@ -2824,10 +2978,10 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 style={{
                   width: '100%',
                   fontSize: '13.5px',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
+                  padding: '11px 14px',
+                  borderRadius: '12px',
                   border: '1px solid var(--border)',
-                  background: 'var(--surface)',
+                  background: 'var(--surface2)',
                   color: 'var(--text)',
                   boxSizing: 'border-box'
                 }}
@@ -2846,7 +3000,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '12px 14px',
-                borderRadius: '16px',
+                borderRadius: '12px',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border-subtle)',
                 cursor: 'pointer',
@@ -2860,7 +3014,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                     height: '38px',
                     borderRadius: '50%',
                     background: 'var(--accent-gradient, var(--card-bg, #1e1e24))',
-                    color: '#ffffff',
+                    color: 'var(--accent-contrast, #ffffff)',
                     display: 'grid',
                     placeItems: 'center',
                     flexShrink: 0,
@@ -2893,8 +3047,8 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 }}
                 style={{
                   padding: '6px 14px',
-                  borderRadius: '20px',
-                  background: 'var(--accent-gradient, #111111)',
+                  borderRadius: '9999px',
+                  background: 'var(--accent-gradient)',
                   color: 'var(--accent-contrast, #ffffff)',
                   border: 'none',
                   fontSize: '12px',
@@ -2914,8 +3068,8 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 type="submit"
                 style={{
                   width: '100%',
-                  padding: '12px 20px',
-                  borderRadius: '12px',
+                  padding: '13px 20px',
+                  borderRadius: '9999px',
                   background: 'var(--accent-gradient)',
                   color: 'var(--accent-contrast, #ffffff)',
                   border: 'none',
@@ -2943,69 +3097,245 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
         isOpen={showMembersDrawer}
         onClose={() => setShowMembersDrawer(false)}
         title={`Trip Members (${activeTrip?.members.length || selectedArchivedTrip?.members.length || 0})`}
-        subtitle={activeTrip ? `Group: ${activeTrip.groupName}` : selectedArchivedTrip ? `Group: ${selectedArchivedTrip.groupName}` : ''}
+        subtitle={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '2.5px 9px',
+                borderRadius: '9999px',
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                lineHeight: 1.2,
+              }}
+            >
+              <Users size={12} style={{ color: 'var(--accent)' }} />
+              <span>{activeTrip ? activeTrip.groupName : selectedArchivedTrip ? selectedArchivedTrip.groupName : 'Trip Group'}</span>
+            </span>
+            <span style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500 }}>
+              • Tap any member for details
+            </span>
+          </div>
+        }
         icon={<Users size={20} style={{ color: 'var(--accent)' }} />}
       >
-        <div
-          style={{
-            padding: '8px 12px 20px 12px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '8px',
-          }}
-        >
-          {(activeTrip || selectedArchivedTrip)?.members.map((m, idx) => {
-            return (
+        {(() => {
+          const tripData = activeTrip || selectedArchivedTrip;
+          const membersList = tripData?.members || [];
+          const summary = activeTrip ? activeTripSummary : archiveTripSummary;
+          const hasExpenses = (tripData?.expenses.length || 0) > 0;
+          let syncedCount = 0;
+
+          return (
+            <div style={{ padding: '6px 14px 20px 14px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Member Cards Grid */}
               <div
-                key={m.id || idx}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                   gap: '10px',
-                  padding: '10px 12px',
-                  borderRadius: '12px',
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border-subtle)',
-                  minWidth: 0,
-                  width: '100%',
-                  boxSizing: 'border-box',
                 }}
               >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    background: 'var(--accent-soft)',
-                    color: 'var(--accent)',
-                    border: '1px solid var(--accent-border-soft)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontWeight: 700,
-                    fontSize: '13.5px',
-                    flexShrink: 0,
-                  }}
-                >
-                  {m.name.charAt(0).toUpperCase()}
+                {membersList.map((m, idx) => {
+                  const isYou = m.name.trim().toLowerCase() === 'you';
+                  const matchingContact = db.friends.find(
+                    f => f.id === m.id || f.name.trim().toLowerCase() === m.name.trim().toLowerCase()
+                  );
+                  if (matchingContact || isYou) syncedCount++;
+
+                  const color = getTripMemberAvatarColor(m.name, idx, matchingContact?.color);
+                  const avatarStyle: React.CSSProperties = isYou
+                    ? {
+                        background: 'var(--accent-gradient)',
+                        color: 'var(--accent-contrast, #ffffff)',
+                        border: 'none',
+                        boxShadow: '0 2px 8px var(--accent-soft)',
+                      }
+                    : getAvatarStyle(color);
+
+                  const memBal = summary?.balances?.[m.id];
+
+                  return (
+                    <div
+                      key={m.id || idx}
+                      className="trip-member-card"
+                      onClick={() => {
+                        setSelectedMemberIdForDetail(m.id);
+                        setBreakdownDrawerOpen(true);
+                        setShowMembersDrawer(false);
+                      }}
+                      title={`View ${m.name}'s balance & expenses`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 12px',
+                        borderRadius: '16px',
+                        cursor: 'pointer',
+                        minWidth: 0,
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        position: 'relative',
+                        userSelect: 'none',
+                      }}
+                    >
+                      {/* Avatar Badge with Squircle Radius matching Contact Page (12px) */}
+                      <div
+                        style={{
+                          ...avatarStyle,
+                          width: 38,
+                          height: 38,
+                          borderRadius: '12px',
+                          display: 'grid',
+                          placeItems: 'center',
+                          fontWeight: 750,
+                          fontSize: '14px',
+                          flexShrink: 0,
+                          lineHeight: 1,
+                        }}
+                      >
+                        {friendInitial(m.name, matchingContact?.avatarNumber)}
+                      </div>
+
+                      {/* Info & Badges */}
+                      <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                          <span
+                            style={{
+                              fontWeight: 700,
+                              fontSize: '13.5px',
+                              color: 'var(--text)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              letterSpacing: '-0.01em',
+                            }}
+                          >
+                            {m.name}
+                          </span>
+                          {isYou && (
+                            <span className="trip-member-pill you">
+                              You
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Status / Badge Row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                          {hasExpenses && memBal ? (
+                            memBal.net > 0.01 ? (
+                              <span className="trip-member-pill credit">
+                                +{fmtMoney(memBal.net, currency)}
+                              </span>
+                            ) : memBal.net < -0.01 ? (
+                              <span className="trip-member-pill debit">
+                                {fmtMoney(memBal.net, currency)}
+                              </span>
+                            ) : (
+                              <span className="trip-member-pill settled">
+                                Settled ✓
+                              </span>
+                            )
+                          ) : matchingContact ? (
+                            <span className="trip-member-pill contact">
+                              <User size={10} strokeWidth={2.4} style={{ color: matchingContact.color || 'var(--accent)' }} />
+                              <span>Contact</span>
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 500,
+                                color: 'var(--text-3)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              Trip Member
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Chevron Navigation Indicator */}
+                      <ChevronRight
+                        size={14}
+                        style={{
+                          color: 'var(--text-3)',
+                          opacity: 0.5,
+                          flexShrink: 0,
+                          marginLeft: 'auto',
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Quick Bar */}
+              <div
+                style={{
+                  padding: '11px 14px',
+                  borderRadius: '14px',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                  <span style={{ fontSize: '12px', color: 'var(--text-2)', fontWeight: 650 }}>
+                    {membersList.length} members • {syncedCount} synced
+                  </span>
                 </div>
 
-                <span
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMemberIdForDetail(null);
+                    setBreakdownDrawerOpen(true);
+                    setShowMembersDrawer(false);
+                  }}
                   style={{
-                    fontWeight: 600,
-                    fontSize: '14px',
+                    padding: '6px 12px',
+                    borderRadius: '9999px',
+                    background: 'var(--surface)',
                     color: 'var(--text)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    minWidth: 0,
+                    border: '1px solid var(--border)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent)';
+                    e.currentTarget.style.color = 'var(--accent)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border)';
+                    e.currentTarget.style.color = 'var(--text)';
                   }}
                 >
-                  {m.name}
-                </span>
+                  <PieChart size={13} style={{ color: 'var(--accent)' }} />
+                  <span>View All Balances</span>
+                </button>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })()}
       </BottomDrawer>
 
       {/* ========================================================================= */}
@@ -3105,31 +3435,92 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
 
                 {/* Member Chips - Compact wrap layout */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {activeTrip.members.map(m => {
+                  {activeTrip.members.map((m, mIdx) => {
                     const isSelected = effectiveSplitMembers.includes(m.id);
+                    const isYou = m.name.trim().toLowerCase() === 'you';
+                    const matchingContact = db.friends.find(
+                      f => f.id === m.id || f.name.trim().toLowerCase() === m.name.trim().toLowerCase()
+                    );
+                    const color = getTripMemberAvatarColor(m.name, mIdx, matchingContact?.color);
+
                     return (
                       <button
                         key={m.id}
                         type="button"
                         onClick={() => toggleSplitMember(m.id)}
                         style={{
-                          padding: '8px 14px',
-                          borderRadius: '10px',
+                          padding: '7px 12px',
+                          borderRadius: '12px',
                           fontSize: '13px',
-                          fontWeight: isSelected ? 650 : 500,
-                          border: isSelected ? '1px solid var(--border2)' : '1px solid var(--border-subtle)',
+                          fontWeight: isSelected ? 700 : 550,
+                          border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
                           background: isSelected ? 'var(--surface)' : 'var(--surface2)',
                           color: 'var(--text)',
-                          boxShadow: isSelected ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                          boxShadow: isSelected ? '0 1px 4px rgba(0, 0, 0, 0.08)' : 'none',
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '6px',
-                          transition: 'all 0.15s ease'
+                          gap: '7px',
+                          transition: 'all 0.15s ease',
                         }}
                       >
-                        {isSelected ? <Check size={14} /> : <span style={{ opacity: 0.5 }}>+</span>}
+                        {/* Mini Avatar Badge */}
+                        <span
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: '7px',
+                            display: 'grid',
+                            placeItems: 'center',
+                            fontSize: '11px',
+                            fontWeight: 750,
+                            ...(isYou
+                              ? { background: 'var(--accent-gradient)', color: '#fff' }
+                              : { background: `${color}25`, color: color, border: `1px solid ${color}40` }),
+                            flexShrink: 0,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {friendInitial(m.name, matchingContact?.avatarNumber)}
+                        </span>
+
                         <span>{m.name}</span>
+
+                        {isSelected ? (
+                          <span
+                            style={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: '50%',
+                              background: 'var(--accent-soft)',
+                              color: 'var(--accent)',
+                              display: 'grid',
+                              placeItems: 'center',
+                              marginLeft: '2px',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Check size={11} strokeWidth={3} />
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: '50%',
+                              background: 'transparent',
+                              color: 'var(--text-3)',
+                              display: 'grid',
+                              placeItems: 'center',
+                              marginLeft: '2px',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              flexShrink: 0,
+                            }}
+                          >
+                            +
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -3144,21 +3535,48 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                   Specify amount per person:
                 </span>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                  {activeTrip.members.map(m => (
-                    <div
-                      key={m.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '6px',
-                        padding: '6px 10px',
-                        borderRadius: '10px',
-                        background: 'var(--surface2)',
-                        border: '1px solid var(--border-subtle)',
-                      }}
-                    >
-                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</span>
+                  {activeTrip.members.map((m, mIdx) => {
+                    const isYou = m.name.trim().toLowerCase() === 'you';
+                    const matchingContact = db.friends.find(
+                      f => f.id === m.id || f.name.trim().toLowerCase() === m.name.trim().toLowerCase()
+                    );
+                    const color = getTripMemberAvatarColor(m.name, mIdx, matchingContact?.color);
+
+                    return (
+                      <div
+                        key={m.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '6px',
+                          padding: '7px 10px',
+                          borderRadius: '12px',
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                          <span
+                            style={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: '6px',
+                              display: 'grid',
+                              placeItems: 'center',
+                              fontSize: '10px',
+                              fontWeight: 750,
+                              ...(isYou
+                                ? { background: 'var(--accent-gradient)', color: '#fff' }
+                                : { background: `${color}25`, color: color }),
+                              flexShrink: 0,
+                              lineHeight: 1,
+                            }}
+                          >
+                            {friendInitial(m.name, matchingContact?.avatarNumber)}
+                          </span>
+                          <span style={{ fontSize: '12.5px', fontWeight: 650, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</span>
+                        </div>
                       <div
                         style={{
                           display: 'flex',
@@ -3192,8 +3610,9 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                         />
                       </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
+              </div>
               </div>
             )}
 
@@ -3204,8 +3623,8 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 onClick={() => setSplitDrawerOpen(false)}
                 style={{
                   width: '100%',
-                  padding: '12px 20px',
-                  borderRadius: '12px',
+                  padding: '13px 20px',
+                  borderRadius: '9999px',
                   background: 'var(--accent-gradient)',
                   color: 'var(--accent-contrast, #ffffff)',
                   border: 'none',
@@ -3213,6 +3632,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                   fontWeight: 700,
                   cursor: 'pointer',
                   boxShadow: '0 4px 14px var(--accent-soft)',
+                  transition: 'transform 0.15s ease, opacity 0.15s ease',
                 }}
               >
                 Done
@@ -3303,31 +3723,40 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div
-                          style={{
-                            width: '44px',
-                            height: '44px',
-                            borderRadius: '14px',
-                            background: isPositive
-                              ? 'var(--credit-bg)'
-                              : isNegative
-                              ? 'var(--debit-bg)'
-                              : 'var(--surface2)',
-                            border: isPositive
-                              ? '1px solid var(--credit-border)'
-                              : isNegative
-                              ? '1px solid var(--debit-border)'
-                              : '1px solid var(--border)',
-                            color: isPositive ? 'var(--credit)' : isNegative ? 'var(--debit)' : 'var(--text-3)',
-                            display: 'grid',
-                            placeItems: 'center',
-                            fontSize: '16px',
-                            fontWeight: 800,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {m.name.charAt(0).toUpperCase()}
-                        </div>
+                        {(() => {
+                          const isYou = m.name.trim().toLowerCase() === 'you';
+                          const matchingContact = db.friends.find(
+                            f => f.id === m.id || f.name.trim().toLowerCase() === m.name.trim().toLowerCase()
+                          );
+                          const color = getTripMemberAvatarColor(m.name, 0, matchingContact?.color);
+                          const avatarStyle: React.CSSProperties = isYou
+                            ? {
+                                background: 'var(--accent-gradient)',
+                                color: 'var(--accent-contrast, #ffffff)',
+                                border: 'none',
+                                boxShadow: '0 2px 8px var(--accent-soft)',
+                              }
+                            : getAvatarStyle(color);
+
+                          return (
+                            <div
+                              style={{
+                                ...avatarStyle,
+                                width: '44px',
+                                height: '44px',
+                                borderRadius: '14px',
+                                display: 'grid',
+                                placeItems: 'center',
+                                fontSize: '16px',
+                                fontWeight: 800,
+                                flexShrink: 0,
+                                lineHeight: 1,
+                              }}
+                            >
+                              {friendInitial(m.name, matchingContact?.avatarNumber)}
+                            </div>
+                          );
+                        })()}
                         <div>
                           <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)' }}>
                             {m.name}
@@ -3533,31 +3962,40 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                     >
                       {/* Avatar & Member Name */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                        <div
-                          style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '12px',
-                            background: isPositive
-                              ? 'var(--credit-bg)'
-                              : isNegative
-                              ? 'var(--debit-bg)'
-                              : 'var(--surface2)',
-                            border: isPositive
-                              ? '1px solid var(--credit-border)'
-                              : isNegative
-                              ? '1px solid var(--debit-border)'
-                              : '1px solid var(--border)',
-                            color: isPositive ? 'var(--credit)' : isNegative ? 'var(--debit)' : 'var(--text-3)',
-                            display: 'grid',
-                            placeItems: 'center',
-                            fontSize: '15px',
-                            fontWeight: 800,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {m.name.charAt(0).toUpperCase()}
-                        </div>
+                        {(() => {
+                          const isYou = m.name.trim().toLowerCase() === 'you';
+                          const matchingContact = db.friends.find(
+                            f => f.id === m.id || f.name.trim().toLowerCase() === m.name.trim().toLowerCase()
+                          );
+                          const color = getTripMemberAvatarColor(m.name, 0, matchingContact?.color);
+                          const avatarStyle: React.CSSProperties = isYou
+                            ? {
+                                background: 'var(--accent-gradient)',
+                                color: 'var(--accent-contrast, #ffffff)',
+                                border: 'none',
+                                boxShadow: '0 2px 8px var(--accent-soft)',
+                              }
+                            : getAvatarStyle(color);
+
+                          return (
+                            <div
+                              style={{
+                                ...avatarStyle,
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '12px',
+                                display: 'grid',
+                                placeItems: 'center',
+                                fontSize: '14.5px',
+                                fontWeight: 750,
+                                flexShrink: 0,
+                                lineHeight: 1,
+                              }}
+                            >
+                              {friendInitial(m.name, matchingContact?.avatarNumber)}
+                            </div>
+                          );
+                        })()}
                         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                           <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                             {m.name}
