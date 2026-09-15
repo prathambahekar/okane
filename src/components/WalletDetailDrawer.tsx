@@ -4,7 +4,6 @@ import {
   TrendingDown,
   TrendingUp,
   X,
-  RotateCcw,
   Handshake,
   Users,
   Search,
@@ -441,12 +440,15 @@ export default function WalletDetailDrawer({
           )}
         </div>
 
-        {/* Transactions Content List */}
+        {/* Transactions Content List - Single Card wrapping all items */}
         <div
           style={{
             flex: 1,
-            overflowY: 'auto',
-            padding: '10px 16px calc(24px + env(safe-area-inset-bottom, 0px))',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            padding: '4px 16px calc(24px + env(safe-area-inset-bottom, 0px))',
             background: 'var(--surface)',
           }}
         >
@@ -462,8 +464,73 @@ export default function WalletDetailDrawer({
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {filteredTx.map((tx, idx) => {
+            <div
+              className="card"
+              style={{
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                borderRadius: 16,
+                padding: '8px 6px',
+                boxSizing: 'border-box',
+                width: '100%',
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Transactions Card Title Header (Fixed) */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 10px 6px 10px',
+                  marginBottom: 2,
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    style={{
+                      fontSize: '14.5px',
+                      fontWeight: 700,
+                      color: 'var(--text)',
+                      letterSpacing: '-0.2px',
+                    }}
+                  >
+                    Transactions
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '11.5px',
+                      fontWeight: 650,
+                      color: 'var(--text-3)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      padding: '2px 8px',
+                      borderRadius: 9999,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {filteredTx.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Scrollable Container for Inner Cards/Rows */}
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                  paddingRight: 2,
+                }}
+              >
+                {filteredTx.map((tx, idx) => {
                 let effectiveCategory = tx.category;
                 const descLower = (tx.description || '').toLowerCase();
                 if (
@@ -556,25 +623,23 @@ export default function WalletDetailDrawer({
                       }
                     }}
                     style={{
-                      padding: '14px 16px',
-                      borderRadius: 16,
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface2)',
+                      padding: '9px 10px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: 12,
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease',
+                      borderRadius: 12,
+                      transition: 'background-color 0.15s ease, transform 0.1s ease',
                     }}
-                    className="wallet-tx-item"
+                    className="recent-expense-row-inside-card"
                   >
                     {/* Left Side: Icon + Details */}
                     <div
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 12,
+                        gap: 10,
                         minWidth: 0,
                         flex: '1 1 auto',
                         overflow: 'hidden',
@@ -583,9 +648,9 @@ export default function WalletDetailDrawer({
                       {/* Category / Settlement Icon Tile */}
                       <div
                         style={{
-                          width: 42,
-                          height: 42,
-                          borderRadius: 13,
+                          width: 38,
+                          height: 38,
+                          borderRadius: 11,
                           backgroundColor: catMeta.bg,
                           border: `1px solid ${catMeta.border}`,
                           display: 'grid',
@@ -595,12 +660,12 @@ export default function WalletDetailDrawer({
                         }}
                       >
                         {tx.isSettlement ? (
-                          <Handshake size={20} style={{ color: '#10B981' }} />
+                          <Handshake size={19} style={{ color: '#10B981' }} />
                         ) : (
                           <CategoryIcon
                             category={catMeta.name}
                             icon={catMeta.icon}
-                            size={20}
+                            size={19}
                             style={{ color: catMeta.color }}
                           />
                         )}
@@ -608,7 +673,7 @@ export default function WalletDetailDrawer({
 
                       {/* Info Block */}
                       <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
-                        {/* Title Line */}
+                        {/* Title Line with Split Badge next to title */}
                         <div
                           style={{
                             display: 'flex',
@@ -620,7 +685,7 @@ export default function WalletDetailDrawer({
                           <span
                             style={{
                               fontWeight: 650,
-                              fontSize: '14px',
+                              fontSize: '13.5px',
                               color: 'var(--text)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
@@ -629,6 +694,28 @@ export default function WalletDetailDrawer({
                           >
                             {cleanSettlementDescription(tx.description)}
                           </span>
+                          {isSplit && (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                padding: '1.5px 6px',
+                                borderRadius: 9999,
+                                fontSize: '10px',
+                                fontWeight: 650,
+                                backgroundColor: 'rgba(99, 102, 241, 0.14)',
+                                color: '#818CF8',
+                                border: '1px solid rgba(99, 102, 241, 0.25)',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                                lineHeight: 1.1,
+                              }}
+                            >
+                              <Users size={9} />
+                              <span>Split</span>
+                            </span>
+                          )}
                         </div>
 
                         {/* Subtitle Hierarchy */}
@@ -637,66 +724,45 @@ export default function WalletDetailDrawer({
                           dateText={fmtDate(tx.date)}
                           vendor={vendor}
                           friends={friend && !vendor ? [friend] : []}
-                          style={{ fontSize: '12px', marginTop: 3 }}
+                          style={{ fontSize: '11.5px', marginTop: 2 }}
                         />
                       </div>
                     </div>
 
                     {/* Right Side: Amount + Status */}
-                    <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: 10 }}>
+                    <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: 8 }}>
                       <div
                         style={{
-                          fontSize: '14.5px',
+                          fontSize: '13.5px',
                           fontWeight: 750,
+                          fontVariantNumeric: 'tabular-nums',
                           color: isIn ? 'var(--credit)' : 'var(--debit)',
                         }}
                       >
                         {isIn ? '+' : '-'}
                         {fmtMoney(tx.amount, currency)}
                       </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'flex-end',
-                          gap: 6,
-                          marginTop: 3,
-                        }}
-                      >
-                        {isSplit && (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 3,
-                              padding: '2px 7px',
-                              borderRadius: 9999,
-                              fontSize: '10.5px',
-                              fontWeight: 650,
-                              backgroundColor: 'rgba(99, 102, 241, 0.12)',
-                              color: '#818CF8',
-                              border: '1px solid rgba(99, 102, 241, 0.25)',
-                              whiteSpace: 'nowrap',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Users size={10} />
-                            <span>Split</span>
-                          </span>
-                        )}
-                        {tx.statusKey &&
-                          tx.statusKey !== 'none' &&
-                          statusLabel(tx.statusKey) &&
-                          (() => {
-                            const bCol = getBadgeColors(tx.statusKey);
-                            return (
+                      {tx.statusKey &&
+                        tx.statusKey !== 'none' &&
+                        statusLabel(tx.statusKey) &&
+                        (() => {
+                          const bCol = getBadgeColors(tx.statusKey);
+                          return (
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'flex-end',
+                                marginTop: 2,
+                              }}
+                            >
                               <span
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  fontSize: '10.5px',
+                                  fontSize: '10px',
                                   fontWeight: 650,
-                                  padding: '2px 8px',
+                                  padding: '1px 7px',
                                   borderRadius: 9999,
                                   backgroundColor: bCol.bg,
                                   color: bCol.color,
@@ -706,39 +772,14 @@ export default function WalletDetailDrawer({
                               >
                                 {statusLabel(tx.statusKey)}
                               </span>
-                            );
-                          })()}
-                        {tx.isSettlement && (
-                          <button
-                            type="button"
-                            style={{
-                              width: 24,
-                              height: 24,
-                              borderRadius: '50%',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                              color: '#F87171',
-                              border: '1px solid rgba(239, 68, 68, 0.25)',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease',
-                              padding: 0,
-                            }}
-                            title="Undo Settlement"
-                            onClick={e => {
-                              e.stopPropagation();
-                              setUndoStlId(tx.id);
-                            }}
-                          >
-                            <RotateCcw size={11} strokeWidth={2.2} />
-                          </button>
-                        )}
-                      </div>
+                            </div>
+                          );
+                        })()}
                     </div>
                   </div>
                 );
               })}
+              </div>
             </div>
           )}
         </div>

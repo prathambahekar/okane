@@ -28,7 +28,6 @@ import {
   PanelLeft,
   Sparkles,
   Database,
-  Plane,
   ArrowLeft,
   X,
   HelpCircle,
@@ -475,7 +474,7 @@ function AppInner() {
       items: [
         { id: 'friends' as ViewName, label: 'Contacts', icon: <Users size={18} /> },
         { id: 'settlements' as ViewName, label: 'Settlements', icon: <Handshake size={18} />, badge: pendingSettlements, badgeColor: 'var(--accent)', badgeBg: 'var(--accent-soft)' },
-        ...(enableSplitTrips ? [{ id: 'split-trips' as ViewName, label: 'Trips & Splits', icon: <Plane size={18} /> }] : []),
+        ...(enableSplitTrips ? [{ id: 'split-trips' as ViewName, label: 'Splits & Groups', icon: <Users size={18} /> }] : []),
       ]
     },
     {
@@ -499,7 +498,7 @@ function AppInner() {
   ];
 
   const moreItems: { id: ViewName; label: string; icon: React.ReactNode }[] = [
-    ...(enableSplitTrips ? [{ id: 'split-trips' as ViewName, label: 'Trips & Splits', icon: <Plane size={20} /> }] : []),
+    ...(enableSplitTrips ? [{ id: 'split-trips' as ViewName, label: 'Splits & Groups', icon: <Users size={20} /> }] : []),
     ...(enableAutopay ? [{ id: 'recurring' as ViewName, label: 'Autopay', icon: <RefreshCw size={20} /> }] : []),
     { id: 'wallets', label: 'Wallets', icon: <Wallet size={20} /> },
     { id: 'settlements', label: 'Settlements', icon: <Handshake size={20} /> },
@@ -856,7 +855,7 @@ function AppInner() {
                    view === 'recurring' ? 'Autopay' :
                    view === 'analytics' ? 'Statistics' :
                    view === 'settlements' ? 'Settlements' :
-                   view === 'split-trips' ? 'Trips & Splits' :
+                   view === 'split-trips' ? 'Splits & Groups' :
                    view === 'settings' ? 'Settings' :
                    view === 'dev-sql' ? 'Dev SQL' : 'Dashboard'}
                 </Typography>

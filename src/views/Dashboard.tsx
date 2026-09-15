@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, TrendingUp, TrendingDown, Users, ReceiptText, ArrowLeftRight, ArrowRight, Eye, EyeOff, Flame, Handshake, CheckCircle2, ArrowUpRight, ArrowDownLeft, ChevronRight } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Users, ReceiptText, ArrowLeftRight, ArrowRight, Eye, EyeOff, Flame, CheckCircle2, ArrowUpRight, ArrowDownLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '../store';
 import { walletBalance, totalWalletBalance, expenseFlow, monthKey, allFriendBalances, unsettledExpensesForFriend } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, getGroupedExpenseAmount, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../utils';
@@ -537,7 +537,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         </div>
 
         {/* Friend Balances */}
-        <div className="card" style={{ minWidth: 0, width: '100%', boxSizing: 'border-box', padding: '18px' }}>
+        <div className="card dashboard-friends-card" style={{ minWidth: 0, width: '100%', boxSizing: 'border-box', padding: '18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, width: '100%', minWidth: 0, minHeight: 30 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
               <div className="dashboard-card-icon">
@@ -705,7 +705,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       </div>
                     </div>
 
-                    {/* Right: Amount & Direct Action */}
+                    {/* Right: Amount & Chevron */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{
@@ -719,19 +719,6 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                           {isOwed ? '+' : ''}{fmtMoney(net, currency)}
                         </div>
                       </div>
-
-                      <button
-                        type="button"
-                        className="friend-row-settle-btn"
-                        title={`Settle balance with ${friend.name}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSettleFriend(friend);
-                        }}
-                      >
-                        <Handshake size={12} strokeWidth={2.2} />
-                        <span>Settle</span>
-                      </button>
 
                       <ChevronRight size={13} className="friend-row-chevron" />
                     </div>
@@ -766,16 +753,18 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         </div>
 
         {/* Category Spend */}
-        <CategoryDistributionCard
-          title="Top Categories"
-          categories={catBreakdown}
-          totalOutflow={totalCatSpend}
-          currency={currency}
-          categorySettings={db.settings.categories}
-          maxDisplay={6}
-          hideShowMore={true}
-          interactive={false}
-        />
+        <div className="dashboard-categories-card">
+          <CategoryDistributionCard
+            title="Top Categories"
+            categories={catBreakdown}
+            totalOutflow={totalCatSpend}
+            currency={currency}
+            categorySettings={db.settings.categories}
+            maxDisplay={6}
+            hideShowMore={true}
+            interactive={false}
+          />
+        </div>
       </div>
 
       <TransferModal

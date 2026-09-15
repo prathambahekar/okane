@@ -208,11 +208,11 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
         .drawer-card {
           position: relative;
           width: 100%;
-          max-width: 540px;
+          max-width: 480px;
           margin: 0 auto;
           background: var(--surface);
-          border-top-left-radius: 24px;
-          border-top-right-radius: 24px;
+          border-top-left-radius: 22px;
+          border-top-right-radius: 22px;
           border-bottom-left-radius: 0;
           border-bottom-right-radius: 0;
           border: 1px solid var(--border);
@@ -227,10 +227,13 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
         }
 
         .drawer-handle {
-          padding: 12px 0 6px 0;
+          padding: 10px 0 2px 0;
           display: flex;
           justify-content: center;
+          align-items: center;
           cursor: pointer;
+          width: 100%;
+          flex-shrink: 0;
         }
 
         @media (min-width: 640px) {
@@ -239,14 +242,11 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
             padding: 24px !important;
           }
           .drawer-card {
-            border-radius: 20px !important;
+            border-radius: 22px !important;
             border: 1px solid var(--border) !important;
             box-shadow: 0 20px 60px rgba(0,0,0,0.25) !important;
             max-height: 88vh !important;
             animation: modalPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-          }
-          .drawer-handle {
-            display: none !important;
           }
         }
       `}</style>
@@ -266,29 +266,30 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
 
       {/* Drawer Card */}
       <div className="drawer-card">
-        {/* Top Handle bar (Mobile only) */}
+        {/* Top Drag Handle bar */}
         <div className="drawer-handle" onClick={onClose}>
-          <div style={{ width: '42px', height: '4px', borderRadius: '99px', background: 'var(--border2)' }} />
+          <div className="modal-drag-handle" style={{ width: '38px', height: '4px', borderRadius: '99px', background: 'var(--border2, rgba(255,255,255,0.25))', opacity: 0.85 }} />
         </div>
 
         {/* Drawer Header */}
         <div
           style={{
-            padding: '16px 20px 8px 20px',
+            padding: '12px 20px 8px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
             {icon && (
               <div
                 style={{
                   width: '38px',
                   height: '38px',
                   borderRadius: '12px',
-                  background: 'var(--accent-soft)',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
                   color: 'var(--accent)',
                   display: 'grid',
                   placeItems: 'center',
@@ -298,12 +299,12 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
                 {icon}
               </div>
             )}
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.2px' }}>
+            <div style={{ minWidth: 0 }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {title}
               </h3>
               {subtitle && (
-                <p style={{ fontSize: '11.5px', color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                <p style={{ fontSize: '11.5px', color: 'var(--text-3)', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {subtitle}
                 </p>
               )}
@@ -1020,9 +1021,9 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
     <div style={{ maxWidth: '920px', margin: '0 auto', padding: '16px 16px 32px 16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
-          <h1 className="page-title">Trips & Splits</h1>
+          <h1 className="page-title">Splits & Groups</h1>
         </div>
-        <DesktopSearchBar placeholder="Search trips, splits, members..." defaultTab="trips" />
+        <DesktopSearchBar placeholder="Search splits, groups, members..." defaultTab="trips" />
         <div className="desktop-only" style={{ width: 100 }} />
       </div>
       
@@ -1083,7 +1084,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', width: '100%' }}>
                 <div>
                   <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--accent)', fontWeight: 800 }}>
-                    Current Active Trip
+                    Active Group Split
                   </div>
                   <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)', marginTop: '2px' }}>
                     {activeTrip.name}
@@ -1110,7 +1111,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                     transition: 'all 0.15s ease',
                     flexShrink: 0,
                   }}
-                  title="Delete / Cancel Active Trip"
+                  title="Delete / Cancel Active Split"
                 >
                   <Trash2 size={18} />
                 </button>
@@ -1138,7 +1139,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                   }}
                 >
                   <Receipt size={16} />
-                  <span>Resume Trip</span>
+                  <span>Resume Split</span>
                 </button>
 
                 <button
@@ -1161,13 +1162,13 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                   }}
                 >
                   <Plus size={16} style={{ color: 'var(--accent)' }} />
-                  <span>Start a Trip</span>
+                  <span>New Split</span>
                 </button>
               </div>
             </div>
           )}
 
-          {/* Start New Trip Hero Card (Redesigned from scratch, clean & beautiful) */}
+          {/* Start New Split Hero Card */}
           <div className="split-hero-card">
             <div className="split-hero-main">
               <div className="split-hero-info">
@@ -1176,7 +1177,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                 </div>
                 <div className="split-hero-text">
                   <p className="split-hero-subtitle">
-                    Split bills and track shared expenses with friends.
+                    Split bills, event expenses, and track shared costs with friends.
                   </p>
                 </div>
               </div>
@@ -1191,7 +1192,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                   }}
                 >
                   <Plus size={16} />
-                  <span>Start a Trip</span>
+                  <span>Start New Split</span>
                 </button>
               </div>
             </div>
@@ -2189,8 +2190,8 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
       <BottomDrawer
         isOpen={historyDrawerOpen}
         onClose={() => setHistoryDrawerOpen(false)}
-        title="Trip History"
-        subtitle="Archived completed trip splits"
+        title="Split History"
+        subtitle="Archived completed group splits"
         icon={<HistoryIcon size={20} />}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -2217,7 +2218,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
 
           {tripHistory.length === 0 ? (
             <div style={{ padding: '30px 16px', textAlign: 'center', color: 'var(--text-3)', fontSize: '12.5px', fontStyle: 'italic', background: 'var(--surface2)', borderRadius: '12px' }}>
-              No archived trips found. Archived trips will appear here when you save a trip.
+              No archived splits found. Archived splits will appear here when you save a split.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -2586,25 +2587,26 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
       </BottomDrawer>
 
       {/* ========================================================================= */}
-      {/* BOTTOM DRAWER 4: START NEW TRIP DRAWER */}
+      {/* BOTTOM DRAWER 4: START NEW SPLIT DRAWER */}
       {/* ========================================================================= */}
       <BottomDrawer
         isOpen={addTripDrawerOpen}
         onClose={() => setAddTripDrawerOpen(false)}
-        title="Split Trip"
-        icon={<Compass size={20} />}
+        title="New Group Split"
+        subtitle="Set split name and select a group"
+        icon={<Users size={20} />}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Trip Name Input */}
+          {/* Split Name Input */}
           <div>
             <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: '6px' }}>
-              Trip Name
+              Split Name
             </label>
             <input
               type="text"
               value={tripName}
               onChange={e => setTripName(e.target.value)}
-              placeholder="e.g. Goa Vacation, Friday Dinner, Beach House"
+              placeholder="e.g. Goa Vacation, Flat #402 Rent, Birthday Party"
               className="form-control"
               style={{
                 width: '100%',

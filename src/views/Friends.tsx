@@ -13,7 +13,6 @@ import {
   RotateCcw,
   Filter,
 } from 'lucide-react';
-import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -67,7 +66,7 @@ export default function Friends({ onNavigate }: Props) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const defaultDensity: DensityOption = isMobileScreen ? 'compact' : 'grid';
+  const defaultDensity: DensityOption = isMobileScreen ? 'compact' : 'detailed';
   const density: DensityOption = userDensityOverride ?? defaultDensity;
   const setDensity = (newDensity: DensityOption) => {
     setUserDensityOverride(newDensity);
@@ -227,7 +226,19 @@ export default function Friends({ onNavigate }: Props) {
       if ((typeFilter === 'friend' || typeFilter === 'vendor') && (sortBy === 'owed_desc' || sortBy === 'owed_asc')) {
         const balA = friendBalance(db, a.id).net;
         const balB = friendBalance(db, b.id).net;
-        if (sortBy === 'owed_desc') return balB - balA;
+        if (sortBy === 'owed_desc') {
+          const isUnsettledA = Math.abs(balA) > 0.004;
+          const isUnsettledB = Math.abs(balB) > 0.004;
+          if (isUnsettledA && !isUnsettledB) return -1;
+          if (!isUnsettledA && isUnsettledB) return 1;
+          if (isUnsettledA && isUnsettledB) {
+            if (balA > 0 && balB > 0) return balB - balA;
+            if (balA < 0 && balB < 0) return Math.abs(balB) - Math.abs(balA);
+            if (balA > 0 && balB < 0) return -1;
+            if (balA < 0 && balB > 0) return 1;
+          }
+          return 0;
+        }
         if (sortBy === 'owed_asc') return balA - balB;
       }
       if (sortBy === 'name') return a.name.localeCompare(b.name);
@@ -588,7 +599,7 @@ export default function Friends({ onNavigate }: Props) {
             </button>
           </div>
         </div>
-      ) : density === 'grid' || typeFilter === 'subscription' ? (
+      ) : density === 'grid' ? (
         /* GRID CARDS VIEW */
         <div className="contact-grid">
           {filtered.map((f, idx) => {
@@ -600,7 +611,7 @@ export default function Friends({ onNavigate }: Props) {
             const unsettledCount = unsettledExpensesForFriend(db, f.id).length;
             const isOwed = bal.net > 0.004;
             const isDebt = bal.net < -0.004;
-            const brandLogo = renderBrandLogo(f.name, 20);
+            const brandLogo = renderBrandLogo(f.name, 22);
 
             return (
               <div
@@ -608,63 +619,76 @@ export default function Friends({ onNavigate }: Props) {
                 className="contact-grid-card"
                 onClick={() => onNavigate('friend-detail', f.id)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                     <div
                       className="avatar"
                       style={{
                         ...getAvatarStyle(f.color),
-                        width: 38,
-                        height: 38,
-                        fontSize: 13.5,
+                        width: 42,
+                        height: 42,
+                        fontSize: 14,
                         fontWeight: 700,
                         flexShrink: 0,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        borderRadius: 11,
+                        borderRadius: 12,
                       }}
                     >
                       {fType === 'subscription' ? (brandLogo || <Tv size={18} />) : fType === 'vendor' ? <Store size={18} /> : friendInitial(f.name, f.avatarNumber)}
                     </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 650, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)', letterSpacing: '-0.01em' }}>
                         {f.name}
                       </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {fType === 'friend' ? `${contactExpenses.length} expense${contactExpenses.length !== 1 ? 's' : ''}` : fType === 'vendor' ? `${txCount} order${txCount !== 1 ? 's' : ''}` : (f.defaultAmount ? `${fmtMoney(f.defaultAmount, currency)}/${formatBillingCycleShort(f.billingCycle)}` : `${txCount} payments`)}
+                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {fType === 'friend' ? (
+                          <>
+                            {contactExpenses.length} expense{contactExpenses.length !== 1 ? 's' : ''}
+                            {unsettledCount > 0 ? (
+                              <span style={{ color: 'var(--accent)', fontWeight: 600 }}> · {unsettledCount} open</span>
+                            ) : ''}
+                          </>
+                        ) : fType === 'vendor' ? (
+                          `${txCount} order${txCount !== 1 ? 's' : ''}`
+                        ) : (
+                          f.defaultAmount ? `${fmtMoney(f.defaultAmount, currency)}/${formatBillingCycleShort(f.billingCycle)}` : `${txCount} payments`
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <IconButton
-                    size="small"
+                  <button
+                    type="button"
+                    className="contact-more-btn"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleMenuOpen(e, f);
                     }}
-                    sx={{ color: 'text.secondary', p: 0.5 }}
+                    title="More actions"
+                    aria-label="More actions"
                   >
                     <MoreVertical size={16} />
-                  </IconButton>
+                  </button>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 'auto', paddingTop: 6 }}>
                   <div>
                     {isOwed ? (
-                      <span style={{ background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', fontWeight: 650, fontSize: 11.5, padding: '3px 9px', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span className="contact-balance-pill credit">
                         Owes {fmtMoney(Math.abs(bal.net), currency)}
                       </span>
                     ) : isDebt ? (
-                      <span style={{ background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)', fontWeight: 650, fontSize: 11.5, padding: '3px 9px', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span className="contact-balance-pill debit">
                         You owe {fmtMoney(Math.abs(bal.net), currency)}
                       </span>
                     ) : fType === 'friend' ? (
-                      <span style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)', fontWeight: 550, fontSize: 11.5, padding: '3px 9px', borderRadius: 99 }}>
+                      <span className="contact-balance-pill settled">
                         Settled Up ✓
                       </span>
                     ) : (
-                      <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--text)' }}>
+                      <span className="contact-balance-pill neutral">
                         {fmtMoney(totalSpent, currency)}
                       </span>
                     )}
@@ -674,16 +698,15 @@ export default function Friends({ onNavigate }: Props) {
                     {unsettledCount > 0 && (
                       <button
                         type="button"
-                        className="btn btn-ghost btn-sm"
+                        className="contact-settle-btn"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSettleFriend(f);
                         }}
-                        style={{ padding: '4px 8px', fontSize: 11.5, color: 'var(--credit)', background: 'var(--credit-bg)', border: '1px solid var(--credit-border)', gap: 4, borderRadius: 8, height: 28 }}
                         title="Settle Up"
                       >
                         <Handshake size={13} />
-                        <span style={{ fontWeight: 600 }}>Settle</span>
+                        <span>Settle</span>
                       </button>
                     )}
                   </div>
@@ -693,7 +716,7 @@ export default function Friends({ onNavigate }: Props) {
           })}
         </div>
       ) : density === 'detailed' ? (
-        /* DETAILED FLOATING CARDS VIEW */
+        /* DETAILED UNIFIED LIST VIEW */
         <div className="contact-cards-container density-detailed">
           {filtered.map((f, idx) => {
             const fType: ContactType = f.type || 'friend';
@@ -704,7 +727,7 @@ export default function Friends({ onNavigate }: Props) {
             const unsettledCount = unsettledExpensesForFriend(db, f.id).length;
             const isOwed = bal.net > 0.004;
             const isDebt = bal.net < -0.004;
-            const brandLogo = renderBrandLogo(f.name, 20);
+            const brandLogo = renderBrandLogo(f.name, 22);
 
             return (
               <div
@@ -713,14 +736,14 @@ export default function Friends({ onNavigate }: Props) {
                 onClick={() => onNavigate('friend-detail', f.id)}
               >
                 {/* Contact Avatar & Name */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
                   <div
                     className="avatar"
                     style={{
                       ...getAvatarStyle(f.color),
-                      width: 40,
-                      height: 40,
-                      fontSize: 14,
+                      width: 44,
+                      height: 44,
+                      fontSize: 15,
                       fontWeight: 700,
                       flexShrink: 0,
                       display: 'flex',
@@ -729,12 +752,12 @@ export default function Friends({ onNavigate }: Props) {
                       borderRadius: 12,
                     }}
                   >
-                    {fType === 'subscription' ? (brandLogo || <Tv size={18} />) : fType === 'vendor' ? <Store size={18} /> : friendInitial(f.name, f.avatarNumber)}
+                    {fType === 'subscription' ? (brandLogo || <Tv size={20} />) : fType === 'vendor' ? <Store size={20} /> : friendInitial(f.name, f.avatarNumber)}
                   </div>
 
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                      <span style={{ fontWeight: 650, fontSize: 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 600, fontSize: 14.5, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
                         {f.name}
                       </span>
                       {typeFilter !== fType && fType !== 'friend' && (
@@ -744,7 +767,7 @@ export default function Friends({ onNavigate }: Props) {
                       )}
                     </div>
 
-                    <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {fType === 'friend' ? (
                         <>
                           {contactExpenses.length} expense{contactExpenses.length !== 1 ? 's' : ''}
@@ -764,19 +787,19 @@ export default function Friends({ onNavigate }: Props) {
                 {/* Status Badge & Quick Action Buttons */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   {isOwed ? (
-                    <span style={{ background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', fontWeight: 650, fontSize: 12, padding: '3px 9px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                    <span className="contact-balance-pill credit">
                       Owes {fmtMoney(Math.abs(bal.net), currency)}
                     </span>
                   ) : isDebt ? (
-                    <span style={{ background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)', fontWeight: 650, fontSize: 12, padding: '3px 9px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                    <span className="contact-balance-pill debit">
                       You owe {fmtMoney(Math.abs(bal.net), currency)}
                     </span>
                   ) : fType === 'friend' ? (
-                    <span style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)', fontWeight: 550, fontSize: 11.5, padding: '3px 9px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                    <span className="contact-balance-pill settled">
                       Settled Up ✓
                     </span>
                   ) : (
-                    <span style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)', fontWeight: 650, fontSize: 12, padding: '3px 9px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                    <span className="contact-balance-pill neutral">
                       {fmtMoney(totalSpent, currency)}
                     </span>
                   )}
@@ -784,36 +807,37 @@ export default function Friends({ onNavigate }: Props) {
                   {unsettledCount > 0 && (
                     <button
                       type="button"
-                      className="btn btn-ghost btn-sm"
+                      className="contact-settle-btn"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSettleFriend(f);
                       }}
-                      style={{ padding: '4px 8px', fontSize: 11.5, color: 'var(--credit)', background: 'var(--credit-bg)', border: '1px solid var(--credit-border)', gap: 4, borderRadius: 8, height: 30 }}
                       title="Settle Up"
                     >
                       <Handshake size={13} />
-                      <span style={{ fontWeight: 600 }} className="desktop-only">Settle</span>
+                      <span className="desktop-only">Settle</span>
                     </button>
                   )}
 
-                  <IconButton
-                    size="small"
+                  <button
+                    type="button"
+                    className="contact-more-btn"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleMenuOpen(e, f);
                     }}
-                    sx={{ color: 'text.secondary', p: 0.5 }}
+                    title="More actions"
+                    aria-label="More actions"
                   >
                     <MoreVertical size={16} />
-                  </IconButton>
+                  </button>
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
-        /* COMPACT FLOATING CARDS VIEW */
+        /* COMPACT UNIFIED LIST VIEW */
         <div className="contact-cards-container density-compact">
           {filtered.map((f, idx) => {
             const fType: ContactType = f.type || 'friend';
@@ -821,7 +845,7 @@ export default function Friends({ onNavigate }: Props) {
             const bal = friendBalance(db, f.id);
             const isOwed = bal.net > 0.004;
             const isDebt = bal.net < -0.004;
-            const brandLogo = renderBrandLogo(f.name, 16);
+            const brandLogo = renderBrandLogo(f.name, 18);
 
             return (
               <div
@@ -830,27 +854,27 @@ export default function Friends({ onNavigate }: Props) {
                 onClick={() => onNavigate('friend-detail', f.id)}
               >
                 {/* Contact Avatar & Name */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                   <div
                     className="avatar"
                     style={{
                       ...getAvatarStyle(f.color),
-                      width: 32,
-                      height: 32,
-                      fontSize: 12,
+                      width: 36,
+                      height: 36,
+                      fontSize: 13,
                       fontWeight: 700,
                       flexShrink: 0,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderRadius: 9,
+                      borderRadius: 10,
                     }}
                   >
-                    {fType === 'subscription' ? (brandLogo || <Tv size={15} />) : fType === 'vendor' ? <Store size={15} /> : friendInitial(f.name, f.avatarNumber)}
+                    {fType === 'subscription' ? (brandLogo || <Tv size={16} />) : fType === 'vendor' ? <Store size={16} /> : friendInitial(f.name, f.avatarNumber)}
                   </div>
 
-                  <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
                       {f.name}
                     </span>
                     {typeFilter !== fType && fType !== 'friend' && (
@@ -862,35 +886,37 @@ export default function Friends({ onNavigate }: Props) {
                 </div>
 
                 {/* Status Badge & Quick Action Buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   {isOwed ? (
-                    <span style={{ background: 'var(--credit-bg)', color: 'var(--credit)', border: '1px solid var(--credit-border)', fontWeight: 650, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                    <span className="contact-balance-pill credit">
                       Owes {fmtMoney(Math.abs(bal.net), currency)}
                     </span>
                   ) : isDebt ? (
-                    <span style={{ background: 'var(--debit-bg)', color: 'var(--debit)', border: '1px solid var(--debit-border)', fontWeight: 650, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                    <span className="contact-balance-pill debit">
                       You owe {fmtMoney(Math.abs(bal.net), currency)}
                     </span>
                   ) : fType === 'friend' ? (
-                    <span style={{ background: 'var(--surface2)', color: 'var(--text-3)', border: '1px solid var(--border)', fontWeight: 500, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                    <span className="contact-balance-pill settled">
                       Settled Up ✓
                     </span>
                   ) : (
-                    <span style={{ background: 'var(--surface2)', color: 'var(--text)', border: '1px solid var(--border)', fontWeight: 600, fontSize: 11, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                    <span className="contact-balance-pill neutral">
                       {fmtMoney(totalSpent, currency)}
                     </span>
                   )}
 
-                  <IconButton
-                    size="small"
+                  <button
+                    type="button"
+                    className="contact-more-btn"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleMenuOpen(e, f);
                     }}
-                    sx={{ color: 'text.secondary', p: 0.25 }}
+                    title="More actions"
+                    aria-label="More actions"
                   >
                     <MoreVertical size={16} />
-                  </IconButton>
+                  </button>
                 </div>
               </div>
             );
