@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { Plus, TrendingUp, TrendingDown, Users, ReceiptText, ArrowLeftRight, Store, ArrowRight, Eye, EyeOff, Flame } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Users, ReceiptText, ArrowLeftRight, ArrowRight, Eye, EyeOff, Flame, Handshake, CheckCircle2, ArrowUpRight, ArrowDownLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '../store';
-import { walletBalance, totalWalletBalance, expenseFlow, monthKey, allFriendBalances } from '../db';
+import { walletBalance, totalWalletBalance, expenseFlow, monthKey, allFriendBalances, unsettledExpensesForFriend } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, getGroupedExpenseAmount, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../utils';
 import type { Friend, ViewName, Expense } from '../types';
 import { CategoryBadge } from '../components/CategoryIcon';
@@ -9,9 +9,11 @@ import CategoryDistributionCard, { type CategoryBreakdownItem } from '../compone
 import TransferModal from '../components/TransferModal';
 import { ExpenseDetailDrawer } from '../components/ExpenseDetailDrawer';
 import ExpenseModal from '../components/ExpenseModal';
+import SettleModal from '../components/SettleModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { renderWalletIcon } from '../components/WalletIconRenderer';
 import DesktopSearchBar from '../components/DesktopSearchBar';
+import { SmartExpenseMeta } from '../components/expenses/SmartExpenseMeta';
 
 interface Props {
   onNavigate: (v: ViewName, arg?: string) => void;
@@ -29,6 +31,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
   const [selectedDetailGe, setSelectedDetailGe] = useState<GroupedExpense | null>(null);
   const [editExp, setEditExp] = useState<Expense | null>(null);
   const [delId, setDelId] = useState<string | null>(null);
+  const [settleFriend, setSettleFriend] = useState<Friend | null>(null);
 
   const now = new Date();
   const thisKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
@@ -114,6 +117,37 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
       .slice(0, 4),
     [allBalances]
   );
+
+  const totalBalancedCount = useMemo(() =>
+    allBalances.filter(b => Math.abs(b.net) > 0.004).length,
+    [allBalances]
+  );
+
+  const balancedFriendsWithContext = useMemo(() => {
+    return balancedFriends.map(({ friend, net }) => {
+      const isOwed = net > 0;
+      const unsettled = unsettledExpensesForFriend(db, friend.id);
+      let reason = '';
+      if (unsettled.length === 1) {
+        const topExp = unsettled[0];
+        const desc = cleanSettlementDescription(topExp.description) || topExp.category;
+        reason = desc ? `for ${desc}` : '1 pending split';
+      } else if (unsettled.length > 1) {
+        const topExp = unsettled[0];
+        const desc = cleanSettlementDescription(topExp.description) || topExp.category;
+        reason = desc ? `${desc} +${unsettled.length - 1} more` : `${unsettled.length} pending splits`;
+      } else {
+        reason = 'Pending balance';
+      }
+      return {
+        friend,
+        net,
+        isOwed,
+        reason,
+        unsettledCount: unsettled.length
+      };
+    });
+  }, [balancedFriends, db]);
 
   // Group all expenses for accurate month category breakdown (matching Analytics view)
   const allGroupedExpenses = useMemo(() => {
@@ -470,55 +504,13 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                             }}>Split</span>
                           )}
                         </div>
-                        <div style={{
-                          fontSize: 11,
-                          color: 'var(--text-3)',
-                          marginTop: 2,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          minWidth: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 5
-                        }}>
-                          <span style={{ flexShrink: 0 }}>{fmtDate(ge.date)}</span>
-                          {!isSettlement && (
-                            <>
-                              <span style={{ flexShrink: 0 }}>•</span>
-                              <span style={{ flexShrink: 0 }}>{ge.category}</span>
-                            </>
-                          )}
-                          {friendsInGroup.length > 0 && (
-                            <>
-                              <span style={{ flexShrink: 0 }}>•</span>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {friendsInGroup.map((f, fIdx) => f && (
-                                  <span key={`${f.id}-${fIdx}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 3.5, flexShrink: 0 }}>
-                                    <span
-                                      className="avatar avatar-sm"
-                                      style={{
-                                        ...getAvatarStyle(f.color),
-                                        width: 14,
-                                        height: 14,
-                                        fontSize: 8,
-                                        flexShrink: 0,
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                      }}
-                                    >
-                                      {f.type === 'vendor' ? <Store size={8} /> : friendInitial(f.name, f.avatarNumber)}
-                                    </span>
-                                    <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>
-                                      {f.name}
-                                    </span>
-                                  </span>
-                                ))}
-                              </span>
-                            </>
-                          )}
-                        </div>
+                        <SmartExpenseMeta
+                          category={!isSettlement ? ge.category : undefined}
+                          dateText={fmtDate(ge.date)}
+                          friends={friendsInGroup.filter((f): f is Friend => Boolean(f && f.type !== 'vendor'))}
+                          vendor={friendsInGroup.find((f): f is Friend => Boolean(f && f.type === 'vendor')) || null}
+                          style={{ fontSize: 11, marginTop: 2 }}
+                        />
                       </div>
                     </div>
                     <div style={{
@@ -546,30 +538,91 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
 
         {/* Friend Balances */}
         <div className="card" style={{ minWidth: 0, width: '100%', boxSizing: 'border-box', padding: '18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, width: '100%', minWidth: 0, minHeight: 30 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, width: '100%', minWidth: 0, minHeight: 30 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
               <div className="dashboard-card-icon">
-                <Users size={17} />
+                <Users size={16} />
               </div>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center' }}>Friends</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, overflow: 'hidden' }}>
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0, whiteSpace: 'nowrap' }}>Friends</h2>
+                {totalBalancedCount > 0 && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '1.5px 7.5px',
+                      borderRadius: 99,
+                      background: netFriends >= 0 ? 'var(--credit-bg, rgba(34, 197, 94, 0.12))' : 'var(--debit-bg, rgba(239, 68, 68, 0.12))',
+                      color: netFriends >= 0 ? 'var(--credit)' : 'var(--debit)',
+                      border: `1px solid ${netFriends >= 0 ? 'var(--credit-border, rgba(46, 125, 50, 0.22))' : 'var(--debit-border, rgba(211, 47, 47, 0.22))'}`,
+                      letterSpacing: '-0.2px',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}
+                    title={netFriends > 0 ? `Total net owed to you: ${fmtMoney(netFriends, currency)}` : netFriends < 0 ? `Total net you owe: ${fmtMoney(Math.abs(netFriends), currency)}` : 'All settled'}
+                  >
+                    {netFriends > 0
+                      ? `+${fmtMoney(netFriends, currency)} to collect`
+                      : netFriends < 0
+                      ? `${fmtMoney(Math.abs(netFriends), currency)} to pay`
+                      : 'Balanced'}
+                  </span>
+                )}
+              </div>
             </div>
             <button className="btn-view-all" onClick={() => onNavigate('friends')}>
               <span>View all</span>
               <ArrowRight size={14} className="btn-view-all-arrow" />
             </button>
           </div>
-          {balancedFriends.length === 0 ? (
-            <div style={{ color: 'var(--text-3)', fontSize: 12.5, padding: '16px 0', textAlign: 'center' }}>
-              All settled up! No outstanding balances.
+
+          {balancedFriendsWithContext.length === 0 ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '24px 16px',
+              textAlign: 'center',
+              borderRadius: 12,
+              background: 'var(--surface2)',
+              border: '1px dashed var(--border)'
+            }}>
+              <div style={{
+                width: 38,
+                height: 38,
+                borderRadius: 12,
+                background: 'var(--credit-bg, rgba(34, 197, 94, 0.12))',
+                color: 'var(--credit)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 8
+              }}>
+                <CheckCircle2 size={19} strokeWidth={2.2} />
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                All settled up
+              </div>
+              <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '3px 0 0 0' }}>
+                No outstanding balances with friends
+              </p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', minWidth: 0 }}>
-              {balancedFriends.map(({ friend, net }: { friend: Friend; net: number }, idx: number) => {
-                const isOwed = net > 0;
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, width: '100%', minWidth: 0 }}>
+              {balancedFriendsWithContext.map(({ friend, net, isOwed, reason }, idx: number) => {
                 return (
                   <div
                     key={`${friend.id}-${idx}`}
                     onClick={() => onNavigate('friend-detail', friend.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onNavigate('friend-detail', friend.id);
+                      }
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -577,52 +630,137 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       gap: 12,
                       cursor: 'pointer',
                       padding: '8px 10px',
-                      borderRadius: 10,
+                      borderRadius: 11,
                       margin: '0 -6px',
-                      transition: 'background 0.15s ease',
                       width: 'calc(100% + 12px)',
                       boxSizing: 'border-box'
                     }}
                     className="friend-balance-row"
                   >
+                    {/* Left: Squircle Avatar + Name + Reason Context */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1, overflow: 'hidden' }}>
                       <div
                         className="avatar"
                         style={{
                           ...getAvatarStyle(friend.color),
-                          width: 28,
-                          height: 28,
-                          fontSize: 11,
-                          fontWeight: 600,
+                          width: 34,
+                          height: 34,
+                          fontSize: 12,
+                          fontWeight: 700,
                           flexShrink: 0,
-                          borderRadius: '50%',
+                          borderRadius: 10,
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center'
+                          justifyContent: 'center',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.12)'
                         }}
                       >
                         {friendInitial(friend.name, friend.avatarNumber)}
                       </div>
                       <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{
+                          fontSize: 13.5,
+                          fontWeight: 600,
+                          color: 'var(--text)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          letterSpacing: '-0.1px'
+                        }}>
                           {friend.name}
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4.5,
+                          fontSize: 11.5,
+                          color: 'var(--text-3)',
+                          marginTop: 1.5,
+                          minWidth: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          <span style={{
+                            color: isOwed ? 'var(--credit)' : 'var(--debit)',
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            flexShrink: 0
+                          }}>
+                            {isOwed ? <ArrowUpRight size={11} strokeWidth={2.4} /> : <ArrowDownLeft size={11} strokeWidth={2.4} />}
+                            {isOwed ? 'Owes you' : 'You owe'}
+                          </span>
+                          {reason && (
+                            <>
+                              <span style={{ opacity: 0.4, fontSize: 8, flexShrink: 0 }}>•</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                                {reason}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                      <div style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: isOwed ? 'var(--credit)' : 'var(--debit)',
-                        whiteSpace: 'nowrap',
-                        fontVariantNumeric: 'tabular-nums'
-                      }}>
-                        {isOwed ? '+' : ''}{fmtMoney(net, currency)}
+
+                    {/* Right: Amount & Direct Action */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{
+                          fontSize: 13.5,
+                          fontWeight: 700,
+                          color: isOwed ? 'var(--credit)' : 'var(--debit)',
+                          whiteSpace: 'nowrap',
+                          fontVariantNumeric: 'tabular-nums',
+                          letterSpacing: '-0.2px'
+                        }}>
+                          {isOwed ? '+' : ''}{fmtMoney(net, currency)}
+                        </div>
                       </div>
+
+                      <button
+                        type="button"
+                        className="friend-row-settle-btn"
+                        title={`Settle balance with ${friend.name}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSettleFriend(friend);
+                        }}
+                      >
+                        <Handshake size={12} strokeWidth={2.2} />
+                        <span>Settle</span>
+                      </button>
+
+                      <ChevronRight size={13} className="friend-row-chevron" />
                     </div>
                   </div>
                 );
               })}
+
+              {/* View all remaining indicator */}
+              {totalBalancedCount > balancedFriends.length && (
+                <div
+                  onClick={() => onNavigate('friends')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    padding: '8px 0 2px',
+                    fontSize: '11.5px',
+                    color: 'var(--text-3)',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                    transition: 'color 0.15s ease'
+                  }}
+                  className="hover:text-[var(--accent)]"
+                >
+                  <span>+{totalBalancedCount - balancedFriends.length} more with balance</span>
+                  <ArrowRight size={11} />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -678,6 +816,13 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             showToast('Expense deleted & balance updated');
           }}
           onClose={() => setDelId(null)}
+        />
+      )}
+
+      {settleFriend && (
+        <SettleModal
+          friend={settleFriend}
+          onClose={() => setSettleFriend(null)}
         />
       )}
     </div>

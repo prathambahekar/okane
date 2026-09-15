@@ -11,7 +11,6 @@ import {
   RotateCcw,
   Handshake,
   ArrowLeftRight,
-  Store,
   Users,
   Search,
   Eye,
@@ -33,6 +32,7 @@ import TransferModal from '../components/TransferModal';
 import { ExpenseDetailDrawer } from '../components/ExpenseDetailDrawer';
 import SettlementDetailModal from '../components/SettlementDetailModal';
 import CategoryIcon from '../components/CategoryIcon';
+import { SmartExpenseMeta } from '../components/expenses/SmartExpenseMeta';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: string; onClearViewArg?: () => void }) {
@@ -857,66 +857,14 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                               </span>
                             </div>
 
-                            {/* Subtitle Hierarchy with refined date font & contrast */}
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                fontSize: '12px',
-                                color: 'var(--text-2)',
-                                marginTop: 3,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {!tx.isSettlement && (
-                                <>
-                                  <span style={{ flexShrink: 0, fontWeight: 500, color: 'var(--text-2)' }}>{tx.category}</span>
-                                  <span style={{ flexShrink: 0, color: 'var(--text-3)' }}>•</span>
-                                </>
-                              )}
-                              <span style={{ flexShrink: 0, fontWeight: 500, color: 'var(--text-2)', letterSpacing: '-0.1px' }}>
-                                {fmtDate(tx.date)}
-                              </span>
-                              {vendor && (
-                                <>
-                                  <span style={{ flexShrink: 0, color: 'var(--text-3)' }}>•</span>
-                                  <span
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 3,
-                                      color: 'var(--text-2)',
-                                      fontWeight: 500,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                  >
-                                    <Store size={11} style={{ color: 'var(--accent)' }} />
-                                    {vendor.name}
-                                  </span>
-                                </>
-                              )}
-                              {friend && !vendor && (
-                                <>
-                                  <span style={{ flexShrink: 0, color: 'var(--text-3)' }}>•</span>
-                                  <span
-                                    style={{
-                                      color: 'var(--text-2)',
-                                      fontWeight: 500,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                  >
-                                    with {friend.name}
-                                  </span>
-                                </>
-                              )}
-                            </div>
+                            {/* Subtitle Hierarchy with smart responsive metadata */}
+                            <SmartExpenseMeta
+                              category={!tx.isSettlement ? tx.category : undefined}
+                              dateText={fmtDate(tx.date)}
+                              vendor={vendor}
+                              friends={friend && !vendor ? [friend] : []}
+                              style={{ fontSize: '12px', marginTop: 3 }}
+                            />
                           </div>
                         </div>
 

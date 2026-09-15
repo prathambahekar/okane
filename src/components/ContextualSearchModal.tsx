@@ -30,6 +30,7 @@ import type { ViewName, Trip, Expense, Settlement, RecurringRule, Wallet } from 
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, resolveCategoryMeta, type GroupedExpense } from '../utils';
 import { friendBalance, walletBalance, DEFAULT_CATEGORIES } from '../db';
 import CategoryIcon from './CategoryIcon';
+import { SmartExpenseMeta } from './expenses/SmartExpenseMeta';
 import { renderWalletIcon } from './WalletIconRenderer';
 import { showSoftKeyboard } from '../utils/keyboard';
 import { CURRENT_APP_VERSION } from '../utils/updateManager';
@@ -796,55 +797,13 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               </div>
 
                               {/* Subtitle line */}
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '5px',
-                                  fontSize: '12px',
-                                  color: 'var(--text-3)',
-                                  marginTop: '3px',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                <span style={{ flexShrink: 0 }}>{ge.category}</span>
-                                <span style={{ flexShrink: 0 }}>•</span>
-                                <span style={{ flexShrink: 0 }}>{fmtDate(ge.date)}</span>
-                                {vendor && (
-                                  <>
-                                    <span style={{ flexShrink: 0 }}>•</span>
-                                    <span
-                                      style={{
-                                        color: 'var(--text-2)',
-                                        fontWeight: 500,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap',
-                                      }}
-                                    >
-                                      {vendor.name}
-                                    </span>
-                                  </>
-                                )}
-                                {friendsToShow.length > 0 && !vendor && (
-                                  <>
-                                    <span style={{ flexShrink: 0 }}>•</span>
-                                    <span
-                                      style={{
-                                        color: 'var(--text-2)',
-                                        fontWeight: 500,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap',
-                                      }}
-                                    >
-                                      with {friendsToShow.map(f => f.name).join(', ')}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
+                              <SmartExpenseMeta
+                                category={ge.category}
+                                dateText={fmtDate(ge.date)}
+                                vendor={vendor}
+                                friends={!vendor ? friendsToShow : []}
+                                style={{ fontSize: '12px', marginTop: '3px' }}
+                              />
                             </div>
                           </div>
 

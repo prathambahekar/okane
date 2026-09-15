@@ -28,6 +28,8 @@ import CategoryIcon from './CategoryIcon';
 import { renderWalletIcon } from './WalletIconRenderer';
 import WalletDetailDrawer from './WalletDetailDrawer';
 import { ExpenseDetailDrawer } from './ExpenseDetailDrawer';
+import { SmartExpenseMeta } from './expenses/SmartExpenseMeta';
+import type { Friend } from '../types';
 import SettlementDetailModal from './SettlementDetailModal';
 import ExpenseModal from './ExpenseModal';
 
@@ -667,6 +669,7 @@ export default function DailyWalletBalanceDrawer({
                   className={`day-sheet-hero-amount ${
                     selectedDayRecord.previousBalance < 0 ? 'amount-negative' : ''
                   }`}
+                  title={fmtMoney(selectedDayRecord.previousBalance, currency)}
                 >
                   {fmtMoney(selectedDayRecord.previousBalance, currency)}
                 </span>
@@ -686,11 +689,12 @@ export default function DailyWalletBalanceDrawer({
                       ? 'amount-positive'
                       : 'amount-zero'
                   }`}
+                  title={fmtMoney(selectedDayRecord.dayNetChange, currency)}
                 >
                   {selectedDayRecord.dayNetChange > 0
                     ? `+${fmtMoney(selectedDayRecord.dayNetChange, currency)}`
                     : selectedDayRecord.dayNetChange < 0
-                    ? `-${fmtMoney(Math.abs(selectedDayRecord.dayNetChange), currency)}`
+                    ? fmtMoney(selectedDayRecord.dayNetChange, currency)
                     : fmtMoney(0, currency)}
                 </span>
               </div>
@@ -705,6 +709,7 @@ export default function DailyWalletBalanceDrawer({
                   className={`day-sheet-hero-amount ${
                     selectedDayRecord.closingBalance < 0 ? 'amount-negative' : ''
                   }`}
+                  title={fmtMoney(selectedDayRecord.closingBalance, currency)}
                 >
                   {fmtMoney(selectedDayRecord.closingBalance, currency)}
                 </span>
@@ -713,10 +718,28 @@ export default function DailyWalletBalanceDrawer({
 
             {/* 2. Accounts Breakdown Card */}
             {(() => {
-              const visibleWalletBreakdown = (selectedDayRecord.walletBreakdown || []).filter(wb => {
+              // Gather wallets involved in this day's transactions
+              const involvedWalletIds = new Set<string>();
+              (selectedDayRecord.transactions || []).forEach(tx => {
+                if (tx.walletId) involvedWalletIds.add(tx.walletId);
+                if (tx.rawExpense?.walletId) involvedWalletIds.add(tx.rawExpense.walletId);
+                if (tx.rawSettlement?.walletId) involvedWalletIds.add(tx.rawSettlement.walletId);
+              });
+
+              const allNonHidden = (selectedDayRecord.walletBreakdown || []).filter(wb => {
                 const w = wallets.find(wallet => wallet.id === wb.walletId);
                 return !w?.isHidden;
               });
+
+              // If there are transactions below, only show wallets involved in them to save space
+              const hasTransactions = (selectedDayRecord.transactions || []).length > 0;
+              const filteredBreakdown = hasTransactions
+                ? allNonHidden.filter(wb => involvedWalletIds.has(wb.walletId))
+                : allNonHidden;
+
+              const visibleWalletBreakdown = filteredBreakdown.length > 0
+                ? filteredBreakdown
+                : allNonHidden;
 
               if (visibleWalletBreakdown.length === 0) return null;
 
@@ -732,70 +755,16 @@ export default function DailyWalletBalanceDrawer({
                     <span className="day-sheet-sec-badge">End of Day</span>
                   </div>
 
-                  <div className={`day-sheet-accounts-grid ${visibleWalletBreakdown.length === 1 ? 'is-single' : ''}`}>
+                  <div className="day-sheet-accounts-list">
                     {visibleWalletBreakdown.map(wb => {
                       const walletObj = wallets.find(w => w.id === wb.walletId);
                       const color = wb.walletColor || walletObj?.color || 'var(--accent)';
                       const iconKey = walletObj?.icon;
-                      const isSingle = visibleWalletBreakdown.length === 1;
-
-                      if (isSingle) {
-                        return (
-                          <div
-                            key={wb.walletId}
-                            className="day-account-item-card is-single-account"
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              if (walletObj) {
-                                setInspectWallet(walletObj);
-                              }
-                            }}
-                            onKeyDown={e => {
-                              if ((e.key === 'Enter' || e.key === ' ') && walletObj) {
-                                e.preventDefault();
-                                setInspectWallet(walletObj);
-                              }
-                            }}
-                            title={`Open ${walletObj?.name || wb.walletName} transactions`}
-                            aria-label={`Open ${walletObj?.name || wb.walletName} transactions`}
-                          >
-                            <div className="day-account-single-left">
-                              <div
-                                className="day-account-icon-wrap"
-                                style={{
-                                  background: `${color}18`,
-                                  color: color,
-                                }}
-                              >
-                                {iconKey ? (
-                                  renderWalletIcon(iconKey, 16, color)
-                                ) : (
-                                  <WalletIcon size={16} color={color} strokeWidth={2} />
-                                )}
-                              </div>
-                              <span className="day-account-name" title={walletObj?.name || wb.walletName}>
-                                {walletObj?.name || wb.walletName}
-                              </span>
-                            </div>
-                            <div className="day-account-single-right">
-                              <span
-                                className={`day-account-bal ${
-                                  wb.closingBalance < 0 ? 'amount-negative' : ''
-                                }`}
-                              >
-                                {fmtMoney(wb.closingBalance, currency)}
-                              </span>
-                              <ChevronRight size={14} className="day-account-chevron" />
-                            </div>
-                          </div>
-                        );
-                      }
 
                       return (
                         <div
                           key={wb.walletId}
-                          className="day-account-item-card"
+                          className="day-account-item-card is-single-account"
                           role="button"
                           tabIndex={0}
                           onClick={() => {
@@ -812,23 +781,25 @@ export default function DailyWalletBalanceDrawer({
                           title={`Open ${walletObj?.name || wb.walletName} transactions`}
                           aria-label={`Open ${walletObj?.name || wb.walletName} transactions`}
                         >
-                          <div
-                            className="day-account-icon-wrap"
-                            style={{
-                              background: `${color}18`,
-                              color: color,
-                            }}
-                          >
-                            {iconKey ? (
-                              renderWalletIcon(iconKey, 16, color)
-                            ) : (
-                              <WalletIcon size={16} color={color} strokeWidth={2} />
-                            )}
-                          </div>
-                          <div className="day-account-meta">
+                          <div className="day-account-single-left">
+                            <div
+                              className="day-account-icon-wrap"
+                              style={{
+                                background: `${color}18`,
+                                color: color,
+                              }}
+                            >
+                              {iconKey ? (
+                                renderWalletIcon(iconKey, 16, color)
+                              ) : (
+                                <WalletIcon size={16} color={color} strokeWidth={2} />
+                              )}
+                            </div>
                             <span className="day-account-name" title={walletObj?.name || wb.walletName}>
                               {walletObj?.name || wb.walletName}
                             </span>
+                          </div>
+                          <div className="day-account-single-right">
                             <span
                               className={`day-account-bal ${
                                 wb.closingBalance < 0 ? 'amount-negative' : ''
@@ -836,8 +807,8 @@ export default function DailyWalletBalanceDrawer({
                             >
                               {fmtMoney(wb.closingBalance, currency)}
                             </span>
+                            <ChevronRight size={14} className="day-account-chevron" />
                           </div>
-                          <ChevronRight size={13} className="day-account-chevron" />
                         </div>
                       );
                     })}
@@ -947,16 +918,17 @@ export default function DailyWalletBalanceDrawer({
                           </div>
                           <div className="day-tx-meta">
                             <span className="day-tx-title">{cleanDesc || tx.description}</span>
-                            <div className="day-tx-subtitle">
-                              <span className="day-tx-cat-tag">{tx.category}</span>
-                              <span className="day-tx-bullet">•</span>
-                              <span className="day-tx-wallet-tag">
-                                <span className="day-tx-wallet-icon-box">
-                                  {renderWalletIcon(walletObj?.icon || tx.walletName, 13, tx.walletColor)}
-                                </span>
-                                <span className="day-tx-wallet-name">{tx.walletName}</span>
-                              </span>
-                            </div>
+                            <SmartExpenseMeta
+                              category={tx.category}
+                              wallet={{
+                                name: tx.walletName,
+                                icon: walletObj?.icon || tx.walletName,
+                                color: tx.walletColor,
+                              }}
+                              friends={tx.rawExpense?.friendId ? [db.friends.find(f => f.id === tx.rawExpense!.friendId)].filter(Boolean) as Friend[] : []}
+                              vendor={tx.rawExpense?.vendorId ? db.friends.find(f => f.id === tx.rawExpense!.vendorId) : null}
+                              style={{ fontSize: '12px' }}
+                            />
                           </div>
                         </div>
 

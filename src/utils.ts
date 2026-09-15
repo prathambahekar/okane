@@ -25,21 +25,35 @@ export function fmtMoney(n: number, currency: string, hideAmount?: boolean): str
   return (v < 0 ? '-' : '') + sym + s;
 }
 
-export function fmtCompactNumber(n: number): string {
+export function fmtCompactNumber(n: number, isIndianSystem: boolean = true): string {
   const v = Number(n) || 0;
   const abs = Math.abs(v);
   const sign = v < 0 ? '-' : '';
 
-  if (abs >= 10000000) {
-    const val = abs / 10000000;
-    const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, '');
-    return `${sign}${formatted}Cr`;
+  if (isIndianSystem) {
+    if (abs >= 10000000) {
+      const val = abs / 10000000;
+      const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, '');
+      return `${sign}${formatted}Cr`;
+    }
+    if (abs >= 100000) {
+      const val = abs / 100000;
+      const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, '');
+      return `${sign}${formatted}L`;
+    }
+  } else {
+    if (abs >= 1000000000) {
+      const val = abs / 1000000000;
+      const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, '');
+      return `${sign}${formatted}B`;
+    }
+    if (abs >= 1000000) {
+      const val = abs / 1000000;
+      const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, '');
+      return `${sign}${formatted}M`;
+    }
   }
-  if (abs >= 100000) {
-    const val = abs / 100000;
-    const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, '');
-    return `${sign}${formatted}L`;
-  }
+
   if (abs >= 1000) {
     const val = abs / 1000;
     const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, '');
@@ -49,8 +63,12 @@ export function fmtCompactNumber(n: number): string {
 }
 
 export function fmtMoneyCompact(n: number, currency: string): string {
+  const v = Number(n) || 0;
   const sym = currencySymbol(currency);
-  return `${sym}${fmtCompactNumber(n)}`;
+  const sign = v < 0 ? '-' : '';
+  const isIndian = currency === 'INR' || sym === '₹';
+  const absCompact = fmtCompactNumber(Math.abs(v), isIndian);
+  return `${sign}${sym}${absCompact}`;
 }
 
 export function fmtDate(iso: string): string {

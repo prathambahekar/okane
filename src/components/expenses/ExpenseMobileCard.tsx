@@ -1,9 +1,9 @@
 import React from 'react';
 import { Users } from 'lucide-react';
 import CategoryIcon from '../CategoryIcon';
-import { renderWalletIcon } from '../WalletIconRenderer';
-import { fmtMoney, friendInitial, getAvatarStyle, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../../utils';
+import { fmtMoney, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../../utils';
 import type { Expense, Friend, Wallet, Category, Settlement } from '../../types';
+import { SmartExpenseMeta } from './SmartExpenseMeta';
 
 interface Props {
   ge: GroupedExpense;
@@ -155,96 +155,22 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
               )}
             </div>
 
-            {/* Bottom Row: Category · Wallet · Contacts (with avatar badge) */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                fontSize: 11.5,
-                color: 'var(--text-3)',
-                minWidth: 0,
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {!ge.isSettlementGroup && (
-                <span style={{ fontWeight: 500, flexShrink: 0 }}>{ge.category}</span>
-              )}
-
-              {showWallet && activeWallet && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3.5, color: 'var(--text-2)', fontWeight: 500, flexShrink: 0 }}>
-                  <span style={{ color: 'var(--text-3)', opacity: 0.6, fontSize: 8 }}>•</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3.5 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1 }}>
-                      {renderWalletIcon(activeWallet.icon || activeWallet.name, 12, activeWallet.color)}
-                    </span>
-                    <span style={{ maxWidth: 75, overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeWallet.name}</span>
-                  </span>
-                </span>
-              )}
-
-              {friendsToShow.length > 0 && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {(!ge.isSettlementGroup || showWallet) && (
-                    <span style={{ color: 'var(--text-3)', marginRight: 1, flexShrink: 0, fontSize: 8, opacity: 0.6 }}>•</span>
-                  )}
-                  {friendsToShow.length === 1 ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      <span
-                        className="avatar avatar-sm"
-                        style={{
-                          ...getAvatarStyle(friendsToShow[0].color),
-                          width: 15,
-                          height: 15,
-                          fontSize: 8,
-                          flexShrink: 0,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {friendInitial(friendsToShow[0].name, friendsToShow[0].avatarNumber)}
-                      </span>
-                      <span style={{ color: 'var(--text-2)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {friendsToShow[0].name}
-                      </span>
-                    </span>
-                  ) : (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-                        {friendsToShow.slice(0, 2).map((f, idx) => (
-                          <span
-                            key={`${f.id}-${idx}`}
-                            className="avatar avatar-sm"
-                            style={{
-                              ...getAvatarStyle(f.color),
-                              width: 15,
-                              height: 15,
-                              fontSize: 8,
-                              marginLeft: idx > 0 ? -4 : 0,
-                              border: '1.5px solid var(--surface)',
-                              flexShrink: 0,
-                              zIndex: 2 - idx,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                            title={f.name}
-                          >
-                            {friendInitial(f.name, f.avatarNumber)}
-                          </span>
-                        ))}
-                      </span>
-                      <span style={{ color: 'var(--text-2)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {friendsToShow.map(f => f.name).join(', ')}
-                      </span>
-                    </span>
-                  )}
-                </span>
-              )}
-            </div>
+            {/* Bottom Row: Smart Responsive Metadata (Category · Wallet · Contacts) */}
+            <SmartExpenseMeta
+              category={!ge.isSettlementGroup ? ge.category : undefined}
+              wallet={
+                showWallet && activeWallet
+                  ? {
+                      name: activeWallet.name,
+                      icon: activeWallet.icon || activeWallet.name,
+                      color: activeWallet.color,
+                    }
+                  : undefined
+              }
+              friends={friendsToShow}
+              vendor={vendor}
+              isSettlementGroup={ge.isSettlementGroup}
+            />
           </div>
 
           {/* Right Amount Column */}

@@ -432,14 +432,18 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
     });
   }, [periodExpenses, selectedDate]);
 
-  // Base period expenses across ALL categories for the active period (unfiltered by selectedCategory)
+  // Base scope expenses across ALL categories for the active scope (specific selectedDate or active period, unfiltered by selectedCategory)
   const basePeriodExpenses = useMemo(() => {
     return groupedExpenses.filter(ge => {
-      if (ge.date < activeDateRange.startDate || ge.date > activeDateRange.endDate) return false;
+      if (selectedDate) {
+        if (ge.date !== selectedDate) return false;
+      } else {
+        if (ge.date < activeDateRange.startDate || ge.date > activeDateRange.endDate) return false;
+      }
       if (selectedWalletId && ge.walletId !== selectedWalletId) return false;
       return true;
     });
-  }, [groupedExpenses, activeDateRange, selectedWalletId]);
+  }, [groupedExpenses, activeDateRange, selectedDate, selectedWalletId]);
 
   const basePeriodTotalSpent = useMemo(() => {
     return basePeriodExpenses
@@ -924,7 +928,10 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
           currency={currency}
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
+          selectedDate={selectedDate}
+          onClearDate={() => setSelectedDate(null)}
           categorySettings={db.settings.categories}
+          period={period}
         />
 
         {/* Activity Card */}

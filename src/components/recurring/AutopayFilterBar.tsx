@@ -1,5 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import {
   X,
   Filter,
@@ -8,23 +11,17 @@ import {
   Search,
   RefreshCw,
   Zap,
-  Calendar,
   Layers,
-  ArrowUpDown,
   AlertTriangle,
   Play,
   Pause,
-  BarChart3,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 import { showSoftKeyboard } from '../../utils/keyboard';
 import type { RecurringKind } from '../../types';
-import { fmtMoney } from '../../utils';
 
 export type AutopayStatusFilter = 'all' | 'active' | 'paused' | 'due';
 export type AutopayFreqFilter = 'all' | 'daily' | 'weekly' | 'monthly' | 'yearly';
-export type AutopaySortOption = 'due_asc' | 'amount_desc' | 'amount_asc' | 'name_asc' | 'recent';
+export type AutopaySortOption = 'due_asc' | 'recent' | 'amount_desc' | 'amount_asc' | 'name_asc';
 
 interface Props {
   showFilters: boolean;
@@ -48,7 +45,8 @@ interface Props {
     due: number;
     paused: number;
   };
-  totalMonthlySpend: number;
+  filteredCount?: number;
+  totalMonthlySpend?: number;
   currency?: string;
 }
 
@@ -68,10 +66,10 @@ export const AutopayFilterBar: React.FC<Props> = ({
   activeFilterCount,
   onClearAll,
   counts,
-  totalMonthlySpend,
-  currency = 'USD',
+  filteredCount,
 }) => {
-  const [showStats, setShowStats] = useState(false);
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus search input when autopay filters drawer opens
@@ -108,500 +106,464 @@ export const AutopayFilterBar: React.FC<Props> = ({
     }
   }, [showFilters]);
 
-  if (!showFilters) return null;
-
   return createPortal(
-    <div
-      className="filter-drawer-overlay"
-      onClick={e => {
-        if (e.target === e.currentTarget) setShowFilters(false);
-      }}
-    >
-      <div className="filter-drawer-panel">
-        {/* Mobile Grab Handle */}
-        <div
-          className="mobile-only"
-          style={{
-            width: '100%',
-            paddingTop: '10px',
-            paddingBottom: '2px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'var(--surface)',
-          }}
-        >
-          <div
-            style={{
-              width: '36px',
-              height: '4px',
-              borderRadius: '999px',
-              backgroundColor: 'var(--text-3)',
-              opacity: 0.4,
-              margin: '0 auto',
-            }}
+    <AnimatePresence>
+      {showFilters && (
+        <div className="modal-backdrop-motion">
+          {/* Backdrop overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="modal-backdrop-overlay"
+            onClick={() => setShowFilters(false)}
           />
-        </div>
 
-        {/* Drawer Header */}
-        <div
-          style={{
-            padding: '14px 18px 10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: 'var(--surface)',
-            flexShrink: 0,
-            gap: 8,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          {/* Sheet panel / Desktop center dialog */}
+          <motion.div
+            initial={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.95, y: 16 }}
+            animate={isMobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={isMobile ? { y: '100%' } : { opacity: 0, scale: 0.95, y: 16 }}
+            transition={{ duration: isMobile ? 0.32 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="filter-drawer-panel modal-dialog-panel"
+          >
+            {/* Top Drag Handle Pill */}
+            <div className="modal-drag-handle" />
+
+            {/* Drawer Header */}
             <div
               style={{
-                width: 32,
-                height: 32,
-                display: 'grid',
-                placeItems: 'center',
-                color: 'var(--text)',
-                backgroundColor: 'transparent',
+                padding: '16px 20px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: 'var(--surface)',
                 flexShrink: 0,
               }}
             >
-              <Filter size={18} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '15.5px', fontWeight: 650, color: 'var(--text)', lineHeight: 1.2 }}>
-                Filters & Search
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--text)',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Filter size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+                    Filters & Sorting
+                  </div>
+                  {activeFilterCount > 0 ? (
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 550, marginTop: 2 }}>
+                      {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
+                      Refine subscriptions & autopay
+                    </div>
+                  )}
+                </div>
               </div>
-              {activeFilterCount > 0 ? (
-                <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 550, marginTop: 2 }}>
-                  {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}
-                </div>
-              ) : (
-                <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
-                  Refine subscriptions & autopay
-                </div>
-              )}
-            </div>
-          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            {activeFilterCount > 0 && (
+              {/* Header Right: Close Button only (Spend toggle removed) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(false)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    display: 'grid',
+                    placeItems: 'center',
+                    padding: 0,
+                    transition: 'all 0.15s ease',
+                  }}
+                  aria-label="Close filters"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Filter Options */}
+            <div
+              className="filter-drawer-content no-scrollbar"
+              style={{
+                flex: '1 1 auto',
+                minHeight: 0,
+                overflowY: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                padding: '16px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 20,
+              }}
+            >
+              {/* Section 1: Search */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.6px',
+                    color: 'var(--text-3)',
+                    marginBottom: 10,
+                  }}
+                >
+                  Search
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    backgroundColor: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 12,
+                    padding: '10px 14px',
+                    transition: 'border-color 0.15s ease',
+                  }}
+                >
+                  <Search size={15} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search by title, category, or note..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: '13px',
+                      color: 'var(--text)',
+                      width: '100%',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch('');
+                        searchInputRef.current?.focus();
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-3)',
+                        cursor: 'pointer',
+                        padding: 2,
+                        display: 'grid',
+                        placeItems: 'center',
+                        borderRadius: 4,
+                      }}
+                      aria-label="Clear search text"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 2: Rule Type (Discrete cards in grid, NO split lines) */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.6px',
+                    color: 'var(--text-3)',
+                    marginBottom: 10,
+                  }}
+                >
+                  Rule Type
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                  {[
+                    { id: 'autopay' as const, label: 'Subscriptions', icon: RefreshCw, count: counts.autopay },
+                    { id: 'quick_log' as const, label: 'Custom', icon: Zap, count: counts.quick_log },
+                  ].map(tab => {
+                    const isSelected = kindFilter === tab.id;
+                    const Icon = tab.icon;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setKindFilter(tab.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 14px',
+                          borderRadius: 12,
+                          fontSize: '12.5px',
+                          fontWeight: isSelected ? 700 : 550,
+                          backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
+                          color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
+                          border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                          boxShadow: isSelected ? '0 2px 8px var(--accent-soft)' : 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                          <Icon size={14} style={{ color: isSelected ? 'var(--accent-contrast)' : 'var(--text-3)', flexShrink: 0 }} />
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.label}</span>
+                          <span style={{ fontSize: '11px', opacity: isSelected ? 0.9 : 0.65 }}>({tab.count})</span>
+                        </div>
+                        {isSelected && <Check size={14} style={{ color: 'var(--accent-contrast)', flexShrink: 0 }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Section 3: Status (2x2 grid, NO split lines) */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.6px',
+                    color: 'var(--text-3)',
+                    marginBottom: 10,
+                  }}
+                >
+                  Status
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                  {[
+                    { id: 'all' as AutopayStatusFilter, label: 'All Statuses', icon: Layers },
+                    { id: 'active' as AutopayStatusFilter, label: 'Active Only', icon: Play, color: 'var(--credit, #22c55e)' },
+                    { id: 'due' as AutopayStatusFilter, label: 'Due / Overdue', icon: AlertTriangle, color: '#ef4444' },
+                    { id: 'paused' as AutopayStatusFilter, label: 'Paused', icon: Pause, color: 'var(--text-3)' },
+                  ].map(opt => {
+                    const isSelected = statusFilter === opt.id;
+                    const Icon = opt.icon;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setStatusFilter(opt.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 14px',
+                          borderRadius: 12,
+                          fontSize: '12.5px',
+                          fontWeight: isSelected ? 700 : 550,
+                          backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
+                          color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
+                          border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                          boxShadow: isSelected ? '0 2px 8px var(--accent-soft)' : 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                          <Icon size={14} style={{ color: isSelected ? 'var(--accent-contrast)' : opt.color || 'var(--text-3)', flexShrink: 0 }} />
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{opt.label}</span>
+                        </div>
+                        {isSelected && <Check size={14} style={{ color: 'var(--accent-contrast)', flexShrink: 0 }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Section 4: Frequency (Wrap pills, NO split lines) */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.6px',
+                    color: 'var(--text-3)',
+                    marginBottom: 10,
+                  }}
+                >
+                  Frequency
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '1px' }}>
+                  {[
+                    { id: 'all' as AutopayFreqFilter, label: 'All Frequencies' },
+                    { id: 'daily' as AutopayFreqFilter, label: 'Daily' },
+                    { id: 'weekly' as AutopayFreqFilter, label: 'Weekly' },
+                    { id: 'monthly' as AutopayFreqFilter, label: 'Monthly' },
+                    { id: 'yearly' as AutopayFreqFilter, label: 'Yearly' },
+                  ].map(opt => {
+                    const isSelected = freqFilter === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setFreqFilter(opt.id)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '7px 14px',
+                          borderRadius: 9999,
+                          fontSize: '12.5px',
+                          fontWeight: isSelected ? 700 : 550,
+                          backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
+                          color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
+                          border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                          boxShadow: isSelected ? '0 2px 8px var(--accent-soft)' : 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <span>{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Section 5: Sort Order (2-column grid, NO split lines) */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.6px',
+                    color: 'var(--text-3)',
+                    marginBottom: 10,
+                  }}
+                >
+                  Sort Order
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                  {[
+                    { id: 'due_asc' as AutopaySortOption, label: 'Next Due Date' },
+                    { id: 'recent' as AutopaySortOption, label: 'Recently Added' },
+                    { id: 'amount_desc' as AutopaySortOption, label: 'Highest Amount' },
+                    { id: 'amount_asc' as AutopaySortOption, label: 'Lowest Amount' },
+                    { id: 'name_asc' as AutopaySortOption, label: 'Title (A to Z)', fullWidth: true },
+                  ].map(s => {
+                    const isSelected = sortBy === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setSortBy(s.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 14px',
+                          borderRadius: 12,
+                          fontSize: '12.5px',
+                          fontWeight: isSelected ? 700 : 550,
+                          backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
+                          color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
+                          border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                          boxShadow: isSelected ? '0 2px 8px var(--accent-soft)' : 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          gridColumn: s.fullWidth ? '1 / -1' : undefined,
+                        }}
+                      >
+                        <span>{s.label}</span>
+                        {isSelected && <Check size={14} style={{ color: 'var(--accent-contrast)' }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Drawer Sticky Footer: Clear & Apply buttons */}
+            <div
+              style={{
+                padding: '12px 18px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                backgroundColor: 'var(--surface)',
+                flexShrink: 0,
+                paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 16px)' : '16px',
+              }}
+            >
               <button
                 type="button"
                 onClick={onClearAll}
+                disabled={activeFilterCount === 0 && !search}
                 style={{
-                  background: 'none',
+                  flex: 1,
+                  height: 44,
+                  borderRadius: 9999,
+                  fontSize: '13.5px',
+                  fontWeight: 650,
+                  backgroundColor: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  color: (activeFilterCount > 0 || search) ? 'var(--text)' : 'var(--text-3)',
+                  cursor: (activeFilterCount > 0 || search) ? 'pointer' : 'default',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  opacity: (activeFilterCount > 0 || search) ? 1 : 0.5,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <RotateCcw size={14} />
+                <span>Clear</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowFilters(false)}
+                style={{
+                  flex: 1.6,
+                  height: 44,
+                  borderRadius: 9999,
+                  fontSize: '13.5px',
+                  fontWeight: 700,
+                  backgroundColor: 'var(--accent)',
+                  color: 'var(--accent-contrast)',
                   border: 'none',
-                  color: 'var(--text-3)',
-                  fontSize: '12px',
-                  fontWeight: 500,
+                  boxShadow: '0 3px 12px var(--accent-soft)',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 4,
-                  padding: '4px 6px',
-                  borderRadius: 6,
+                  justifyContent: 'center',
+                  gap: 6,
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <RotateCcw size={12} />
-                <span className="desktop-only">Reset</span>
+                <span>Apply</span>
+                {filteredCount !== undefined && (
+                  <span style={{ fontSize: '12px', opacity: 0.85, fontWeight: 600 }}>({filteredCount})</span>
+                )}
               </button>
-            )}
-
-            {/* Spend Breakdown Toggle */}
-            <button
-              type="button"
-              onClick={() => setShowStats(prev => !prev)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '5px 10px',
-                borderRadius: '9999px',
-                backgroundColor: showStats ? 'var(--surface)' : 'var(--surface2)',
-                border: showStats ? '1px solid var(--border2)' : '1px solid var(--border)',
-                color: showStats ? 'var(--text)' : 'var(--text-2)',
-                fontSize: '12px',
-                fontWeight: showStats ? 650 : 500,
-                boxShadow: showStats ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-              title="Toggle Spend Breakdown"
-            >
-              <BarChart3 size={14} style={{ flexShrink: 0 }} />
-              <span>Spend</span>
-              {showStats ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            </button>
-
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={() => setShowFilters(false)}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                backgroundColor: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
-                cursor: 'pointer',
-                display: 'grid',
-                placeItems: 'center',
-                padding: 0,
-                transition: 'all 0.15s ease',
-              }}
-              aria-label="Close filters"
-            >
-              <X size={16} />
-            </button>
-          </div>
+            </div>
+          </motion.div>
         </div>
-
-        {/* Scrollable Filter Options */}
-        <div
-          className="filter-drawer-content no-scrollbar"
-          style={{
-            flex: '1 1 auto',
-            minHeight: 0,
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            padding: '14px 18px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 16,
-          }}
-        >
-          {/* Collapsible Spend Summary inside Drawer */}
-          {showStats && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-                padding: '12px',
-                backgroundColor: 'var(--surface2)',
-                borderRadius: 12,
-                border: '1px solid var(--border)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--accent)' }}>
-                  Subscription Spend Summary
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 500 }}>
-                  {counts.all} total recurring rules
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
-                <div style={{ background: 'var(--surface)', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '10.5px', color: 'var(--text-3)' }}>Projected Monthly</div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginTop: 2 }}>
-                    {fmtMoney(totalMonthlySpend, currency)}
-                  </div>
-                </div>
-
-                <div style={{ background: 'var(--surface)', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: '10.5px', color: 'var(--text-3)' }}>Due / Overdue Bills</div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: counts.due > 0 ? '#ef4444' : 'var(--text-2)', marginTop: 2 }}>
-                    {counts.due} bill{counts.due === 1 ? '' : 's'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Search Input Filter */}
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: 8 }}>
-              Search
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                borderRadius: '10px',
-                padding: '7px 10px',
-              }}
-            >
-              <Search size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search by title, category, or note..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: '12.5px',
-                  color: 'var(--text)',
-                  width: '100%',
-                }}
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-3)',
-                    cursor: 'pointer',
-                    padding: 0,
-                    display: 'grid',
-                    placeItems: 'center',
-                  }}
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Rule Kind Filter */}
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: 8 }}>
-              Rule Type
-            </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: 6,
-                backgroundColor: 'var(--surface2)',
-                padding: 4,
-                borderRadius: '12px',
-                border: '1px solid var(--border)',
-              }}
-            >
-              {[
-                { id: 'autopay' as const, label: 'Subscriptions', icon: <RefreshCw size={13} />, count: counts.autopay },
-                { id: 'quick_log' as const, label: 'Custom', icon: <Zap size={13} />, count: counts.quick_log },
-              ].map(tab => {
-                const isSelected = kindFilter === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setKindFilter(tab.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      padding: '7px 4px',
-                      borderRadius: '8px',
-                      border: isSelected ? '1px solid var(--border)' : '1px solid transparent',
-                      backgroundColor: isSelected ? 'var(--surface)' : 'transparent',
-                      color: isSelected ? 'var(--text)' : 'var(--text-2)',
-                      fontSize: '12px',
-                      fontWeight: isSelected ? 650 : 500,
-                      cursor: 'pointer',
-                      boxShadow: isSelected ? '0 1px 3px rgba(0, 0, 0, 0.12)' : 'none',
-                      transition: 'all 0.15s ease',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {React.cloneElement(tab.icon, {
-                      style: { color: isSelected ? 'var(--text)' : 'var(--text-3)' }
-                    })}
-                    <span>{tab.label}</span>
-                    <span style={{ fontSize: '10px', opacity: isSelected ? 0.95 : 0.6 }}>({tab.count})</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Status Section */}
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: 8 }}>
-              Status
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-              {[
-                { id: 'all' as AutopayStatusFilter, label: 'All Statuses', icon: <Layers size={13} /> },
-                { id: 'active' as AutopayStatusFilter, label: 'Active Only', icon: <Play size={13} style={{ color: 'var(--credit)' }} /> },
-                { id: 'due' as AutopayStatusFilter, label: 'Due / Overdue', icon: <AlertTriangle size={13} style={{ color: '#ef4444' }} /> },
-                { id: 'paused' as AutopayStatusFilter, label: 'Paused', icon: <Pause size={13} style={{ color: 'var(--text-3)' }} /> },
-              ].map(opt => {
-                const isSelected = statusFilter === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setStatusFilter(opt.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '9px 12px',
-                      borderRadius: '10px',
-                      backgroundColor: isSelected ? 'var(--surface)' : 'var(--surface2)',
-                      border: isSelected ? '1px solid var(--border2)' : '1px solid var(--border)',
-                      color: isSelected ? 'var(--text)' : 'var(--text-2)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      boxShadow: isSelected ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                      {opt.icon}
-                      <div style={{ fontSize: '12px', fontWeight: isSelected ? 650 : 500, color: isSelected ? 'var(--text)' : 'inherit' }}>
-                        {opt.label}
-                      </div>
-                    </div>
-                    {isSelected && <Check size={14} style={{ color: 'var(--text)', flexShrink: 0 }} />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Frequency Filter */}
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: 8 }}>
-              Frequency
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {[
-                { id: 'all' as AutopayFreqFilter, label: 'All Frequencies' },
-                { id: 'daily' as AutopayFreqFilter, label: 'Daily' },
-                { id: 'weekly' as AutopayFreqFilter, label: 'Weekly' },
-                { id: 'monthly' as AutopayFreqFilter, label: 'Monthly' },
-                { id: 'yearly' as AutopayFreqFilter, label: 'Yearly' },
-              ].map(opt => {
-                const isSelected = freqFilter === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setFreqFilter(opt.id)}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      backgroundColor: isSelected ? 'var(--surface)' : 'var(--surface2)',
-                      border: isSelected ? '1px solid var(--border2)' : '1px solid var(--border)',
-                      color: isSelected ? 'var(--text)' : 'var(--text-2)',
-                      fontSize: '12px',
-                      fontWeight: isSelected ? 650 : 500,
-                      cursor: 'pointer',
-                      boxShadow: isSelected ? '0 1px 2px rgba(0, 0, 0, 0.08)' : 'none',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Sort Order Section */}
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: 8 }}>
-              Sort Order
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {[
-                { id: 'due_asc' as AutopaySortOption, label: 'Next Due Date (Soonest First)', icon: <Calendar size={13} /> },
-                { id: 'amount_desc' as AutopaySortOption, label: 'Amount: High to Low', icon: <ArrowUpDown size={13} /> },
-                { id: 'amount_asc' as AutopaySortOption, label: 'Amount: Low to High', icon: <ArrowUpDown size={13} /> },
-                { id: 'name_asc' as AutopaySortOption, label: 'Title (A to Z)', icon: <ArrowUpDown size={13} /> },
-                { id: 'recent' as AutopaySortOption, label: 'Recently Logged', icon: <Calendar size={13} /> },
-              ].map(opt => {
-                const isSelected = sortBy === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setSortBy(opt.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      backgroundColor: isSelected ? 'var(--surface2)' : 'transparent',
-                      border: '1px solid transparent',
-                      color: isSelected ? 'var(--text)' : 'var(--text-2)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {opt.icon}
-                      <span style={{ fontSize: '12.5px', fontWeight: isSelected ? 650 : 500 }}>
-                        {opt.label}
-                      </span>
-                    </div>
-                    {isSelected && <Check size={14} style={{ color: 'var(--text)' }} />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Drawer Footer Actions */}
-        <div
-          style={{
-            padding: '12px 18px',
-            backgroundColor: 'var(--surface)',
-            borderTop: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-            flexShrink: 0,
-          }}
-        >
-          {activeFilterCount > 0 ? (
-            <button
-              type="button"
-              onClick={onClearAll}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-3)',
-                fontSize: '12px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                padding: '6px 8px',
-              }}
-            >
-              Reset Filters
-            </button>
-          ) : (
-            <div />
-          )}
-
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={() => setShowFilters(false)}
-            style={{
-              padding: '0 22px',
-              height: '38px',
-              fontSize: '13.5px',
-              fontWeight: 650,
-              borderRadius: '9999px',
-            }}
-          >
-            Done
-          </button>
-        </div>
-      </div>
-    </div>,
+      )}
+    </AnimatePresence>,
     document.body
   );
 };

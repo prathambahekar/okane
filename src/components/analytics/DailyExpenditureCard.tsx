@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { Calendar, ChevronRight, FilterX, RotateCcw } from 'lucide-react';
-import { fmtMoney, fmtDateWithDay, getRelativeDateLabel, getGroupedExpenseAmount, type GroupedExpense, type SpendingMode } from '../../utils';
+import { Calendar, ChevronRight, FilterX, RotateCcw, History } from 'lucide-react';
+import { fmtMoney, fmtMoneyCompact, fmtDateWithDay, getRelativeDateLabel, getGroupedExpenseAmount, type GroupedExpense, type SpendingMode } from '../../utils';
 import CategoryIcon from '../CategoryIcon';
 import type { Category, Wallet, Friend } from '../../types';
 
@@ -271,7 +271,10 @@ export const DailyExpenditureCard: React.FC<DailyExpenditureCardProps> = ({
                           <span className="analytics-v2-day-tag today">Today</span>
                         )}
                         {relLabel === 'Yesterday' && (
-                          <span className="analytics-v2-day-tag yesterday">Yesterday</span>
+                          <span className="analytics-v2-day-tag yesterday" title="Yesterday" aria-label="Yesterday">
+                            <History size={10.5} strokeWidth={2.4} className="analytics-v2-day-tag-icon" />
+                            <span className="analytics-v2-day-tag-text">Yesterday</span>
+                          </span>
                         )}
                         {ge.isSplit && (
                           <span
@@ -297,9 +300,14 @@ export const DailyExpenditureCard: React.FC<DailyExpenditureCardProps> = ({
                     <span
                       className="analytics-v2-day-amount"
                       style={{ color: amountColor }}
+                      title={fmtMoney(amt, currency)}
                     >
-                      {amountPrefix}
-                      {fmtMoney(amt, currency)}
+                      <span className="day-amount-full">
+                        {amountPrefix}{fmtMoney(amt, currency)}
+                      </span>
+                      <span className="day-amount-compact">
+                        {amountPrefix}{fmtMoneyCompact(amt, currency)}
+                      </span>
                     </span>
                     <div className="analytics-v2-day-arrow">
                       <ChevronRight size={16} />
@@ -388,7 +396,10 @@ export const DailyExpenditureCard: React.FC<DailyExpenditureCardProps> = ({
                           <span className="analytics-v2-day-tag today">Today</span>
                         )}
                         {row.isYesterday && (
-                          <span className="analytics-v2-day-tag yesterday">Yesterday</span>
+                          <span className="analytics-v2-day-tag yesterday" title="Yesterday" aria-label="Yesterday">
+                            <History size={10.5} strokeWidth={2.4} className="analytics-v2-day-tag-icon" />
+                            <span className="analytics-v2-day-tag-text">Yesterday</span>
+                          </span>
                         )}
                       </div>
 
@@ -407,11 +418,19 @@ export const DailyExpenditureCard: React.FC<DailyExpenditureCardProps> = ({
                     <span
                       className="analytics-v2-day-amount"
                       style={{ color: amountColor }}
+                      title={fmtMoney(displayAmount, currency)}
                     >
                       {row.count === 0 ? (
                         fmtMoney(0, currency)
                       ) : (
-                        `${amountPrefix}${fmtMoney(displayAmount, currency)}`
+                        <>
+                          <span className="day-amount-full">
+                            {amountPrefix}{fmtMoney(displayAmount, currency)}
+                          </span>
+                          <span className="day-amount-compact">
+                            {amountPrefix}{fmtMoneyCompact(displayAmount, currency)}
+                          </span>
+                        </>
                       )}
                     </span>
                     <div className="analytics-v2-day-arrow">
