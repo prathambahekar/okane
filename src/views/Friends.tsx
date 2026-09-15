@@ -906,11 +906,47 @@ export default function Friends({ onNavigate }: Props) {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         PaperProps={{
+          elevation: 0,
           sx: {
-            borderRadius: 2,
-            minWidth: 140,
-            boxShadow: 'var(--shadow)',
-            bgcolor: 'background.paper',
+            borderRadius: '16px',
+            minWidth: 160,
+            padding: '4px',
+            bgcolor: 'var(--surface)',
+            color: 'var(--text)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--border)',
+            '& .MuiList-root': {
+              padding: '2px 0',
+            },
+            '& .MuiMenuItem-root': {
+              borderRadius: '10px',
+              margin: '2px 4px',
+              padding: '8px 12px',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--text)',
+              gap: '10px',
+              transition: 'all 0.15s ease',
+              border: 'none !important',
+              '&:hover': {
+                bgcolor: 'var(--surface2)',
+                color: 'var(--text)',
+              },
+              '& .MuiListItemIcon-root': {
+                minWidth: 'auto',
+                color: 'var(--text-2)',
+              },
+              '&.danger-item': {
+                color: 'var(--debit, #ef4444)',
+                '&:hover': {
+                  bgcolor: 'rgba(239, 68, 68, 0.12)',
+                  color: 'var(--debit, #ef4444)',
+                },
+                '& .MuiListItemIcon-root': {
+                  color: 'var(--debit, #ef4444)',
+                },
+              },
+            },
           },
         }}
       >
@@ -919,20 +955,19 @@ export default function Friends({ onNavigate }: Props) {
             if (menuFriend) setEditFriend(menuFriend);
             handleMenuClose();
           }}
-          sx={{ fontSize: 13, gap: 1.5 }}
         >
-          <ListItemIcon><Edit2 size={16} /></ListItemIcon>
-          <ListItemText primary="Edit Contact" primaryTypographyProps={{ fontSize: 13 }} />
+          <ListItemIcon><Edit2 size={15} /></ListItemIcon>
+          <ListItemText primary="Edit Contact" primaryTypographyProps={{ fontSize: 13, fontWeight: 550, color: 'inherit' }} />
         </MenuItem>
         <MenuItem
+          className="danger-item"
           onClick={() => {
             if (menuFriend) setDelId(menuFriend.id);
             handleMenuClose();
           }}
-          sx={{ fontSize: 13, gap: 1.5, color: 'error.main' }}
         >
-          <ListItemIcon><Trash2 size={16} style={{ color: 'var(--debit)' }} /></ListItemIcon>
-          <ListItemText primary="Delete Contact" primaryTypographyProps={{ fontSize: 13, color: 'error.main' }} />
+          <ListItemIcon><Trash2 size={15} /></ListItemIcon>
+          <ListItemText primary="Delete Contact" primaryTypographyProps={{ fontSize: 13, fontWeight: 550, color: 'inherit' }} />
         </MenuItem>
       </Menu>
 

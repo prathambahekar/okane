@@ -7413,7 +7413,6 @@ body.no-animations *::after,
   transition: all 0.18s ease;
   user-select: none;
   gap: 10px;
-  border-bottom: 1px solid var(--border);
 }
 
 .contact-row:hover {
@@ -7432,19 +7431,32 @@ body.no-animations *::after,
   border-radius: 10px;
 }
 
+@media (min-width: 641px) {
+  .contact-cards-container {
+    gap: 10px;
+  }
+  .contact-cards-container.density-detailed {
+    gap: 12px;
+  }
+  .contact-grid {
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 14px;
+  }
+}
+
 @media (max-width: 600px) {
   .contact-grid {
     grid-template-columns: 1fr;
     gap: 10px;
   }
   .contact-card-item {
-    padding: 9px 12px;
+    padding: 10px 12px;
   }
   .contact-card-item.density-compact {
-    padding: 6px 10px;
+    padding: 7px 10px;
   }
   .contact-card-item.density-detailed {
-    padding: 10px 12px;
+    padding: 11px 13px;
   }
 }
 
