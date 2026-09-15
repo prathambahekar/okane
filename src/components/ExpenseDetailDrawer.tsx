@@ -439,7 +439,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               style={{
                 width: 44,
                 height: 44,
-                borderRadius: 14,
+                borderRadius: 'var(--radius-md)',
                 backgroundColor: categoryObj?.color ? `${categoryObj.color}20` : 'rgba(16, 185, 129, 0.16)',
                 border: `1px solid ${categoryObj?.color ? categoryObj.color + '35' : 'rgba(16, 185, 129, 0.28)'}`,
                 display: 'flex',
@@ -454,14 +454,14 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
 
             {/* Title and metadata */}
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontWeight: 750, fontSize: 17, color: 'var(--text)', lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontWeight: 700, fontSize: 'var(--fs-lg)', color: 'var(--text)', lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {cleanSettlementDescription(ge.description)}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, color: 'var(--text-2)', fontSize: 12.5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, color: 'var(--text-2)', fontSize: 'var(--fs-xs)' }}>
                 {!isSettlement && (
                   <>
                     <span>{ge.category}</span>
-                    <span style={{ color: 'var(--text-3)', fontSize: 10 }}>•</span>
+                    <span style={{ color: 'var(--text-3)', fontSize: 'var(--fs-caption)' }}>•</span>
                   </>
                 )}
                 <span>{fmtDate(ge.date)}</span>
@@ -478,7 +478,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             style={{
               width: 32,
               height: 32,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
@@ -509,7 +509,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               padding: '14px 16px',
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
-              borderRadius: 18,
+              borderRadius: 'var(--radius-lg)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -518,13 +518,13 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             }}
           >
             <div>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+              <span className="text-caption">
                 Total Amount
               </span>
               <div
                 style={{
                   fontWeight: 800,
-                  fontSize: 22,
+                  fontSize: 'var(--fs-xl)',
                   color: isDebit ? 'var(--debit, #ef4444)' : 'var(--credit, #10b981)',
                   fontVariantNumeric: 'tabular-nums',
                   letterSpacing: '-0.4px',
@@ -534,7 +534,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 {flowSign}{fmtMoney(ge.totalAmount, currency)}
               </div>
               {ge.isSplit && ge.personalShare > 0 && (
-                <div style={{ fontSize: 11.5, color: 'var(--text-2)', fontWeight: 500, marginTop: 2 }}>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)', fontWeight: 500, marginTop: 2 }}>
                   Your share: {fmtMoney(ge.personalShare, currency)}
                 </div>
               )}
@@ -544,15 +544,8 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
               {/* Flow Pill */}
               <span
+                className="pill-badge"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  padding: '4px 10px',
-                  borderRadius: 9999,
-                  fontSize: 11,
-                  fontWeight: 650,
-                  whiteSpace: 'nowrap',
                   background: isTransfer ? 'var(--accent-soft)' : (isDebit ? 'var(--debit-bg)' : 'var(--credit-bg)'),
                   border: `1px solid ${isTransfer ? 'var(--accent-border-soft, var(--border))' : (isDebit ? 'var(--debit-border)' : 'var(--credit-border)')}`,
                   color: isTransfer ? 'var(--accent)' : (isDebit ? 'var(--debit)' : 'var(--credit)'),

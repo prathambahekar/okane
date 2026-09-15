@@ -815,7 +815,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                   {/* Ultra-Compact Unified Scope Selector */}
                   <div className="form-group" style={{ marginBottom: 6 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <label className="form-label" style={{ margin: 0, fontSize: 10.5, fontWeight: 750, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)' }}>
+                      <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)' }}>
                         Expense Type
                       </label>
                     </div>
@@ -874,7 +874,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                         style={{
                           padding: '10px 14px',
                           background: 'var(--surface2)',
-                          borderRadius: 16,
+                          borderRadius: 'var(--radius-lg)',
                           border: '1px solid var(--border)',
                           cursor: 'pointer',
                           display: 'flex',
@@ -889,13 +889,13 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                             style={{
                               width: 32,
                               height: 32,
-                              borderRadius: '50%',
+                              borderRadius: 'var(--radius-full)',
                               background: 'var(--accent-gradient, var(--accent))',
                               color: 'var(--accent-contrast, #ffffff)',
                               display: 'grid',
                               placeItems: 'center',
-                              fontWeight: 750,
-                              fontSize: 13,
+                              fontWeight: 700,
+                              fontSize: 'var(--fs-sm)',
                               flexShrink: 0,
                               boxShadow: '0 2px 6px var(--accent-soft)',
                             }}
@@ -903,13 +903,13 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                             <Users size={15} />
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 12.5, fontWeight: 750, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {selectedFriendIds.length > 0
                                 ? `Splitting with ${selectedFriendIds.length} Friend${selectedFriendIds.length > 1 ? 's' : ''}`
                                 : 'Tap to Select Friends & Split'}
                             </div>
                             {selectedFriendIds.length > 0 && (
-                              <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-2)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 Friends Owe: <strong style={{ color: 'var(--credit)' }}>{fmtMoney(totalFriendsShare, s.currency)}</strong>
                                 {isYouSelected && ((parseFloat(amount) || 0) - totalFriendsShare) > 0.001 && (
                                   <>
@@ -1002,8 +1002,8 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                       >
                         <span
                           style={{
-                            fontSize: 10,
-                            fontWeight: 750,
+                            fontSize: 'var(--fs-caption)',
+                            fontWeight: 700,
                             color: 'var(--text-3)',
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -1040,11 +1040,11 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                                 type="button"
                                 title={itemText}
                                 style={{
-                                  fontSize: 12.5,
+                                  fontSize: 'var(--fs-xs)',
                                   fontWeight: isSelected ? 700 : 600,
                                   height: 28,
                                   padding: '0 13px',
-                                  borderRadius: 9999,
+                                  borderRadius: 'var(--radius-full)',
                                   border: isSelected ? 'none' : '1px solid var(--border)',
                                   background: isSelected ? 'var(--text)' : 'var(--surface2)',
                                   color: isSelected ? 'var(--bg)' : 'var(--text-2)',
@@ -1076,21 +1076,21 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                   <div className="form-row">
                     <div className="form-group">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 18, height: 18, marginBottom: 4 }}>
-                        <label className="form-label" style={{ margin: 0, fontSize: 10.5, fontWeight: 750, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           Category
                         </label>
                         {autoDetectedCategory && autoDetectedCategory === category && (
                           <span
                             style={{
-                              fontSize: 9.5,
-                              fontWeight: 750,
+                              fontSize: 'var(--fs-caption)',
+                              fontWeight: 700,
                               color: 'var(--accent)',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 2.5,
                               background: 'var(--accent-soft)',
                               padding: '1px 6px',
-                              borderRadius: 9999,
+                              borderRadius: 'var(--radius-full)',
                             }}
                             title="Category suggested automatically based on your description"
                           >
@@ -1112,7 +1112,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                     </div>
                     <div className="form-group">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 18, height: 18, marginBottom: 4 }}>
-                        <label className="form-label" style={{ margin: 0, fontSize: 10.5, fontWeight: 750, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           Date Spent
                         </label>
                       </div>
@@ -1125,7 +1125,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                     <div className="form-row">
                       <div className="form-group">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 18, height: 18, marginBottom: 4 }}>
-                          <label className="form-label" style={{ margin: 0, fontSize: 10.5, fontWeight: 750, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)' }}>
+                          <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)' }}>
                             {status === 'unpaid' ? 'Wallet' : 'Paid From'}
                           </label>
                           <div
@@ -1134,7 +1134,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                               alignItems: 'center',
                               background: 'var(--surface2)',
                               padding: '2px',
-                              borderRadius: 9999,
+                              borderRadius: 'var(--radius-full)',
                               border: 'none',
                               gap: 2,
                             }}
@@ -1147,10 +1147,10 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 padding: '2px 9px',
-                                borderRadius: 9999,
+                                borderRadius: 'var(--radius-full)',
                                 border: 'none',
-                                fontSize: 10.5,
-                                fontWeight: status === 'paid' ? 750 : 500,
+                                fontSize: 'var(--fs-caption)',
+                                fontWeight: status === 'paid' ? 700 : 500,
                                 cursor: 'pointer',
                                 background: status === 'paid' ? 'var(--credit-bg, rgba(16, 185, 129, 0.14))' : 'transparent',
                                 color: status === 'paid' ? 'var(--credit, #10b981)' : 'var(--text-3)',
@@ -1169,10 +1169,10 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 padding: '2px 9px',
-                                borderRadius: 9999,
+                                borderRadius: 'var(--radius-full)',
                                 border: 'none',
-                                fontSize: 10.5,
-                                fontWeight: status === 'unpaid' ? 750 : 500,
+                                fontSize: 'var(--fs-caption)',
+                                fontWeight: status === 'unpaid' ? 700 : 500,
                                 cursor: 'pointer',
                                 background: status === 'unpaid' ? 'var(--debit-bg, rgba(239, 68, 68, 0.15))' : 'transparent',
                                 color: status === 'unpaid' ? 'var(--debit, #ef4444)' : 'var(--text-3)',
@@ -1205,7 +1205,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                 <>
                   {/* Income Type Switcher */}
                   <div className="form-group">
-                    <label className="form-label" style={{ fontSize: 11.5, marginBottom: 4 }}>Income Type</label>
+                    <label className="form-label" style={{ fontSize: 'var(--fs-caption)', marginBottom: 4 }}>Income Type</label>
                     <div className="segment-control">
                       <button
                         type="button"
@@ -1237,7 +1237,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                     <>
                       <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <label className="form-label" style={{ margin: 0, fontSize: 11.5, fontWeight: 600 }}>Income Source / Name *</label>
+                          <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 600 }}>Income Source / Name *</label>
                           <button
                             type="button"
                             className={`btn-note-feather ${notes ? 'has-note' : ''}`}
@@ -1286,11 +1286,11 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                                 type="button"
                                 title={preset.value}
                                 style={{
-                                  fontSize: 11.5,
-                                  fontWeight: isSelected ? 750 : 600,
+                                  fontSize: 'var(--fs-caption)',
+                                  fontWeight: isSelected ? 700 : 600,
                                   height: 26,
                                   padding: '0 12px',
-                                  borderRadius: 9999,
+                                  borderRadius: 'var(--radius-full)',
                                   border: isSelected ? '1px solid var(--border)' : '1px solid transparent',
                                   background: isSelected ? 'var(--surface2)' : 'var(--surface3)',
                                   color: isSelected ? 'var(--text)' : 'var(--text-2)',
@@ -1317,7 +1317,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                       <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div className="form-group">
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 22, height: 22, marginBottom: 5 }}>
-                            <label className="form-label" style={{ margin: 0, fontSize: 11.5, fontWeight: 600 }}>Deposited To (Wallet)</label>
+                            <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 600 }}>Deposited To (Wallet)</label>
                           </div>
                           <select className="form-select" value={walletId} onChange={e => setWalletId(e.target.value)}>
                             {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -1325,7 +1325,7 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
                         </div>
                         <div className="form-group">
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 22, height: 22, marginBottom: 5 }}>
-                            <label className="form-label" style={{ margin: 0, fontSize: 11.5, fontWeight: 600 }}>Date Received</label>
+                            <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 600 }}>Date Received</label>
                           </div>
                           <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
                         </div>
@@ -1433,12 +1433,12 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
               style={{
                 flex: 1,
                 height: 44,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
                 fontWeight: 700,
-                fontSize: 13.5,
+                fontSize: 'var(--fs-base)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1458,9 +1458,9 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
               style={{
                 flex: 1.25,
                 height: 44,
-                borderRadius: 9999,
-                fontWeight: 750,
-                fontSize: 13.5,
+                borderRadius: 'var(--radius-full)',
+                fontWeight: 700,
+                fontSize: 'var(--fs-base)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',

@@ -96,7 +96,7 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                 <span
                   style={{
                     fontWeight: 600,
-                    fontSize: 14,
+                    fontSize: 'var(--fs-base)',
                     color: 'var(--text)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -114,8 +114,8 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                       alignItems: 'center',
                       gap: 4,
                       padding: '2px 8px',
-                      borderRadius: 12,
-                      fontSize: 11,
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 600,
                       background: 'var(--accent-soft)',
                       color: 'var(--accent)',
@@ -127,11 +127,11 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-3)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {!ge.isSettlementGroup && <span style={{ flexShrink: 0 }}>{ge.category}</span>}
                 {!ge.isSettlementGroup && friendsToShow.length > 0 && <span style={{ flexShrink: 0 }}>•</span>}
                 {friendsToShow.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text-3)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-3)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {friendsToShow.map((f: Friend | undefined, fIdx: number) => f && (
                       <span key={`${f.id}-${fIdx}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                         <div className="avatar avatar-sm" style={{ ...getAvatarStyle(f.color), width: 16, height: 16, fontSize: 8, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -151,33 +151,33 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
             {(() => {
               if (ge.isSettlementGroup) {
                 return (
-                  <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
+                  <span style={{ fontWeight: 700, fontSize: 'var(--fs-base)', whiteSpace: 'nowrap', color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
                     {ge.flow === 'in' ? '+' : '-'}{fmtMoney(ge.totalAmount, currency)}
                   </span>
                 );
               }
-              if (isIn) return <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: 'var(--credit)' }}>+{fmtMoney(ge.totalAmount, currency)}</span>;
+              if (isIn) return <span style={{ fontWeight: 700, fontSize: 'var(--fs-base)', whiteSpace: 'nowrap', color: 'var(--credit)' }}>+{fmtMoney(ge.totalAmount, currency)}</span>;
               if (ge.isSplit) {
                 return (
                   <>
-                    <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
+                    <span style={{ fontWeight: 700, fontSize: 'var(--fs-base)', whiteSpace: 'nowrap', color: ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)' }}>
                       {ge.flow === 'in' ? '+' : '-'}{fmtMoney(ge.totalAmount, currency)}
                     </span>
                     {ge.personalShare > 0 && (
-                      <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>
+                      <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500 }}>
                         Your share: {fmtMoney(ge.personalShare, currency)}
                       </span>
                     )}
                   </>
                 );
               }
-              return <span style={{ fontWeight: 700, fontSize: 14.5, whiteSpace: 'nowrap', color: ge.flow === 'out' ? 'var(--debit)' : 'var(--credit)' }}>{ge.flow === 'out' ? '-' : '+'}{fmtMoney(ge.totalAmount, currency)}</span>;
+              return <span style={{ fontWeight: 700, fontSize: 'var(--fs-base)', whiteSpace: 'nowrap', color: ge.flow === 'out' ? 'var(--debit)' : 'var(--credit)' }}>{ge.flow === 'out' ? '-' : '+'}{fmtMoney(ge.totalAmount, currency)}</span>;
             })()}
           </div>
         </td>
         <td>
           {isUnpaid ? (
-            <span style={{ color: 'var(--text-3)', fontSize: 13, opacity: 0.5, paddingLeft: 6 }}>—</span>
+            <span style={{ color: 'var(--text-3)', fontSize: 'var(--fs-sm)', opacity: 0.5, paddingLeft: 6 }}>—</span>
           ) : (
             <span className="tx-wallet-pill" style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {walletObj ? (
@@ -201,7 +201,7 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
               </span>
             )
           ) : (
-            <span style={{ color: 'var(--text-3)', fontSize: 12 }}>—</span>
+            <span style={{ color: 'var(--text-3)', fontSize: 'var(--fs-xs)' }}>—</span>
           )}
         </td>
         <td style={{ textAlign: 'right' }}>

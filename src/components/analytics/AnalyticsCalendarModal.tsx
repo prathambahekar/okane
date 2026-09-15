@@ -273,7 +273,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
           maxWidth: 420,
           width: '100%',
           maxHeight: '92vh',
-          borderRadius: 24,
+          borderRadius: 'var(--radius-2xl)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -284,14 +284,14 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header - Rule 1: No split line */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '16px 20px 12px',
-            borderBottom: '1px solid var(--border2)',
+            borderBottom: 'none',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -299,7 +299,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
               style={{
                 width: 34,
                 height: 34,
-                borderRadius: 10,
+                borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'rgba(139, 92, 246, 0.15)',
                 color: 'var(--accent, #8b5cf6)',
                 display: 'grid',
@@ -312,11 +312,11 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
             <div>
               <h3
                 id="calendar-modal-title"
-                style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', lineHeight: 1.2 }}
+                style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', lineHeight: 1.2 }}
               >
                 Date & Period
               </h3>
-              <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
                 Select specific day, week, month, or year
               </div>
             </div>
@@ -329,7 +329,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
             style={{
               width: 32,
               height: 32,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               border: '1px solid var(--border)',
               background: 'var(--surface2)',
               color: 'var(--text)',
@@ -347,7 +347,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
         <div style={{ padding: '16px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Scope Selector: Day / Week / Month / Year */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <label className="text-caption">
               View Scope
             </label>
             <div
@@ -356,7 +356,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                 gridTemplateColumns: 'repeat(4, 1fr)',
                 background: 'var(--surface2)',
                 padding: 4,
-                borderRadius: 14,
+                borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border)',
                 gap: 4,
               }}
@@ -378,12 +378,12 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                     }}
                     style={{
                       padding: '8px 4px',
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-sm)',
                       border: 'none',
                       background: isActive ? 'var(--accent)' : 'transparent',
                       color: isActive ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-                      fontSize: 12.5,
-                      fontWeight: isActive ? 700 : 550,
+                      fontSize: 'var(--fs-xs)',
+                      fontWeight: isActive ? 700 : 500,
                       cursor: 'pointer',
                       textTransform: 'capitalize',
                       transition: 'all 0.15s ease',
@@ -404,7 +404,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '8px 12px',
-              borderRadius: 12,
+              borderRadius: 'var(--radius-md)',
               background: 'var(--surface2)',
               border: '1px solid var(--border2)',
               position: 'relative',
@@ -412,7 +412,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Smartphone size={15} style={{ color: 'var(--accent)' }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text)' }}>
                 Native Calendar
               </span>
             </div>
@@ -435,12 +435,12 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                 alignItems: 'center',
                 gap: 5,
                 padding: '5px 11px',
-                borderRadius: 8,
+                borderRadius: 'var(--radius-sm)',
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
-                fontSize: 11.5,
-                fontWeight: 650,
+                fontSize: 'var(--fs-caption)',
+                fontWeight: 600,
                 cursor: 'pointer',
               }}
             >
@@ -472,7 +472,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
           {scope === 'year' ? (
             /* Year Grid */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <div className="text-caption">
                 Select Year
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
@@ -842,11 +842,12 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
 
           {/* Quick Presets */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginRight: 2 }}>
+            <span className="text-caption" style={{ marginRight: 2 }}>
               Presets:
             </span>
             <button
               type="button"
+              className="pill-chip"
               onClick={() => {
                 setScope('day');
                 setSelectedDate(today);
@@ -854,13 +855,9 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                 setViewMonth(today.getMonth());
               }}
               style={{
-                fontSize: 11,
-                fontWeight: 650,
-                padding: '4px 9px',
-                borderRadius: 9999,
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-2)',
+                fontSize: 'var(--fs-caption)',
+                fontWeight: 600,
+                padding: '4px 10px',
                 cursor: 'pointer',
               }}
             >
@@ -868,6 +865,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
             </button>
             <button
               type="button"
+              className="pill-chip"
               onClick={() => {
                 setScope('week');
                 setSelectedDate(today);
@@ -875,13 +873,9 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                 setViewMonth(today.getMonth());
               }}
               style={{
-                fontSize: 11,
-                fontWeight: 650,
-                padding: '4px 9px',
-                borderRadius: 9999,
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-2)',
+                fontSize: 'var(--fs-caption)',
+                fontWeight: 600,
+                padding: '4px 10px',
                 cursor: 'pointer',
               }}
             >
@@ -889,6 +883,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
             </button>
             <button
               type="button"
+              className="pill-chip"
               onClick={() => {
                 setScope('month');
                 setSelectedDate(today);
@@ -896,13 +891,9 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                 setViewMonth(today.getMonth());
               }}
               style={{
-                fontSize: 11,
-                fontWeight: 650,
-                padding: '4px 9px',
-                borderRadius: 9999,
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-2)',
+                fontSize: 'var(--fs-caption)',
+                fontWeight: 600,
+                padding: '4px 10px',
                 cursor: 'pointer',
               }}
             >
@@ -910,18 +901,15 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
             </button>
             <button
               type="button"
+              className="pill-chip"
               onClick={() => {
                 setScope('year');
                 setViewYear(today.getFullYear());
               }}
               style={{
-                fontSize: 11,
-                fontWeight: 650,
-                padding: '4px 9px',
-                borderRadius: 9999,
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-2)',
+                fontSize: 'var(--fs-caption)',
+                fontWeight: 600,
+                padding: '4px 10px',
                 cursor: 'pointer',
               }}
             >
@@ -933,7 +921,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
           <div
             style={{
               padding: '12px 14px',
-              borderRadius: 14,
+              borderRadius: 'var(--radius-md)',
               background: 'var(--surface2)',
               border: '1px solid var(--border2)',
               display: 'flex',
@@ -944,34 +932,34 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Sparkles size={13} style={{ color: 'var(--accent)' }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text)' }}>
                   {previewStats.label}
                 </span>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 2 }}>
                 {previewStats.sublabel} • {previewStats.count} {previewStats.count === 1 ? 'transaction' : 'transactions'}
               </div>
             </div>
 
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>
+              <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 800, color: 'var(--text)' }}>
                 {fmtMoney(previewStats.total, currency)}
               </div>
-              <div style={{ fontSize: 10, fontWeight: 650, color: 'var(--text-3)', textTransform: 'uppercase' }}>
+              <div className="text-caption" style={{ marginTop: 2 }}>
                 Total Spending
               </div>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Rule 1: No split line */}
         <div
           style={{
             padding: '12px 20px calc(14px + env(safe-area-inset-bottom, 0px))',
             display: 'flex',
             alignItems: 'center',
             gap: 10,
-            borderTop: '1px solid var(--border2)',
+            borderTop: 'none',
             backgroundColor: 'var(--surface)',
             flexShrink: 0,
           }}
@@ -982,12 +970,12 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
             style={{
               flex: 1,
               height: 42,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               border: '1px solid var(--border)',
               background: 'var(--surface2)',
               color: 'var(--text)',
-              fontSize: 13,
-              fontWeight: 650,
+              fontSize: 'var(--fs-base)',
+              fontWeight: 600,
               cursor: 'pointer',
             }}
           >
@@ -1000,11 +988,11 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
             style={{
               flex: 1.6,
               height: 42,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               border: 'none',
               background: 'var(--accent)',
               color: 'var(--accent-contrast)',
-              fontSize: 13.5,
+              fontSize: 'var(--fs-base)',
               fontWeight: 700,
               cursor: 'pointer',
               display: 'inline-flex',

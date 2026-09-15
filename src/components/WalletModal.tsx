@@ -141,7 +141,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: 10,
+                borderRadius: 'var(--radius-sm)',
                 background: 'transparent',
                 display: 'flex',
                 alignItems: 'center',
@@ -153,7 +153,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
               <WalletIcon size={19} strokeWidth={2.2} />
             </div>
             <div>
-              <span className="modal-title" style={{ fontSize: 16, fontWeight: 700 }}>
+              <span className="modal-title" style={{ fontSize: 'var(--fs-lg)', fontWeight: 700 }}>
                 {wallet ? 'Edit Wallet' : 'New Wallet'}
               </span>
             </div>
@@ -184,7 +184,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
               className="hero-amount-card"
               style={{
                 background: 'var(--surface2)',
-                borderRadius: 12,
+                borderRadius: 'var(--radius-lg)',
                 padding: '12px 16px 10px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -195,7 +195,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
             >
               <span
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.6px',
@@ -214,7 +214,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
               >
                 <span
                   style={{
-                    fontSize: 24,
+                    fontSize: 'var(--fs-hero-sm)',
                     fontWeight: 700,
                     color: 'var(--text-2)',
                     lineHeight: 1,
@@ -230,8 +230,8 @@ export default function WalletModal({ wallet, onClose }: Props) {
                   onChange={e => setOpeningBalance(e.target.value)}
                   placeholder="0"
                   style={{
-                    fontSize: 26,
-                    fontWeight: 750,
+                    fontSize: 'var(--fs-hero-sm)',
+                    fontWeight: 700,
                     color: 'var(--text)',
                     background: 'transparent',
                     border: 'none',
@@ -252,7 +252,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
               <label
                 style={{
                   display: 'block',
-                  fontSize: 11,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.4px',
@@ -275,8 +275,8 @@ export default function WalletModal({ wallet, onClose }: Props) {
                 style={{
                   width: '100%',
                   height: 40,
-                  borderRadius: 10,
-                  fontSize: 13.5,
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: 'var(--fs-base)',
                   fontWeight: 500,
                   textAlign: 'left',
                   padding: '0 12px',
@@ -290,7 +290,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
                 <span
                   style={{
                     color: 'var(--debit, #ef4444)',
-                    fontSize: 11,
+                    fontSize: 'var(--fs-caption)',
                     marginTop: 3,
                     display: 'block',
                     textAlign: 'left',
@@ -306,7 +306,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
               <span
                 style={{
                   display: 'block',
-                  fontSize: 11,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.4px',
@@ -338,7 +338,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
                         justifyContent: 'center',
                         gap: 4,
                         padding: '8px 4px 6px',
-                        borderRadius: 10,
+                        borderRadius: 'var(--radius-sm)',
                         border: '1px solid var(--border)',
                         background: isSelected
                           ? 'var(--surface3)'
@@ -367,7 +367,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
                       </div>
                       <span
                         style={{
-                          fontSize: 10.5,
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: isSelected ? 700 : 500,
                           color: isSelected ? 'var(--text)' : 'var(--text-2)',
                           textAlign: 'center',
@@ -393,7 +393,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '12px 14px',
-                borderRadius: 12,
+                borderRadius: 'var(--radius-md)',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 cursor: 'pointer',
@@ -420,8 +420,8 @@ export default function WalletModal({ wallet, onClose }: Props) {
                 </div>
                 <div
                   style={{
-                    fontSize: 13.5,
-                    fontWeight: 650,
+                    fontSize: 'var(--fs-base)',
+                    fontWeight: 600,
                     color: 'var(--text)',
                     lineHeight: 1.2,
                   }}
@@ -435,7 +435,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
                 style={{
                   width: 42,
                   height: 24,
-                  borderRadius: 99,
+                  borderRadius: 'var(--radius-full)',
                   background: isDefault ? 'var(--text)' : 'var(--surface3)',
                   border: isDefault ? '1px solid var(--text)' : '1px solid var(--border)',
                   padding: 2,
@@ -476,9 +476,9 @@ export default function WalletModal({ wallet, onClose }: Props) {
                 style={{
                   flex: 1,
                   height: 40,
-                  borderRadius: 9999,
-                  fontSize: 13,
-                  fontWeight: 650,
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
+                  fontWeight: 600,
                   border: '1px solid var(--border)',
                   background: 'var(--surface2)',
                   color: 'var(--text)',
@@ -500,8 +500,8 @@ export default function WalletModal({ wallet, onClose }: Props) {
                 style={{
                   flex: 1.35,
                   height: 40,
-                  borderRadius: 9999,
-                  fontSize: 13,
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 700,
                   background: 'var(--text)',
                   border: '1px solid var(--text)',

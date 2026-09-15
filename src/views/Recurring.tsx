@@ -329,10 +329,10 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
             onClick={() => setKindFilter('autopay')}
             title="Subscriptions"
             aria-label="Subscriptions"
-            style={{ fontSize: '13.5px', fontWeight: kindFilter === 'autopay' ? 650 : 500 }}
+            style={{ fontSize: 'var(--fs-sm)', fontWeight: kindFilter === 'autopay' ? 600 : 500 }}
           >
             <RefreshCw size={15} style={{ flexShrink: 0, color: 'inherit' }} />
-            <span className="type-label" style={{ fontSize: '13.5px', letterSpacing: '-0.01em' }}>Subscriptions</span>
+            <span className="type-label" style={{ fontSize: 'var(--fs-sm)', letterSpacing: '-0.01em' }}>Subscriptions</span>
           </button>
 
           <button
@@ -341,10 +341,10 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
             onClick={() => setKindFilter('quick_log')}
             title="Custom Quick Log"
             aria-label="Custom Quick Log"
-            style={{ fontSize: '13.5px', fontWeight: kindFilter === 'quick_log' ? 650 : 500 }}
+            style={{ fontSize: 'var(--fs-sm)', fontWeight: kindFilter === 'quick_log' ? 600 : 500 }}
           >
             <Zap size={15} style={{ flexShrink: 0, color: 'inherit' }} />
-            <span className="type-label" style={{ fontSize: '13.5px', letterSpacing: '-0.01em' }}>Custom</span>
+            <span className="type-label" style={{ fontSize: 'var(--fs-sm)', letterSpacing: '-0.01em' }}>Custom</span>
           </button>
         </div>
 
@@ -437,7 +437,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
             padding: '16px 18px',
             background: 'var(--surface)',
             border: '1px solid var(--border)',
-            borderRadius: '16px',
+            borderRadius: 'var(--radius-xl)',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
             display: 'flex',
             flexDirection: 'column',
@@ -448,17 +448,17 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
           {kindFilter === 'autopay' ? (
             <>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
-                <span style={{ color: 'var(--text-3)', fontSize: 13, fontWeight: 500, letterSpacing: '-0.01em' }}>
+                <span style={{ color: 'var(--text-3)', fontSize: 'var(--fs-sm)', fontWeight: 500, letterSpacing: '-0.01em' }}>
                   Projected spend
                 </span>
                 <span
                   style={{
-                    fontSize: 11.5,
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 600,
                     color: 'var(--text-2)',
                     background: 'var(--surface2)',
                     padding: '2.5px 8.5px',
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     border: '1px solid var(--border)',
                     letterSpacing: '0.01em',
                     lineHeight: '1.3',
@@ -471,8 +471,8 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 <div
                   style={{
-                    fontSize: 24,
-                    fontWeight: 750,
+                    fontSize: 'var(--fs-hero-sm)',
+                    fontWeight: 700,
                     color: 'var(--text)',
                     letterSpacing: '-0.03em',
                     fontVariantNumeric: 'tabular-nums',
@@ -481,14 +481,14 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
                 >
                   {fmtMoney(totalMonthlySubCost, currency)}
                 </div>
-                <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-3)' }}>/ month</span>
+                <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 500, color: 'var(--text-3)' }}>/ month</span>
               </div>
 
               {dueAutopays.length > 0 && (
                 <div
                   style={{
-                    fontSize: 11.5,
-                    color: '#ef4444',
+                    fontSize: 'var(--fs-caption)',
+                    color: 'var(--debit)',
                     fontWeight: 600,
                     marginTop: 2,
                     display: 'inline-flex',
@@ -497,7 +497,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
                     backgroundColor: 'rgba(239, 68, 68, 0.08)',
                     border: '1px solid rgba(239, 68, 68, 0.2)',
                     padding: '3.5px 9px',
-                    borderRadius: 8,
+                    borderRadius: 'var(--radius-sm)',
                     alignSelf: 'flex-start',
                   }}
                 >
@@ -517,17 +517,17 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
                 return (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
-                      <span style={{ color: 'var(--text-3)', fontSize: 13, fontWeight: 500, letterSpacing: '-0.01em' }}>
+                      <span style={{ color: 'var(--text-3)', fontSize: 'var(--fs-sm)', fontWeight: 500, letterSpacing: '-0.01em' }}>
                         Today's logs
                       </span>
                       <span
                         style={{
-                          fontSize: 11.5,
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: 600,
                           color: isAllDone ? 'var(--credit, #10b981)' : 'var(--text-2)',
                           background: isAllDone ? 'rgba(16, 185, 129, 0.08)' : 'var(--surface2)',
                           padding: '2.5px 8.5px',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           border: `1px solid ${isAllDone ? 'rgba(16, 185, 129, 0.2)' : 'var(--border)'}`,
                           letterSpacing: '0.01em',
                           lineHeight: '1.3',
@@ -544,8 +544,8 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                       <div
                         style={{
-                          fontSize: 24,
-                          fontWeight: 800,
+                          fontSize: 'var(--fs-hero-sm)',
+                          fontWeight: 700,
                           color: 'var(--text)',
                           letterSpacing: '-0.03em',
                           fontVariantNumeric: 'tabular-nums',

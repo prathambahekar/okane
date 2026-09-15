@@ -95,11 +95,44 @@ button[type="submit"]:active {
   --amber-border: rgba(217, 119, 6, 0.22);
   --amber-surface-gradient: linear-gradient(135deg, rgba(217,119,6,0.07) 0%, rgba(255,255,255,0.95) 100%);
   --info: #0288d1;
+  /* Typography Scale */
+  --fs-hero: 32px;
+  --fs-hero-sm: 28px;
+  --fs-xl: 20px;
+  --fs-lg: 16px;
+  --fs-md: 15px;
+  --fs-base: 14px;
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+  --fs-caption: 11px;
+
+  /* Font Weights */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-heavy: 800;
+
+  /* Corner Radii System */
+  --radius-xs: 6px;
   --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
   --radius: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 26px;
   --card-radius: 20px;
+
+  /* Spacing Grid (4/8pt) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
   --shadow: 0 2px 8px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.02);
   --shadow-lg: 0 12px 36px rgba(0,0,0,.08);
   --sidebar-w: 240px;
@@ -188,6 +221,126 @@ button[type="submit"]:active {
   --info: #0288d1;
   --shadow: 0 2px 8px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.02);
   --shadow-lg: 0 12px 36px rgba(0,0,0,.08);
+}
+
+/* ==========================================================================
+   Design System Core Utilities & No-Split System
+   ========================================================================== */
+
+/* Typography Scale Classes */
+.text-hero {
+  font-size: var(--fs-hero) !important;
+  font-weight: var(--fw-heavy) !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.2 !important;
+}
+
+.text-hero-sm {
+  font-size: var(--fs-hero-sm) !important;
+  font-weight: var(--fw-heavy) !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.25 !important;
+}
+
+.text-title-xl {
+  font-size: var(--fs-xl) !important;
+  font-weight: var(--fw-bold) !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.3 !important;
+}
+
+.text-title-lg {
+  font-size: var(--fs-lg) !important;
+  font-weight: var(--fw-bold) !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.35 !important;
+}
+
+.text-body-md {
+  font-size: var(--fs-md) !important;
+  font-weight: var(--fw-semibold) !important;
+  line-height: 1.4 !important;
+}
+
+.text-body {
+  font-size: var(--fs-base) !important;
+  font-weight: var(--fw-medium) !important;
+  line-height: 1.45 !important;
+}
+
+.text-body-sm {
+  font-size: var(--fs-sm) !important;
+  font-weight: var(--fw-medium) !important;
+  line-height: 1.4 !important;
+}
+
+.text-caption {
+  font-size: var(--fs-caption) !important;
+  font-weight: var(--fw-bold) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--text-3) !important;
+  line-height: 1.2 !important;
+}
+
+/* Surfaces & Tiles */
+.card-base {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+
+.card-subtle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: var(--transition);
+}
+
+.tile-row {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  transition: transform 150ms ease, background-color 200ms ease, border-color 200ms ease;
+}
+
+.tile-row:hover {
+  background: var(--surface3);
+  border-color: var(--border2);
+}
+
+.tile-row:active {
+  transform: scale(0.98);
+}
+
+.pill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  line-height: 1.2;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-2);
+  transition: all 0.2s ease;
+}
+
+/* Rule 1: No Split Lines / Divider Lines */
+hr, .divider, .split-line, .split-border {
+  display: none !important;
+  border: none !important;
+  height: 0 !important;
+}
+
+.no-split-border {
+  border-top: none !important;
+  border-bottom: none !important;
 }
 
 /* ==========================================================================
@@ -2200,7 +2353,7 @@ input, textarea, [contenteditable="true"], .selectable-text {
 .tx-squircle-icon {
   width: 38px;
   height: 38px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3270,9 +3423,9 @@ input[type="number"] {
   flex: 1;
   min-width: 0;
   padding: 8px 10px;
-  border-radius: 10px;
-  font-size: 12.5px;
-  font-weight: 550;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
   background: transparent;
@@ -3339,7 +3492,7 @@ input[type="number"] {
 .segment-btn.active-subtle {
   background: var(--surface2);
   color: var(--text);
-  font-weight: 650;
+  font-weight: 600;
   border: 1px solid var(--border);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
@@ -3352,7 +3505,7 @@ input[type="number"] {
   gap: 4px;
   padding: 8px 4px;
   min-height: 52px;
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   line-height: 1.2;
   white-space: normal;
   text-align: center;
@@ -3368,7 +3521,7 @@ input[type="number"] {
   max-width: 440px;
   max-height: 94vh;
   height: auto;
-  border-radius: 24px;
+  border-radius: var(--radius-2xl);
   overflow: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -3412,8 +3565,8 @@ input[type="number"] {
   box-sizing: border-box;
 }
 .modal.expense-drawer-modal .form-label {
-  font-size: 10px;
-  font-weight: 750;
+  font-size: var(--fs-caption);
+  font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--text-3);
@@ -3424,9 +3577,9 @@ input[type="number"] {
   min-height: 42px;
   height: 42px;
   padding: 8px 14px;
-  font-size: 13.5px;
+  font-size: var(--fs-base);
   font-weight: 600;
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   background: var(--surface2);
   border: 1px solid var(--border) !important;
   color: var(--text);
@@ -3444,7 +3597,7 @@ input[type="number"] {
   padding: 12px 16px 10px;
   gap: 4px;
   margin-bottom: 8px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--surface2);
   border: 1px solid var(--border) !important;
   transition: all 0.15s ease;
@@ -3463,23 +3616,23 @@ input[type="number"] {
   color: var(--credit) !important;
 }
 .modal.expense-drawer-modal .hero-amount-label {
-  font-size: 10px;
-  font-weight: 750;
+  font-size: var(--fs-caption);
+  font-weight: 700;
   letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--text-3);
 }
 .modal.expense-drawer-modal .hero-amount-input {
-  font-size: 30px;
-  font-weight: 750;
+  font-size: var(--fs-hero);
+  font-weight: 700;
 }
 .modal.expense-drawer-modal .hero-currency-symbol {
-  font-size: 24px;
-  font-weight: 750;
+  font-size: var(--fs-hero-sm);
+  font-weight: 700;
 }
 .modal.expense-drawer-modal .segment-control {
   padding: 4px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--surface2);
   border: 1px solid var(--border) !important;
   gap: 4px;
@@ -3503,10 +3656,10 @@ input[type="number"] {
   min-height: 40px;
   height: 40px;
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   gap: 6px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid transparent !important;
   color: var(--text-3) !important;
   background: transparent !important;
@@ -3593,9 +3746,9 @@ input[type="number"] {
 }
 .modal.expense-drawer-modal .modal-footer .btn {
   height: 40px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   flex: 1;
   display: inline-flex;
   align-items: center;
@@ -4880,7 +5033,7 @@ input[type="number"] {
   border-color: rgba(255, 255, 255, 0.1);
 }
 .mobile-expense-card.is-expanded > .mobile-expense-header {
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
 }
 
 .mobile-expense-header {
@@ -8229,7 +8382,7 @@ body.no-animations *::after,
   gap: 12px;
   padding: 10px 12px;
   background: transparent;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: none;
   box-shadow: none;
   cursor: default;
@@ -8268,7 +8421,7 @@ body.no-animations *::after,
   height: 32px;
   padding: 0 14px;
   border-radius: 9999px;
-  font-size: 12.5px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-2);
   background: var(--surface2);
@@ -9923,8 +10076,8 @@ body.no-animations *::after,
   max-height: 85vh;
   max-height: 85dvh;
   background-color: var(--surface);
-  border-top-left-radius: 22px;
-  border-top-right-radius: 22px;
+  border-top-left-radius: var(--radius-2xl);
+  border-top-right-radius: var(--radius-2xl);
   border: 1px solid var(--border);
   border-bottom: none;
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.55);
@@ -9971,7 +10124,7 @@ body.no-animations *::after,
     max-height: calc(100vh - 64px);
     max-height: calc(100dvh - 64px);
     height: auto;
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     border: 1px solid var(--border);
     animation: slidein 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--border);
@@ -11688,7 +11841,7 @@ body.no-animations *::after,
 .analytics-v2-segment-btn {
   padding: 6.5px 18px;
   border-radius: 9999px;
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   border: none;
   cursor: pointer;
@@ -11737,8 +11890,8 @@ body.no-animations *::after,
   gap: 6.5px;
   background: transparent;
   border: none;
-  font-size: 14.5px;
-  font-weight: 750;
+  font-size: var(--fs-base);
+  font-weight: 700;
   color: var(--text);
   cursor: pointer;
   padding: 4.5px 9px;
@@ -12135,8 +12288,8 @@ body.no-animations *::after,
 }
 
 .analytics-v2-hero-amount {
-  font-size: 26px;
-  font-weight: 800;
+  font-size: var(--fs-hero-sm);
+  font-weight: 700;
   letter-spacing: -0.025em;
   color: var(--text);
   line-height: 1.2;
@@ -12145,7 +12298,7 @@ body.no-animations *::after,
 
 @media (min-width: 640px) {
   .analytics-v2-hero-amount {
-    font-size: 28px;
+    font-size: var(--fs-hero-sm);
   }
 }
 
@@ -12164,8 +12317,8 @@ body.no-animations *::after,
   gap: 5px;
   padding: 4px 10px;
   border-radius: 9999px;
-  font-size: 11.5px;
-  font-weight: 650;
+  font-size: var(--fs-caption);
+  font-weight: 700;
   width: fit-content;
   line-height: 1;
   box-sizing: border-box;
@@ -12243,7 +12396,7 @@ body.no-animations *::after,
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: var(--surface2);
   border: 1px solid var(--border);
   margin-bottom: 8px;
@@ -12258,13 +12411,13 @@ body.no-animations *::after,
 }
 
 .analytics-v2-metric-col:not(:first-child) {
-  border-left: 1px solid var(--border2);
-  padding-left: 10px;
+  border-left: none;
+  padding-left: 6px;
 }
 
 .analytics-v2-metric-val {
-  font-size: 14.5px;
-  font-weight: 750;
+  font-size: var(--fs-md);
+  font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -12275,8 +12428,8 @@ body.no-animations *::after,
 }
 
 .analytics-v2-metric-lbl {
-  font-size: 10.5px;
-  font-weight: 550;
+  font-size: var(--fs-caption);
+  font-weight: 500;
   color: var(--text-3);
   margin-top: 2px;
   line-height: 1.2;
@@ -12286,7 +12439,7 @@ body.no-animations *::after,
 @media (min-width: 641px) {
   .analytics-v2-metrics-strip {
     padding: 10px 14px;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     gap: 12px;
     margin-bottom: 8px;
     background: var(--surface2);
@@ -12294,19 +12447,19 @@ body.no-animations *::after,
   }
 
   .analytics-v2-metric-col:not(:first-child) {
-    border-left: 1px solid var(--border2);
-    padding-left: 12px;
+    border-left: none;
+    padding-left: 8px;
   }
 
   .analytics-v2-metric-val {
-    font-size: 15px;
-    font-weight: 750;
+    font-size: var(--fs-md);
+    font-weight: 700;
     letter-spacing: -0.015em;
   }
 
   .analytics-v2-metric-lbl {
-    font-size: 11px;
-    font-weight: 550;
+    font-size: var(--fs-caption);
+    font-weight: 500;
     color: var(--text-3);
     margin-top: 2px;
   }
@@ -12315,18 +12468,18 @@ body.no-animations *::after,
 @media (min-width: 1024px) {
   .analytics-v2-metrics-strip {
     padding: 10px 16px;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     gap: 16px;
     margin-bottom: 10px;
   }
 
   .analytics-v2-metric-col:not(:first-child) {
-    padding-left: 16px;
+    padding-left: 10px;
   }
 
   .analytics-v2-metric-val {
-    font-size: 16px;
-    font-weight: 750;
+    font-size: var(--fs-lg);
+    font-weight: 700;
     letter-spacing: -0.015em;
   }
 
@@ -12797,7 +12950,7 @@ body.no-animations *::after,
   justify-content: space-between;
   gap: 12px;
   padding: 10px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: transparent;
   border: 1px solid transparent;
   box-shadow: none;
@@ -12849,7 +13002,7 @@ body.no-animations *::after,
 .analytics-v2-cat-icon-wrap {
   width: 38px;
   height: 38px;
-  border-radius: 11px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12864,7 +13017,7 @@ body.no-animations *::after,
 }
 
 .analytics-v2-cat-name {
-  font-size: 14.5px;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--text);
   overflow: hidden;
@@ -12874,7 +13027,7 @@ body.no-animations *::after,
 }
 
 .analytics-v2-cat-count {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 500;
   color: var(--text-3);
   margin-top: 2px;
@@ -12892,14 +13045,14 @@ body.no-animations *::after,
 }
 
 .analytics-v2-cat-amount {
-  font-size: 14.5px;
-  font-weight: 750;
+  font-size: var(--fs-base);
+  font-weight: 700;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
 .analytics-v2-cat-pct {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
@@ -13004,7 +13157,7 @@ body.no-animations *::after,
   gap: 12px;
   padding: 10px 10px;
   height: 54px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: transparent;
   border: 1px solid transparent;
   box-shadow: none;
@@ -13071,7 +13224,7 @@ body.no-animations *::after,
 }
 
 .analytics-v2-day-title {
-  font-size: 14.5px;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
@@ -13081,10 +13234,10 @@ body.no-animations *::after,
 }
 
 .analytics-v2-day-tag {
-  font-size: 9.5px;
+  font-size: var(--fs-caption);
   font-weight: 700;
   padding: 1.5px 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   line-height: 1.2;
   flex-shrink: 0;
   display: inline-flex;
@@ -13109,7 +13262,7 @@ body.no-animations *::after,
 @media (max-width: 640px) {
   .analytics-v2-day-tag.yesterday {
     padding: 3px 5px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
   }
   .analytics-v2-day-tag.yesterday .analytics-v2-day-tag-icon {
     display: inline-block;
@@ -13139,7 +13292,7 @@ body.no-animations *::after,
 }
 
 .analytics-v2-day-subtitle {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--text-3);
   margin-top: 2px;
   white-space: nowrap;
@@ -13155,8 +13308,8 @@ body.no-animations *::after,
 }
 
 .analytics-v2-day-amount {
-  font-size: 14.5px;
-  font-weight: 750;
+  font-size: var(--fs-base);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -14680,7 +14833,7 @@ body.no-animations *::after,
   max-height: 88dvh;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 24px 24px 0 0;
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -14690,7 +14843,7 @@ body.no-animations *::after,
 @media (min-width: 641px) {
   .filter-drawer-panel,
   .modal-dialog-panel {
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     max-height: 85vh;
   }
 }

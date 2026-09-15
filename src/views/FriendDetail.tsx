@@ -231,7 +231,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             maxHeight: 'min(88vh, 88dvh)',
             background: 'var(--drawer-bg, #141416)',
             color: 'var(--text)',
-            borderRadius: isMobileScreen ? '24px 24px 0 0' : '26px',
+            borderRadius: isMobileScreen ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)',
             border: '1px solid var(--border)',
             display: 'flex',
             flexDirection: 'column',
@@ -244,7 +244,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             style={{
               width: 38,
               height: 4,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               background: 'var(--text-3)',
               opacity: 0.35,
               margin: '8px auto 4px',
@@ -265,20 +265,20 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
               background: 'transparent',
             }}
           >
-            {/* Contact Avatar & Title (Image 2 style) */}
+            {/* Contact Avatar & Title */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
               <div
                 style={{
                   ...getAvatarStyle(friend.color),
                   width: 44,
                   height: 44,
-                  fontSize: 17,
-                  fontWeight: 750,
+                  fontSize: 'var(--fs-lg)',
+                  fontWeight: 700,
                   flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderRadius: 14,
+                  borderRadius: 'var(--radius-md)',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
                 }}
               >
@@ -293,7 +293,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, lineHeight: 1.2, color: 'var(--text)', letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <h2 style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, margin: 0, lineHeight: 1.2, color: 'var(--text)', letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {friend.name}
                   </h2>
                   <span className={`app-contact-badge ${contactType}`}>
@@ -311,7 +311,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       flexShrink: 0,
                     }}
                   />
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
+                  <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-2)' }}>
                     {contactType === 'friend'
                       ? `${allExps.length} transaction${allExps.length !== 1 ? 's' : ''}`
                       : contactType === 'vendor'
@@ -389,7 +389,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 style={{
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 18,
+                  borderRadius: 'var(--radius-lg)',
                   padding: '14px 16px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -397,13 +397,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)' }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)' }}>
                     TOTAL NET BALANCE
                   </div>
                   <div
                     style={{
-                      fontSize: 24,
-                      fontWeight: 800,
+                      fontSize: 'var(--fs-hero-sm)',
+                      fontWeight: 700,
                       letterSpacing: '-0.4px',
                       color: bal.net > 0.004 ? 'var(--credit)' : bal.net < -0.004 ? 'var(--debit)' : 'var(--text)',
                       marginTop: 2,
@@ -415,7 +415,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       ? `-${fmtMoney(Math.abs(bal.net), currency)}`
                       : fmtMoney(0, currency)}
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 1, fontWeight: 500 }}>
+                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 1, fontWeight: 500 }}>
                     {bal.net > 0.004
                       ? `${friend.name} owes you in total`
                       : bal.net < -0.004
@@ -429,12 +429,12 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   <div
                     style={{
                       padding: '3px 9px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       background: 'rgba(16, 185, 129, 0.12)',
                       border: '1px solid rgba(16, 185, 129, 0.25)',
                       color: 'var(--credit)',
-                      fontSize: 10.5,
-                      fontWeight: 750,
+                      fontSize: 'var(--fs-caption)',
+                      fontWeight: 700,
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 4,
@@ -447,12 +447,12 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   <div
                     style={{
                       padding: '3px 9px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       background: 'rgba(239, 68, 68, 0.12)',
                       border: '1px solid rgba(239, 68, 68, 0.25)',
                       color: 'var(--debit)',
-                      fontSize: 10.5,
-                      fontWeight: 750,
+                      fontSize: 'var(--fs-caption)',
+                      fontWeight: 700,
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 4,
@@ -468,7 +468,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 style={{
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 18,
+                  borderRadius: 'var(--radius-lg)',
                   padding: '14px 16px',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -476,10 +476,10 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 }}
               >
                 <div>
-                  <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)', letterSpacing: '0.5px' }}>
+                  <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-3)', letterSpacing: '0.5px' }}>
                     Total Lifetime Spend
                   </span>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginTop: 2 }}>
+                  <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, color: 'var(--text)', marginTop: 2 }}>
                     {fmtMoney(totalSpent, currency)}
                   </div>
                 </div>
@@ -494,9 +494,9 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 style={{
                   flex: 1,
                   height: 42,
-                  borderRadius: 9999,
-                  fontWeight: 700,
-                  fontSize: 13,
+                  borderRadius: 'var(--radius-full)',
+                  fontWeight: 600,
+                  fontSize: 'var(--fs-sm)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -523,9 +523,9 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   style={{
                     flex: 1,
                     height: 42,
-                    borderRadius: 9999,
-                    fontWeight: 700,
-                    fontSize: 13,
+                    borderRadius: 'var(--radius-full)',
+                    fontWeight: 600,
+                    fontSize: 'var(--fs-sm)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -552,26 +552,26 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   padding: '12px 14px',
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 16,
+                  borderRadius: 'var(--radius-lg)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: connectedRules.length > 0 ? 8 : 4, flexWrap: 'wrap', gap: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{
-                      width: 28, height: 28, borderRadius: 8,
+                      width: 28, height: 28, borderRadius: 'var(--radius-sm)',
                       background: 'var(--accent-soft)', color: 'var(--accent)',
                       display: 'grid', placeItems: 'center', flexShrink: 0
                     }}>
                       <RefreshCw size={14} />
                     </div>
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>
+                    <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--text)' }}>
                       Autopay Rules ({connectedRules.length})
                     </span>
                   </div>
 
                   <button
                     className="btn btn-secondary btn-sm"
-                    style={{ fontSize: 11, gap: 4, padding: '3px 10px', borderRadius: 9999 }}
+                    style={{ fontSize: 'var(--fs-caption)', gap: 4, padding: '3px 10px', borderRadius: 'var(--radius-full)' }}
                     onClick={() => setShowRecurringModal(true)}
                   >
                     <Plus size={11} /> Add Rule
@@ -580,16 +580,16 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
                 {connectedRules.length === 0 ? (
                   <div style={{
-                    borderRadius: 10, padding: '8px 10px',
+                    borderRadius: 'var(--radius-sm)', padding: '8px 10px',
                     border: '1px dashed var(--border)', display: 'flex', alignItems: 'center',
                     justifyContent: 'space-between', gap: 6, flexWrap: 'wrap'
                   }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                    <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
                       No active rule connected.
                     </span>
                     <button
                       className="btn btn-primary btn-sm"
-                      style={{ fontSize: 10.5, padding: '3px 8px', gap: 4, borderRadius: 9999 }}
+                      style={{ fontSize: 'var(--fs-caption)', padding: '3px 8px', gap: 4, borderRadius: 'var(--radius-full)' }}
                       onClick={() => setShowRecurringModal(true)}
                     >
                       <Zap size={11} /> Connect Rule
@@ -606,14 +606,14 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           justifyContent: 'space-between',
                           padding: '8px 10px',
                           background: 'var(--surface)',
-                          borderRadius: 10,
+                          borderRadius: 'var(--radius-sm)',
                           border: '1px solid var(--border)',
                           gap: 8,
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                           <div style={{
-                            width: 26, height: 26, borderRadius: 7,
+                            width: 26, height: 26, borderRadius: 'var(--radius-sm)',
                             background: r.kind === 'autopay' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(251, 191, 36, 0.15)',
                             color: r.kind === 'autopay' ? 'var(--info)' : '#d97706',
                             display: 'grid', placeItems: 'center', flexShrink: 0
@@ -621,8 +621,8 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                             {r.kind === 'autopay' ? <RefreshCw size={13} /> : <Zap size={13} />}
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>{r.title}</div>
-                            <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
+                            <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--text)' }}>{r.title}</div>
+                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
                               {fmtMoney(r.amount, currency)} / {r.frequency}
                             </div>
                           </div>
@@ -630,7 +630,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
                         <button
                           className="btn btn-primary btn-sm"
-                          style={{ fontSize: 10.5, padding: '3px 8px', gap: 3, borderRadius: 9999 }}
+                          style={{ fontSize: 'var(--fs-caption)', padding: '3px 8px', gap: 3, borderRadius: 'var(--radius-full)' }}
                           onClick={() => {
                             if (r.kind === 'autopay') {
                               triggerAutopayDeduct(r.id);
@@ -655,7 +655,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
               style={{
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
-                borderRadius: 18,
+                borderRadius: 'var(--radius-lg)',
                 padding: '12px 14px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -676,7 +676,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     style={{
                       width: 24,
                       height: 24,
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       background: 'transparent',
                       display: 'grid',
                       placeItems: 'center',
@@ -685,7 +685,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   >
                     <History size={18} />
                   </div>
-                  <div style={{ fontSize: 14.5, fontWeight: 750, color: 'var(--text)' }}>
+                  <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, color: 'var(--text)' }}>
                     Transactions
                   </div>
                 </div>
@@ -697,7 +697,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     background: 'transparent',
                     border: 'none',
                     color: 'var(--text-3)',
-                    fontSize: 11.5,
+                    fontSize: 'var(--fs-xs)',
                     fontWeight: 600,
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -720,7 +720,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     padding: '12px 8px',
                     textAlign: 'center',
                     color: 'var(--text-3)',
-                    fontSize: 12,
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 500,
                   }}
                 >
@@ -750,7 +750,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                         onClick={() => handleOpenDetail(e)}
                         style={{
                           padding: '7px 8px',
-                          borderRadius: 10,
+                          borderRadius: 'var(--radius-sm)',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -763,10 +763,10 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, flex: 1 }}>
                           <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={14} showLabel={false} />
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontWeight: 650, fontSize: 12.5, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {cleanExpenseDescription(e.description)}
                             </div>
-                            <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
                               <span>{fmtDate(e.originalDate || e.date)}</span>
                               <span>•</span>
                               <span>{subLabel}</span>
@@ -777,8 +777,8 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <div
                             style={{
-                              fontWeight: 750,
-                              fontSize: 13,
+                              fontWeight: 700,
+                              fontSize: 'var(--fs-base)',
                               color: amountColor,
                               fontVariantNumeric: 'tabular-nums',
                             }}
@@ -840,7 +840,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 maxHeight: 'min(88vh, 88dvh)',
                 background: 'var(--drawer-bg, #141416)',
                 color: 'var(--text)',
-                borderRadius: isMobileScreen ? '24px 24px 0 0' : '26px',
+                borderRadius: isMobileScreen ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)',
                 border: '1px solid var(--border)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -853,7 +853,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 style={{
                   width: 38,
                   height: 4,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--text-3)',
                   opacity: 0.35,
                   margin: '8px auto 4px',
@@ -879,13 +879,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       ...getAvatarStyle(friend.color),
                       width: 44,
                       height: 44,
-                      fontSize: 17,
-                      fontWeight: 750,
+                      fontSize: 'var(--fs-lg)',
+                      fontWeight: 700,
                       flexShrink: 0,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderRadius: 14,
+                      borderRadius: 'var(--radius-md)',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
                     }}
                   >
@@ -902,8 +902,8 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                       <h3
                         style={{
-                          fontSize: 20,
-                          fontWeight: 800,
+                          fontSize: 'var(--fs-xl)',
+                          fontWeight: 700,
                           margin: 0,
                           lineHeight: 1.2,
                           color: 'var(--text)',
@@ -919,7 +919,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                         {contactType}
                       </span>
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3, fontWeight: 500 }}>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 3, fontWeight: 500 }}>
                       {contactType === 'friend'
                         ? `${allExps.length} transaction${allExps.length !== 1 ? 's' : ''}`
                         : contactType === 'vendor'
@@ -935,7 +935,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     border: '1px solid var(--border)',
                     background: 'var(--surface2)',
                     color: 'var(--text)',
@@ -968,7 +968,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     alignItems: 'center',
                     gap: 4,
                     padding: 4,
-                    borderRadius: 16,
+                    borderRadius: 'var(--radius-lg)',
                     background: 'rgba(255, 255, 255, 0.04)',
                     border: '1px solid var(--border)',
                     width: '100%',
@@ -980,9 +980,9 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     style={{
                       flex: 1,
                       height: 38,
-                      borderRadius: 12,
-                      fontWeight: 700,
-                      fontSize: 13.5,
+                      borderRadius: 'var(--radius-md)',
+                      fontWeight: 600,
+                      fontSize: 'var(--fs-sm)',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -990,20 +990,20 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       border: 'none',
                       cursor: 'pointer',
                       transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-                      background: tab === 'active' ? '#ffffff' : 'transparent',
-                      color: tab === 'active' ? '#000000' : 'var(--text-3)',
+                      background: tab === 'active' ? 'var(--text)' : 'transparent',
+                      color: tab === 'active' ? 'var(--bg)' : 'var(--text-3)',
                       boxShadow: tab === 'active' ? '0 2px 8px rgba(0, 0, 0, 0.25)' : 'none',
                     }}
                   >
                     <span>Active</span>
                     <span
                       style={{
-                        fontSize: 11,
-                        fontWeight: 800,
+                        fontSize: 'var(--fs-caption)',
+                        fontWeight: 700,
                         padding: '1px 7px',
-                        borderRadius: 9999,
-                        background: tab === 'active' ? '#000000' : 'rgba(255, 255, 255, 0.08)',
-                        color: tab === 'active' ? '#ffffff' : 'var(--text-3)',
+                        borderRadius: 'var(--radius-full)',
+                        background: tab === 'active' ? 'var(--bg)' : 'rgba(255, 255, 255, 0.08)',
+                        color: tab === 'active' ? 'var(--text)' : 'var(--text-3)',
                       }}
                     >
                       {activeExps.length}
@@ -1016,9 +1016,9 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     style={{
                       flex: 1,
                       height: 38,
-                      borderRadius: 12,
-                      fontWeight: 700,
-                      fontSize: 13.5,
+                      borderRadius: 'var(--radius-md)',
+                      fontWeight: 600,
+                      fontSize: 'var(--fs-sm)',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1026,20 +1026,20 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       border: 'none',
                       cursor: 'pointer',
                       transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-                      background: tab === 'settled' ? '#ffffff' : 'transparent',
-                      color: tab === 'settled' ? '#000000' : 'var(--text-3)',
+                      background: tab === 'settled' ? 'var(--text)' : 'transparent',
+                      color: tab === 'settled' ? 'var(--bg)' : 'var(--text-3)',
                       boxShadow: tab === 'settled' ? '0 2px 8px rgba(0, 0, 0, 0.25)' : 'none',
                     }}
                   >
                     <span>Settled</span>
                     <span
                       style={{
-                        fontSize: 11,
-                        fontWeight: 800,
+                        fontSize: 'var(--fs-caption)',
+                        fontWeight: 700,
                         padding: '1px 7px',
-                        borderRadius: 9999,
-                        background: tab === 'settled' ? '#000000' : 'rgba(255, 255, 255, 0.08)',
-                        color: tab === 'settled' ? '#ffffff' : 'var(--text-3)',
+                        borderRadius: 'var(--radius-full)',
+                        background: tab === 'settled' ? 'var(--bg)' : 'rgba(255, 255, 255, 0.08)',
+                        color: tab === 'settled' ? 'var(--text)' : 'var(--text-3)',
                       }}
                     >
                       {settledExps.length}
@@ -1052,13 +1052,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   <div
                     style={{
                       padding: '24px 16px',
-                      borderRadius: 16,
+                      borderRadius: 'var(--radius-lg)',
                       textAlign: 'center',
                       border: '1px solid var(--border)',
                       background: 'var(--surface2)',
                     }}
                   >
-                    <p style={{ color: 'var(--text-3)', margin: 0, fontSize: 12.5, fontWeight: 500 }}>
+                    <p style={{ color: 'var(--text-3)', margin: 0, fontSize: 'var(--fs-sm)', fontWeight: 500 }}>
                       {contactType === 'friend'
                         ? tab === 'active'
                           ? 'No active expenses with this friend.'
@@ -1096,7 +1096,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           onClick={() => handleOpenDetail(e)}
                           style={{
                             padding: '10px 12px',
-                            borderRadius: 14,
+                            borderRadius: 'var(--radius-md)',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -1110,10 +1110,10 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                             <CategoryBadge category={e.category} color={cat?.color} icon={cat?.icon} size={16} showLabel={false} />
                             <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ fontWeight: 650, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <div style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {cleanExpenseDescription(e.description)}
                               </div>
-                              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
                                 <span>{fmtDate(e.originalDate || e.date)}</span>
                                 <span>•</span>
                                 {isSettlement && friend ? (
@@ -1144,8 +1144,8 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                           <div style={{ textAlign: 'right', flexShrink: 0 }}>
                             <div
                               style={{
-                                fontWeight: 750,
-                                fontSize: 13.5,
+                                fontWeight: 700,
+                                fontSize: 'var(--fs-base)',
                                 color: amountColor,
                               }}
                             >
@@ -1161,7 +1161,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                         <button
                           type="button"
                           className="btn btn-secondary"
-                          style={{ fontSize: 12, padding: '6px 16px' }}
+                          style={{ fontSize: 'var(--fs-sm)', padding: '6px 16px', borderRadius: 'var(--radius-full)' }}
                           onClick={() => setTabLimits(prev => ({
                             ...prev,
                             [`${friendId}_${tab}`]: Math.min(shown.length, currentLimit + 60),

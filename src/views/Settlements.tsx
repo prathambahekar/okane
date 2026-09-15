@@ -399,17 +399,17 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Handshake size={18} strokeWidth={2.2} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <h2 style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)', margin: 0, letterSpacing: '-0.01em' }}>
+              <h2 style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)', margin: 0, letterSpacing: '-0.01em' }}>
                 Pending Settlements
               </h2>
               <span
                 style={{
-                  fontSize: 11,
-                  fontWeight: 650,
+                  fontSize: 'var(--fs-caption)',
+                  fontWeight: 700,
                   color: 'var(--text-2)',
                   background: 'var(--surface2)',
                   padding: '1.5px 7.5px',
-                  borderRadius: 999,
+                  borderRadius: 'var(--radius-full)',
                   lineHeight: 1.3,
                   letterSpacing: '-0.01em',
                 }}
@@ -421,7 +421,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
             <button
               type="button"
               className="btn btn-ghost btn-sm"
-              style={{ padding: 2, width: 26, height: 26, borderRadius: 6, color: 'var(--text-3)' }}
+              style={{ padding: 2, width: 26, height: 26, borderRadius: 'var(--radius-sm)', color: 'var(--text-3)' }}
               onClick={(e) => {
                 e.stopPropagation();
                 setIsPendingExpanded(prev => !prev);
@@ -454,9 +454,9 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                           ...getAvatarStyle(f.color),
                           width: 38,
                           height: 38,
-                          fontSize: 13.5,
+                          fontSize: 'var(--fs-sm)',
                           fontWeight: 700,
-                          borderRadius: 11,
+                          borderRadius: 'var(--radius-sm)',
                           flexShrink: 0,
                           display: 'flex',
                           alignItems: 'center',
@@ -469,7 +469,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                         <div
                           style={{
                             fontWeight: 600,
-                            fontSize: 14.5,
+                            fontSize: 'var(--fs-base)',
                             color: 'var(--text)',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
@@ -492,7 +492,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                           {youOwe ? (
                             <span
                               style={{
-                                fontSize: 12.5,
+                                fontSize: 'var(--fs-xs)',
                                 fontWeight: 700,
                                 color: 'var(--debit)',
                                 whiteSpace: 'nowrap',
@@ -507,7 +507,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                           ) : owesYou ? (
                             <span
                               style={{
-                                fontSize: 12.5,
+                                fontSize: 'var(--fs-xs)',
                                 fontWeight: 700,
                                 color: 'var(--credit)',
                                 whiteSpace: 'nowrap',
@@ -520,12 +520,12 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                               <ArrowDownLeft size={12.5} strokeWidth={2.6} /> {fmtMoney(netVal, currency)}
                             </span>
                           ) : (
-                            <span style={{ fontSize: 12.5, color: 'var(--text-3)', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                            <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', whiteSpace: 'nowrap', fontWeight: 600 }}>
                               Net 0
                             </span>
                           )}
                           <span style={{ opacity: 0.5, lineHeight: 1 }}>•</span>
-                          <span style={{ fontSize: 12.5, color: 'var(--text-3)', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', whiteSpace: 'nowrap', fontWeight: 500 }}>
                             {unsettledCount} unsettled
                           </span>
                         </div>
@@ -553,7 +553,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
         className="card"
         style={{
           padding: '14px 16px',
-          borderRadius: 16,
+          borderRadius: 'var(--radius-xl)',
           background: 'var(--surface)',
           border: '1px solid var(--border)',
           boxShadow: '0 1px 4px rgba(0, 0, 0, 0.03)',
@@ -571,17 +571,17 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Clock size={18} strokeWidth={2.2} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-            <h2 style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)', margin: 0, letterSpacing: '-0.01em' }}>
+            <h2 style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)', margin: 0, letterSpacing: '-0.01em' }}>
               Settlement History
             </h2>
             <span
               style={{
-                fontSize: 11,
-                fontWeight: 650,
+                fontSize: 'var(--fs-caption)',
+                fontWeight: 700,
                 color: 'var(--text-2)',
                 background: 'var(--surface2)',
                 padding: '1.5px 7.5px',
-                borderRadius: 999,
+                borderRadius: 'var(--radius-full)',
                 lineHeight: 1.3,
                 letterSpacing: '-0.01em',
               }}
@@ -606,7 +606,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                 justifyContent: 'center',
                 width: 28,
                 height: 28,
-                borderRadius: 6,
+                borderRadius: 'var(--radius-sm)',
                 background: 'transparent',
                 border: 'none',
                 color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text)',
@@ -626,7 +626,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                     minWidth: 14,
                     height: 14,
                     padding: '0 3px',
-                    borderRadius: 99,
+                    borderRadius: 'var(--radius-full)',
                     backgroundColor: 'var(--accent)',
                     color: '#fff',
                     display: 'grid',
@@ -657,7 +657,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                 style={{
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 12,
+                  borderRadius: 'var(--radius-md)',
                   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
                   padding: '10px 14px',
                   display: 'flex',
@@ -668,13 +668,13 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <ArrowDownLeft size={14} strokeWidth={2.4} style={{ color: 'var(--credit)', flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', letterSpacing: '-0.01em' }}>
+                  <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-3)', letterSpacing: '-0.01em' }}>
                     Received
                   </span>
                 </div>
                 <div
                   style={{
-                    fontSize: 15,
+                    fontSize: 'var(--fs-md)',
                     fontWeight: 700,
                     color: 'var(--credit)',
                     marginTop: 2,
@@ -692,7 +692,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                 style={{
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 12,
+                  borderRadius: 'var(--radius-md)',
                   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
                   padding: '10px 14px',
                   display: 'flex',
@@ -703,13 +703,13 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <ArrowUpRight size={14} strokeWidth={2.4} style={{ color: 'var(--debit)', flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', letterSpacing: '-0.01em' }}>
+                  <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-3)', letterSpacing: '-0.01em' }}>
                     Paid
                   </span>
                 </div>
                 <div
                   style={{
-                    fontSize: 15,
+                    fontSize: 'var(--fs-md)',
                     fontWeight: 700,
                     color: 'var(--debit)',
                     marginTop: 2,

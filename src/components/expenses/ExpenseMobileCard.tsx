@@ -82,7 +82,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
             style={{
               width: 44,
               height: 44,
-              borderRadius: 14,
+              borderRadius: 'var(--radius-md)',
               backgroundColor: catMeta.bg,
               border: `1px solid ${catMeta.border}`,
               display: 'flex',
@@ -108,8 +108,8 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                   overflow: 'hidden',
                   wordBreak: 'break-word',
                   lineHeight: 1.3,
-                  fontWeight: 650,
-                  fontSize: 13.5,
+                  fontWeight: 600,
+                  fontSize: 'var(--fs-base)',
                   minWidth: 0,
                 }}
               >
@@ -121,7 +121,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                   className={`tx-status-pill status-${groupStatus.statusKey}`}
                   style={{
                     padding: '2px 7px',
-                    fontSize: 10,
+                    fontSize: 'var(--fs-caption)',
                     flexShrink: 0,
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -140,8 +140,8 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                     alignItems: 'center',
                     gap: 3.5,
                     padding: '2px 6px',
-                    borderRadius: 6,
-                    fontSize: 10,
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 600,
                     background: 'var(--accent-soft)',
                     color: 'var(--accent)',
@@ -175,7 +175,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
 
           {/* Right Amount Column */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: 3, flexShrink: 0, marginLeft: 'auto' }}>
-            <div className="mobile-expense-amount" style={{ fontSize: 13.5, fontWeight: 700 }}>
+            <div className="mobile-expense-amount" style={{ fontSize: 'var(--fs-base)', fontWeight: 700 }}>
               {(() => {
                 if (ge.isSettlementGroup) {
                   return (
@@ -201,7 +201,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
             </div>
 
             {ge.isSplit && ge.personalShare > 0 && (
-              <span style={{ fontSize: 10.5, color: 'var(--text-3)', fontWeight: 500 }}>
+              <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500 }}>
                 You: {fmtMoney(ge.personalShare, currency)}
               </span>
             )}

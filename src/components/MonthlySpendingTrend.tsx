@@ -510,40 +510,40 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
       <div className="spending-trend-metrics">
         {/* Metric 1: Selected Month Total */}
         <div className="metric-box">
-          <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+          <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
             {selShortMonthName} Spend ({activeDayCount}d)
           </div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--accent)', marginTop: 2 }}>
+          <div style={{ fontSize: 'var(--fs-md)', fontWeight: 700, color: 'var(--accent)', marginTop: 2 }}>
             {fmtMoney(selTotalSoFar, currency)}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-2)', marginTop: 1 }}>
+          <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-2)', marginTop: 1 }}>
             ~{fmtMoney(dailyAverageRate, currency)}/day
           </div>
         </div>
 
         {/* Metric 2: Baseline Comparison */}
         <div className="metric-box">
-          <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+          <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
             {baseShortMonthName} (Day {activeDayCount})
           </div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#a855f7', marginTop: 2 }}>
+          <div style={{ fontSize: 'var(--fs-md)', fontWeight: 700, color: '#a855f7', marginTop: 2 }}>
             {fmtMoney(baseTotalSamePoint, currency)}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-2)', marginTop: 1 }}>
+          <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-2)', marginTop: 1 }}>
             Same point total
           </div>
         </div>
 
         {/* Metric 3: Pace Variance */}
         <div className="metric-box">
-          <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+          <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
             Spending Pace
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
             <span style={{
-              fontSize: 13.5,
-              fontWeight: 800,
-              color: diffAmount > 0 ? '#ef4444' : '#10b981',
+              fontSize: 'var(--fs-sm)',
+              fontWeight: 700,
+              color: diffAmount > 0 ? 'var(--debit)' : 'var(--credit)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 2
@@ -552,20 +552,20 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
               {Math.abs(pctChange).toFixed(0)}% ({diffAmount >= 0 ? '+' : ''}{fmtMoney(diffAmount, currency)})
             </span>
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-2)', marginTop: 1 }}>
+          <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-2)', marginTop: 1 }}>
             {diffAmount > 0 ? 'Faster than base' : 'Slower than base'}
           </div>
         </div>
 
         {/* Metric 4: Projected Month End or Peak Day */}
         <div className="metric-box">
-          <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+          <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
             {isCurrentMonth ? 'Projected Total' : 'Peak Spend Day'}
           </div>
-          <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)', marginTop: 2 }}>
+          <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)', marginTop: 2 }}>
             {isCurrentMonth ? `~${fmtMoney(projectedMonthTotal, currency)}` : `Day ${peakDayObj.day} (${fmtMoney(peakDayObj.amount, currency)})`}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-2)', marginTop: 1 }}>
+          <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-2)', marginTop: 1 }}>
             {isCurrentMonth ? `${selDaysInMonth - currentDay} days left` : 'Single highest day'}
           </div>
         </div>
@@ -578,21 +578,21 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
           padding: '36px 20px',
           textAlign: 'center',
           background: 'var(--surface2)',
-          borderRadius: 12,
+          borderRadius: 'var(--radius-md)',
           border: '1px border-dashed var(--border)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           gap: 12
         }}>
-          <div style={{ width: 44, height: 44, borderRadius: 99, background: 'var(--accent-soft)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
+          <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-full)', background: 'var(--accent-soft)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
             <TrendingUp size={22} />
           </div>
           <div>
-            <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px 0', color: 'var(--text)' }}>
+            <h3 style={{ fontSize: 'var(--fs-md)', fontWeight: 700, margin: '0 0 4px 0', color: 'var(--text)' }}>
               No spending logged for {selFullMonthName}
             </h3>
-            <p style={{ fontSize: 12.5, color: 'var(--text-3)', margin: 0, maxWidth: 380 }}>
+            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', margin: 0, maxWidth: 380 }}>
               Start logging expenses to unlock interactive pace curves, category breakdowns, and monthly trends.
             </p>
           </div>

@@ -280,7 +280,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
               style={{
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
-                borderRadius: 18,
+                borderRadius: 'var(--radius-xl)',
                 padding: '20px 22px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -300,7 +300,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                       style={{
                         width: 46,
                         height: 46,
-                        borderRadius: 13,
+                        borderRadius: 'var(--radius-md)',
                         background: 'var(--surface2)',
                         border: '1px solid var(--border)',
                         display: 'flex',
@@ -316,7 +316,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                       <div
                         style={{
                           fontWeight: 700,
-                          fontSize: 17,
+                          fontSize: 'var(--fs-lg)',
                           color: 'var(--text)',
                           lineHeight: 1.25,
                           display: 'flex',
@@ -337,7 +337,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                       </div>
                       <div
                         style={{
-                          fontSize: 12.5,
+                          fontSize: 'var(--fs-xs)',
                           color: 'var(--text-3)',
                           fontWeight: 500,
                           marginTop: 3,
@@ -350,7 +350,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                         }}
                       >
                         <span>Opening:</span>
-                        <span style={{ color: 'var(--text)', fontWeight: 650, letterSpacing: '-0.1px' }}>
+                        <span style={{ color: 'var(--text)', fontWeight: 600, letterSpacing: '-0.1px' }}>
                           {fmtMoney(w.openingBalance, currency)}
                         </span>
                       </div>
@@ -370,12 +370,12 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                   </div>
                 </div>
 
-                {/* Inner Balance Section inspired by image 1 */}
+                {/* Inner Balance Section */}
                 <div
                   style={{
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: 14,
+                    borderRadius: 'var(--radius-lg)',
                     padding: '16px 18px',
                     display: 'flex',
                     alignItems: 'center',
@@ -384,21 +384,12 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                   }}
                 >
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: 10.5,
-                        color: 'var(--text-3)',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.6px',
-                        marginBottom: 4,
-                      }}
-                    >
+                    <div className="text-caption" style={{ marginBottom: 4 }}>
                       TOTAL BALANCE
                     </div>
                     <div
                       style={{
-                        fontSize: 26,
+                        fontSize: 'var(--fs-hero-sm)',
                         fontWeight: 800,
                         color: bal < 0 ? 'var(--debit)' : 'var(--text)',
                         lineHeight: 1.15,
@@ -447,10 +438,10 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     flex: 1,
                     justifyContent: 'center',
                     gap: 6,
-                    fontSize: 13.5,
-                    fontWeight: 650,
+                    fontSize: 'var(--fs-base)',
+                    fontWeight: 600,
                     padding: '11px 16px',
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
@@ -474,10 +465,10 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     justifyContent: 'center',
                     alignItems: 'center',
                     gap: 6,
-                    fontSize: 13.5,
-                    fontWeight: 650,
+                    fontSize: 'var(--fs-base)',
+                    fontWeight: 600,
                     padding: '11px 16px',
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
@@ -493,11 +484,11 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                   <span>History</span>
                   {wExpCount > 0 && (
                     <span
+                      className="pill-badge"
                       style={{
-                        fontSize: '11px',
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: 700,
                         padding: '2px 8px',
-                        borderRadius: '9999px',
                         background: 'rgba(255, 255, 255, 0.09)',
                         color: 'var(--text-2)',
                         lineHeight: 1,
@@ -514,10 +505,6 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
         })}
       </div>
 
-
-
-
-
       {/* Wallet Transactions Modern Drawer Modal */}
       {activeWallet && createPortal(
         <div
@@ -531,7 +518,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
         >
           <div
             className="modal wallet-drawer-modal modal-dialog-panel"
-            style={{ maxWidth: 480, width: '100%', borderRadius: 22 }}
+            style={{ maxWidth: 480, width: '100%', borderRadius: 'var(--radius-2xl)' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Mobile Bottom-Sheet Handle Indicator */}
@@ -563,10 +550,10 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     {renderWalletIcon(activeWallet.icon || activeWallet.name, 40, activeWallet.color)}
                   </div>
                   <div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+                    <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
                       {activeWallet.name}
                     </div>
-                    <div style={{ fontSize: '12.5px', color: 'var(--text-2)', marginTop: 2 }}>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)', marginTop: 2 }}>
                       Current Balance:{' '}
                       <strong style={{ color: walletBalance(db, activeWallet.id) < 0 ? 'var(--debit)' : 'var(--text)', fontWeight: 700 }}>
                         {fmtMoney(walletBalance(db, activeWallet.id), currency)}
@@ -580,7 +567,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: '50%',
+                    borderRadius: 'var(--radius-full)',
                     border: '1px solid var(--border)',
                     background: 'var(--surface2)',
                     color: 'var(--text)',
@@ -609,7 +596,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                 <div
                   style={{
                     padding: '13px 16px',
-                    borderRadius: 16,
+                    borderRadius: 'var(--radius-lg)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     display: 'flex',
@@ -617,11 +604,11 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     gap: 4,
                   }}
                 >
-                  <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <TrendingDown size={13} style={{ color: 'var(--debit)' }} />
                     <span>This Month Spent</span>
                   </div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 750, color: 'var(--debit)', letterSpacing: '-0.2px' }}>
+                  <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--debit)', letterSpacing: '-0.2px' }}>
                     -{fmtMoney(walletMonthSpend, currency)}
                   </div>
                 </div>
@@ -629,7 +616,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                 <div
                   style={{
                     padding: '13px 16px',
-                    borderRadius: 16,
+                    borderRadius: 'var(--radius-lg)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     display: 'flex',
@@ -637,11 +624,11 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     gap: 4,
                   }}
                 >
-                  <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <TrendingUp size={13} style={{ color: 'var(--credit)' }} />
                     <span>This Month Inflow</span>
                   </div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 750, color: 'var(--credit)', letterSpacing: '-0.2px' }}>
+                  <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--credit)', letterSpacing: '-0.2px' }}>
                     +{fmtMoney(walletMonthIn, currency)}
                   </div>
                 </div>
@@ -670,8 +657,8 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     height: 42,
                     paddingLeft: 36,
                     paddingRight: searchQuery ? 32 : 12,
-                    fontSize: '13px',
-                    borderRadius: 14,
+                    fontSize: 'var(--fs-base)',
+                    borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border)',
                     background: 'var(--surface2)',
                     color: 'var(--text)',
@@ -872,7 +859,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                           justifyContent: 'space-between',
                           gap: 12,
                           cursor: 'pointer',
-                          borderRadius: 12,
+                          borderRadius: 'var(--radius-md)',
                           transition: 'background-color 0.15s ease, transform 0.1s ease',
                         }}
                         className="recent-expense-row-inside-card"
@@ -884,7 +871,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                             style={{
                               width: 38,
                               height: 38,
-                              borderRadius: 11,
+                              borderRadius: 'var(--radius-sm)',
                               backgroundColor: catMeta.bg,
                               border: `1px solid ${catMeta.border}`,
                               display: 'grid',
@@ -906,8 +893,8 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
                               <span
                                 style={{
-                                  fontWeight: 650,
-                                  fontSize: '13.5px',
+                                  fontWeight: 600,
+                                  fontSize: 'var(--fs-base)',
                                   color: 'var(--text)',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
@@ -923,9 +910,9 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                                     alignItems: 'center',
                                     gap: 3,
                                     padding: '1.5px 6px',
-                                    borderRadius: 9999,
-                                    fontSize: '10px',
-                                    fontWeight: 650,
+                                    borderRadius: 'var(--radius-xs)',
+                                    fontSize: 'var(--fs-caption)',
+                                    fontWeight: 600,
                                     backgroundColor: 'rgba(99, 102, 241, 0.14)',
                                     color: '#818CF8',
                                     border: '1px solid rgba(99, 102, 241, 0.25)',
@@ -946,7 +933,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                               dateText={fmtDate(tx.date)}
                               vendor={vendor}
                               friends={friend && !vendor ? [friend] : []}
-                              style={{ fontSize: '11.5px', marginTop: 2 }}
+                              style={{ fontSize: 'var(--fs-xs)', marginTop: 2 }}
                             />
                           </div>
                         </div>
@@ -955,8 +942,8 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                         <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: 8 }}>
                           <div
                             style={{
-                              fontSize: '13.5px',
-                              fontWeight: 750,
+                              fontSize: 'var(--fs-base)',
+                              fontWeight: 700,
                               fontVariantNumeric: 'tabular-nums',
                               color: isIn ? 'var(--credit)' : 'var(--debit)',
                             }}
@@ -971,10 +958,10 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                                   style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    fontSize: '10px',
-                                    fontWeight: 650,
+                                    fontSize: 'var(--fs-caption)',
+                                    fontWeight: 600,
                                     padding: '1px 7px',
-                                    borderRadius: 9999,
+                                    borderRadius: 'var(--radius-full)',
                                     backgroundColor: bCol.bg,
                                     color: bCol.color,
                                     border: `1px solid ${bCol.border}`,

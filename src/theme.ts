@@ -317,6 +317,14 @@ export function buildTheme(mode: 'light' | 'dark', accent: AccentPreset = 'monoc
           },
         },
       },
+      MuiDivider: {
+        styleOverrides: {
+          root: {
+            display: 'none',
+            border: 'none',
+          },
+        },
+      },
     },
   });
 }

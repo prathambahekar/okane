@@ -153,7 +153,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: 10,
+                borderRadius: 'var(--radius-sm)',
                 background: 'transparent',
                 display: 'flex',
                 alignItems: 'center',
@@ -165,7 +165,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
               <ArrowLeftRight size={20} />
             </div>
             <div>
-              <span className="modal-title" style={{ fontSize: 16, fontWeight: 700 }}>Transfer Between Wallets</span>
+              <span className="modal-title" style={{ fontSize: 'var(--fs-lg)', fontWeight: 700 }}>Transfer Between Wallets</span>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -219,7 +219,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
               style={{
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
-                borderRadius: 14,
+                borderRadius: 'var(--radius-lg)',
                 padding: '16px 18px 14px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -230,7 +230,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
             >
               <span
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.6px',
@@ -250,7 +250,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
               >
                 <span
                   style={{
-                    fontSize: 26,
+                    fontSize: 'var(--fs-hero-sm)',
                     fontWeight: 700,
                     color: 'var(--text-2)',
                     lineHeight: 1,
@@ -267,8 +267,8 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   onChange={e => { setAmount(e.target.value); setError(''); }}
                   placeholder="0"
                   style={{
-                    fontSize: 30,
-                    fontWeight: 800,
+                    fontSize: 'var(--fs-hero)',
+                    fontWeight: 700,
                     color: 'var(--text)',
                     background: 'transparent',
                     border: 'none',
@@ -291,12 +291,12 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  fontSize: 11.5,
-                  color: '#f59e0b',
-                  background: 'rgba(245, 158, 11, 0.1)',
+                  fontSize: 'var(--fs-caption)',
+                  color: 'var(--amber)',
+                  background: 'var(--amber-bg)',
                   padding: '7px 12px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--amber-border)',
                 }}
               >
                 <AlertCircle size={14} style={{ flexShrink: 0 }} />
@@ -312,7 +312,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   position: 'relative',
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 14,
+                  borderRadius: 'var(--radius-lg)',
                   padding: '12px 14px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -321,11 +321,11 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)' }}>
+                  <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)' }}>
                     FROM (SOURCE)
                   </span>
                   {fromWallet && (
-                    <span style={{ fontSize: 11, fontWeight: 600, color: fromBalance < 0 ? 'var(--debit)' : 'var(--text-3)' }}>
+                    <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: fromBalance < 0 ? 'var(--debit)' : 'var(--text-3)' }}>
                       Available: <strong style={{ color: fromBalance < 0 ? 'var(--debit)' : 'var(--text-2)' }}>{fmtMoney(fromBalance, currency)}</strong>
                     </span>
                   )}
@@ -336,7 +336,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                     style={{
                       width: 36,
                       height: 36,
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-sm)',
                       background: 'var(--surface)',
                       border: '1px solid var(--border)',
                       display: 'flex',
@@ -349,7 +349,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {fromWallet?.name || 'Select Wallet'}
                     </div>
                   </div>
@@ -435,7 +435,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   position: 'relative',
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 14,
+                  borderRadius: 'var(--radius-lg)',
                   padding: '12px 14px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -444,11 +444,11 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)' }}>
+                  <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)' }}>
                     TO (DESTINATION)
                   </span>
                   {toWallet && (
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)' }}>
+                    <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-3)' }}>
                       Current: <strong style={{ color: 'var(--text-2)' }}>{fmtMoney(toBalance, currency)}</strong>
                     </span>
                   )}
@@ -459,7 +459,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                     style={{
                       width: 36,
                       height: 36,
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-sm)',
                       background: 'var(--surface)',
                       border: '1px solid var(--border)',
                       display: 'flex',
@@ -472,7 +472,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {toWallet?.name || 'Select Wallet'}
                     </div>
                   </div>
@@ -520,8 +520,8 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   style={{
                     width: '100%',
                     height: 38,
-                    borderRadius: 10,
-                    fontSize: 12.5,
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 500,
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
@@ -552,9 +552,9 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                     justifyContent: 'space-between',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: 8,
+                    borderRadius: 'var(--radius-sm)',
                     padding: '6px 10px',
-                    fontSize: 11.5,
+                    fontSize: 'var(--fs-caption)',
                     color: 'var(--text-2)',
                     cursor: 'pointer',
                   }}
@@ -590,7 +590,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
 
             {/* Error Message */}
             {error && (
-              <p className="form-error" style={{ margin: 0, fontSize: 11.5 }}>
+              <p className="form-error" style={{ margin: 0, fontSize: 'var(--fs-caption)' }}>
                 {error}
               </p>
             )}
@@ -618,9 +618,9 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                 style={{
                   flex: 1,
                   height: 40,
-                  borderRadius: 9999,
-                  fontSize: 13,
-                  fontWeight: 650,
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
+                  fontWeight: 600,
                   border: '1px solid var(--border)',
                   background: 'var(--surface2)',
                   color: 'var(--text)',
@@ -643,8 +643,8 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                 style={{
                   flex: 1.35,
                   height: 40,
-                  borderRadius: 9999,
-                  fontSize: 13,
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 700,
                   background: 'var(--text)',
                   border: '1px solid var(--text)',

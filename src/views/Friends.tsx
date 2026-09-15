@@ -300,7 +300,7 @@ export default function Friends({ onNavigate }: Props) {
               width: 40,
               height: 40,
               padding: 0,
-              borderRadius: '9999px',
+              borderRadius: 'var(--radius-full)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -320,11 +320,11 @@ export default function Friends({ onNavigate }: Props) {
                   right: -2,
                   minWidth: 16,
                   height: 16,
-                  borderRadius: 999,
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--text)',
                   color: 'var(--surface)',
-                  fontSize: 10,
-                  fontWeight: 750,
+                  fontSize: 'var(--fs-caption)',
+                  fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -627,22 +627,22 @@ export default function Friends({ onNavigate }: Props) {
                         ...getAvatarStyle(f.color),
                         width: 42,
                         height: 42,
-                        fontSize: 14,
+                        fontSize: 'var(--fs-base)',
                         fontWeight: 700,
                         flexShrink: 0,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        borderRadius: 12,
+                        borderRadius: 'var(--radius-sm)',
                       }}
                     >
                       {fType === 'subscription' ? (brandLogo || <Tv size={18} />) : fType === 'vendor' ? <Store size={18} /> : friendInitial(f.name, f.avatarNumber)}
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      <div style={{ fontWeight: 600, fontSize: 'var(--fs-base)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)', letterSpacing: '-0.01em' }}>
                         {f.name}
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {fType === 'friend' ? (
                           <>
                             {contactExpenses.length} expense{contactExpenses.length !== 1 ? 's' : ''}
@@ -743,13 +743,13 @@ export default function Friends({ onNavigate }: Props) {
                       ...getAvatarStyle(f.color),
                       width: 44,
                       height: 44,
-                      fontSize: 15,
+                      fontSize: 'var(--fs-base)',
                       fontWeight: 700,
                       flexShrink: 0,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderRadius: 12,
+                      borderRadius: 'var(--radius-sm)',
                     }}
                   >
                     {fType === 'subscription' ? (brandLogo || <Tv size={20} />) : fType === 'vendor' ? <Store size={20} /> : friendInitial(f.name, f.avatarNumber)}
@@ -757,7 +757,7 @@ export default function Friends({ onNavigate }: Props) {
 
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                      <span style={{ fontWeight: 600, fontSize: 14.5, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+                      <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
                         {f.name}
                       </span>
                       {typeFilter !== fType && fType !== 'friend' && (
@@ -767,7 +767,7 @@ export default function Friends({ onNavigate }: Props) {
                       )}
                     </div>
 
-                    <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {fType === 'friend' ? (
                         <>
                           {contactExpenses.length} expense{contactExpenses.length !== 1 ? 's' : ''}
@@ -861,20 +861,20 @@ export default function Friends({ onNavigate }: Props) {
                       ...getAvatarStyle(f.color),
                       width: 36,
                       height: 36,
-                      fontSize: 13,
+                      fontSize: 'var(--fs-sm)',
                       fontWeight: 700,
                       flexShrink: 0,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-sm)',
                     }}
                   >
                     {fType === 'subscription' ? (brandLogo || <Tv size={16} />) : fType === 'vendor' ? <Store size={16} /> : friendInitial(f.name, f.avatarNumber)}
                   </div>
 
                   <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+                    <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
                       {f.name}
                     </span>
                     {typeFilter !== fType && fType !== 'friend' && (
@@ -934,7 +934,7 @@ export default function Friends({ onNavigate }: Props) {
         PaperProps={{
           elevation: 0,
           sx: {
-            borderRadius: '16px',
+            borderRadius: 'var(--radius-lg)',
             minWidth: 160,
             padding: '4px',
             bgcolor: 'var(--surface)',
@@ -945,10 +945,10 @@ export default function Friends({ onNavigate }: Props) {
               padding: '2px 0',
             },
             '& .MuiMenuItem-root': {
-              borderRadius: '10px',
+              borderRadius: 'var(--radius-sm)',
               margin: '2px 4px',
               padding: '8px 12px',
-              fontSize: '13px',
+              fontSize: 'var(--fs-sm)',
               fontWeight: 500,
               color: 'var(--text)',
               gap: '10px',
@@ -983,7 +983,7 @@ export default function Friends({ onNavigate }: Props) {
           }}
         >
           <ListItemIcon><Edit2 size={15} /></ListItemIcon>
-          <ListItemText primary="Edit Contact" primaryTypographyProps={{ fontSize: 13, fontWeight: 550, color: 'inherit' }} />
+          <ListItemText primary="Edit Contact" primaryTypographyProps={{ fontSize: 'var(--fs-sm)', fontWeight: 500, color: 'inherit' }} />
         </MenuItem>
         <MenuItem
           className="danger-item"
@@ -993,7 +993,7 @@ export default function Friends({ onNavigate }: Props) {
           }}
         >
           <ListItemIcon><Trash2 size={15} /></ListItemIcon>
-          <ListItemText primary="Delete Contact" primaryTypographyProps={{ fontSize: 13, fontWeight: 550, color: 'inherit' }} />
+          <ListItemText primary="Delete Contact" primaryTypographyProps={{ fontSize: 'var(--fs-sm)', fontWeight: 500, color: 'inherit' }} />
         </MenuItem>
       </Menu>
 

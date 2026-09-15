@@ -206,7 +206,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             <div>
               <div className="dashboard-hero-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', lineHeight: 1.1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.8px', lineHeight: 1 }}>
+                  <span className="text-caption">
                     Total Net Worth
                   </span>
                   {hideAmounts && (
@@ -217,7 +217,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       style={{
                         background: isCardMasked ? 'var(--surface)' : 'var(--surface2)',
                         border: `1px solid ${isCardMasked ? 'var(--border2)' : 'var(--border)'}`,
-                        borderRadius: 999,
+                        borderRadius: 'var(--radius-full)',
                         padding: '2px 8px',
                         color: isCardMasked ? 'var(--text)' : 'var(--text-3)',
                         boxShadow: isCardMasked ? '0 1px 3px rgba(0, 0, 0, 0.08)' : 'none',
@@ -225,8 +225,8 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4,
-                        fontSize: 10.5,
-                        fontWeight: isCardMasked ? 650 : 500,
+                        fontSize: 'var(--fs-caption)',
+                        fontWeight: isCardMasked ? 700 : 500,
                         transition: 'all 0.2s ease',
                         lineHeight: 1,
                       }}
@@ -236,20 +236,16 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     </button>
                   )}
                 </div>
-                <span className="badge" style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text-2)', fontSize: 11, fontWeight: 600, borderRadius: 999, padding: '2px 8px', lineHeight: 1.2 }}>
+                <span className="badge pill-chip" style={{ fontSize: 'var(--fs-caption)', padding: '2px 8px' }}>
                   {`${visibleWallets.length} ${visibleWallets.length === 1 ? 'Wallet' : 'Wallets'}`}
                 </span>
               </div>
 
               <div
-                className="dashboard-hero-balance"
+                className="dashboard-hero-balance text-hero"
                 style={{
-                  fontSize: 32,
-                  fontWeight: 800,
                   color: totalBalance < 0 ? 'var(--debit)' : 'var(--text)',
                   marginTop: 10,
-                  lineHeight: 1.25,
-                  letterSpacing: '-0.8px'
                 }}
               >
                 {fmtMoney(totalBalance, currency, isCardMasked)}
@@ -259,7 +255,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             {/* Quick Wallet Breakdown Chips */}
             <div className="dashboard-wallet-breakdown-section" style={{ marginTop: 18 }}>
               <div className="dashboard-wallet-breakdown-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', lineHeight: 1.2 }}>
+                <div className="text-caption" style={{ display: 'flex', alignItems: 'center' }}>
                   Wallets Breakdown
                 </div>
                 {visibleWallets.length >= 2 && (
@@ -310,7 +306,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   <div style={{
                     width: 20,
                     height: 20,
-                    borderRadius: 6,
+                    borderRadius: 'var(--radius-sm)',
                     background: 'var(--debit-bg, rgba(239, 68, 68, 0.12))',
                     border: '1px solid var(--debit-border, rgba(239, 68, 68, 0.25))',
                     display: 'flex',
@@ -337,7 +333,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   <div style={{
                     width: 20,
                     height: 20,
-                    borderRadius: 6,
+                    borderRadius: 'var(--radius-sm)',
                     background: 'var(--credit-bg, rgba(34, 197, 94, 0.12))',
                     border: '1px solid var(--credit-border, rgba(34, 197, 94, 0.25))',
                     display: 'flex',
@@ -364,7 +360,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   <div style={{
                     width: 20,
                     height: 20,
-                    borderRadius: 6,
+                    borderRadius: 'var(--radius-sm)',
                     background: netFriends > 0
                       ? 'var(--credit-bg, rgba(34, 197, 94, 0.12))'
                       : netFriends < 0
@@ -401,7 +397,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                   <div style={{
                     width: 20,
                     height: 20,
-                    borderRadius: 6,
+                    borderRadius: 'var(--radius-sm)',
                     background: 'var(--amber-bg, rgba(245, 158, 11, 0.12))',
                     border: '1px solid var(--amber-border, rgba(245, 158, 11, 0.25))',
                     display: 'flex',
@@ -434,7 +430,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               <div className="dashboard-card-icon">
                 <ReceiptText size={17} />
               </div>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center' }}>Recent Expenses</h2>
+              <h2 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center' }}>Recent Expenses</h2>
             </div>
             <button className="btn-view-all" onClick={() => onNavigate('expenses')}>
               <span>View all</span>
@@ -449,13 +445,13 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               justifyContent: 'center',
               padding: '28px 16px',
               textAlign: 'center',
-              borderRadius: 12,
+              borderRadius: 'var(--radius-md)',
               background: 'transparent'
             }}>
               <div style={{
                 width: 44,
                 height: 44,
-                borderRadius: 14,
+                borderRadius: 'var(--radius-lg)',
                 background: 'var(--surface2)',
                 color: 'var(--text-3)',
                 display: 'flex',
@@ -465,8 +461,8 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               }}>
                 <ReceiptText size={20} strokeWidth={1.8} />
               </div>
-              <div style={{ fontSize: '14px', fontWeight: 650, color: 'var(--text)', marginBottom: 4 }}>No expenses yet</div>
-              <p style={{ fontSize: '13px', color: 'var(--text-3)', margin: 0, lineHeight: 1.45 }}>
+              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>No expenses yet</div>
+              <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-3)', margin: 0, lineHeight: 1.45 }}>
                 Transactions you log will show up here.
               </p>
             </div>
@@ -490,7 +486,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '8px 10px',
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-md)',
                       gap: 12,
                       width: 'calc(100% + 12px)',
                       margin: '0 -6px',
@@ -508,14 +504,14 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
                       <CategoryBadge category={catMeta.name} color={catMeta.color} icon={catMeta.icon} size={15} showLabel={false} />
                       <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, width: '100%' }}>
+                        <div style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, width: '100%' }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: '0 1 auto' }}>{cleanSettlementDescription(ge.description)}</span>
                           {!isSettlement && ge.isSplit && (
                             <span style={{
-                              fontSize: 10,
+                              fontSize: 'var(--fs-caption)',
                               fontWeight: 600,
                               padding: '1px 6px',
-                              borderRadius: 4,
+                              borderRadius: 'var(--radius-xs)',
                               background: 'var(--accent-soft)',
                               color: 'var(--accent)',
                               whiteSpace: 'nowrap',
@@ -528,14 +524,14 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                           dateText={fmtDate(ge.date)}
                           friends={friendsInGroup.filter((f): f is Friend => Boolean(f && f.type !== 'vendor'))}
                           vendor={friendsInGroup.find((f): f is Friend => Boolean(f && f.type === 'vendor')) || null}
-                          style={{ fontSize: 11, marginTop: 2 }}
+                          style={{ fontSize: 'var(--fs-xs)', marginTop: 2 }}
                         />
                       </div>
                     </div>
                     <div style={{
                       textAlign: 'right',
                       fontWeight: 700,
-                      fontSize: 13,
+                      fontSize: 'var(--fs-base)',
                       flexShrink: 0,
                       whiteSpace: 'nowrap',
                       fontVariantNumeric: 'tabular-nums',
@@ -563,14 +559,13 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 <Users size={16} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, overflow: 'hidden' }}>
-                <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0, whiteSpace: 'nowrap' }}>Friends</h2>
+                <h2 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--text)', margin: 0, whiteSpace: 'nowrap' }}>Friends</h2>
                 {totalBalancedCount > 0 && (
                   <span
+                    className="pill-chip"
                     style={{
-                      fontSize: 11,
-                      fontWeight: 600,
+                      fontSize: 'var(--fs-caption)',
                       padding: '1.5px 7.5px',
-                      borderRadius: 99,
                       background: netFriends >= 0 ? 'var(--credit-bg, rgba(34, 197, 94, 0.12))' : 'var(--debit-bg, rgba(239, 68, 68, 0.12))',
                       color: netFriends >= 0 ? 'var(--credit)' : 'var(--debit)',
                       border: `1px solid ${netFriends >= 0 ? 'var(--credit-border, rgba(46, 125, 50, 0.22))' : 'var(--debit-border, rgba(211, 47, 47, 0.22))'}`,
@@ -603,13 +598,13 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               justifyContent: 'center',
               padding: '28px 16px',
               textAlign: 'center',
-              borderRadius: 12,
+              borderRadius: 'var(--radius-md)',
               background: 'transparent'
             }}>
               <div style={{
                 width: 44,
                 height: 44,
-                borderRadius: 14,
+                borderRadius: 'var(--radius-lg)',
                 background: 'var(--surface2)',
                 color: 'var(--text-3)',
                 display: 'flex',
@@ -619,10 +614,10 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
               }}>
                 <CheckCircle2 size={20} strokeWidth={1.8} />
               </div>
-              <div style={{ fontSize: '14px', fontWeight: 650, color: 'var(--text)', marginBottom: 4 }}>
+              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
                 All settled up
               </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-3)', margin: 0, lineHeight: 1.45 }}>
+              <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-3)', margin: 0, lineHeight: 1.45 }}>
                 No outstanding balances with friends
               </p>
             </div>
@@ -648,7 +643,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       gap: 12,
                       cursor: 'pointer',
                       padding: '8px 10px',
-                      borderRadius: 11,
+                      borderRadius: 'var(--radius-md)',
                       margin: '0 -6px',
                       width: 'calc(100% + 12px)',
                       boxSizing: 'border-box'
@@ -663,10 +658,10 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                           ...getAvatarStyle(friend.color),
                           width: 34,
                           height: 34,
-                          fontSize: 12,
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: 700,
                           flexShrink: 0,
-                          borderRadius: 10,
+                          borderRadius: 'var(--radius-sm)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -678,7 +673,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       </div>
                       <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                         <div style={{
-                          fontSize: 13.5,
+                          fontSize: 'var(--fs-base)',
                           fontWeight: 600,
                           color: 'var(--text)',
                           overflow: 'hidden',
@@ -692,7 +687,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 4.5,
-                          fontSize: 11.5,
+                          fontSize: 'var(--fs-xs)',
                           color: 'var(--text-3)',
                           marginTop: 1.5,
                           minWidth: 0,
@@ -727,7 +722,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{
-                          fontSize: 13.5,
+                          fontSize: 'var(--fs-base)',
                           fontWeight: 700,
                           color: isOwed ? 'var(--credit)' : 'var(--debit)',
                           whiteSpace: 'nowrap',
@@ -754,7 +749,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     justifyContent: 'center',
                     gap: 4,
                     padding: '8px 0 2px',
-                    fontSize: '11.5px',
+                    fontSize: 'var(--fs-xs)',
                     color: 'var(--text-3)',
                     cursor: 'pointer',
                     fontWeight: 500,

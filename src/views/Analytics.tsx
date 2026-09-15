@@ -743,12 +743,12 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                         onClick={() => setSelectedCategory(isSelected ? null : c.name)}
                         style={{
                           padding: '7px 13px',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
                           background: isSelected ? 'var(--accent)' : 'var(--surface2)',
                           color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
-                          fontSize: 12,
-                          fontWeight: isSelected ? 650 : 500,
+                          fontSize: 'var(--fs-xs)',
+                          fontWeight: isSelected ? 600 : 500,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -772,14 +772,14 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
               {/* Wallet Filter */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Wallet / Account
                   </label>
                   {selectedWalletId && (
                     <button
                       type="button"
                       onClick={() => setSelectedWalletId(null)}
-                      style={{ fontSize: 11, color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                      style={{ fontSize: 'var(--fs-caption)', color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                     >
                       Clear
                     </button>
@@ -792,12 +792,12 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                     onClick={() => setSelectedWalletId(null)}
                     style={{
                       padding: '7px 13px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       border: !selectedWalletId ? '1px solid var(--accent)' : '1px solid var(--border)',
                       background: !selectedWalletId ? 'var(--accent)' : 'var(--surface2)',
                       color: !selectedWalletId ? 'var(--accent-contrast)' : 'var(--text-2)',
-                      fontSize: 12,
-                      fontWeight: !selectedWalletId ? 650 : 500,
+                      fontSize: 'var(--fs-xs)',
+                      fontWeight: !selectedWalletId ? 600 : 500,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -819,12 +819,12 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                         onClick={() => setSelectedWalletId(isSelected ? null : w.id)}
                         style={{
                           padding: '7px 13px',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
                           background: isSelected ? 'var(--accent)' : 'var(--surface2)',
                           color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
-                          fontSize: 12,
-                          fontWeight: isSelected ? 650 : 500,
+                          fontSize: 'var(--fs-xs)',
+                          fontWeight: isSelected ? 600 : 500,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -869,12 +869,12 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                 style={{
                   flex: 1,
                   height: 42,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   border: '1px solid var(--border)',
                   background: 'var(--surface2)',
                   color: activeFilterCount > 0 ? 'var(--text)' : 'var(--text-3)',
-                  fontSize: 13,
-                  fontWeight: 650,
+                  fontSize: 'var(--fs-sm)',
+                  fontWeight: 600,
                   cursor: activeFilterCount > 0 ? 'pointer' : 'default',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -894,12 +894,12 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                 style={{
                   flex: 1.5,
                   height: 42,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   border: 'none',
                   background: 'var(--accent)',
                   color: 'var(--accent-contrast)',
-                  fontSize: 13.5,
-                  fontWeight: 700,
+                  fontSize: 'var(--fs-sm)',
+                  fontWeight: 600,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -997,16 +997,16 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
       {/* Confirmation Delete Dialog */}
       {deletingId && (
         <div className="modal-backdrop" onClick={() => setDeletingId(null)}>
-          <div className="modal" style={{ maxWidth: 360, padding: 18 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Delete Expense?</h3>
-            <p style={{ fontSize: 12.5, color: 'var(--text-2)', marginBottom: 16 }}>
+          <div className="modal" style={{ maxWidth: 360, padding: 20, borderRadius: 'var(--radius-xl)' }}>
+            <h3 style={{ fontSize: 'var(--fs-md)', fontWeight: 700, marginBottom: 8, color: 'var(--text)' }}>Delete Expense?</h3>
+            <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)', marginBottom: 16 }}>
               Are you sure you want to delete this expense transaction? This action cannot be undone.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button className="btn btn-secondary btn-sm" onClick={() => setDeletingId(null)}>Cancel</button>
+              <button className="btn btn-secondary btn-sm" style={{ borderRadius: 'var(--radius-full)' }} onClick={() => setDeletingId(null)}>Cancel</button>
               <button
                 className="btn btn-primary btn-sm"
-                style={{ background: '#EF4444' }}
+                style={{ background: 'var(--debit)', borderRadius: 'var(--radius-full)' }}
                 onClick={() => handleDeleteExpense(deletingId)}
               >
                 Delete
