@@ -1074,7 +1074,7 @@ export default function DailyWalletBalanceDrawer({
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: 10,
+                borderRadius: 'var(--radius-md)',
                 background: 'transparent',
                 color: 'var(--text)',
                 display: 'flex',
@@ -1089,7 +1089,7 @@ export default function DailyWalletBalanceDrawer({
               <h3
                 id="daily-wallet-balance-title"
                 style={{
-                  fontSize: 15.5,
+                  fontSize: 'var(--fs-lg)',
                   fontWeight: 700,
                   margin: 0,
                   color: 'var(--text)',
@@ -1101,7 +1101,7 @@ export default function DailyWalletBalanceDrawer({
               </h3>
               <p
                 style={{
-                  fontSize: 11.5,
+                  fontSize: 'var(--fs-caption)',
                   color: 'var(--text-3)',
                   margin: '2px 0 0',
                   lineHeight: 1.2,
@@ -1122,7 +1122,7 @@ export default function DailyWalletBalanceDrawer({
                 display: 'inline-flex',
                 alignItems: 'center',
                 background: 'var(--surface2)',
-                borderRadius: 99,
+                borderRadius: 'var(--radius-full)',
                 height: 28,
                 padding: '2px 3px',
                 border: '1px solid var(--border)',
@@ -1136,7 +1136,7 @@ export default function DailyWalletBalanceDrawer({
                 style={{
                   width: 22,
                   height: 22,
-                  borderRadius: 99,
+                  borderRadius: 'var(--radius-full)',
                   border: 'none',
                   background: 'transparent',
                   color: 'var(--text-2)',
@@ -1161,7 +1161,7 @@ export default function DailyWalletBalanceDrawer({
 
               <span
                 style={{
-                  fontSize: 11.5,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 700,
                   color: 'var(--text)',
                   padding: '0 4px',
@@ -1180,7 +1180,7 @@ export default function DailyWalletBalanceDrawer({
                 style={{
                   width: 22,
                   height: 22,
-                  borderRadius: 99,
+                  borderRadius: 'var(--radius-full)',
                   border: 'none',
                   background: 'transparent',
                   color: selectedMonth >= maxAvailableMonth ? 'var(--text-3)' : 'var(--text-2)',
@@ -1215,7 +1215,7 @@ export default function DailyWalletBalanceDrawer({
                 style={{
                   width: 28,
                   height: 28,
-                  borderRadius: 99,
+                  borderRadius: 'var(--radius-full)',
                   border: 'none',
                   background: 'var(--accent-soft)',
                   color: 'var(--accent)',
@@ -1237,7 +1237,7 @@ export default function DailyWalletBalanceDrawer({
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 display: 'grid',
                 placeItems: 'center',
                 cursor: 'pointer',
@@ -1268,7 +1268,7 @@ export default function DailyWalletBalanceDrawer({
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               background: 'var(--surface2)',
-              borderRadius: 12,
+              borderRadius: 'var(--radius-md)',
               padding: '12px 14px',
               gap: 8,
               border: '1px solid var(--border)',
@@ -1278,7 +1278,7 @@ export default function DailyWalletBalanceDrawer({
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 600,
                   color: 'var(--text-3)',
                   letterSpacing: '0.1px',
@@ -1289,7 +1289,7 @@ export default function DailyWalletBalanceDrawer({
               </span>
               <span
                 style={{
-                  fontSize: 14,
+                  fontSize: 'var(--fs-base)',
                   fontWeight: 700,
                   color: 'var(--text)',
                   marginTop: 3,
@@ -1314,7 +1314,7 @@ export default function DailyWalletBalanceDrawer({
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <span
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 600,
                   color: 'var(--text-3)',
                   letterSpacing: '0.1px',
@@ -1325,7 +1325,7 @@ export default function DailyWalletBalanceDrawer({
               </span>
               <span
                 style={{
-                  fontSize: 14,
+                  fontSize: 'var(--fs-base)',
                   fontWeight: 750,
                   color: monthNetChange > 0 ? 'var(--credit)' : monthNetChange < 0 ? 'var(--debit)' : 'var(--text-3)',
                   marginTop: 3,
@@ -1361,7 +1361,7 @@ export default function DailyWalletBalanceDrawer({
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right' }}>
               <span
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 650,
                   color: 'var(--accent)',
                   letterSpacing: '0.1px',
@@ -1372,7 +1372,7 @@ export default function DailyWalletBalanceDrawer({
               </span>
               <span
                 style={{
-                  fontSize: 14,
+                  fontSize: 'var(--fs-base)',
                   fontWeight: 750,
                   color: 'var(--text)',
                   marginTop: 3,
@@ -1401,7 +1401,7 @@ export default function DailyWalletBalanceDrawer({
                 display: 'flex',
                 alignItems: 'center',
                 background: 'var(--surface2)',
-                borderRadius: 8,
+                borderRadius: 'var(--radius-sm)',
                 padding: '4px 10px',
                 border: '1px solid var(--border)',
                 flex: 1,
@@ -1420,7 +1420,7 @@ export default function DailyWalletBalanceDrawer({
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  fontSize: 12,
+                  fontSize: 'var(--fs-xs)',
                   color: 'var(--text)',
                   padding: '2px 0',
                 }}
@@ -1445,11 +1445,11 @@ export default function DailyWalletBalanceDrawer({
               style={{
                 height: 34,
                 padding: '0 11px',
-                borderRadius: 8,
+                borderRadius: 'var(--radius-sm)',
                 border: activeFilterCount > 0 ? '1px solid var(--border2)' : '1px solid var(--border)',
                 background: activeFilterCount > 0 ? 'var(--surface)' : 'var(--surface2)',
                 color: activeFilterCount > 0 ? 'var(--text)' : 'var(--text-2)',
-                fontSize: 12,
+                fontSize: 'var(--fs-xs)',
                 fontWeight: activeFilterCount > 0 ? 650 : 500,
                 boxShadow: activeFilterCount > 0 ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
                 cursor: 'pointer',
@@ -1469,7 +1469,7 @@ export default function DailyWalletBalanceDrawer({
                     color: 'var(--accent-contrast, #ffffff)',
                     fontSize: 10,
                     fontWeight: 750,
-                    borderRadius: 99,
+                    borderRadius: 'var(--radius-full)',
                     padding: '1px 5px',
                     lineHeight: 1.2,
                   }}
@@ -1552,7 +1552,7 @@ export default function DailyWalletBalanceDrawer({
                 padding: '44px 20px',
                 textAlign: 'center',
                 background: 'var(--surface2)',
-                borderRadius: 14,
+                borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border)',
                 margin: '4px 0',
                 gap: 8,
@@ -1562,7 +1562,7 @@ export default function DailyWalletBalanceDrawer({
                 style={{
                   width: 44,
                   height: 44,
-                  borderRadius: 12,
+                  borderRadius: 'var(--radius-md)',
                   background: 'var(--surface3, rgba(255,255,255,0.05))',
                   display: 'flex',
                   alignItems: 'center',
@@ -1573,14 +1573,14 @@ export default function DailyWalletBalanceDrawer({
               >
                 <Calendar size={22} strokeWidth={1.8} />
               </div>
-              <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)' }}>
+              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)' }}>
                 {selectedWalletId !== 'all' && walletMap.get(selectedWalletId)
                   ? `No Cash Movements for ${walletMap.get(selectedWalletId)?.name}`
                   : `No Cash Movements in ${formattedMonthTitle}`}
               </div>
               <p
                 style={{
-                  fontSize: 12,
+                  fontSize: 'var(--fs-xs)',
                   color: 'var(--text-3)',
                   maxWidth: 320,
                   lineHeight: 1.45,
@@ -1601,12 +1601,12 @@ export default function DailyWalletBalanceDrawer({
                 padding: '40px 16px',
                 textAlign: 'center',
                 color: 'var(--text-3)',
-                fontSize: 13,
+                fontSize: 'var(--fs-sm)',
               }}
             >
               <Calendar size={28} strokeWidth={1.5} style={{ opacity: 0.5, marginBottom: 8 }} />
               <div style={{ fontWeight: 600, color: 'var(--text)' }}>No matching days found</div>
-              <div style={{ fontSize: 11.5, marginTop: 2 }}>Try clearing the search query or changing filters</div>
+              <div style={{ fontSize: 'var(--fs-caption)', marginTop: 2 }}>Try clearing the search query or changing filters</div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -1624,7 +1624,7 @@ export default function DailyWalletBalanceDrawer({
                         : isSelected
                         ? 'var(--surface3, var(--surface2))'
                         : 'var(--surface2)',
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-md)',
                       border: dayRow.isToday
                         ? '1px solid var(--border2)'
                         : isSelected
@@ -1650,7 +1650,7 @@ export default function DailyWalletBalanceDrawer({
                         style={{
                           width: 36,
                           height: 36,
-                          borderRadius: 8,
+                          borderRadius: 'var(--radius-sm)',
                           background: dayRow.isToday ? 'var(--accent)' : 'var(--surface)',
                           color: dayRow.isToday ? 'var(--accent-contrast, #fff)' : 'var(--text)',
                           display: 'flex',
@@ -1661,7 +1661,7 @@ export default function DailyWalletBalanceDrawer({
                           border: dayRow.isToday ? 'none' : '1px solid var(--border)',
                         }}
                       >
-                        <span style={{ fontSize: 13.5, fontWeight: 750, lineHeight: 1 }}>
+                        <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 750, lineHeight: 1 }}>
                           {dayRow.dayNumber}
                         </span>
                         <span
@@ -1683,7 +1683,7 @@ export default function DailyWalletBalanceDrawer({
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
                           <span
                             style={{
-                              fontSize: 13,
+                              fontSize: 'var(--fs-sm)',
                               fontWeight: 650,
                               color: dayRow.isToday ? 'var(--accent)' : 'var(--text)',
                               whiteSpace: 'nowrap',
@@ -1701,7 +1701,7 @@ export default function DailyWalletBalanceDrawer({
                                 color: 'var(--accent)',
                                 background: 'var(--accent-soft)',
                                 padding: '1px 6px',
-                                borderRadius: 99,
+                                borderRadius: 'var(--radius-full)',
                                 flexShrink: 0,
                                 lineHeight: 1.4,
                               }}
@@ -1718,7 +1718,7 @@ export default function DailyWalletBalanceDrawer({
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 4,
-                                fontSize: 11,
+                                fontSize: 'var(--fs-caption)',
                                 lineHeight: 1.3,
                               }}
                             >
@@ -1747,7 +1747,7 @@ export default function DailyWalletBalanceDrawer({
                               </span>
                             </div>
                           ) : (
-                            <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                            <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)' }}>
                               No transactions
                             </span>
                           )}
@@ -1805,7 +1805,7 @@ export default function DailyWalletBalanceDrawer({
         >
           <div className="filter-drawer-panel" style={{ maxWidth: 480 }}>
             {/* Drawer Drag Handle */}
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border2)', margin: '12px auto 4px', flexShrink: 0 }} />
+            <div style={{ width: 36, height: 4, borderRadius: 'var(--radius-xs)', background: 'var(--border2)', margin: '12px auto 4px', flexShrink: 0 }} />
 
             {/* Drawer Header */}
             <div
@@ -1824,7 +1824,7 @@ export default function DailyWalletBalanceDrawer({
                   style={{
                     width: 36,
                     height: 36,
-                    borderRadius: 10,
+                    borderRadius: 'var(--radius-md)',
                     backgroundColor: 'transparent',
                     display: 'grid',
                     placeItems: 'center',
@@ -1836,11 +1836,11 @@ export default function DailyWalletBalanceDrawer({
                 <div>
                   <div
                     id="daily-balance-filter-title"
-                    style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}
+                    style={{ fontSize: 'var(--fs-md)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}
                   >
                     Filters & Sort
                   </div>
-                  <div style={{ fontSize: '11.5px', color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-3)', fontWeight: 500 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-3)', fontWeight: 500 }}>
                     {activeFilterCount > 0
                       ? `${activeFilterCount} active filter${activeFilterCount === 1 ? '' : 's'}`
                       : 'Choose accounts, days to show, and order'}
@@ -1856,7 +1856,7 @@ export default function DailyWalletBalanceDrawer({
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     display: 'grid',
                     placeItems: 'center',
                     cursor: 'pointer',
@@ -1881,7 +1881,7 @@ export default function DailyWalletBalanceDrawer({
             >
               {/* 1. Accounts Section */}
               <div>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
                   Accounts
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8 }}>
@@ -1890,11 +1890,11 @@ export default function DailyWalletBalanceDrawer({
                     onClick={() => setSelectedWalletId('all')}
                     style={{
                       padding: '9px 12px',
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-md)',
                       border: selectedWalletId === 'all' ? '1px solid var(--border2)' : '1px solid var(--border)',
                       background: selectedWalletId === 'all' ? 'var(--surface)' : 'var(--surface2)',
                       color: selectedWalletId === 'all' ? 'var(--text)' : 'var(--text-2)',
-                      fontSize: 12,
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: selectedWalletId === 'all' ? 650 : 500,
                       cursor: 'pointer',
                       display: 'flex',
@@ -1910,11 +1910,11 @@ export default function DailyWalletBalanceDrawer({
                     </span>
                     <span
                       style={{
-                        fontSize: 10.5,
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: 650,
                         opacity: 0.8,
                         padding: '1px 5px',
-                        borderRadius: 99,
+                        borderRadius: 'var(--radius-full)',
                         background: selectedWalletId === 'all' ? 'var(--surface2)' : 'var(--surface3)',
                         color: selectedWalletId === 'all' ? 'var(--text)' : 'var(--text-3)',
                       }}
@@ -1933,11 +1933,11 @@ export default function DailyWalletBalanceDrawer({
                         onClick={() => setSelectedWalletId(w.id)}
                         style={{
                           padding: '9px 12px',
-                          borderRadius: 10,
+                          borderRadius: 'var(--radius-md)',
                           border: isSelected ? `1.5px solid ${wColor}` : '1px solid var(--border)',
                           background: isSelected ? 'var(--surface3, var(--surface2))' : 'var(--surface2)',
                           color: isSelected ? 'var(--text)' : 'var(--text-2)',
-                          fontSize: 12,
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: isSelected ? 700 : 500,
                           cursor: 'pointer',
                           display: 'flex',
@@ -1951,7 +1951,7 @@ export default function DailyWalletBalanceDrawer({
                             style={{
                               width: 8,
                               height: 8,
-                              borderRadius: '50%',
+                              borderRadius: 'var(--radius-full)',
                               backgroundColor: wColor,
                               flexShrink: 0,
                             }}
@@ -1969,7 +1969,7 @@ export default function DailyWalletBalanceDrawer({
 
               {/* 2. Days to Show Filter */}
               <div>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
                   Days to Show
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -1978,11 +1978,11 @@ export default function DailyWalletBalanceDrawer({
                     onClick={() => setFilterMode('all_days')}
                     style={{
                       padding: '10px 12px',
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-md)',
                       border: filterMode === 'all_days' ? '1px solid var(--border2)' : '1px solid var(--border)',
                       background: filterMode === 'all_days' ? 'var(--surface)' : 'var(--surface2)',
                       color: filterMode === 'all_days' ? 'var(--text)' : 'var(--text-2)',
-                      fontSize: 12,
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: filterMode === 'all_days' ? 650 : 500,
                       cursor: 'pointer',
                       display: 'flex',
@@ -1993,7 +1993,7 @@ export default function DailyWalletBalanceDrawer({
                     }}
                   >
                     <span>All Days</span>
-                    <span style={{ fontSize: 11, opacity: 0.8, fontWeight: 700 }}>{monthDaysCount}</span>
+                    <span style={{ fontSize: 'var(--fs-caption)', opacity: 0.8, fontWeight: 700 }}>{monthDaysCount}</span>
                   </button>
 
                   <button
@@ -2001,11 +2001,11 @@ export default function DailyWalletBalanceDrawer({
                     onClick={() => setFilterMode('activity_only')}
                     style={{
                       padding: '10px 12px',
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-md)',
                       border: filterMode === 'activity_only' ? '1px solid var(--border2)' : '1px solid var(--border)',
                       background: filterMode === 'activity_only' ? 'var(--surface)' : 'var(--surface2)',
                       color: filterMode === 'activity_only' ? 'var(--text)' : 'var(--text-2)',
-                      fontSize: 12,
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: filterMode === 'activity_only' ? 650 : 500,
                       cursor: 'pointer',
                       display: 'flex',
@@ -2016,14 +2016,14 @@ export default function DailyWalletBalanceDrawer({
                     }}
                   >
                     <span>Active Days Only</span>
-                    <span style={{ fontSize: 11, opacity: 0.8, fontWeight: 700 }}>{activeDaysCount}</span>
+                    <span style={{ fontSize: 'var(--fs-caption)', opacity: 0.8, fontWeight: 700 }}>{activeDaysCount}</span>
                   </button>
                 </div>
               </div>
 
               {/* 3. Sort By */}
               <div>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
                   Sort By
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -2032,11 +2032,11 @@ export default function DailyWalletBalanceDrawer({
                     onClick={() => setSortOrder('desc')}
                     style={{
                       padding: '10px 12px',
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-md)',
                       border: sortOrder === 'desc' ? '1px solid var(--border2)' : '1px solid var(--border)',
                       background: sortOrder === 'desc' ? 'var(--surface)' : 'var(--surface2)',
                       color: sortOrder === 'desc' ? 'var(--text)' : 'var(--text-2)',
-                      fontSize: 12,
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: sortOrder === 'desc' ? 650 : 500,
                       cursor: 'pointer',
                       display: 'flex',
@@ -2047,7 +2047,7 @@ export default function DailyWalletBalanceDrawer({
                     }}
                   >
                     <span>Newest First</span>
-                    <span style={{ fontSize: 11, opacity: 0.8 }}>31 → 1</span>
+                    <span style={{ fontSize: 'var(--fs-caption)', opacity: 0.8 }}>31 → 1</span>
                   </button>
 
                   <button
@@ -2055,11 +2055,11 @@ export default function DailyWalletBalanceDrawer({
                     onClick={() => setSortOrder('asc')}
                     style={{
                       padding: '10px 12px',
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-md)',
                       border: sortOrder === 'asc' ? '1px solid var(--border2)' : '1px solid var(--border)',
                       background: sortOrder === 'asc' ? 'var(--surface)' : 'var(--surface2)',
                       color: sortOrder === 'asc' ? 'var(--text)' : 'var(--text-2)',
-                      fontSize: 12,
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: sortOrder === 'asc' ? 650 : 500,
                       cursor: 'pointer',
                       display: 'flex',
@@ -2070,7 +2070,7 @@ export default function DailyWalletBalanceDrawer({
                     }}
                   >
                     <span>Oldest First</span>
-                    <span style={{ fontSize: 11, opacity: 0.8 }}>1 → 31</span>
+                    <span style={{ fontSize: 'var(--fs-caption)', opacity: 0.8 }}>1 → 31</span>
                   </button>
                 </div>
               </div>
@@ -2095,11 +2095,11 @@ export default function DailyWalletBalanceDrawer({
                   className="btn"
                   style={{
                     height: 40,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     border: '1px solid var(--border)',
                     background: 'var(--surface2)',
                     color: 'var(--text)',
-                    fontSize: 13,
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 650,
                     cursor: 'pointer',
                     display: 'inline-flex',
@@ -2120,11 +2120,11 @@ export default function DailyWalletBalanceDrawer({
                 style={{
                   flex: 1,
                   height: 40,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--text)',
                   border: '1px solid var(--text)',
                   color: 'var(--bg)',
-                  fontSize: 13,
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'inline-flex',

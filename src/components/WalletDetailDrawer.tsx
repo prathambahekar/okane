@@ -189,7 +189,7 @@ export default function WalletDetailDrawer({
     >
       <div
         className="modal wallet-drawer-modal modal-dialog-panel"
-        style={{ maxWidth: 480, width: '100%', borderRadius: 22 }}
+        style={{ maxWidth: 480, width: '100%', borderRadius: 'var(--radius-2xl)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Mobile Bottom-Sheet Handle Indicator */}
@@ -230,7 +230,7 @@ export default function WalletDetailDrawer({
               <div>
                 <div
                   style={{
-                    fontSize: '1.15rem',
+                    fontSize: 'var(--fs-lg)',
                     fontWeight: 700,
                     color: 'var(--text)',
                     lineHeight: 1.2,
@@ -238,7 +238,7 @@ export default function WalletDetailDrawer({
                 >
                   {wallet.name}
                 </div>
-                <div style={{ fontSize: '12.5px', color: 'var(--text-2)', marginTop: 2 }}>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)', marginTop: 2 }}>
                   Current Balance:{' '}
                   <strong
                     style={{
@@ -257,7 +257,7 @@ export default function WalletDetailDrawer({
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: '50%',
+                borderRadius: 'var(--radius-full)',
                 border: '1px solid var(--border)',
                 background: 'var(--surface2)',
                 color: 'var(--text)',
@@ -286,7 +286,7 @@ export default function WalletDetailDrawer({
             <div
               style={{
                 padding: '13px 16px',
-                borderRadius: 16,
+                borderRadius: 'var(--radius-lg)',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 display: 'flex',
@@ -296,7 +296,7 @@ export default function WalletDetailDrawer({
             >
               <div
                 style={{
-                  fontSize: '11.5px',
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 600,
                   color: 'var(--text-3)',
                   display: 'flex',
@@ -322,7 +322,7 @@ export default function WalletDetailDrawer({
             <div
               style={{
                 padding: '13px 16px',
-                borderRadius: 16,
+                borderRadius: 'var(--radius-lg)',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 display: 'flex',
@@ -379,8 +379,8 @@ export default function WalletDetailDrawer({
                 height: 42,
                 paddingLeft: 36,
                 paddingRight: searchQuery ? 32 : 12,
-                fontSize: '13px',
-                borderRadius: 14,
+                fontSize: 'var(--fs-sm)',
+                borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border)',
                 background: 'var(--surface2)',
                 color: 'var(--text)',
@@ -417,7 +417,7 @@ export default function WalletDetailDrawer({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                fontSize: '12px',
+                fontSize: 'var(--fs-xs)',
                 fontWeight: 500,
                 color: 'var(--text-2)',
                 marginTop: 8,
@@ -430,7 +430,7 @@ export default function WalletDetailDrawer({
                   color: 'var(--accent)',
                   backgroundColor: 'var(--accent-soft)',
                   padding: '2px 9px',
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   border: '1px solid var(--border)',
                 }}
               >
@@ -454,10 +454,10 @@ export default function WalletDetailDrawer({
         >
           {filteredTx.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-2)' }}>
-              <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text)' }}>
+              <div style={{ fontSize: 'var(--fs-md)', fontWeight: 700, color: 'var(--text)' }}>
                 {searchQuery ? 'No matching transactions found.' : 'No transactions recorded yet.'}
               </div>
-              <div style={{ fontSize: '12.5px', color: 'var(--text-2)', marginTop: 4 }}>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)', marginTop: 4 }}>
                 {searchQuery
                   ? 'Try searching with a different term'
                   : 'Transactions associated with this wallet will appear here'}
@@ -469,7 +469,7 @@ export default function WalletDetailDrawer({
               style={{
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
-                borderRadius: 16,
+                borderRadius: 'var(--card-radius)',
                 padding: '8px 6px',
                 boxSizing: 'border-box',
                 width: '100%',
@@ -494,7 +494,7 @@ export default function WalletDetailDrawer({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span
                     style={{
-                      fontSize: '14.5px',
+                      fontSize: 'var(--fs-base)',
                       fontWeight: 700,
                       color: 'var(--text)',
                       letterSpacing: '-0.2px',
@@ -504,12 +504,12 @@ export default function WalletDetailDrawer({
                   </span>
                   <span
                     style={{
-                      fontSize: '11.5px',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 650,
                       color: 'var(--text-3)',
                       backgroundColor: 'rgba(255, 255, 255, 0.08)',
                       padding: '2px 8px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       lineHeight: 1.2,
                     }}
                   >
@@ -629,7 +629,7 @@ export default function WalletDetailDrawer({
                       justifyContent: 'space-between',
                       gap: 12,
                       cursor: 'pointer',
-                      borderRadius: 12,
+                      borderRadius: 'var(--radius-md)',
                       transition: 'background-color 0.15s ease, transform 0.1s ease',
                     }}
                     className="recent-expense-row-inside-card"
@@ -650,7 +650,7 @@ export default function WalletDetailDrawer({
                         style={{
                           width: 38,
                           height: 38,
-                          borderRadius: 11,
+                          borderRadius: 'var(--radius-md)',
                           backgroundColor: catMeta.bg,
                           border: `1px solid ${catMeta.border}`,
                           display: 'grid',
@@ -685,7 +685,7 @@ export default function WalletDetailDrawer({
                           <span
                             style={{
                               fontWeight: 650,
-                              fontSize: '13.5px',
+                              fontSize: 'var(--fs-sm)',
                               color: 'var(--text)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
@@ -701,8 +701,8 @@ export default function WalletDetailDrawer({
                                 alignItems: 'center',
                                 gap: 3,
                                 padding: '1.5px 6px',
-                                borderRadius: 9999,
-                                fontSize: '10px',
+                                borderRadius: 'var(--radius-full)',
+                                fontSize: 'var(--fs-caption)',
                                 fontWeight: 650,
                                 backgroundColor: 'rgba(99, 102, 241, 0.14)',
                                 color: '#818CF8',
@@ -724,7 +724,7 @@ export default function WalletDetailDrawer({
                           dateText={fmtDate(tx.date)}
                           vendor={vendor}
                           friends={friend && !vendor ? [friend] : []}
-                          style={{ fontSize: '11.5px', marginTop: 2 }}
+                          style={{ fontSize: 'var(--fs-caption)', marginTop: 2 }}
                         />
                       </div>
                     </div>
@@ -733,7 +733,7 @@ export default function WalletDetailDrawer({
                     <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: 8 }}>
                       <div
                         style={{
-                          fontSize: '13.5px',
+                          fontSize: 'var(--fs-sm)',
                           fontWeight: 750,
                           fontVariantNumeric: 'tabular-nums',
                           color: isIn ? 'var(--credit)' : 'var(--debit)',
@@ -760,10 +760,10 @@ export default function WalletDetailDrawer({
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  fontSize: '10px',
+                                  fontSize: 'var(--fs-caption)',
                                   fontWeight: 650,
                                   padding: '1px 7px',
-                                  borderRadius: 9999,
+                                  borderRadius: 'var(--radius-full)',
                                   backgroundColor: bCol.bg,
                                   color: bCol.color,
                                   border: `1px solid ${bCol.border}`,

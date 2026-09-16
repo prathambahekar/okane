@@ -489,10 +489,15 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                         fontSize: 'var(--fs-caption)',
                         fontWeight: 700,
                         padding: '2px 8px',
-                        background: 'rgba(255, 255, 255, 0.09)',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--surface3)',
+                        border: '1px solid var(--border)',
                         color: 'var(--text-2)',
                         lineHeight: 1,
                         marginLeft: 2,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
                       {wExpCount}
@@ -708,7 +713,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                       color: 'var(--accent)',
                       backgroundColor: 'var(--accent-soft)',
                       padding: '2px 9px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       border: '1px solid var(--border)',
                     }}
                   >
@@ -722,10 +727,10 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '4px 16px calc(24px + env(safe-area-inset-bottom, 0px))', background: 'var(--surface)' }}>
               {filteredTx.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-2)' }}>
-                  <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text)' }}>
+                  <div style={{ fontSize: 'var(--fs-md)', fontWeight: 700, color: 'var(--text)' }}>
                     {searchQuery ? 'No matching transactions found.' : 'No transactions recorded yet.'}
                   </div>
-                  <div style={{ fontSize: '12.5px', color: 'var(--text-2)', marginTop: 4 }}>
+                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)', marginTop: 4 }}>
                     {searchQuery ? 'Try searching with a different term' : 'Transactions associated with this wallet will appear here'}
                   </div>
                 </div>
@@ -735,7 +740,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                   style={{
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: 16,
+                    borderRadius: 'var(--radius-lg)',
                     padding: '8px 6px',
                     boxSizing: 'border-box',
                     width: '100%',
@@ -760,7 +765,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span
                         style={{
-                          fontSize: '14.5px',
+                          fontSize: 'var(--fs-md)',
                           fontWeight: 700,
                           color: 'var(--text)',
                           letterSpacing: '-0.2px',
@@ -770,12 +775,12 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                       </span>
                       <span
                         style={{
-                          fontSize: '11.5px',
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: 650,
                           color: 'var(--text-3)',
                           backgroundColor: 'rgba(255, 255, 255, 0.08)',
                           padding: '2px 8px',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           lineHeight: 1.2,
                         }}
                       >
@@ -1076,7 +1081,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
         slotProps={{
           paper: {
             sx: {
-              borderRadius: '12px',
+              borderRadius: 'var(--radius-md)',
               minWidth: 160,
               boxShadow: 'var(--shadow)',
               bgcolor: 'var(--surface)',
@@ -1093,10 +1098,10 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
             handleMenuClose();
           }}
           sx={{
-            fontSize: 13,
+            fontSize: 'var(--fs-sm)',
             py: 1,
             px: 1.5,
-            borderRadius: '8px',
+            borderRadius: 'var(--radius-sm)',
             color: 'var(--text)',
             display: 'flex',
             alignItems: 'center',
@@ -1104,7 +1109,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
           }}
         >
           <Edit2 size={15} style={{ color: 'var(--text-2)', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, fontWeight: 500 }}>Edit Wallet</span>
+          <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 'var(--fw-medium)' }}>Edit Wallet</span>
         </MenuItem>
         {menuWallet && menuWallet.id !== settings.defaultWalletId && (
           <MenuItem
@@ -1117,10 +1122,10 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
               handleMenuClose();
             }}
             sx={{
-              fontSize: 13,
+              fontSize: 'var(--fs-sm)',
               py: 1,
               px: 1.5,
-              borderRadius: '8px',
+              borderRadius: 'var(--radius-sm)',
               color: 'var(--text)',
               display: 'flex',
               alignItems: 'center',
@@ -1132,7 +1137,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
             ) : (
               <EyeOff size={15} style={{ color: 'var(--text-2)', flexShrink: 0 }} />
             )}
-            <span style={{ fontSize: 13, fontWeight: 500 }}>
+            <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 'var(--fw-medium)' }}>
               {menuWallet.isHidden ? 'Unhide Wallet' : 'Hide Wallet'}
             </span>
           </MenuItem>
@@ -1144,10 +1149,10 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
             handleMenuClose();
           }}
           sx={{
-            fontSize: 13,
+            fontSize: 'var(--fs-sm)',
             py: 1,
             px: 1.5,
-            borderRadius: '8px',
+            borderRadius: 'var(--radius-sm)',
             color: 'var(--debit)',
             display: 'flex',
             alignItems: 'center',
@@ -1159,7 +1164,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
           }}
         >
           <Trash2 size={15} style={{ color: 'var(--debit)', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--debit)' }}>Delete Wallet</span>
+          <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--debit)' }}>Delete Wallet</span>
         </MenuItem>
       </Menu>
     </div>

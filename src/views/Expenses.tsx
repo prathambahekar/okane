@@ -342,7 +342,7 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
                   right: -2,
                   minWidth: 16,
                   height: 16,
-                  borderRadius: 999,
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--text)',
                   color: 'var(--surface)',
                   fontSize: 10,
@@ -608,7 +608,7 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
               <button
                 type="button"
                 className="btn btn-secondary"
-                style={{ fontSize: 12.5, padding: '8px 20px' }}
+                style={{ fontSize: 'var(--fs-xs)', padding: '8px 20px', borderRadius: 'var(--radius-md)' }}
                 onClick={() => setDisplayLimit(prev => Math.min(filtered.length, prev + 120))}
               >
                 Showing {displayLimit} of {filtered.length} transactions — Load More
@@ -616,7 +616,7 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
               <button
                 type="button"
                 className="btn btn-secondary"
-                style={{ fontSize: 12.5, padding: '8px 16px' }}
+                style={{ fontSize: 'var(--fs-xs)', padding: '8px 16px', borderRadius: 'var(--radius-md)' }}
                 onClick={() => setDisplayLimit(filtered.length)}
               >
                 Show All

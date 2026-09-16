@@ -54,7 +54,7 @@ export function parseLocallyClient(
     // Greetings
     if (/^\s*(hi+|hello+|hey+|heyy+|greetings|good morning|good afternoon|good evening|yo+|sup|namaste|hola)\b/i.test(lower)) {
       return {
-        reply: `Hey there! 👋 I'm Max, your Okane AI assistant. How can I help you today? You can ask about your balances, spending summaries, or log a transaction!`,
+        reply: `Hey! How can I help you today?`,
         actionType: 'general_query',
         isOffline: true,
       };

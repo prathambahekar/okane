@@ -266,7 +266,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
           style={{
             width: 36,
             height: 4,
-            borderRadius: 2,
+            borderRadius: 'var(--radius-xs)',
             background: 'var(--border2)',
             margin: '0 auto 16px',
           }}
@@ -317,7 +317,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -338,7 +338,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -425,7 +425,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                     <label
                       style={{
                         display: 'block',
-                        fontSize: 11,
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: 700,
                         textTransform: 'uppercase',
                         letterSpacing: '0.4px',
@@ -436,7 +436,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                     >
                       Popular Presets
                     </label>
-                    <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Tap to fill</span>
+                    <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)' }}>Tap to fill</span>
                   </div>
                   <div
                     className="no-scrollbar"
@@ -460,11 +460,11 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                           style={{
                             flexShrink: 0,
                             padding: '7px 16px',
-                            borderRadius: 9999,
+                            borderRadius: 'var(--radius-full)',
                             border: isSelected ? '1px solid var(--text)' : '1px solid var(--border)',
                             background: isSelected ? 'var(--text)' : 'var(--surface2)',
                             color: isSelected ? 'var(--bg)' : 'var(--text-2)',
-                            fontSize: 13,
+                            fontSize: 'var(--fs-sm)',
                             fontWeight: isSelected ? 700 : 550,
                             cursor: 'pointer',
                             boxShadow: isSelected ? '0 2px 8px rgba(0, 0, 0, 0.25)' : 'none',
@@ -484,7 +484,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                 <label
                   style={{
                     display: 'block',
-                    fontSize: 11,
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.4px',
@@ -501,8 +501,8 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                   style={{
                     width: '100%',
                     height: 40,
-                    borderRadius: 10,
-                    fontSize: 13.5,
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: 'var(--fs-base)',
                     fontWeight: 500,
                     textAlign: 'left',
                     padding: '0 12px',
@@ -528,7 +528,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                       <label
                         style={{
                           display: 'block',
-                          fontSize: 11,
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: 700,
                           textTransform: 'uppercase',
                           letterSpacing: '0.4px',
@@ -544,8 +544,8 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                         style={{
                           width: '100%',
                           height: 40,
-                          borderRadius: 10,
-                          fontSize: 13,
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: 'var(--fs-sm)',
                           fontWeight: 500,
                           padding: '0 10px',
                           border: '1px solid var(--border)',
@@ -566,7 +566,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                       <label
                         style={{
                           display: 'block',
-                          fontSize: 11,
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: 700,
                           textTransform: 'uppercase',
                           letterSpacing: '0.4px',
@@ -582,8 +582,8 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                         style={{
                           width: '100%',
                           height: 40,
-                          borderRadius: 10,
-                          fontSize: 13.5,
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: 'var(--fs-base)',
                           fontWeight: 500,
                           padding: '0 12px',
                           border: '1px solid var(--border)',
@@ -609,7 +609,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                       style={{
                         background: 'var(--surface2)',
                         border: '1px solid var(--border)',
-                        borderRadius: 16,
+                        borderRadius: 'var(--radius-lg)',
                         padding: '12px 16px',
                         cursor: 'pointer',
                         display: 'flex',
@@ -626,7 +626,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                           style={{
                             width: 32,
                             height: 32,
-                            borderRadius: 8,
+                            borderRadius: 'var(--radius-sm)',
                             background: 'transparent',
                             color: 'var(--text-2)',
                             display: 'grid',
@@ -637,11 +637,11 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                           <Repeat size={18} />
                         </div>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {getCycleDisplayInfo(billingCycle).title}
                           </div>
                           {getCycleDisplayInfo(billingCycle).sub ? (
-                            <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {getCycleDisplayInfo(billingCycle).sub}
                             </div>
                           ) : null}
@@ -654,8 +654,8 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                           color: 'var(--bg)',
                           border: '1px solid var(--text)',
                           padding: '6px 14px',
-                          borderRadius: 9999,
-                          fontSize: 12,
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: 700,
                           whiteSpace: 'nowrap',
                           display: 'inline-flex',
@@ -675,7 +675,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                   <label
                     style={{
                       display: 'block',
-                      fontSize: 11,
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.4px',
@@ -691,8 +691,8 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                     style={{
                       width: '100%',
                       height: 40,
-                      borderRadius: 10,
-                      fontSize: 13,
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 'var(--fs-sm)',
                       fontWeight: 500,
                       padding: '0 12px',
                       border: '1px solid var(--border)',
@@ -716,7 +716,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
                   <label
                     style={{
-                      fontSize: 11,
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.4px',
@@ -732,14 +732,14 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                       type="button"
                       onClick={() => setShowNumberPicker(!showNumberPicker)}
                       style={{
-                        fontSize: 11,
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: showNumberPicker || avatarNumber ? 700 : 500,
                         color: showNumberPicker || avatarNumber ? 'var(--bg)' : 'var(--text-2)',
                         background: showNumberPicker || avatarNumber ? 'var(--text)' : 'var(--surface2)',
                         border: '1px solid ' + (showNumberPicker || avatarNumber ? 'var(--text)' : 'var(--border)'),
                         boxShadow: showNumberPicker || avatarNumber ? '0 1px 4px rgba(0, 0, 0, 0.18)' : 'none',
                         padding: '3px 9px',
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -756,8 +756,8 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                             background: showNumberPicker || avatarNumber ? 'var(--bg)' : 'var(--text)',
                             color: showNumberPicker || avatarNumber ? 'var(--text)' : 'var(--bg)',
                             padding: '1px 5px',
-                            borderRadius: 6,
-                            fontSize: 9.5,
+                            borderRadius: 'var(--radius-xs)',
+                            fontSize: 'var(--fs-caption)',
                             fontWeight: 800,
                             lineHeight: 1.2,
                           }}
@@ -776,7 +776,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                     gap: 8,
                     padding: '8px 12px',
                     background: 'var(--surface2)',
-                    borderRadius: 12,
+                    borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border)',
                   }}
                 >
@@ -785,7 +785,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                     style={{
                       width: 28,
                       height: 28,
-                      borderRadius: '50%',
+                      borderRadius: 'var(--radius-full)',
                       ...getAvatarStyle(color),
                       display: 'flex',
                       alignItems: 'center',
@@ -813,7 +813,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                           style={{
                             width: 18,
                             height: 18,
-                            borderRadius: '50%',
+                            borderRadius: 'var(--radius-full)',
                             background: c,
                             border: isSelected ? '2px solid var(--surface)' : '1px solid rgba(0,0,0,0.15)',
                             outline: isSelected ? '2px solid var(--text)' : 'none',
@@ -848,7 +848,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                       style={{
                         width: 18,
                         height: 18,
-                        borderRadius: '50%',
+                        borderRadius: 'var(--radius-full)',
                         background: !FRIEND_PALETTE.includes(color)
                           ? color
                           : 'conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
@@ -891,7 +891,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                       <label
                         style={{
                           display: 'block',
-                          fontSize: 11,
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: 700,
                           textTransform: 'uppercase',
                           letterSpacing: '0.4px',
@@ -907,7 +907,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                           type="button"
                           onClick={() => setAvatarNumber('')}
                           style={{
-                            fontSize: 11,
+                            fontSize: 'var(--fs-caption)',
                             fontWeight: 600,
                             color: 'var(--text-3)',
                             background: 'none',
@@ -938,7 +938,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                           gap: 4,
                           height: 32,
                           padding: '0 10px',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           border: avatarNumber ? '1.5px solid var(--text)' : '1px solid var(--border)',
                           background: 'var(--surface2)',
                           boxShadow: avatarNumber ? '0 1px 4px rgba(0, 0, 0, 0.12)' : 'none',
@@ -959,7 +959,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                           }}
                           style={{
                             width: 36,
-                            fontSize: 13,
+                            fontSize: 'var(--fs-sm)',
                             fontWeight: 750,
                             background: 'transparent',
                             color: 'var(--text)',
@@ -986,9 +986,9 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                                 height: 32,
                                 minWidth: 34,
                                 padding: '0 11px',
-                                fontSize: 12,
+                                fontSize: 'var(--fs-xs)',
                                 fontWeight: isSelected ? 750 : 550,
-                                borderRadius: 9999,
+                                borderRadius: 'var(--radius-full)',
                                 border: isSelected ? '1px solid var(--text)' : '1px solid var(--border)',
                                 background: isSelected ? 'var(--text)' : 'var(--surface2)',
                                 color: isSelected ? 'var(--bg)' : 'var(--text-2)',
@@ -1104,7 +1104,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                 display: 'flex',
                 flexDirection: 'column',
                 border: '1px solid var(--border)',
-                borderRadius: 24,
+                borderRadius: 'var(--radius-xl)',
                 background: 'var(--surface)',
                 overflow: 'hidden',
                 boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
@@ -1116,7 +1116,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                 style={{
                   width: 38,
                   height: 4,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--border2)',
                   margin: '12px auto 6px',
                   flexShrink: 0,
@@ -1126,14 +1126,14 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
               {/* Drawer Header */}
               <div className="modal-header" style={{ padding: '4px 20px 14px', borderBottom: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', color: 'var(--text)', display: 'grid', placeItems: 'center' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)', background: 'transparent', color: 'var(--text)', display: 'grid', placeItems: 'center' }}>
                     <Repeat size={18} />
                   </div>
                   <div>
-                    <div className="modal-title" style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
+                    <div className="modal-title" style={{ fontSize: 'var(--fs-md)', fontWeight: 700, color: 'var(--text)' }}>
                       Select Billing Cycle
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 1 }}>
                       Choose how frequently this subscription recurs
                     </div>
                   </div>
@@ -1145,7 +1145,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: '50%',
+                    borderRadius: 'var(--radius-full)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     color: 'var(--text-2)',
@@ -1177,7 +1177,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '16px 18px',
-                        borderRadius: 16,
+                        borderRadius: 'var(--radius-lg)',
                         border: isSelected ? '1.5px solid var(--text)' : '1px solid var(--border)',
                         background: 'var(--surface2)',
                         boxShadow: isSelected ? '0 2px 10px rgba(0, 0, 0, 0.15)' : 'none',
@@ -1191,7 +1191,6 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                           style={{
                             width: 24,
                             height: 24,
-                            borderRadius: 0,
                             background: 'transparent',
                             color: isSelected ? 'var(--text)' : 'var(--text-3)',
                             display: 'grid',
@@ -1202,7 +1201,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                         >
                           <ChoiceIcon size={20} />
                         </div>
-                        <span style={{ fontSize: 15, fontWeight: isSelected ? 700 : 550, color: 'var(--text)' }}>
+                        <span style={{ fontSize: 'var(--fs-md)', fontWeight: isSelected ? 700 : 550, color: 'var(--text)' }}>
                           {choice.title}
                         </span>
                       </div>
@@ -1211,7 +1210,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                         style={{
                           width: 22,
                           height: 22,
-                          borderRadius: '50%',
+                          borderRadius: 'var(--radius-full)',
                           border: isSelected ? 'none' : '1.5px solid var(--border2)',
                           background: isSelected ? 'var(--text)' : 'transparent',
                           color: 'var(--bg)',
@@ -1233,7 +1232,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                   <div
                     style={{
                       padding: '16px 18px',
-                      borderRadius: 16,
+                      borderRadius: 'var(--radius-lg)',
                       background: 'var(--surface2)',
                       border: '1px solid var(--border)',
                       display: 'flex',
@@ -1244,17 +1243,17 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                   >
                     {/* Header with high contrast badge */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+                      <span style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)' }}>
                         Custom Interval
                       </span>
                       <span
                         style={{
-                          fontSize: 12,
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: 700,
                           color: 'var(--bg)',
                           background: 'var(--text)',
                           padding: '4px 12px',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
                         }}
                       >
@@ -1275,9 +1274,9 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                             onMouseLeave={e => !isChipSelected && (e.currentTarget.style.borderColor = 'var(--border)')}
                             style={{
                               height: 38,
-                              fontSize: 12.5,
+                              fontSize: 'var(--fs-xs)',
                               fontWeight: isChipSelected ? 700 : 550,
-                              borderRadius: 9999,
+                              borderRadius: 'var(--radius-full)',
                               border: isChipSelected ? '1.5px solid var(--text)' : '1px solid var(--border)',
                               background: isChipSelected ? 'var(--text)' : 'var(--surface)',
                               color: isChipSelected ? 'var(--bg)' : 'var(--text-2)',
@@ -1296,7 +1295,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
 
                     {/* Exact duration stepper row (no split lines) */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 13, fontWeight: 550, color: 'var(--text-2)' }}>
+                      <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 550, color: 'var(--text-2)' }}>
                         Exact duration
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1306,7 +1305,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                             alignItems: 'center',
                             background: 'var(--surface)',
                             border: '1px solid var(--border)',
-                            borderRadius: 9999,
+                            borderRadius: 'var(--radius-full)',
                             padding: '3px 6px',
                             gap: 2,
                           }}
@@ -1317,14 +1316,14 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                             style={{
                               width: 30,
                               height: 30,
-                              borderRadius: '50%',
+                              borderRadius: 'var(--radius-full)',
                               border: '1px solid var(--border)',
                               background: 'var(--surface2)',
                               color: 'var(--text)',
                               display: 'grid',
                               placeItems: 'center',
                               cursor: 'pointer',
-                              fontSize: 16,
+                              fontSize: 'var(--fs-lg)',
                               fontWeight: 700,
                             }}
                             onClick={() => setCustomMonths(prev => Math.max(1, prev - 1))}
@@ -1339,10 +1338,9 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                             style={{
                               height: 30,
                               textAlign: 'center',
-                              fontSize: 14,
+                              fontSize: 'var(--fs-base)',
                               fontWeight: 700,
                               width: 42,
-                              borderRadius: 0,
                               background: 'transparent',
                               border: 'none',
                               color: 'var(--text)',
@@ -1357,14 +1355,14 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                             style={{
                               width: 30,
                               height: 30,
-                              borderRadius: '50%',
+                              borderRadius: 'var(--radius-full)',
                               border: '1px solid var(--border)',
                               background: 'var(--surface2)',
                               color: 'var(--text)',
                               display: 'grid',
                               placeItems: 'center',
                               cursor: 'pointer',
-                              fontSize: 16,
+                              fontSize: 'var(--fs-lg)',
                               fontWeight: 700,
                             }}
                             onClick={() => setCustomMonths(prev => Math.min(60, prev + 1))}
@@ -1372,7 +1370,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                             +
                           </button>
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 550, color: 'var(--text-2)' }}>months</span>
+                        <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 550, color: 'var(--text-2)' }}>months</span>
                       </div>
                     </div>
                   </div>

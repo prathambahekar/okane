@@ -114,7 +114,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
   const balancedFriends = useMemo(() =>
     allBalances
       .filter(b => Math.abs(b.net) > 0.004)
-      .slice(0, 4),
+      .slice(0, 8),
     [allBalances]
   );
 

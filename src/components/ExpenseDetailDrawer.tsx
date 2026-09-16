@@ -207,10 +207,10 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
           alignItems: 'center',
           gap: 7,
           padding: '3px 10px 3px 3.5px',
-          borderRadius: 9999,
+          borderRadius: 'var(--radius-full)',
           background: isSelected ? 'var(--surface3, #242630)' : 'var(--surface, #141416)',
           border: isSelected ? `1.5px solid ${friendColor}` : '1px solid var(--border)',
-          fontSize: 12.5,
+          fontSize: 'var(--fs-xs)',
           fontWeight: isSelected ? 750 : 650,
           color: 'var(--text)',
           lineHeight: 1.2,
@@ -546,6 +546,13 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               <span
                 className="pill-badge"
                 style={{
+                  padding: '3px 9px',
+                  fontSize: 'var(--fs-caption)',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  borderRadius: 'var(--radius-full)',
                   background: isTransfer ? 'var(--accent-soft)' : (isDebit ? 'var(--debit-bg)' : 'var(--credit-bg)'),
                   border: `1px solid ${isTransfer ? 'var(--accent-border-soft, var(--border))' : (isDebit ? 'var(--debit-border)' : 'var(--credit-border)')}`,
                   color: isTransfer ? 'var(--accent)' : (isDebit ? 'var(--debit)' : 'var(--credit)'),
@@ -580,14 +587,15 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
 
                 return (
                   <span
+                    className="pill-badge"
                     style={{
                       padding: '3px 9px',
-                      fontSize: 11,
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 600,
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 4,
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       background: badgeBg,
                       border: `1px solid ${badgeBorder}`,
                       color: badgeColor,
@@ -610,7 +618,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               padding: '16px 18px',
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
-              borderRadius: 20,
+              borderRadius: 'var(--card-radius)',
             }}
           >
             {/* Top Row: Wallet and Category (when wallet exists) OR Category and You Owe / They Owe (when wallet is hidden) */}
@@ -631,7 +639,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     <WalletIcon size={11} style={{ color: 'var(--text-3)' }} />
                     Wallet
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--text)', wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: 6, marginTop: 1, minHeight: 28 }}>
+                  <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 650, color: 'var(--text)', wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: 6, marginTop: 1, minHeight: 28 }}>
                     {walletObj ? (
                       <>
                         {renderWalletIcon(walletObj.icon || walletObj.name, 13, walletObj.color)}
@@ -677,7 +685,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '10px 14px',
-                    borderRadius: 14,
+                    borderRadius: 'var(--radius-md)',
                     background: 'var(--surface)',
                     border: '1px solid var(--border)',
                     gap: 12,
@@ -688,7 +696,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       style={{
                         width: 32,
                         height: 32,
-                        borderRadius: 10,
+                        borderRadius: 'var(--radius-sm)',
                         aspectRatio: '1 / 1',
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -704,7 +712,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                         Store / Vendor
                       </span>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {detectedVendor.name}
                       </span>
                     </div>
@@ -715,7 +723,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       fontSize: 10.5,
                       fontWeight: 700,
                       padding: '3px 10px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       background: 'var(--amber-bg, rgba(245, 158, 11, 0.14))',
                       color: 'var(--amber, #fbbf24)',
                       border: '1px solid var(--amber-border, rgba(245, 158, 11, 0.28))',
@@ -768,7 +776,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 style={{
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 18,
+                  borderRadius: 'var(--radius-lg)',
                   padding: '14px 16px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -777,7 +785,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               >
                 {/* Header with Filter Pill & Total */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     <Users size={13} style={{ color: 'var(--text-2)' }} />
                     <span>{ge.isSettlementGroup ? 'Settlement Breakdown' : 'Split Breakdown'}</span>
                   </div>
@@ -794,7 +802,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                           background: 'var(--surface3)',
                           border: `1px solid ${filteredFriendObj.color ? filteredFriendObj.color + '44' : 'var(--border)'}`,
                           padding: '2px 8px',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 4,
@@ -806,7 +814,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                         <X size={11} strokeWidth={2.5} />
                       </button>
                     )}
-                    <span style={{ fontSize: 11.5, fontWeight: 650, color: 'var(--text-2)', background: 'var(--surface3)', border: '1px solid var(--border)', padding: '3px 9px', borderRadius: 9999 }}>
+                    <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 650, color: 'var(--text-2)', background: 'var(--surface3)', border: '1px solid var(--border)', padding: '3px 9px', borderRadius: 'var(--radius-full)' }}>
                       Total {fmtMoney(displayTotal, currency)}
                     </span>
                   </div>
@@ -819,13 +827,13 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       style={{
                         padding: '18px 12px',
                         textAlign: 'center',
-                        fontSize: 12.5,
+                        fontSize: 'var(--fs-xs)',
                         color: 'var(--text-3)',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         gap: 8,
-                        borderRadius: 12,
+                        borderRadius: 'var(--radius-md)',
                         background: 'rgba(255, 255, 255, 0.02)',
                       }}
                     >
@@ -834,10 +842,10 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                         type="button"
                         onClick={() => setSelectedFriendFilter(null)}
                         style={{
-                          fontSize: 11,
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: 650,
                           padding: '3px 10px',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           background: 'var(--surface)',
                           border: '1px solid var(--border)',
                           color: 'var(--text)',
@@ -940,7 +948,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             padding: '10px 12px',
-                            borderRadius: 14,
+                            borderRadius: 'var(--radius-md)',
                             background: 'var(--surface)',
                             border: '1px solid var(--border)',
                             gap: 10,
@@ -953,7 +961,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                 style={{
                                   width: 26,
                                   height: 26,
-                                  borderRadius: '50%',
+                                  borderRadius: 'var(--radius-full)',
                                   aspectRatio: '1 / 1',
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -975,7 +983,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                 style={{
                                   width: 26,
                                   height: 26,
-                                  borderRadius: 8,
+                                  borderRadius: 'var(--radius-sm)',
                                   aspectRatio: '1 / 1',
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -993,7 +1001,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                 style={{
                                   width: 26,
                                   height: 26,
-                                  borderRadius: '50%',
+                                  borderRadius: 'var(--radius-full)',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1013,7 +1021,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                 <span
                                   style={{
                                     fontWeight: 700,
-                                    fontSize: 13,
+                                    fontSize: 'var(--fs-sm)',
                                     color: 'var(--text)',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
@@ -1029,7 +1037,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                       fontSize: 10,
                                       fontWeight: 700,
                                       padding: '1px 6.5px',
-                                      borderRadius: 9999,
+                                      borderRadius: 'var(--radius-full)',
                                       color: statusBadge.color,
                                       background: statusBadge.bg,
                                       border: `1px solid ${statusBadge.border}`,
@@ -1106,9 +1114,9 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 7,
-                fontSize: 13.5,
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 700,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
@@ -1137,9 +1145,9 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 7,
-                fontSize: 13.5,
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 700,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
@@ -1167,9 +1175,9 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               gap: 7,
-              fontSize: 13.5,
+              fontSize: 'var(--fs-sm)',
               fontWeight: 700,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               background: 'var(--debit-bg)',
               border: '1px solid var(--debit-border)',
               color: 'var(--debit)',

@@ -139,11 +139,11 @@ export function buildTheme(mode: 'light' | 'dark', accent: AccentPreset = 'monoc
         paper: '#ffffff',
       },
       text: mode === 'dark' ? {
-        primary: '#ffffff',   // text-white
-        secondary: '#a1a1aa', // text-neutral-400
+        primary: '#ffffff',   // text-white (--text-1)
+        secondary: '#d4d4d8', // text-neutral-300 (--text-2)
       } : {
-        primary: '#171717',
-        secondary: '#52525b',
+        primary: '#171717',   // (--text-1)
+        secondary: '#52525b', // (--text-2)
       },
       divider: mode === 'dark' ? 'rgba(38, 38, 38, 0.8)' : '#e5e7eb',
     },

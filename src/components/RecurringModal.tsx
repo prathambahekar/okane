@@ -352,7 +352,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
           flexDirection: 'column',
           background: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: 22,
+          borderRadius: 'var(--radius-xl)',
           overflow: 'hidden',
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
           position: 'relative',
@@ -364,7 +364,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
           style={{
             width: 38,
             height: 4.5,
-            borderRadius: 99,
+            borderRadius: 'var(--radius-full)',
             background: 'var(--border2, #444)',
             margin: '10px auto 4px',
             flexShrink: 0,
@@ -381,7 +381,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: 10,
+                borderRadius: 'var(--radius-sm)',
                 background: 'transparent',
                 display: 'flex',
                 alignItems: 'center',
@@ -393,7 +393,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               {isSubscription ? <Tv size={22} strokeWidth={2.2} /> : <Zap size={22} strokeWidth={2.2} />}
             </div>
             <div>
-              <span style={{ fontSize: 16.5, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+              <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                 {isEditing ? (isSubscription ? 'Edit Subscription' : 'Edit Routine') : (isSubscription ? 'New Subscription' : 'New Routine')}
               </span>
             </div>
@@ -408,7 +408,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               style={{
                 width: 34,
                 height: 34,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -433,7 +433,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               style={{
                 width: 34,
                 height: 34,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -471,9 +471,9 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   padding: '9px 12px',
                   background: 'rgba(239, 68, 68, 0.1)',
                   border: '1px solid rgba(239, 68, 68, 0.25)',
-                  borderRadius: 10,
+                  borderRadius: 'var(--radius-sm)',
                   color: 'var(--debit, #ef4444)',
-                  fontSize: 12.5,
+                  fontSize: 'var(--fs-xs)',
                   fontWeight: 550
                 }}
               >
@@ -489,7 +489,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 gridTemplateColumns: '1fr 1fr',
                 background: 'var(--surface2)',
                 padding: 4,
-                borderRadius: 14,
+                borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border)',
                 gap: 4
               }}
@@ -503,12 +503,12 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   justifyContent: 'center',
                   gap: 6,
                   padding: '8px 12px',
-                  borderRadius: 10,
+                  borderRadius: 'var(--radius-sm)',
                   border: isSubscription ? '1px solid var(--text)' : '1px solid transparent',
                   background: isSubscription ? 'var(--text)' : 'transparent',
                   color: isSubscription ? 'var(--bg)' : 'var(--text-3)',
                   fontWeight: isSubscription ? 700 : 500,
-                  fontSize: 13,
+                  fontSize: 'var(--fs-sm)',
                   cursor: 'pointer',
                   boxShadow: isSubscription ? '0 2px 6px rgba(0, 0, 0, 0.2)' : 'none',
                   transition: 'all 0.15s ease'
@@ -527,12 +527,12 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   justifyContent: 'center',
                   gap: 6,
                   padding: '8px 12px',
-                  borderRadius: 10,
+                  borderRadius: 'var(--radius-sm)',
                   border: !isSubscription ? '1px solid var(--text)' : '1px solid transparent',
                   background: !isSubscription ? 'var(--text)' : 'transparent',
                   color: !isSubscription ? 'var(--bg)' : 'var(--text-3)',
                   fontWeight: !isSubscription ? 700 : 500,
-                  fontSize: 13,
+                  fontSize: 'var(--fs-sm)',
                   cursor: 'pointer',
                   boxShadow: !isSubscription ? '0 2px 6px rgba(0, 0, 0, 0.2)' : 'none',
                   transition: 'all 0.15s ease'
@@ -550,7 +550,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   <label
                     style={{
                       display: 'block',
-                      fontSize: 11,
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.4px',
@@ -560,7 +560,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   >
                     Popular Presets
                   </label>
-                  <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Tap to fill</span>
+                  <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)' }}>Tap to fill</span>
                 </div>
                 <div
                   className="no-scrollbar"
@@ -584,11 +584,11 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                         style={{
                           flexShrink: 0,
                           padding: '6px 14px',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           border: isSelected ? '1px solid var(--text)' : '1px solid var(--border)',
                           background: isSelected ? 'var(--text)' : 'var(--surface2)',
                           color: isSelected ? 'var(--bg)' : 'var(--text-2)',
-                          fontSize: 12.5,
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: isSelected ? 700 : 550,
                           cursor: 'pointer',
                           boxShadow: isSelected ? '0 2px 6px rgba(0, 0, 0, 0.2)' : 'none',
@@ -633,7 +633,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <label
                 style={{
-                  fontSize: 11,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.4px',
@@ -657,8 +657,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 style={{
                   width: '100%',
                   height: 44,
-                  borderRadius: 12,
-                  fontSize: 14,
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: 'var(--fs-base)',
                   fontWeight: 550,
                   padding: '0 14px',
                   border: error && !title.trim() ? '1.5px solid var(--debit, #ef4444)' : '1px solid var(--border)',
@@ -680,7 +680,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <label
                   style={{
-                    fontSize: 11,
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.4px',
@@ -696,8 +696,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   style={{
                     width: '100%',
                     height: 44,
-                    borderRadius: 12,
-                    fontSize: 13.5,
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 500,
                     padding: '0 12px',
                     border: '1px solid var(--border)',
@@ -715,7 +715,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <label
                   style={{
-                    fontSize: 11,
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.4px',
@@ -731,8 +731,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   style={{
                     width: '100%',
                     height: 44,
-                    borderRadius: 12,
-                    fontSize: 13.5,
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 500,
                     padding: '0 12px',
                     border: '1px solid var(--border)',
@@ -756,7 +756,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '10px 14px',
-                borderRadius: 14,
+                borderRadius: 'var(--radius-md)',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 cursor: 'pointer',
@@ -769,7 +769,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: '50%',
+                    borderRadius: 'var(--radius-full)',
                     background: 'var(--text)',
                     color: 'var(--bg)',
                     display: 'grid',
@@ -779,7 +779,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 >
                   <Calendar size={15} strokeWidth={2.4} />
                 </div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.1px' }}>
+                <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.1px' }}>
                   {getScheduleTitle()}
                 </div>
               </div>
@@ -788,7 +788,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 style={{
                   width: 28,
                   height: 28,
-                  borderRadius: '50%',
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--surface3, var(--surface))',
                   border: '1px solid var(--border)',
                   color: 'var(--text)',
@@ -811,7 +811,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '10px 14px',
-                  borderRadius: 14,
+                  borderRadius: 'var(--radius-md)',
                   background: 'var(--surface2)',
                   border: friendId ? '1px solid var(--text)' : '1px solid var(--border)',
                   cursor: 'pointer',
@@ -824,7 +824,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                     style={{
                       width: 32,
                       height: 32,
-                      borderRadius: '50%',
+                      borderRadius: 'var(--radius-full)',
                       background: 'var(--text)',
                       color: 'var(--bg)',
                       display: 'grid',
@@ -838,7 +838,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                       <Users size={15} strokeWidth={2.4} />
                     )}
                   </div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {friendId ? (linkedFriend?.name || 'Contact Linked') : 'Link Contact / Vendor'}
                   </div>
                 </div>
@@ -846,10 +846,10 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 {friendId ? (
                   <div
                     style={{
-                      fontSize: 11,
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       padding: '3px 9px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       background: 'var(--text)',
                       color: 'var(--bg)',
                       flexShrink: 0,
@@ -860,13 +860,13 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 ) : (
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 600,
                       color: 'var(--text-3)',
                       background: 'var(--surface)',
                       border: '1px solid var(--border)',
                       padding: '3px 9px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       flexShrink: 0,
                     }}
                   >
@@ -900,8 +900,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               style={{
                 flex: 1,
                 height: 44,
-                borderRadius: 9999,
-                fontSize: 13.5,
+                borderRadius: 'var(--radius-full)',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 650,
                 border: '1px solid var(--border)',
                 background: 'var(--surface2)',
@@ -922,8 +922,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               style={{
                 flex: 1.35,
                 height: 44,
-                borderRadius: 9999,
-                fontSize: 13.5,
+                borderRadius: 'var(--radius-full)',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 700,
                 background: 'var(--text)',
                 border: '1px solid var(--text)',
@@ -956,7 +956,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               zIndex: 30,
               display: 'flex',
               flexDirection: 'column',
-              borderRadius: 22,
+              borderRadius: 'var(--radius-xl)',
               overflow: 'hidden',
               animation: 'fadeIn 0.15s ease-out'
             }}
@@ -980,7 +980,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   style={{
                     width: 34,
                     height: 34,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -996,7 +996,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   <ArrowLeft size={17} strokeWidth={2.2} />
                 </button>
                 <div>
-                  <span style={{ fontSize: 16.5, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                  <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                     Link Contact or Vendor
                   </span>
                 </div>
@@ -1009,7 +1009,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 style={{
                   width: 34,
                   height: 34,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1035,7 +1035,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   position: 'relative',
                   background: pickerSearchFocused ? 'var(--surface)' : 'var(--surface2)',
                   border: pickerSearchFocused ? '1px solid var(--border2)' : '1px solid var(--border)',
-                  borderRadius: 12,
+                  borderRadius: 'var(--radius-md)',
                   padding: '0 12px',
                   height: 38,
                   boxShadow: pickerSearchFocused ? '0 0 0 1px var(--border2)' : 'none',
@@ -1058,7 +1058,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                     background: 'transparent',
                     border: 'none',
                     outline: 'none',
-                    fontSize: 13,
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 500,
                     color: 'var(--text)',
                     padding: '4px 0',
@@ -1091,11 +1091,11 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   <button
                     type="button"
                     style={{
-                      fontSize: 11,
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       padding: '3px 10px',
                       height: 26,
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       whiteSpace: 'nowrap',
                       flexShrink: 0,
                       background: 'var(--text)',
@@ -1149,10 +1149,10 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                         border: isSel ? '1px solid var(--text)' : '1px solid var(--border)',
                         background: isSel ? 'var(--text)' : 'var(--surface2)',
                         color: isSel ? 'var(--bg)' : 'var(--text-3)',
-                        fontSize: 13,
+                        fontSize: 'var(--fs-sm)',
                         fontWeight: isSel ? 700 : 550,
                         padding: '0 14px',
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         height: 32,
                         cursor: 'pointer',
                         display: 'inline-flex',
@@ -1184,7 +1184,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               }}
             >
               {filteredFriendsList.length === 0 ? (
-                <div style={{ padding: '36px 8px', textAlign: 'center', fontSize: 12.5, color: 'var(--text-3)' }}>
+                <div style={{ padding: '36px 8px', textAlign: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
                   No matching contacts found
                 </div>
               ) : (
@@ -1213,7 +1213,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                           justifyContent: 'space-between',
                           gap: 6,
                           padding: '8px 10px',
-                          borderRadius: 12,
+                          borderRadius: 'var(--radius-md)',
                           background: isSel ? 'var(--surface3)' : 'var(--surface2)',
                           border: isSel ? '1px solid var(--text)' : '1px solid var(--border)',
                           boxShadow: 'none',
@@ -1226,10 +1226,10 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                             style={{
                               width: 28,
                               height: 28,
-                              borderRadius: '50%',
+                              borderRadius: 'var(--radius-full)',
                               aspectRatio: '1 / 1',
                               ...getAvatarStyle(f.color),
-                              fontSize: f.avatarNumber && f.avatarNumber.length > 2 ? 9 : 11,
+                              fontSize: f.avatarNumber && f.avatarNumber.length > 2 ? 'var(--fs-caption)' : 'var(--fs-caption)',
                               fontWeight: 750,
                               display: 'grid',
                               placeItems: 'center',
@@ -1241,7 +1241,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                           </div>
                           <span
                             style={{
-                              fontSize: 12,
+                              fontSize: 'var(--fs-xs)',
                               fontWeight: isSel ? 700 : 550,
                               color: isSel ? 'var(--text)' : 'var(--text-2)',
                               whiteSpace: 'nowrap',
@@ -1256,7 +1256,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                           style={{
                             width: 18,
                             height: 18,
-                            borderRadius: '50%',
+                            borderRadius: 'var(--radius-full)',
                             background: isSel ? 'var(--text)' : 'transparent',
                             border: isSel ? '1px solid var(--text)' : '1.5px solid var(--border2)',
                             display: 'grid',
@@ -1282,7 +1282,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                     style={{
                       background: 'var(--surface2)',
                       border: '1px solid var(--border)',
-                      borderRadius: 14,
+                      borderRadius: 'var(--radius-md)',
                       padding: '12px 14px',
                       display: 'flex',
                       flexDirection: 'column',
@@ -1292,7 +1292,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   >
                     {/* Payment status */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)' }}>
+                      <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)' }}>
                         Payment status:
                       </label>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -1304,9 +1304,9 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                           }}
                           style={{
                             padding: '7px 10px',
-                            fontSize: 12,
+                            fontSize: 'var(--fs-xs)',
                             fontWeight: paymentMode === 'paid' ? 700 : 500,
-                            borderRadius: 8,
+                            borderRadius: 'var(--radius-sm)',
                             border: paymentMode === 'paid' ? '1px solid var(--text)' : '1px solid var(--border)',
                             background: paymentMode === 'paid' ? 'var(--text)' : 'var(--surface)',
                             color: paymentMode === 'paid' ? 'var(--bg)' : 'var(--text)',
@@ -1326,9 +1326,9 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                           }}
                           style={{
                             padding: '7px 10px',
-                            fontSize: 12,
+                            fontSize: 'var(--fs-xs)',
                             fontWeight: paymentMode === 'debt' ? 700 : 500,
-                            borderRadius: 8,
+                            borderRadius: 'var(--radius-sm)',
                             border: paymentMode === 'debt' ? '1px solid var(--text)' : '1px solid var(--border)',
                             background: paymentMode === 'debt' ? 'var(--text)' : 'var(--surface)',
                             color: paymentMode === 'debt' ? 'var(--bg)' : 'var(--text)',
@@ -1344,7 +1344,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                     </div>
 
                     {/* Concise 1-Line Contextual Note */}
-                    <div style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.4, paddingTop: 2 }}>
+                    <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-2)', lineHeight: 1.4, paddingTop: 2 }}>
                       {paymentMode === 'debt' ? (
                         <span>⚡ Each log adds <strong>{currSym}{amount || '0'}</strong> to unpaid balance with <strong>{cName}</strong>.</span>
                       ) : (
@@ -1376,12 +1376,12 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 style={{
                   flex: 1,
                   height: 42,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
                   color: 'var(--text)',
                   fontWeight: 700,
-                  fontSize: 13.5,
+                  fontSize: 'var(--fs-sm)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1399,12 +1399,12 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 style={{
                   flex: 1.3,
                   height: 42,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--text)',
                   border: '1px solid var(--text)',
                   color: 'var(--bg)',
                   fontWeight: 750,
-                  fontSize: 13.5,
+                  fontSize: 'var(--fs-sm)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1434,7 +1434,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   style={{
                     width: 34,
                     height: 34,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     display: 'flex',
@@ -1450,7 +1450,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   <ArrowLeft size={17} strokeWidth={2.2} />
                 </button>
                 <div>
-                  <span style={{ fontSize: 16.5, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                  <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                     Schedule & Dates
                   </span>
                 </div>
@@ -1464,7 +1464,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 style={{
                   width: 34,
                   height: 34,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1492,7 +1492,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
             >
               {/* Cycle / Frequency Selector */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)' }}>
+                <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)' }}>
                   {isSubscription ? 'Select Billing Cycle' : 'Select Frequency'}
                 </label>
 
@@ -1511,7 +1511,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                           onClick={() => handleSubPresetChange(item.key as SubPreset)}
                           style={{
                             padding: '11px 12px',
-                            borderRadius: 12,
+                            borderRadius: 'var(--radius-md)',
                             background: isSel ? 'var(--text)' : 'var(--surface2)',
                             color: isSel ? 'var(--bg)' : 'var(--text)',
                             border: isSel ? '1px solid var(--text)' : '1px solid var(--border)',
@@ -1521,7 +1521,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                             alignItems: 'center',
                             justifyContent: 'center',
                             fontWeight: isSel ? 700 : 550,
-                            fontSize: 13,
+                            fontSize: 'var(--fs-sm)',
                             textAlign: 'center',
                           }}
                         >
@@ -1545,7 +1545,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                           onClick={() => setCustomFrequency(item.key as FrequencyType)}
                           style={{
                             padding: '11px 12px',
-                            borderRadius: 12,
+                            borderRadius: 'var(--radius-md)',
                             background: isSel ? 'var(--text)' : 'var(--surface2)',
                             color: isSel ? 'var(--bg)' : 'var(--text)',
                             border: isSel ? '1px solid var(--text)' : '1px solid var(--border)',
@@ -1555,7 +1555,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                             alignItems: 'center',
                             justifyContent: 'center',
                             fontWeight: isSel ? 700 : 550,
-                            fontSize: 13,
+                            fontSize: 'var(--fs-sm)',
                             textAlign: 'center',
                           }}
                         >
@@ -1574,7 +1574,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   style={{
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: 12,
+                    borderRadius: 'var(--radius-md)',
                     padding: '8px 12px',
                     display: 'flex',
                     alignItems: 'center',
@@ -1582,7 +1582,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                     gap: 8,
                   }}
                 >
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>
+                  <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text)' }}>
                     Repeat every:
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1596,8 +1596,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                       style={{
                         width: 48,
                         height: 32,
-                        borderRadius: 8,
-                        fontSize: 13,
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: 'var(--fs-sm)',
                         fontWeight: 700,
                         textAlign: 'center',
                         padding: '0 4px',
@@ -1606,7 +1606,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                         color: 'var(--text)',
                       }}
                     />
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>
+                    <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-2)' }}>
                       {(isSubscription && subPreset === 'custom_days') || (!isSubscription && customFrequency === 'custom_days')
                         ? 'Day(s)'
                         : 'Month(s)'}
@@ -1617,7 +1617,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
 
               {/* Start Date */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)' }}>
+                <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)' }}>
                   Start Date
                 </label>
                 <input
@@ -1628,8 +1628,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   style={{
                     width: '100%',
                     height: 42,
-                    borderRadius: 12,
-                    fontSize: 13.5,
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 500,
                     padding: '0 14px',
                     border: '1px solid var(--border)',
@@ -1644,7 +1644,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
               {isSubscription && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)' }}>
+                    <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-3)' }}>
                       Next Due Date
                     </label>
                     <button
@@ -1658,7 +1658,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                       style={{
                         width: 26,
                         height: 26,
-                        borderRadius: '50%',
+                        borderRadius: 'var(--radius-full)',
                         background: 'var(--surface2)',
                         border: '1px solid var(--border)',
                         color: 'var(--text-2)',
@@ -1684,8 +1684,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                     style={{
                       width: '100%',
                       height: 42,
-                      borderRadius: 12,
-                      fontSize: 13.5,
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 'var(--fs-sm)',
                       fontWeight: 500,
                       padding: '0 14px',
                       border: '1px solid var(--border)',
@@ -1702,7 +1702,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 style={{
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 14,
+                  borderRadius: 'var(--radius-md)',
                   padding: '12px 14px',
                   display: 'flex',
                   alignItems: 'center',
@@ -1713,7 +1713,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   style={{
                     width: 36,
                     height: 36,
-                    borderRadius: 10,
+                    borderRadius: 'var(--radius-sm)',
                     background: 'var(--text)',
                     color: 'var(--bg)',
                     display: 'grid',
@@ -1724,10 +1724,10 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   <Calendar size={16} strokeWidth={2.4} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.1px' }}>
+                  <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.1px' }}>
                     Repeats {getScheduleTitle()}
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-2)', marginTop: 3, lineHeight: 1.45, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-2)', marginTop: 3, lineHeight: 1.45, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {isSubscription ? (
                       <>
                         <div>
@@ -1776,8 +1776,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 style={{
                   flex: 1,
                   height: 44,
-                  borderRadius: 9999,
-                  fontSize: 13.5,
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 650,
                   border: '1px solid var(--border)',
                   background: 'var(--surface2)',
@@ -1799,8 +1799,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 style={{
                   flex: 1.35,
                   height: 44,
-                  borderRadius: 9999,
-                  fontSize: 13.5,
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 700,
                   background: 'var(--text)',
                   border: '1px solid var(--text)',

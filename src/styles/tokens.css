@@ -1,0 +1,300 @@
+/* ==========================================================================
+   Design System Tokens & Typography Scale
+   ========================================================================== */
+
+
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --surface2: #f4f4f6;
+  --surface3: #eaeaee;
+  --card-surface: #ffffff;
+  --card-border: #e5e7eb;
+  --card-hover: #f9fafb;
+  --surface-hover: #f9fafb;
+  --drawer-bg: #ffffff;
+  --border: #e5e7eb;
+  --border2: #d1d5db;
+  --border-subtle: rgba(229, 231, 235, 0.6);
+  --text: #171717;
+  --text-1: #171717;
+  --text-2: #52525b;
+  --text-3: #71717a;
+  --accent: #18181b;
+  --accent-soft: rgba(24, 24, 27, 0.08);
+  --accent-dark: #09090b;
+  --accent-contrast: #ffffff;
+  --accent-gradient: linear-gradient(135deg, #27272a 0%, #18181b 50%, #09090b 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(24, 24, 27, 0.08) 0%, rgba(255, 255, 255, 0) 100%);
+  --accent-surface-gradient: linear-gradient(135deg, rgba(24, 24, 27, 0.08) 0%, rgba(255, 255, 255, 0.92) 100%);
+  --accent-border-soft: rgba(24, 24, 27, 0.10);
+  --credit: #2e7d32;
+  --credit-gradient: linear-gradient(135deg, #388e3c 0%, #1b5e20 100%);
+  --credit-bg: rgba(46, 125, 50, 0.08);
+  --credit-border: rgba(46, 125, 50, 0.22);
+  --credit-surface-gradient: linear-gradient(135deg, rgba(46,125,50,0.07) 0%, rgba(255,255,255,0.95) 100%);
+  --debit: #d32f2f;
+  --debit-gradient: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
+  --debit-bg: rgba(211, 47, 47, 0.08);
+  --debit-border: rgba(211, 47, 47, 0.22);
+  --debit-surface-gradient: linear-gradient(135deg, rgba(211,47,47,0.07) 0%, rgba(255,255,255,0.95) 100%);
+  --amber: #d97706;
+  --amber-bg: rgba(217, 119, 6, 0.08);
+  --amber-border: rgba(217, 119, 6, 0.22);
+  --amber-surface-gradient: linear-gradient(135deg, rgba(217,119,6,0.07) 0%, rgba(255,255,255,0.95) 100%);
+  --info: #0288d1;
+  /* Typography Scale */
+  --fs-hero: 32px;
+  --fs-hero-sm: 28px;
+  --fs-xl: 20px;
+  --fs-lg: 16px;
+  --fs-md: 15px;
+  --fs-base: 14px;
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+  --fs-caption: 11px;
+
+  /* Font Weights */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-heavy: 800;
+
+  /* Corner Radii System */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
+  --radius: 12px;
+  --card-radius: 20px;
+
+  /* Spacing Grid (4/8pt) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --shadow: 0 2px 8px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.02);
+  --shadow-lg: 0 12px 36px rgba(0,0,0,.08);
+  --sidebar-w: 240px;
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-color-scheme="dark"],
+[data-theme="dark"] {
+  --bg: #0a0a0c;
+  --drawer-bg: #121212;
+  --surface: #141416;
+  --surface2: #18181b;
+  --surface3: #222328;
+  --card-surface: #141416;
+  --card-border: rgba(38, 38, 38, 0.8);
+  --card-hover: #18181b;
+  --surface-hover: #18181b;
+  --border: rgba(38, 38, 38, 0.8);
+  --border2: rgba(60, 60, 65, 0.6);
+  --border-subtle: rgba(45, 45, 50, 0.5);
+  --text: #ffffff;
+  --text-1: #ffffff;
+  --text-2: #d4d4d8;
+  --text-3: #71717a;
+  --accent: #f4f4f5;
+  --accent-soft: rgba(244, 244, 245, 0.14);
+  --accent-dark: #d4d4d8;
+  --accent-contrast: #09090b;
+  --accent-gradient: linear-gradient(135deg, #ffffff 0%, #f4f4f5 50%, #d4d4d8 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(244, 244, 245, 0.14) 0%, rgba(24, 24, 27, 0) 100%);
+  --accent-surface-gradient: linear-gradient(135deg, rgba(244, 244, 245, 0.14) 0%, rgba(24, 24, 27, 0.85) 100%);
+  --accent-border-soft: rgba(244, 244, 245, 0.14);
+  --credit: #34d399;
+  --credit-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --credit-bg: rgba(52, 211, 153, 0.12);
+  --credit-border: rgba(52, 211, 153, 0.28);
+  --credit-surface-gradient: linear-gradient(135deg, rgba(52,211,153,0.14) 0%, rgba(20,21,25,0.92) 100%);
+  --debit: #f87171;
+  --debit-gradient: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  --debit-bg: rgba(248, 113, 113, 0.12);
+  --debit-border: rgba(248, 113, 113, 0.28);
+  --debit-surface-gradient: linear-gradient(135deg, rgba(248,113,113,0.14) 0%, rgba(20,21,25,0.92) 100%);
+  --amber: #fbbf24;
+  --amber-bg: rgba(251, 191, 36, 0.12);
+  --amber-border: rgba(251, 191, 36, 0.28);
+  --amber-surface-gradient: linear-gradient(135deg, rgba(251,191,36,0.14) 0%, rgba(20,21,25,0.92) 100%);
+  --info: #29b6f6;
+  --shadow: 0 2px 10px rgba(0,0,0,.6);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.8);
+}
+
+[data-color-scheme="light"],
+[data-theme="light"] {
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --surface2: #f4f4f6;
+  --surface3: #eaeaee;
+  --card-surface: #ffffff;
+  --card-border: #e5e7eb;
+  --card-hover: #f9fafb;
+  --surface-hover: #f9fafb;
+  --drawer-bg: #ffffff;
+  --border: #e5e7eb;
+  --border2: #d1d5db;
+  --border-subtle: rgba(229, 231, 235, 0.6);
+  --text: #171717;
+  --text-1: #171717;
+  --text-2: #52525b;
+  --text-3: #71717a;
+  --accent: #18181b;
+  --accent-soft: rgba(24, 24, 27, 0.08);
+  --accent-dark: #09090b;
+  --accent-contrast: #ffffff;
+  --accent-gradient: linear-gradient(135deg, #27272a 0%, #18181b 50%, #09090b 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(24, 24, 27, 0.08) 0%, rgba(255, 255, 255, 0) 100%);
+  --accent-surface-gradient: linear-gradient(135deg, rgba(24, 24, 27, 0.08) 0%, rgba(255, 255, 255, 0.92) 100%);
+  --accent-border-soft: rgba(24, 24, 27, 0.10);
+  --credit: #2e7d32;
+  --credit-gradient: linear-gradient(135deg, #388e3c 0%, #1b5e20 100%);
+  --credit-bg: rgba(46, 125, 50, 0.08);
+  --credit-border: rgba(46, 125, 50, 0.22);
+  --credit-surface-gradient: linear-gradient(135deg, rgba(46,125,50,0.07) 0%, rgba(255,255,255,0.95) 100%);
+  --debit: #d32f2f;
+  --debit-gradient: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
+  --debit-bg: rgba(211, 47, 47, 0.08);
+  --debit-border: rgba(211, 47, 47, 0.22);
+  --debit-surface-gradient: linear-gradient(135deg, rgba(211,47,47,0.07) 0%, rgba(255,255,255,0.95) 100%);
+  --amber: #d97706;
+  --amber-bg: rgba(217, 119, 6, 0.08);
+  --amber-border: rgba(217, 119, 6, 0.22);
+  --amber-surface-gradient: linear-gradient(135deg, rgba(217,119,6,0.07) 0%, rgba(255,255,255,0.95) 100%);
+  --info: #0288d1;
+  --shadow: 0 2px 8px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.02);
+  --shadow-lg: 0 12px 36px rgba(0,0,0,.08);
+}
+
+/* ==========================================================================
+   Design System Core Utilities & No-Split System
+   ========================================================================== */
+
+/* Typography Scale Classes */
+.text-hero {
+  font-size: var(--fs-hero) !important;
+  font-weight: var(--fw-heavy) !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.2 !important;
+}
+
+.text-hero-sm {
+  font-size: var(--fs-hero-sm) !important;
+  font-weight: var(--fw-heavy) !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.25 !important;
+}
+
+.text-title-xl {
+  font-size: var(--fs-xl) !important;
+  font-weight: var(--fw-bold) !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.3 !important;
+}
+
+.text-title-lg {
+  font-size: var(--fs-lg) !important;
+  font-weight: var(--fw-bold) !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.35 !important;
+}
+
+.text-body-md {
+  font-size: var(--fs-md) !important;
+  font-weight: var(--fw-semibold) !important;
+  line-height: 1.4 !important;
+}
+
+.text-body {
+  font-size: var(--fs-base) !important;
+  font-weight: var(--fw-medium) !important;
+  line-height: 1.45 !important;
+}
+
+.text-body-sm {
+  font-size: var(--fs-sm) !important;
+  font-weight: var(--fw-medium) !important;
+  line-height: 1.4 !important;
+}
+
+.text-caption {
+  font-size: var(--fs-caption) !important;
+  font-weight: var(--fw-bold) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--text-3) !important;
+  line-height: 1.2 !important;
+}
+
+/* Surfaces & Tiles */
+.card-base {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+
+.card-subtle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: var(--transition);
+}
+
+.tile-row {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  transition: transform 150ms ease, background-color 200ms ease, border-color 200ms ease;
+}
+
+.tile-row:hover {
+  background: var(--surface3);
+  border-color: var(--border2);
+}
+
+.tile-row:active {
+  transform: scale(0.98);
+}
+
+.pill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  line-height: 1.2;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-2);
+  transition: all 0.2s ease;
+}
+
+/* Rule 1: No Split Lines / Divider Lines */
+hr, .divider, .split-line, .split-border {
+  display: none !important;
+  border: none !important;
+  height: 0 !important;
+}
+
+.no-split-border {
+  border-top: none !important;
+  border-bottom: none !important;
+}

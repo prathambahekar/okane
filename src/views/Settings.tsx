@@ -1325,13 +1325,13 @@ export default function Settings({
       {/* When no section matches search */}
       {!showGeneralSection && !showDataSection && !showSystemSection ? (
         <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-3)' }}>
-          <p style={{ fontSize: 16, fontWeight: 700, margin: '0 0 6px 0', color: 'var(--text)' }}>No matching settings</p>
-          <p style={{ fontSize: 13, margin: '0 0 16px 0' }}>No settings matched "{searchQuery}"</p>
+          <p style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--text)' }}>No matching settings</p>
+          <p style={{ fontSize: 'var(--fs-sm)', margin: '0 0 16px 0' }}>No settings matched "{searchQuery}"</p>
           <button
             type="button"
             className="btn btn-secondary"
             onClick={() => onSearchChange?.('')}
-            style={{ borderRadius: 9999, fontSize: 13, padding: '7px 20px' }}
+            style={{ borderRadius: 'var(--radius-full)', fontSize: 'var(--fs-sm)', padding: '7px 20px' }}
           >
             Clear Search
           </button>
@@ -1435,7 +1435,7 @@ export default function Settings({
                         <Palette size={20} />
                       </div>
                       <div>
-                        <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                        <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                           Appearance & Theme
                         </h3>
                         <p className="drawer-header-sub">
@@ -1519,7 +1519,7 @@ export default function Settings({
                         <ArrowLeft size={17} />
                       </button>
                       <div>
-                        <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                        <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                           More Appearance
                         </h3>
                         <p className="drawer-header-sub">
@@ -1609,7 +1609,7 @@ export default function Settings({
                         alignItems: 'center',
                         gap: 4,
                         padding: 3,
-                        borderRadius: 10,
+                        borderRadius: 'var(--radius-md)',
                         background: 'var(--surface)',
                         border: '1px solid var(--border)',
                         flexShrink: 0,
@@ -1624,11 +1624,11 @@ export default function Settings({
                         }}
                         style={{
                           padding: '5px 10px',
-                          borderRadius: 7,
+                          borderRadius: 'var(--radius-sm)',
                           border: 'none',
                           background: (settings.searchLocation ?? 'topbar') === 'floating' ? 'var(--accent)' : 'transparent',
                           color: (settings.searchLocation ?? 'topbar') === 'floating' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-                          fontSize: 12,
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: (settings.searchLocation ?? 'topbar') === 'floating' ? 700 : 500,
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
@@ -1645,11 +1645,11 @@ export default function Settings({
                         }}
                         style={{
                           padding: '5px 10px',
-                          borderRadius: 7,
+                          borderRadius: 'var(--radius-sm)',
                           border: 'none',
                           background: (settings.searchLocation ?? 'topbar') === 'topbar' ? 'var(--accent)' : 'transparent',
                           color: (settings.searchLocation ?? 'topbar') === 'topbar' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
-                          fontSize: 12,
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: (settings.searchLocation ?? 'topbar') === 'topbar' ? 700 : 500,
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
@@ -1701,7 +1701,7 @@ export default function Settings({
                     <Zap size={20} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                    <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                       Performance & Animations
                     </h3>
                     <p className="drawer-header-sub">
@@ -1800,10 +1800,10 @@ export default function Settings({
               </div>
 
               <div style={{
-                fontSize: 12,
+                fontSize: 'var(--fs-xs)',
                 color: 'var(--text-3)',
                 padding: '10px 12px',
-                borderRadius: 10,
+                borderRadius: 'var(--radius-md)',
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
                 lineHeight: 1.4
@@ -1829,7 +1829,7 @@ export default function Settings({
                     <Sliders size={20} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                    <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                       App Preferences
                     </h3>
                     <p className="drawer-header-sub">
@@ -1850,7 +1850,7 @@ export default function Settings({
 
               {/* Section 1: Financial & Transaction Defaults */}
               <div style={{
-                fontSize: 11,
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 700,
                 color: 'var(--text-3)',
                 textTransform: 'uppercase',
@@ -1876,7 +1876,7 @@ export default function Settings({
                         style={{ cursor: 'pointer' }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                          <div className="drawer-card-icon" style={{ fontWeight: 700, fontSize: 16 }}>
+                          <div className="drawer-card-icon" style={{ fontWeight: 700, fontSize: 'var(--fs-lg)' }}>
                             {currentCurrency.symbol}
                           </div>
                           <div className="drawer-card-info">
@@ -1890,7 +1890,7 @@ export default function Settings({
                         </div>
 
                         <div className="drawer-select-pill">
-                          <span style={{ color: 'var(--text)', fontWeight: 600, fontSize: 13 }}>{currentCurrency.symbol}</span>
+                          <span style={{ color: 'var(--text)', fontWeight: 600, fontSize: 'var(--fs-sm)' }}>{currentCurrency.symbol}</span>
                           <span style={{ color: 'var(--text)', letterSpacing: '0.01em', fontWeight: 600 }}>{currentCurrency.code}</span>
                           <ChevronDown size={13} style={{ color: 'var(--text-3)', marginLeft: 1 }} />
                         </div>
@@ -2002,7 +2002,7 @@ export default function Settings({
 
                 {/* Section 2: Input Behavior */}
                 <div style={{
-                  fontSize: 11,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 700,
                   color: 'var(--text-3)',
                   textTransform: 'uppercase',
@@ -2081,7 +2081,7 @@ export default function Settings({
                         <Tag size={20} />
                       </div>
                       <div>
-                        <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                        <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                           Manage Category Tags
                         </h3>
                         <p className="drawer-header-sub">
@@ -2133,7 +2133,7 @@ export default function Settings({
                                 justifyContent: 'center',
                                 width: 22,
                                 height: 22,
-                                borderRadius: 6,
+                                borderRadius: 'var(--radius-xs)',
                                 background: bgTint,
                                 color: c.color,
                                 flexShrink: 0,
@@ -2179,7 +2179,7 @@ export default function Settings({
                           textAlign: 'left',
                           background: 'var(--surface2)',
                           border: '1px solid var(--border)',
-                          borderRadius: 14,
+                          borderRadius: 'var(--radius-lg)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
@@ -2204,10 +2204,10 @@ export default function Settings({
                             <Plus size={19} strokeWidth={2.2} />
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--text)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
                               Add New Category
                             </div>
-                            <div style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-3)', lineHeight: 1.35, marginTop: 2 }}>
+                            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 400, color: 'var(--text-3)', lineHeight: 1.35, marginTop: 2 }}>
                               Create custom category tag, icon & color
                             </div>
                           </div>
@@ -2234,7 +2234,7 @@ export default function Settings({
                         <ArrowLeft size={17} />
                       </button>
                       <div>
-                        <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                        <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                           Edit Category
                         </h3>
                         <p className="drawer-header-sub">
@@ -2260,7 +2260,7 @@ export default function Settings({
                   {/* Scrollable Form Body */}
                   <div className="sheet-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16, border: 'none' }}>
                     <div className="form-group" style={{ marginBottom: 0, border: 'none' }}>
-                      <label className="form-label" style={{ fontSize: 11.5 }}>Category Name *</label>
+                      <label className="form-label" style={{ fontSize: 'var(--fs-caption)' }}>Category Name *</label>
                       <input
                         ref={editCatInputRef}
                         className="form-input"
@@ -2272,12 +2272,12 @@ export default function Settings({
                     </div>
 
                     <div className="form-group" style={{ marginBottom: 0, border: 'none' }}>
-                      <label className="form-label" style={{ fontSize: 11.5 }}>Color Tag</label>
+                      <label className="form-label" style={{ fontSize: 'var(--fs-caption)' }}>Color Tag</label>
                       <ColorPickerSection color={editColor} onChangeColor={setEditColor} />
                     </div>
 
                     <div className="form-group" style={{ marginBottom: 0, border: 'none' }}>
-                      <label className="form-label" style={{ fontSize: 11.5 }}>Category Icon</label>
+                      <label className="form-label" style={{ fontSize: 'var(--fs-caption)' }}>Category Icon</label>
                       <div className="category-icon-picker">
                         {AVAILABLE_ICONS.map(({ id, label, Icon }) => {
                           const isSelected = editIcon === id;
@@ -2314,11 +2314,11 @@ export default function Settings({
                         flex: 1,
                         height: 44,
                         padding: '0 16px',
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         background: 'var(--surface2)',
                         border: '1px solid var(--border)',
                         color: 'var(--text)',
-                        fontSize: 13.5,
+                        fontSize: 'var(--fs-sm)',
                         fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
@@ -2340,11 +2340,11 @@ export default function Settings({
                         flex: 1.6,
                         height: 44,
                         padding: '0 18px',
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         background: 'var(--text)',
                         color: 'var(--surface)',
                         border: 'none',
-                        fontSize: 13.5,
+                        fontSize: 'var(--fs-sm)',
                         fontWeight: 700,
                         display: 'flex',
                         alignItems: 'center',
@@ -2374,7 +2374,7 @@ export default function Settings({
                         <ArrowLeft size={17} />
                       </button>
                       <div>
-                        <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                        <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                           Add New Category
                         </h3>
                         <p className="drawer-header-sub">
@@ -2399,7 +2399,7 @@ export default function Settings({
                   {/* Scrollable Form Body without splitting lines */}
                   <div className="sheet-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16, border: 'none' }}>
                     <div className="form-group" style={{ marginBottom: 0, border: 'none' }}>
-                      <label className="form-label" style={{ fontSize: 11.5 }}>Category Name</label>
+                      <label className="form-label" style={{ fontSize: 'var(--fs-caption)' }}>Category Name</label>
                       <input
                         ref={newCatInputRef}
                         className="form-input"
@@ -2411,12 +2411,12 @@ export default function Settings({
                     </div>
 
                     <div className="form-group" style={{ marginBottom: 0, border: 'none' }}>
-                      <label className="form-label" style={{ fontSize: 11.5 }}>Color Tag</label>
+                      <label className="form-label" style={{ fontSize: 'var(--fs-caption)' }}>Color Tag</label>
                       <ColorPickerSection color={newCatColor} onChangeColor={setNewCatColor} />
                     </div>
 
                     <div className="form-group" style={{ marginBottom: 0, border: 'none' }}>
-                      <label className="form-label" style={{ fontSize: 11.5 }}>Category Icon</label>
+                      <label className="form-label" style={{ fontSize: 'var(--fs-caption)' }}>Category Icon</label>
                       <div className="category-icon-picker">
                         {AVAILABLE_ICONS.map(({ id, label, Icon }) => {
                           const isSelected = newCatIcon === id;
@@ -2457,11 +2457,11 @@ export default function Settings({
                         flex: 1,
                         height: 44,
                         padding: '0 16px',
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         background: 'var(--surface2)',
                         border: '1px solid var(--border)',
                         color: 'var(--text)',
-                        fontSize: 13.5,
+                        fontSize: 'var(--fs-sm)',
                         fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
@@ -2481,11 +2481,11 @@ export default function Settings({
                         flex: 1.6,
                         height: 44,
                         padding: '0 18px',
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         background: 'var(--text)',
                         color: 'var(--surface)',
                         border: 'none',
-                        fontSize: 13.5,
+                        fontSize: 'var(--fs-sm)',
                         fontWeight: 700,
                         display: 'flex',
                         alignItems: 'center',
@@ -2528,7 +2528,7 @@ export default function Settings({
                     <Coins size={20} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                    <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                       Select Currency
                     </h3>
                     <p className="drawer-header-sub">
@@ -2572,8 +2572,8 @@ export default function Settings({
                     paddingRight: currencySearchQuery ? 36 : 12,
                     minHeight: 40,
                     height: 40,
-                    borderRadius: 12,
-                    fontSize: 13.5
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: 'var(--fs-sm)'
                   }}
                 />
                 {currencySearchQuery && (
@@ -2590,7 +2590,7 @@ export default function Settings({
                       transform: 'translateY(-50%)',
                       background: 'var(--surface3)',
                       border: 'none',
-                      borderRadius: '50%',
+                      borderRadius: 'var(--radius-full)',
                       width: 20,
                       height: 20,
                       display: 'grid',
@@ -2609,7 +2609,7 @@ export default function Settings({
               {!currencySearchQuery && (
                 <div style={{ marginBottom: 12 }}>
                   <div style={{
-                    fontSize: 10.5,
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 700,
                     color: 'var(--text-3)',
                     textTransform: 'uppercase',
@@ -2641,8 +2641,8 @@ export default function Settings({
                             alignItems: 'center',
                             gap: 5,
                             padding: '6px 12px',
-                            borderRadius: 10,
-                            fontSize: 12,
+                            borderRadius: 'var(--radius-md)',
+                            fontSize: 'var(--fs-xs)',
                             fontWeight: isSelected ? 700 : 500,
                             background: isSelected ? 'var(--accent)' : 'var(--surface2)',
                             border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
@@ -2668,11 +2668,11 @@ export default function Settings({
                     textAlign: 'center',
                     padding: '36px 16px',
                     color: 'var(--text-3)',
-                    fontSize: 13
+                    fontSize: 'var(--fs-sm)'
                   }}>
                     <Coins size={32} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
                     <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-2)' }}>No currencies found</p>
-                    <p style={{ margin: '4px 0 0 0', fontSize: 12 }}>Try searching with a different name, country or code</p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: 'var(--fs-xs)' }}>Try searching with a different name, country or code</p>
                   </div>
                 ) : (
                   filteredCurrencies.map((c) => {
@@ -2700,7 +2700,7 @@ export default function Settings({
                               background: isSelected ? 'var(--accent)' : undefined,
                               color: isSelected ? 'var(--accent-contrast, #fff)' : 'var(--accent)',
                               border: isSelected ? 'none' : undefined,
-                              fontSize: 15,
+                              fontSize: 'var(--fs-md)',
                               fontWeight: 750,
                             }}
                           >
@@ -2711,7 +2711,7 @@ export default function Settings({
                               <span className="drawer-card-title">
                                 {c.code}
                               </span>
-                              <span style={{ fontSize: 13, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 — {c.name}
                               </span>
                             </div>
@@ -2726,7 +2726,7 @@ export default function Settings({
                             <div style={{
                               width: 24,
                               height: 24,
-                              borderRadius: '50%',
+                              borderRadius: 'var(--radius-full)',
                               background: 'var(--accent)',
                               color: 'var(--accent-contrast, #fff)',
                               display: 'grid',
@@ -2736,12 +2736,12 @@ export default function Settings({
                             </div>
                           ) : (
                             <span style={{
-                              fontSize: 12,
+                              fontSize: 'var(--fs-xs)',
                               fontWeight: 600,
                               color: 'var(--text-3)',
                               background: 'var(--surface)',
                               padding: '4px 8px',
-                              borderRadius: 6,
+                              borderRadius: 'var(--radius-xs)',
                               border: '1px solid var(--border)'
                             }}>
                               {c.symbol}
@@ -3011,7 +3011,7 @@ export default function Settings({
 
                 {/* Title */}
                 <div>
-                  <label style={{ marginBottom: 5, display: 'block', fontSize: 12, fontWeight: 650, color: 'var(--text-2)' }}>
+                  <label style={{ marginBottom: 5, display: 'block', fontSize: 'var(--fs-xs)', fontWeight: 650, color: 'var(--text-2)' }}>
                     Title
                   </label>
                   <input
@@ -3026,7 +3026,7 @@ export default function Settings({
 
                 {/* Description */}
                 <div>
-                  <label style={{ marginBottom: 5, display: 'block', fontSize: 12, fontWeight: 650, color: 'var(--text-2)' }}>
+                  <label style={{ marginBottom: 5, display: 'block', fontSize: 'var(--fs-xs)', fontWeight: 650, color: 'var(--text-2)' }}>
                     Description
                   </label>
                   <textarea
@@ -3047,14 +3047,14 @@ export default function Settings({
                   gap: 12,
                   background: 'var(--surface2)',
                   padding: '10px 14px',
-                  borderRadius: 14,
+                  borderRadius: 'var(--radius-lg)',
                   border: '1px solid var(--border)'
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                    <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 650, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                       Include app & device specs
                     </span>
-                    <span style={{ fontSize: 11.5, color: 'var(--text-3)', fontWeight: 500 }}>
+                    <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500 }}>
                       App version (<strong style={{ color: 'var(--text-2)', fontWeight: 600 }}>v{currentAppVersion}</strong>) & system details
                     </span>
                   </div>
@@ -3068,7 +3068,7 @@ export default function Settings({
 
                 {/* Success Notification */}
                 {feedbackStatus === 'success' && createdIssueInfo && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '12px 14px', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: 14, color: '#22c55e', fontSize: 12.5, fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '12px 14px', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: 'var(--radius-lg)', color: '#22c55e', fontSize: 'var(--fs-sm)', fontWeight: 600 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <CheckCircle2 size={18} />
                       <span>Issue #{createdIssueInfo.number} created!</span>
@@ -3077,7 +3077,7 @@ export default function Settings({
                       href={createdIssueInfo.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: '#22c55e', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}
+                      style={{ color: '#22c55e', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-xs)' }}
                     >
                       <span>View Issue</span>
                       <ExternalLink size={13} />
@@ -3087,12 +3087,12 @@ export default function Settings({
 
                 {/* Error Notification */}
                 {feedbackStatus === 'error' && errorMessage && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 14, color: '#ef4444', fontSize: 12.5 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 'var(--radius-lg)', color: '#ef4444', fontSize: 'var(--fs-sm)' }}>
                     <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <X size={16} />
                       <span>Unable to create GitHub issue automatically</span>
                     </div>
-                    <div style={{ fontSize: 12, opacity: 0.9, lineHeight: 1.4 }}>
+                    <div style={{ fontSize: 'var(--fs-xs)', opacity: 0.9, lineHeight: 1.4 }}>
                       {errorMessage}
                     </div>
                     {feedbackTitle.trim() && (
@@ -3101,7 +3101,7 @@ export default function Settings({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn btn-secondary btn-sm"
-                        style={{ marginTop: 4, alignSelf: 'flex-start', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none', borderRadius: 9999 }}
+                        style={{ marginTop: 4, alignSelf: 'flex-start', fontSize: 'var(--fs-xs)', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none', borderRadius: 'var(--radius-full)' }}
                       >
                         <ExternalLink size={14} /> Open Form on GitHub Web
                       </a>
@@ -3171,7 +3171,7 @@ export default function Settings({
                     <Sliders size={20} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                    <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                       Advanced Features
                     </h3>
                     <p className="drawer-header-sub">
@@ -3686,14 +3686,14 @@ export default function Settings({
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <h3 style={{ fontSize: 17.5, fontWeight: 750, margin: 0, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+                      <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 750, margin: 0, color: 'var(--text)', letterSpacing: '-0.02em' }}>
                         Okane Info
                       </h3>
                       <span style={{
-                        fontSize: 11,
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: 700,
                         padding: '2px 8px',
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         background: 'var(--accent-soft)',
                         color: 'var(--accent)',
                         border: '1px solid var(--accent-border-soft)'
@@ -3701,7 +3701,7 @@ export default function Settings({
                         v{currentAppVersion}
                       </span>
                     </div>
-                    <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-3)', fontWeight: 500 }}>
+                    <p style={{ margin: '2px 0 0', fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontWeight: 500 }}>
                       System info & updates
                     </p>
                   </div>
@@ -3717,7 +3717,7 @@ export default function Settings({
                     style={{
                       width: 34,
                       height: 34,
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       background: 'var(--surface2)',
                       border: '1px solid var(--border)',
                       display: 'grid',
@@ -3739,7 +3739,7 @@ export default function Settings({
                     style={{
                       width: 34,
                       height: 34,
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       background: 'var(--surface2)',
                       border: '1px solid var(--border)',
                       display: 'grid',
@@ -3769,7 +3769,7 @@ export default function Settings({
                       <div className="drawer-card-icon" style={{
                         width: 38,
                         height: 38,
-                        borderRadius: 10,
+                        borderRadius: 'var(--radius-md)',
                         background: 'rgba(59, 130, 246, 0.12)',
                         border: '1px solid rgba(59, 130, 246, 0.25)',
                         color: '#3b82f6'
@@ -3779,11 +3779,11 @@ export default function Settings({
                       <div className="drawer-card-info">
                         <div className="drawer-card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span>v{availableUpdate.version} Available</span>
-                          <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 99, background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', fontWeight: 700 }}>
+                          <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', fontWeight: 700 }}>
                             NEW
                           </span>
                         </div>
-                        <div className="drawer-card-sub" style={{ fontSize: 12 }}>
+                        <div className="drawer-card-sub" style={{ fontSize: 'var(--fs-xs)' }}>
                           Build #{availableUpdate.buildNumber} • {availableUpdate.releaseDate}
                         </div>
                       </div>
@@ -3793,7 +3793,7 @@ export default function Settings({
                         type="button"
                         className="btn btn-primary"
                         onClick={() => installUpdate()}
-                        style={{ gap: 6, padding: '8px 16px', borderRadius: 10, fontSize: 12.5, fontWeight: 650, flexShrink: 0 }}
+                        style={{ gap: 6, padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: 'var(--fs-sm)', fontWeight: 650, flexShrink: 0 }}
                         title="Download Update"
                       >
                         <Download size={14} />
@@ -4436,7 +4436,7 @@ export default function Settings({
                   <ShieldCheck size={20} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                  <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                     Security & Privacy
                   </h3>
                   <p className="drawer-header-sub">

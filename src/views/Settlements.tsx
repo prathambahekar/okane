@@ -354,7 +354,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                   right: -2,
                   minWidth: 16,
                   height: 16,
-                  borderRadius: 999,
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--text)',
                   color: 'var(--surface)',
                   fontSize: 10,
@@ -380,7 +380,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
           style={{
             marginBottom: 18,
             padding: '14px 16px',
-            borderRadius: 16,
+            borderRadius: 'var(--radius-lg)',
             background: 'var(--surface)',
             border: '1px solid var(--border)',
             boxShadow: '0 1px 4px rgba(0, 0, 0, 0.03)',
@@ -789,11 +789,11 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                         alignItems: 'center',
                         gap: 6,
                         padding: '4px 10px',
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         backgroundColor: typeFilter === 'received' ? 'var(--credit-bg)' : 'var(--debit-bg)',
                         border: `1px solid ${typeFilter === 'received' ? 'var(--credit-border, rgba(74,222,128,0.3))' : 'var(--debit-border, rgba(248,113,113,0.3))'}`,
                         color: typeFilter === 'received' ? 'var(--credit)' : 'var(--debit)',
-                        fontSize: 12.5,
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: 600,
                       }}
                     >
@@ -854,11 +854,11 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                       alignItems: 'center',
                       gap: 6,
                       padding: '5px 13px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       background: 'var(--surface2)',
                       border: '1px solid var(--border)',
                       color: 'var(--text-2)',
-                      fontSize: 12.5,
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: 600,
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
@@ -893,7 +893,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
               style={{
                 width: 44,
                 height: 44,
-                borderRadius: 14,
+                borderRadius: 'var(--radius-md)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -904,10 +904,10 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
             >
               <Handshake size={20} strokeWidth={1.8} />
             </div>
-            <div className="empty-state-title" style={{ fontSize: '14px', fontWeight: 650, color: 'var(--text)', marginBottom: 4 }}>
+            <div className="empty-state-title" style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)', marginBottom: 4 }}>
               No settlements yet
             </div>
-            <p className="empty-state-desc" style={{ fontSize: '13px', color: 'var(--text-2)', maxWidth: 300, margin: '0 auto', lineHeight: 1.45 }}>
+            <p className="empty-state-desc" style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)', maxWidth: 300, margin: '0 auto', lineHeight: 1.45 }}>
               When you settle up with friends, detailed settlement records will appear here.
             </p>
           </div>
@@ -917,7 +917,7 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
               style={{
                 width: 44,
                 height: 44,
-                borderRadius: 14,
+                borderRadius: 'var(--radius-md)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -928,10 +928,10 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
             >
               <Filter size={20} strokeWidth={1.8} />
             </div>
-            <div className="empty-state-title" style={{ fontSize: '14px', fontWeight: 650, color: 'var(--text)', marginBottom: 4 }}>
+            <div className="empty-state-title" style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)', marginBottom: 4 }}>
               No matching settlements
             </div>
-            <p className="empty-state-desc" style={{ fontSize: '13px', color: 'var(--text-2)', maxWidth: 300, margin: '0 auto 16px', lineHeight: 1.45 }}>
+            <p className="empty-state-desc" style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)', maxWidth: 300, margin: '0 auto 16px', lineHeight: 1.45 }}>
               Try adjusting your search query or filters.
             </p>
             <button
@@ -944,8 +944,8 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                 justifyContent: 'center',
                 gap: 8,
                 padding: '8px 20px',
-                borderRadius: 12,
-                fontSize: 13,
+                borderRadius: 'var(--radius-md)',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 600,
                 cursor: 'pointer',
               }}

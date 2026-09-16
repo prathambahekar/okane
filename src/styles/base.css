@@ -1,0 +1,331 @@
+/* ==========================================================================
+   Base Resets, Tactile Tap Feedback & Global Keyframes
+   ========================================================================== */
+
+
+/* Okane App Styles */
+
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Tactile Tap Feedback & Micro-Interactions */
+button:not(:disabled),
+[role="button"],
+.btn,
+.btn-icon,
+.memento-card,
+.chip,
+.pill,
+.floating-action-btn,
+.fab-btn {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 150ms ease, background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+
+button:not(:disabled):active,
+[role="button"]:active,
+.btn:active,
+.btn-icon:active,
+.memento-card:active,
+.chip:active,
+.pill:active,
+.floating-action-btn:active,
+.fab-btn:active {
+  transform: scale(0.95);
+}
+
+.btn-primary,
+button[type="submit"] {
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, transform 150ms ease, box-shadow 200ms ease;
+}
+
+.btn-primary:active,
+button[type="submit"]:active {
+  transform: scale(0.97) !important;
+}
+
+/* Horizontal Shake Error Feedback */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-6px);
+  }
+  40%, 80% {
+    transform: translateX(6px);
+  }
+}
+
+.animate-shake {
+  animation: shake 400ms ease-in-out;
+}
+
+/* Okane High-Fidelity Skeleton Loader Theme & Animations */
+@keyframes okane-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.sk-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--surface2) 0%,
+    var(--surface3) 50%,
+    var(--surface2) 100%
+  );
+  background-size: 200% 100%;
+  animation: okane-shimmer 1.7s ease-in-out infinite;
+  display: block;
+  flex-shrink: 0;
+}
+
+[data-color-scheme="dark"] .sk-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 200% 100%;
+}
+
+.no-animations .sk-shimmer {
+  animation: none !important;
+}
+
+/* Hide scrollbars across all browsers for elements with .no-scrollbar or when data-hide-scrollbars is enabled */
+.no-scrollbar::-webkit-scrollbar,
+[data-hide-scrollbars="true"]::-webkit-scrollbar,
+[data-hide-scrollbars="true"] *::-webkit-scrollbar,
+html.hide-scrollbars::-webkit-scrollbar,
+html.hide-scrollbars *::-webkit-scrollbar,
+body.hide-scrollbars::-webkit-scrollbar,
+body.hide-scrollbars *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar,
+[data-hide-scrollbars="true"],
+[data-hide-scrollbars="true"] *,
+html.hide-scrollbars,
+html.hide-scrollbars *,
+body.hide-scrollbars,
+body.hide-scrollbars * {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
+/* Disable all transitions during startup/hydration to prevent initial theme/border flickering */
+.app-preload,
+.app-preload *,
+.app-preload *::before,
+.app-preload *::after {
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  -ms-transition: none !important;
+  transition: none !important;
+  animation-duration: 0s !important;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
+
+/* Allow normal text selection inside input fields and textareas */
+input, textarea, [contenteditable="true"], .selectable-text {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Enable smooth momentum scrolling and hardware layer compositing for WebView */
+.main-content,
+.view-container,
+.drawer-paper,
+.sheet-modal,
+.modal-content,
+.friend-picker-sheet {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+::selection { background: var(--accent-soft); color: var(--accent); }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 99px; }
+
+.search-tabs-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.search-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* Animations */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+
+/* Confirmation dialog */
+.confirm-modal {
+  max-width: 420px;
+  width: 100%;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border2);
+  overflow: hidden;
+  background: var(--surface);
+}
+.confirm-body { padding: 20px 20px 12px; }
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 12px 20px 18px;
+  background: var(--surface);
+  border-top: none;
+}
+
+@media (max-width: 640px) {
+  .modal-backdrop:has(.confirm-modal) {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 16px !important;
+  }
+  .confirm-modal {
+    margin: auto !important;
+    max-height: 90vh !important;
+    border-radius: 16px !important;
+    border-bottom: 1px solid var(--border2) !important;
+    animation: confirmPopMobile 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+}
+
+@keyframes confirmPopMobile {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+
+/* Fast, Hardware-Accelerated Page & Tab Transitions */
+.view-page-animate {
+  animation: viewFadeIn 0.18s ease-out forwards;
+}
+
+@keyframes viewFadeIn {
+  from {
+    opacity: 0.75;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .view-page-animate {
+    animation: viewFadeInMobile 0.1s ease-out forwards;
+    will-change: auto;
+  }
+
+  @keyframes viewFadeInMobile {
+    from { opacity: 0.88; }
+    to { opacity: 1; }
+  }
+}
+
+/* Performance & Animation Toggle Overrides */
+body.no-animations *,
+body.no-animations *::before,
+body.no-animations *::after,
+.no-animations *,
+.no-animations *::before,
+.no-animations *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+.no-animations .view-page-animate,
+.performance-mode .view-page-animate {
+  animation: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+  will-change: auto !important;
+}
+
+.performance-mode *,
+.performance-mode *::before,
+.performance-mode *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* 2-Color Day Alternating Row & Card Styles */
+.data-table tr.date-row-even td,
+.data-table tr.date-row-odd td {
+  border-bottom: none;
+}
+
+.data-table tr.date-row-even {
+  background-color: var(--surface);
+}
+
+.data-table tr.date-row-odd {
+  background-color: var(--surface2);
+}
+
+[data-color-scheme="dark"] .data-table tr.date-row-odd {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.data-table tr.date-row-even:hover td,
+.data-table tr.date-row-odd:hover td {
+  background-color: var(--surface2);
+}
+
+/* Mobile cards 2-color day differentiation */
+.mobile-expense-card.date-card-even {
+  background: var(--surface);
+}
+
+.mobile-expense-card.date-card-odd {
+  background: var(--surface2);
+}
+
+[data-color-scheme="dark"] .mobile-expense-card.date-card-odd {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mobile-expense-card.date-card-first:not(:first-child) {
+  margin-top: 0;
+}
+

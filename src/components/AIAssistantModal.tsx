@@ -27,7 +27,6 @@ import {
   MicOff,
   ArrowUp,
   X,
-  User,
   PlusCircle,
   Users,
   CreditCard,
@@ -42,12 +41,8 @@ import {
   Zap,
   RotateCcw,
   Store,
-  Smartphone,
-  Landmark,
   ArrowDownLeft,
   ArrowUpRight,
-  Wallet,
-  QrCode,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { currencySymbol, resolveCategoryMeta, getAvatarStyle as getAppAvatarStyle } from '../utils';
@@ -56,6 +51,7 @@ import { uid, todayISO } from '../db';
 import type { ExpenseType, ExpenseFlow, Category } from '../types';
 import CategoryIcon, { CategoryBadge } from './CategoryIcon';
 import type { ExpenseInitialData } from './ExpenseModal';
+import { renderWalletIcon } from './WalletIconRenderer';
 import { getFrequentTasks, type FrequentTaskItem } from '../utils/frequentTasks';
 import { showSoftKeyboard } from '../utils/keyboard';
 
@@ -167,89 +163,14 @@ interface ParsedBullet {
   category?: string;
 }
 
-const AVATAR_PALETTES = [
-  { bg: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', text: '#ffffff' },
-  { bg: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', text: '#ffffff' },
-  { bg: 'linear-gradient(135deg, #10b981 0%, #047857 100%)', text: '#ffffff' },
-  { bg: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)', text: '#ffffff' },
-  { bg: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', text: '#ffffff' },
-  { bg: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', text: '#ffffff' },
-  { bg: 'linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)', text: '#ffffff' },
-];
 
-function getAvatarStyle(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const idx = Math.abs(hash) % AVATAR_PALETTES.length;
-  return AVATAR_PALETTES[idx];
-}
-
-function getWalletTheme(name: string) {
-  const lower = name.toLowerCase();
-  if (lower.includes('cash')) {
-    return {
-      icon: <Banknote size={15} strokeWidth={2.2} />,
-      bg: 'rgba(34, 197, 94, 0.14)',
-      border: 'rgba(34, 197, 94, 0.28)',
-      color: '#22c55e',
-    };
-  }
-  if (lower.includes('gpay') || lower.includes('google')) {
-    return {
-      icon: <Smartphone size={15} strokeWidth={2.2} />,
-      bg: 'rgba(59, 130, 246, 0.14)',
-      border: 'rgba(59, 130, 246, 0.28)',
-      color: '#3b82f6',
-    };
-  }
-  if (lower.includes('phonepe') || lower.includes('phone pe')) {
-    return {
-      icon: <Zap size={15} strokeWidth={2.2} />,
-      bg: 'rgba(168, 85, 247, 0.14)',
-      border: 'rgba(168, 85, 247, 0.28)',
-      color: '#a855f7',
-    };
-  }
-  if (lower.includes('paytm')) {
-    return {
-      icon: <QrCode size={15} strokeWidth={2.2} />,
-      bg: 'rgba(6, 182, 212, 0.14)',
-      border: 'rgba(6, 182, 212, 0.28)',
-      color: '#06b6d4',
-    };
-  }
-  if (lower.includes('bank') || lower.includes('sbi') || lower.includes('hdfc') || lower.includes('icici') || lower.includes('axis')) {
-    return {
-      icon: <Landmark size={15} strokeWidth={2.2} />,
-      bg: 'rgba(14, 165, 233, 0.14)',
-      border: 'rgba(14, 165, 233, 0.28)',
-      color: '#0ea5e9',
-    };
-  }
-  if (lower.includes('card') || lower.includes('credit')) {
-    return {
-      icon: <CreditCard size={15} strokeWidth={2.2} />,
-      bg: 'rgba(245, 158, 11, 0.14)',
-      border: 'rgba(245, 158, 11, 0.28)',
-      color: '#f59e0b',
-    };
-  }
-  return {
-    icon: <Wallet size={15} strokeWidth={2.2} />,
-    bg: 'var(--accent-soft)',
-    border: 'rgba(99, 102, 241, 0.28)',
-    color: 'var(--accent)',
-  };
-}
 
 function renderFormattedText(text: string) {
   const parts = text.split(/(\*\*.*?\*\*|₹[\d,.]+|\$[\d,.]+)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <span key={i} style={{ fontWeight: 700, color: 'var(--text)' }}>
+        <span key={i} style={{ fontWeight: 750, color: 'inherit' }}>
           {part.slice(2, -2)}
         </span>
       );
@@ -259,12 +180,14 @@ function renderFormattedText(text: string) {
         <span
           key={i}
           style={{
-            fontWeight: 700,
-            color: 'var(--accent)',
-            backgroundColor: 'var(--accent-soft)',
-            padding: '2px 6px',
+            fontWeight: 750,
+            color: 'inherit',
+            backgroundColor: 'rgba(0, 0, 0, 0.08)',
+            border: '1px solid rgba(0, 0, 0, 0.12)',
+            padding: '2px 7px',
             borderRadius: '6px',
             display: 'inline-block',
+            margin: '0 2px',
           }}
         >
           {part}
@@ -351,6 +274,7 @@ function parseBulletLine(line: string): ParsedBullet {
 }
 
 function BotMessageBubble({ text }: { text: string }) {
+  const { db } = useStore();
   const lines = text.split('\n');
   const blocks: Array<{ type: 'text'; content: string } | { type: 'bullets'; items: ParsedBullet[] }> = [];
   let currentBullets: ParsedBullet[] = [];
@@ -382,17 +306,17 @@ function BotMessageBubble({ text }: { text: string }) {
     <Paper
       elevation={0}
       sx={{
-        px: { xs: 2, sm: 2.25 },
-        py: 1.75,
-        borderRadius: '16px',
-        bgcolor: 'var(--surface2)',
-        color: 'var(--text)',
-        maxWidth: { xs: '95%', sm: '88%' },
-        border: '1px solid var(--border)',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+        px: { xs: 1.75, sm: 2 },
+        py: { xs: 1.25, sm: 1.5 },
+        borderRadius: '16px 16px 16px 4px',
+        bgcolor: 'var(--accent)',
+        color: 'var(--accent-contrast)',
+        maxWidth: { xs: '90%', sm: '85%' },
+        border: '1px solid var(--accent-border-soft)',
+        boxShadow: 'var(--shadow)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 1.5,
+        gap: 1.25,
       }}
     >
       {blocks.map((block, idx) => {
@@ -402,10 +326,10 @@ function BotMessageBubble({ text }: { text: string }) {
               key={idx}
               variant="body2"
               sx={{
-                lineHeight: 1.6,
-                fontSize: '13.5px',
-                color: 'var(--text)',
-                fontWeight: 500,
+                lineHeight: 1.55,
+                fontSize: 'var(--fs-sm)',
+                color: 'var(--accent-contrast)',
+                fontWeight: 'var(--fw-medium)',
               }}
             >
               {renderFormattedText(block.content)}
@@ -425,8 +349,12 @@ function BotMessageBubble({ text }: { text: string }) {
           >
             {block.items.map((bullet, bIdx) => {
               if (bullet.kind === 'friend_debt') {
-                const avatar = getAvatarStyle(bullet.label);
-                const initial = bullet.label.trim().charAt(0).toUpperCase() || 'F';
+                const friendObj = db.friends.find(f => f.name.toLowerCase() === bullet.label.toLowerCase());
+                const friendColor = friendObj?.color || bullet.label;
+                const avatarStyle = getAppAvatarStyle(friendColor);
+                const displayInitial = friendObj
+                  ? (friendObj.avatarNumber !== undefined ? String(friendObj.avatarNumber) : friendObj.name.charAt(0).toUpperCase())
+                  : bullet.label.trim().charAt(0).toUpperCase() || 'F';
                 const isPositive = bullet.isOwedToMe;
 
                 return (
@@ -452,24 +380,25 @@ function BotMessageBubble({ text }: { text: string }) {
                       },
                     }}
                   >
-                    {/* Left: Avatar & Name */}
+                    {/* Left: Avatar & Name synced with Contacts Page */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
                       <Box
                         sx={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: '50%',
-                          background: avatar.bg,
-                          color: avatar.text,
+                          width: 36,
+                          height: 36,
+                          borderRadius: '10px',
+                          background: avatarStyle.background,
+                          color: avatarStyle.color,
                           display: 'grid',
                           placeItems: 'center',
                           fontWeight: 700,
                           fontSize: '13px',
                           flexShrink: 0,
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
                         }}
                       >
-                        {initial}
+                        {displayInitial}
                       </Box>
 
                       <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -530,7 +459,9 @@ function BotMessageBubble({ text }: { text: string }) {
               }
 
               if (bullet.kind === 'wallet') {
-                const theme = getWalletTheme(bullet.label);
+                const walletObj = db.wallets.find(w => w.name.toLowerCase() === bullet.label.toLowerCase());
+                const iconKey = walletObj?.icon || walletObj?.name || bullet.label;
+                const walletColor = walletObj?.color || 'var(--accent)';
                 const isZero = bullet.amount === '₹0' || bullet.amount === '$0' || bullet.amount === '0';
 
                 return (
@@ -549,29 +480,30 @@ function BotMessageBubble({ text }: { text: string }) {
                       boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
                       transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
                       '&:hover': {
-                        borderColor: theme.color,
+                        borderColor: walletColor,
                         bgcolor: 'var(--surface3)',
                         transform: 'translateY(-1px)',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                       },
                     }}
                   >
-                    {/* Left: Themed Icon & Account Name */}
+                    {/* Left: Authentic Wallet Brand Icon synced with Wallet Page */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
                       <Box
                         sx={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: '8px',
-                          bgcolor: theme.bg,
-                          border: `1px solid ${theme.border}`,
-                          color: theme.color,
-                          display: 'grid',
-                          placeItems: 'center',
+                          width: 38,
+                          height: 38,
+                          borderRadius: '10px',
+                          bgcolor: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           flexShrink: 0,
+                          overflow: 'hidden',
                         }}
                       >
-                        {theme.icon}
+                        {renderWalletIcon(iconKey, 38, walletColor)}
                       </Box>
 
                       <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -621,7 +553,12 @@ function BotMessageBubble({ text }: { text: string }) {
                 );
               }
 
-              // Fallback / Transaction / Generic Item
+              // Fallback / Transaction / Generic Item with Category Icon matching Expenses
+              const matchedCatObj = db.settings?.categories?.find(
+                c => c.name.toLowerCase() === (bullet.category || bullet.label || '').toLowerCase()
+              );
+              const catMeta = resolveCategoryMeta(bullet.category || bullet.label || 'Expense', matchedCatObj);
+
               return (
                 <Box
                   key={bIdx}
@@ -647,24 +584,17 @@ function BotMessageBubble({ text }: { text: string }) {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
                     <Box
                       sx={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: '8px',
-                        bgcolor: bullet.badgeType === 'credit' ? 'rgba(34, 197, 94, 0.12)' : 'var(--surface2)',
+                        width: 34,
+                        height: 34,
+                        borderRadius: '10px',
+                        bgcolor: 'var(--surface2)',
                         border: '1px solid var(--border)',
-                        color: bullet.badgeType === 'credit' ? 'var(--credit)' : 'var(--text)',
                         display: 'grid',
                         placeItems: 'center',
                         flexShrink: 0,
                       }}
                     >
-                      {bullet.badgeType === 'credit' ? (
-                        <TrendingUp size={14} />
-                      ) : bullet.amount ? (
-                        <CreditCard size={14} />
-                      ) : (
-                        <Sparkles size={14} />
-                      )}
+                      <CategoryBadge category={catMeta.name} color={catMeta.color} icon={catMeta.icon} size={15} showLabel={false} />
                     </Box>
 
                     <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -673,7 +603,7 @@ function BotMessageBubble({ text }: { text: string }) {
                         noWrap
                         sx={{
                           fontSize: '13px',
-                          fontWeight: 600,
+                          fontWeight: 650,
                           color: 'var(--text)',
                         }}
                       >
@@ -704,7 +634,7 @@ function BotMessageBubble({ text }: { text: string }) {
                         border: '1px solid var(--border)',
                         color: bullet.badgeType === 'credit' ? 'var(--credit)' : 'var(--text)',
                         fontSize: '12.5px',
-                        fontWeight: 700,
+                        fontWeight: 750,
                         flexShrink: 0,
                       }}
                     >
@@ -1374,30 +1304,30 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
 
     // 2. Other actions (Insights, Balances, Debts, History)
     others.push({
-      icon: <Banknote size={15} />,
+      icon: <Banknote size={18} />,
       label: 'Account balances',
       prompt: 'What are my account balances?',
     });
 
     others.push({
-      icon: <Users size={15} />,
+      icon: <Users size={18} />,
       label: 'Who owes me',
       prompt: 'Who owes me money right now?',
     });
 
     others.push({
-      icon: <Clock size={15} />,
+      icon: <Clock size={18} />,
       label: 'Monthly spend',
       prompt: 'How much did I spend this month?',
     });
 
     others.push({
-      icon: <TrendingDown size={15} />,
+      icon: <TrendingDown size={18} />,
       label: 'Recent expenses',
       prompt: 'Show my recent transactions',
     });
 
-    return { frequentActions: frequent.slice(0, 4), otherActions: others.slice(0, 4) };
+    return { frequentActions: frequent.slice(0, 6), otherActions: others.slice(0, 4) };
   }, [db]);
 
 
@@ -1423,7 +1353,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             height: 32,
             bgcolor: 'transparent',
             border: 'none',
-            color: 'var(--text)',
+            color: 'var(--accent)',
             display: 'grid',
             placeItems: 'center',
             flexShrink: 0,
@@ -1436,7 +1366,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             <Typography
               variant="h6"
               sx={{
-                fontWeight: 700,
+                fontWeight: 750,
                 fontSize: { xs: '15.5px', sm: '16.5px' },
                 color: 'var(--text)',
                 lineHeight: 1.2,
@@ -1446,19 +1376,6 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
               Max Assistant
             </Typography>
           </Box>
-          <Typography
-            variant="caption"
-            sx={{
-              color: 'var(--text-3)',
-              fontSize: { xs: '11px', sm: '11.5px' },
-              mt: 0.2,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            Voice & text financial assistant
-          </Typography>
         </Box>
       </Box>
 
@@ -1543,18 +1460,18 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
     >
       {/* Empty State: Minimal, Clean Actions */}
       {messages.length === 0 && !activeDraft && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 }, my: 'auto', py: { xs: 0.25, sm: 0.5 } }}>
-          {/* Frequent Actions */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 2, sm: 2.5 }, my: 'auto', py: { xs: 0.5, sm: 1 } }}>
+          {/* Frequent Actions - Minimal Rounded Chips */}
           {frequentActions.length > 0 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight: 700,
+                  fontWeight: 'var(--fw-bold)',
                   color: 'var(--text-3)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
-                  fontSize: '10.5px',
+                  fontSize: 'var(--fs-caption)',
                   px: 0.25,
                   display: 'flex',
                   alignItems: 'center',
@@ -1567,9 +1484,9 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
 
               <Box
                 sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                  gap: 0.75,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 1,
                   width: '100%',
                 }}
               >
@@ -1633,19 +1550,18 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                       }
                     }}
                     sx={{
-                      px: 1.35,
-                      py: 0.7,
-                      minHeight: '38px',
-                      borderRadius: '11px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.85,
+                      px: 1.5,
+                      py: 0.75,
+                      minHeight: '34px',
+                      borderRadius: 'var(--radius-full)',
                       bgcolor: 'var(--surface2)',
                       border: '1px solid var(--border)',
                       cursor: 'pointer',
                       userSelect: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 1,
-                      transition: 'background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease',
+                      transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
                       '&:hover': {
                         bgcolor: 'var(--surface3)',
                         borderColor: 'var(--border2)',
@@ -1654,113 +1570,91 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                       '&:active': {
                         bgcolor: 'var(--surface3)',
                         borderColor: 'var(--border2)',
-                        transform: 'scale(0.99)',
+                        transform: 'scale(0.97)',
                       },
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, flex: 1 }}>
-                      <Box
-                        sx={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: '8px',
-                          bgcolor: item.bg,
-                          border: `1px solid ${item.border}`,
-                          color: item.color,
-                          display: 'grid',
-                          placeItems: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {item.icon}
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                        <Typography
+                    <Box
+                      sx={{
+                        color: item.color,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {item.icon}
+                    </Box>
+                    <Typography
+                      sx={{
+                        fontWeight: 'var(--fw-semibold)',
+                        fontSize: 'var(--fs-sm)',
+                        color: 'var(--text)',
+                        whiteSpace: 'nowrap',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {item.taskItem?.description || item.label}
+                    </Typography>
+
+                    {/* Friend Badge with Trend Icon (No 'by') */}
+                    {item.taskItem && ((item.taskItem.friendNames && item.taskItem.friendNames.length > 0) || item.taskItem.friendName) && (() => {
+                      const names = item.taskItem.friendNames && item.taskItem.friendNames.length > 0
+                        ? item.taskItem.friendNames
+                        : (item.taskItem.friendName ? [item.taskItem.friendName] : []);
+                      if (names.length === 0) return null;
+                      const isByOther = item.taskItem.whoPaid === 'other' || item.taskItem.type === 'by_friend';
+
+                      const matchedFriend = (item.taskItem.friendIds && item.taskItem.friendIds.length > 0)
+                        ? db.friends.find(f => item.taskItem?.friendIds?.includes(f.id))
+                        : db.friends.find(f => f.name.toLowerCase() === names[0].toLowerCase());
+
+                      const friendColor = matchedFriend?.color || (isByOther ? '#10b981' : '#6366f1');
+                      const friendStyle = getAppAvatarStyle(friendColor);
+
+                      return (
+                        <Box
                           sx={{
-                            fontWeight: 600,
-                            fontSize: '13px',
-                            color: 'var(--text)',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 0.35,
+                            px: 0.75,
+                            py: 0.15,
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: 'var(--fs-caption)',
+                            fontWeight: 'var(--fw-semibold)',
+                            flexShrink: 0,
+                            background: friendStyle.background,
+                            color: friendStyle.color,
+                            border: friendStyle.border,
+                            lineHeight: 1.2,
                           }}
                         >
-                          {item.taskItem?.description || item.label}
-                        </Typography>
-
-                        {/* Friend Badge (sync color from Contact page!) */}
-                        {item.taskItem && ((item.taskItem.friendNames && item.taskItem.friendNames.length > 0) || item.taskItem.friendName) && (() => {
-                          const names = item.taskItem.friendNames && item.taskItem.friendNames.length > 0
-                            ? item.taskItem.friendNames
-                            : (item.taskItem.friendName ? [item.taskItem.friendName] : []);
-                          if (names.length === 0) return null;
-                          const isByOther = item.taskItem.whoPaid === 'other' || item.taskItem.type === 'by_friend';
-                          
-                          const matchedFriend = (item.taskItem.friendIds && item.taskItem.friendIds.length > 0)
-                            ? db.friends.find(f => item.taskItem?.friendIds?.includes(f.id))
-                            : db.friends.find(f => f.name.toLowerCase() === names[0].toLowerCase());
-
-                          const friendColor = matchedFriend?.color || (isByOther ? '#10b981' : '#6366f1');
-                          const friendStyle = getAppAvatarStyle(friendColor);
-
-                          return (
-                            <Box
-                              sx={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 0.35,
-                                px: 0.85,
-                                py: 0.15,
-                                borderRadius: '999px',
-                                fontSize: '10px',
-                                fontWeight: 650,
-                                flexShrink: 0,
-                                background: friendStyle.background,
-                                color: friendStyle.color,
-                                border: friendStyle.border,
-                                lineHeight: 1.2,
-                              }}
-                            >
-                              {names.length === 1 ? (
-                                <span>{isByOther ? `by ${names[0]}` : names[0]}</span>
-                              ) : (
-                                <span>{names.map(n => n.charAt(0).toUpperCase()).join('+')}</span>
-                              )}
-                            </Box>
-                          );
-                        })()}
-                      </Box>
-                    </Box>
-
-                    {item.subText && (
-                      <Typography
-                        sx={{
-                          fontSize: '13px',
-                          fontWeight: 650,
-                          color: 'var(--text-2)',
-                          fontVariantNumeric: 'tabular-nums',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {item.subText}
-                      </Typography>
-                    )}
+                          {isByOther ? (
+                            <TrendingDown size={11} style={{ strokeWidth: 2.5 }} />
+                          ) : (
+                            <TrendingUp size={11} style={{ strokeWidth: 2.5 }} />
+                          )}
+                          <span>{names.length === 1 ? names[0] : names.map(n => n.charAt(0).toUpperCase()).join('+')}</span>
+                        </Box>
+                      );
+                    })()}
                   </Box>
                 ))}
               </Box>
             </Box>
           )}
 
-          {/* Other Quick Actions & Queries */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          {/* Quick Insights & Actions - Bigger & Theme Matched */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography
               variant="caption"
               sx={{
-                fontWeight: 700,
+                fontWeight: 'var(--fw-bold)',
                 color: 'var(--text-3)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
-                fontSize: '10.5px',
+                fontSize: 'var(--fs-caption)',
                 px: 0.25,
               }}
             >
@@ -1770,8 +1664,8 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr' },
-                gap: 0.75,
+                gridTemplateColumns: '1fr 1fr',
+                gap: { xs: 1, sm: 1.25 },
                 width: '100%',
               }}
             >
@@ -1782,19 +1676,19 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1,
-                    px: 1.25,
-                    py: 0.65,
-                    minHeight: '36px',
-                    borderRadius: '10px',
+                    gap: { xs: 1, sm: 1.25 },
+                    px: { xs: 1.35, sm: 1.6 },
+                    py: { xs: 1.25, sm: 1.4 },
+                    minHeight: { xs: '44px', sm: '48px' },
+                    borderRadius: 'var(--radius-md, 12px)',
                     bgcolor: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
-                    fontSize: '12px',
-                    fontWeight: 550,
                     cursor: 'pointer',
                     userSelect: 'none',
-                    transition: 'background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
                     '&:hover': {
                       bgcolor: 'var(--surface3)',
                       borderColor: 'var(--border2)',
@@ -1808,10 +1702,31 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                     },
                   }}
                 >
-                  <Box sx={{ color: 'var(--text-3)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <Box
+                    sx={{
+                      color: 'var(--text-2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
                     {item.icon}
                   </Box>
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
+                  <Typography
+                    sx={{
+                      fontWeight: 'var(--fw-semibold)',
+                      fontSize: { xs: '12px', sm: 'var(--fs-sm)' },
+                      color: 'var(--text)',
+                      lineHeight: 1.2,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      minWidth: 0,
+                    }}
+                  >
+                    {item.label}
+                  </Typography>
                 </Box>
               ))}
             </Box>
@@ -1836,25 +1751,26 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                 display: 'flex',
                 justifyContent: m.sender === 'user' ? 'flex-end' : 'flex-start',
                 alignItems: 'flex-start',
-                gap: 1,
+                gap: 1.25,
               }}
             >
               {m.sender === 'bot' && (
                 <Box
                   sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '8px',
-                    bgcolor: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--accent)',
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    bgcolor: 'var(--accent)',
+                    color: 'var(--accent-contrast)',
+                    border: '1px solid var(--accent-border-soft)',
                     display: 'grid',
                     placeItems: 'center',
                     flexShrink: 0,
                     mt: 0.25,
+                    boxShadow: 'var(--shadow)',
                   }}
                 >
-                  <Sparkles size={14} color="currentColor" />
+                  <Sparkles size={16} strokeWidth={2.2} color="currentColor" />
                 </Box>
               )}
 
@@ -1864,39 +1780,21 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                 <Paper
                   elevation={0}
                   sx={{
-                    px: 1.75,
+                    px: 2,
                     py: 1.25,
-                    borderRadius: '12px',
-                    background: 'var(--accent-gradient)',
-                    color: 'var(--accent-contrast, #ffffff)',
-                    maxWidth: { xs: '90%', sm: '82%' },
+                    borderRadius: '16px 16px 4px 16px',
+                    bgcolor: 'var(--accent)',
+                    color: 'var(--accent-contrast)',
+                    maxWidth: { xs: '85%', sm: '75%' },
                     whiteSpace: 'pre-line',
-                    border: '1px solid transparent',
+                    border: '1px solid var(--accent-border-soft)',
+                    boxShadow: 'var(--shadow)',
                   }}
                 >
-                  <Typography variant="body2" sx={{ lineHeight: 1.55, fontSize: '13px' }}>
+                  <Typography variant="body2" sx={{ lineHeight: 1.5, fontSize: 'var(--fs-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--accent-contrast)' }}>
                     {m.text}
                   </Typography>
                 </Paper>
-              )}
-
-              {m.sender === 'user' && (
-                <Box
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '8px',
-                    bgcolor: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--accent)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                    mt: 0.25,
-                  }}
-                >
-                  <User size={14} color="currentColor" />
-                </Box>
               )}
             </Box>
           ))}
@@ -2312,9 +2210,10 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             const t = item.taskItem;
             const names = t ? (t.friendNames && t.friendNames.length > 0 ? t.friendNames : (t.friendName ? [t.friendName] : [])) : [];
             const friendBadgeStr = names.length === 1 ? names[0] : (names.length > 1 ? names.map(n => n.charAt(0).toUpperCase()).join('+') : '');
+            const amtStr = t ? `${currSym}${t.amount}` : (item.subText ? item.subText.replace(/[()]/g, '') : '');
             const chipLabel = t
-              ? `${t.description}${friendBadgeStr ? ` • ${friendBadgeStr}` : ''} ${item.subText ? `(${item.subText})` : ''}`
-              : `${item.label} ${item.subText ? `(${item.subText})` : ''}`;
+              ? `${t.description}${friendBadgeStr ? ` • ${friendBadgeStr}` : ''}${amtStr ? ` • ${amtStr}` : ''}`
+              : `${item.label}${amtStr ? ` • ${amtStr}` : ''}`;
 
             return (
               <Chip
@@ -2378,21 +2277,20 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                   }
                 }}
                 sx={{
-                  fontSize: '12px',
-                  fontWeight: 600,
+                  fontSize: 'var(--fs-caption)',
+                  fontWeight: 'var(--fw-semibold)',
                   height: '32px',
                   px: 1,
-                  borderRadius: '9999px',
+                  borderRadius: 'var(--radius-full)',
                   bgcolor: 'var(--surface2)',
                   color: 'var(--text)',
-                  border: `1px solid ${item.border}`,
+                  border: '1px solid var(--border)',
                   cursor: 'pointer',
                   flexShrink: 0,
-                  transition: 'all 0.15s ease',
+                  transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
                   '&:hover': {
-                    bgcolor: item.bg,
-                    color: item.color,
-                    borderColor: item.color,
+                    bgcolor: 'var(--surface3)',
+                    borderColor: 'var(--border2)',
                   },
                 }}
               />
@@ -2480,16 +2378,16 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
           size="small"
           aria-label="Send prompt"
           sx={{
-            color: inputText.trim() ? 'var(--text)' : 'var(--text-3)',
+            color: inputText.trim() ? 'var(--accent-contrast)' : 'var(--text-3)',
             p: 0,
             width: 34,
             height: 34,
-            borderRadius: '9999px',
-            bgcolor: inputText.trim() ? 'var(--surface3)' : 'transparent',
-            transition: 'all 0.15s ease',
+            borderRadius: 'var(--radius-full)',
+            bgcolor: inputText.trim() ? 'var(--accent)' : 'transparent',
+            transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              color: 'var(--text)',
-              bgcolor: 'var(--surface3)',
+              color: inputText.trim() ? 'var(--accent-contrast)' : 'var(--text)',
+              bgcolor: inputText.trim() ? 'var(--accent-dark)' : 'var(--surface3)',
             },
             '&.Mui-disabled': {
               color: 'var(--text-3)',
@@ -2526,7 +2424,8 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
           sx: {
             borderTopLeftRadius: '24px',
             borderTopRightRadius: '24px',
-            maxHeight: '90vh',
+            height: messages.length > 0 || activeDraft ? '84vh' : 'auto',
+            maxHeight: '92vh',
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
@@ -2536,7 +2435,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             border: 'none',
             boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.4)',
             transform: dragOffsetY > 0 ? `translateY(${dragOffsetY}px) !important` : undefined,
-            transition: dragOffsetY > 0 ? 'none !important' : undefined,
+            transition: dragOffsetY > 0 ? 'none !important' : 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           },
         }}
       >
@@ -2596,7 +2495,8 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
           overflow: 'hidden',
           maxWidth: '520px',
           width: '100%',
-          maxHeight: '84vh',
+          height: messages.length > 0 || activeDraft ? '720px' : 'auto',
+          maxHeight: '88vh',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
@@ -2604,9 +2504,30 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
           bgcolor: 'var(--surface)',
           color: 'var(--text)',
           m: 2,
+          transition: 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         },
       }}
     >
+      <Box
+        sx={{
+          pt: 1.5,
+          pb: 0.5,
+          px: 2,
+          bgcolor: 'var(--surface)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <Box
+          sx={{
+            width: 36,
+            height: 4,
+            bgcolor: 'var(--border2)',
+            borderRadius: '9999px',
+          }}
+        />
+      </Box>
       {headerContent}
       {mainBodyContent}
       {footerActions}
