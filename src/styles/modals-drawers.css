@@ -1827,24 +1827,24 @@
 
   .analytics-v2-bar-col.selected .analytics-v2-day-name,
   .analytics-v2-bar-col.active .analytics-v2-day-name {
-    color: #7c3aed;
+    color: #09090b;
     font-weight: 750;
   }
 
   [data-color-scheme="dark"] .analytics-v2-bar-col.selected .analytics-v2-day-name,
   [data-color-scheme="dark"] .analytics-v2-bar-col.active .analytics-v2-day-name {
-    color: #a78bfa;
+    color: #ffffff;
   }
 
   .analytics-v2-bar-col.selected .analytics-v2-day-num,
   .analytics-v2-bar-col.active .analytics-v2-day-num {
-    color: #7c3aed;
+    color: #09090b;
     font-weight: 750;
   }
 
   [data-color-scheme="dark"] .analytics-v2-bar-col.selected .analytics-v2-day-num,
   [data-color-scheme="dark"] .analytics-v2-bar-col.active .analytics-v2-day-num {
-    color: #a78bfa;
+    color: #ffffff;
   }
 
   /* Tooltip Scaling on Desktop */

@@ -43,12 +43,15 @@ import {
   Store,
   ArrowDownLeft,
   ArrowUpRight,
+  ChevronRight,
+  Layers as LayersIcon,
+  Receipt as ReceiptIcon,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { currencySymbol, resolveCategoryMeta, getAvatarStyle as getAppAvatarStyle } from '../utils';
 import { parseLocallyClient } from '../nlp';
 import { uid, todayISO } from '../db';
-import type { ExpenseType, ExpenseFlow, Category } from '../types';
+import type { ExpenseType, ExpenseFlow, Category, AppDB } from '../types';
 import CategoryIcon, { CategoryBadge } from './CategoryIcon';
 import type { ExpenseInitialData } from './ExpenseModal';
 import { renderWalletIcon } from './WalletIconRenderer';
@@ -166,28 +169,24 @@ interface ParsedBullet {
 
 
 function renderFormattedText(text: string) {
-  const parts = text.split(/(\*\*.*?\*\*|₹[\d,.]+|\$[\d,.]+)/g);
+  const parts = text.split(/(\*\*.*?\*\*|₹[\d,.]+|\$[\d,.]+|€[\d,.]+|£[\d,.]+)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <span key={i} style={{ fontWeight: 750, color: 'inherit' }}>
+        <span key={i} style={{ fontWeight: 700, color: 'inherit', letterSpacing: '-0.01em' }}>
           {part.slice(2, -2)}
         </span>
       );
     }
-    if (part.match(/^(?:₹|\$)[\d,.]+/)) {
+    if (part.match(/^(?:₹|\$|€|£)[\d,.]+/)) {
       return (
         <span
           key={i}
           style={{
-            fontWeight: 750,
+            fontWeight: 650,
             color: 'inherit',
-            backgroundColor: 'rgba(0, 0, 0, 0.08)',
-            border: '1px solid rgba(0, 0, 0, 0.12)',
-            padding: '2px 7px',
-            borderRadius: '6px',
-            display: 'inline-block',
-            margin: '0 2px',
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing: '-0.01em',
           }}
         >
           {part}
@@ -198,69 +197,135 @@ function renderFormattedText(text: string) {
   });
 }
 
-function parseBulletLine(line: string): ParsedBullet {
+function parseBulletLine(line: string, previousContext?: string, db?: AppDB): ParsedBullet {
   const clean = line.replace(/^[•\-*\d.]+\s*/, '').trim();
 
   // Pattern 1: Debt/Friend: e.g. "Hrishi: owes you ₹975" or "Hrishi: you owe ₹200" or "Hrishi owes you ₹975"
-  const owesMatch = clean.match(/^([^:-]+)[:-]?\s*(owes you|you owe|owes|is owed)\s*(?:₹|\$|INR)?\s*([\d,.]+)/i);
+  const owesMatch = clean.match(/^([^:-]+)[:-]?\s*(owes you|you owe|owes|is owed)\s*(?:₹|\$|€|£|INR)?\s*([\d,.]+)/i);
   if (owesMatch) {
-    const name = owesMatch[1].trim();
+    const name = owesMatch[1].replace(/^\*\*|\*\*$/g, '').trim();
     const relation = owesMatch[2].toLowerCase();
     const amtStr = owesMatch[3];
     const isOwedToMe = relation.includes('owes you') || relation === 'owes';
+    const symMatch = clean.match(/(₹|\$|€|£)/);
+    const sym = symMatch ? symMatch[1] : '₹';
     return {
       raw: clean,
       kind: 'friend_debt',
       label: name,
-      amount: `₹${amtStr}`,
-      badgeText: isOwedToMe ? `Owes you ₹${amtStr}` : `You owe ₹${amtStr}`,
+      amount: `${sym}${amtStr}`,
+      badgeText: isOwedToMe ? `Owes you ${sym}${amtStr}` : `You owe ${sym}${amtStr}`,
       badgeType: isOwedToMe ? 'credit' : 'debit',
       isOwedToMe,
     };
   }
 
   // Pattern 2: Transaction item e.g. "2026-08-27: Tiffin (+₹75) [Food & Dining]"
-  const txMatch = clean.match(/^([\d-]+)[:-]\s*(.*?)\s*\(([+-]?)(?:₹|\$|INR)?([\d,.]+)\)\s*(?:\[(.*?)\])?/i);
+  const txMatch = clean.match(/^([\d-]+)[:-]\s*(.*?)\s*\(([+-]?)(?:₹|\$|€|£|INR)?([\d,.]+)\)\s*(?:\[(.*?)\])?/i);
   if (txMatch) {
     const date = txMatch[1];
-    const desc = txMatch[2];
+    const desc = txMatch[2].trim();
     const sign = txMatch[3] || '-';
     const amt = txMatch[4];
     const cat = txMatch[5];
     const isCredit = sign === '+';
+    const symMatch = clean.match(/(₹|\$|€|£)/);
+    const sym = symMatch ? symMatch[1] : '₹';
     return {
       raw: clean,
       kind: 'transaction',
       label: desc,
       subText: `${date}${cat ? ` • ${cat}` : ''}`,
-      amount: `${sign}₹${amt}`,
+      amount: `${sign}${sym}${amt}`,
       badgeType: isCredit ? 'credit' : 'neutral',
       category: cat,
     };
   }
 
-  // Pattern 3: Wallet / Account e.g. "Google Pay: ₹1,403.52" or "Cash: ₹0"
-  const accountMatch = clean.match(/^([^:-]+)[:-]\s*(?:₹|\$|INR)?\s*([\d,.]+)/i);
+  // Pattern 3: Name: Amount (Could be Category spend, Wallet, or Friend)
+  const accountMatch = clean.match(/^([^:-]+)[:-]\s*(?:₹|\$|€|£|INR)?\s*([\d,.]+)/i);
   if (accountMatch) {
-    const accountName = accountMatch[1].trim();
+    const name = accountMatch[1].replace(/^\*\*|\*\*$/g, '').trim();
     const amtStr = accountMatch[2];
+    const symMatch = clean.match(/(₹|\$|€|£)/);
+    const sym = symMatch ? symMatch[1] : '₹';
+
+    const prev = (previousContext || '').toLowerCase();
+    const isCategoryContext = prev.includes('top categories') || prev.includes('category') || prev.includes('categories') || prev.includes('spent') || prev.includes('spending');
+
+    const walletObj = db?.wallets?.find(w => w.name.toLowerCase() === name.toLowerCase());
+    const isKnownCat = db?.settings?.categories?.some(c => c.name.toLowerCase() === name.toLowerCase()) ||
+      ['food', 'shopping', 'rent', 'housing', 'transfer', 'travel', 'transport', 'bills', 'utilities', 'entertainment', 'health', 'medical', 'education', 'groceries', 'personal', 'dining', 'general', 'income', 'salary'].includes(name.toLowerCase());
+
+    if (isCategoryContext && !walletObj) {
+      return {
+        raw: clean,
+        kind: 'category_spending',
+        label: name,
+        category: name,
+        amount: `${sym}${amtStr}`,
+        subText: 'Category Spend',
+        badgeType: 'neutral',
+      };
+    }
+
+    if (walletObj) {
+      return {
+        raw: clean,
+        kind: 'wallet',
+        label: name,
+        amount: `${sym}${amtStr}`,
+        subText: 'Account',
+        badgeType: 'neutral',
+      };
+    }
+
+    if (isKnownCat) {
+      return {
+        raw: clean,
+        kind: 'category_spending',
+        label: name,
+        category: name,
+        amount: `${sym}${amtStr}`,
+        subText: 'Category Spend',
+        badgeType: 'neutral',
+      };
+    }
+
     return {
       raw: clean,
       kind: 'wallet',
-      label: accountName,
-      amount: `₹${amtStr}`,
+      label: name,
+      amount: `${sym}${amtStr}`,
+      subText: 'Account',
       badgeType: 'neutral',
     };
   }
 
-  // Pattern 4: Expense format e.g. "Coffee - ₹30 (Food, Cash)"
-  const expMatch = clean.match(/^([^-:]+)(?:[-:]\s*(?:₹|\$|INR)?\s*([\d,.]+))?\s*(?:\((.*?)\))?/i);
+  // Pattern 4: Informational / Feature Help Bullet e.g. "**Log transactions**: e.g., *"Spent ₹150 on Lunch"*"
+  const helpMatch = clean.match(/^\*\*([^*]+)\*\*[:-]?\s*(.*)/);
+  if (helpMatch) {
+    const title = helpMatch[1].trim();
+    const desc = helpMatch[2].replace(/\*+/g, '').trim();
+    return {
+      raw: clean,
+      kind: 'generic',
+      label: title,
+      subText: desc || undefined,
+      badgeType: 'neutral',
+    };
+  }
+
+  // Pattern 5: Expense format e.g. "Coffee - ₹30 (Food, Cash)"
+  const expMatch = clean.match(/^([^-:]+)(?:[-:]\s*(?:₹|\$|€|£|INR)?\s*([\d,.]+))?\s*(?:\((.*?)\))?/i);
   if (expMatch && expMatch[2]) {
+    const symMatch = clean.match(/(₹|\$|€|£)/);
+    const sym = symMatch ? symMatch[1] : '₹';
     return {
       raw: clean,
       kind: 'generic',
       label: expMatch[1].trim(),
-      amount: `₹${expMatch[2]}`,
+      amount: `${sym}${expMatch[2]}`,
       subText: expMatch[3] ? expMatch[3].trim() : undefined,
       badgeType: 'neutral',
     };
@@ -269,385 +334,649 @@ function parseBulletLine(line: string): ParsedBullet {
   return {
     raw: clean,
     kind: 'generic',
-    label: clean,
+    label: clean.replace(/\*+/g, ''),
   };
 }
 
+interface TextMessageBlock {
+  type: 'text';
+  content: string;
+}
+
+interface CardsMessageBlock {
+  type: 'cards';
+  headerTitle: string;
+  headerKind: 'category_spending' | 'wallet' | 'friend_debt' | 'transaction' | 'generic';
+  badgeText?: string;
+  items: ParsedBullet[];
+}
+
+type MessageBlock = TextMessageBlock | CardsMessageBlock;
+
 function BotMessageBubble({ text }: { text: string }) {
   const { db } = useStore();
-  const lines = text.split('\n');
-  const blocks: Array<{ type: 'text'; content: string } | { type: 'bullets'; items: ParsedBullet[] }> = [];
-  let currentBullets: ParsedBullet[] = [];
 
-  const flushBullets = () => {
-    if (currentBullets.length > 0) {
-      blocks.push({ type: 'bullets', items: [...currentBullets] });
-      currentBullets = [];
+  const blocks: MessageBlock[] = useMemo(() => {
+    const rawLines = text.split('\n');
+    const result: MessageBlock[] = [];
+    let currentTextLines: string[] = [];
+    let currentBullets: ParsedBullet[] = [];
+
+    const flushText = () => {
+      if (currentTextLines.length > 0) {
+        const content = currentTextLines.join('\n').trim();
+        if (content) {
+          result.push({ type: 'text', content });
+        }
+        currentTextLines = [];
+      }
+    };
+
+    const flushBullets = () => {
+      if (currentBullets.length > 0) {
+        let headerTitle = '';
+        const firstKind = currentBullets[0].kind;
+        const count = currentBullets.length;
+
+        // Check if the immediately preceding text line was a section label / header
+        if (currentTextLines.length > 0) {
+          const lastLine = currentTextLines[currentTextLines.length - 1].trim();
+          const isHeaderLike =
+            /^top\s+(spending\s+)?categories[:]?$/i.test(lastLine) ||
+            /^categories[:]?$/i.test(lastLine) ||
+            /^top\s+expenses?[:]?$/i.test(lastLine) ||
+            /^account\s+balances?[:]?$/i.test(lastLine) ||
+            /^accounts?[:]?$/i.test(lastLine) ||
+            /^wallets?[:]?$/i.test(lastLine) ||
+            /^recent\s+transactions?[:]?$/i.test(lastLine) ||
+            /^pending\s+(debts|balances)?[:]?$/i.test(lastLine) ||
+            /^who\s+owes\s+you[:]?$/i.test(lastLine) ||
+            (lastLine.endsWith(':') && lastLine.length <= 32 && !lastLine.includes(' spent ') && !lastLine.includes(' balance is '));
+
+          if (isHeaderLike) {
+            currentTextLines.pop();
+            headerTitle = lastLine.replace(/[:]+$/, '').trim();
+          }
+        }
+
+        // Flush preceding conversational text into its own distinct speech box
+        flushText();
+
+        // If no explicit header was extracted from preceding line, provide clean semantic fallback
+        if (!headerTitle) {
+          if (firstKind === 'category_spending') {
+            headerTitle = 'Top Categories';
+          } else if (firstKind === 'wallet') {
+            headerTitle = 'Accounts Breakdown';
+          } else if (firstKind === 'friend_debt') {
+            const hasOwedToMe = currentBullets.some((b) => b.isOwedToMe || b.badgeType === 'credit');
+            headerTitle = hasOwedToMe ? 'Pending Balances' : 'Pending Debts';
+          } else if (firstKind === 'transaction') {
+            headerTitle = 'Recent Transactions';
+          } else {
+            headerTitle = 'Overview';
+          }
+        }
+
+        let badgeText = '';
+        if (firstKind === 'category_spending') {
+          badgeText = `${count} ${count === 1 ? 'category' : 'categories'}`;
+        } else if (firstKind === 'wallet') {
+          badgeText = `${count} ${count === 1 ? 'account' : 'accounts'}`;
+        } else if (firstKind === 'friend_debt') {
+          badgeText = `${count} ${count === 1 ? 'contact' : 'contacts'}`;
+        } else if (firstKind === 'transaction') {
+          badgeText = `${count} ${count === 1 ? 'entry' : 'entries'}`;
+        }
+
+        result.push({
+          type: 'cards',
+          headerTitle,
+          headerKind: firstKind,
+          badgeText,
+          items: [...currentBullets],
+        });
+
+        currentBullets = [];
+      }
+    };
+
+    for (const line of rawLines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      if (trimmed.match(/^[•\-*]/) || trimmed.match(/^\d+[.)]/)) {
+        const prevContext = currentTextLines.length > 0 ? currentTextLines[currentTextLines.length - 1] : '';
+        currentBullets.push(parseBulletLine(trimmed, prevContext, db));
+      } else {
+        flushBullets();
+        currentTextLines.push(trimmed);
+      }
     }
+
+    flushBullets();
+    flushText();
+
+    return result;
+  }, [text, db]);
+
+  const cardTileSx = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 1.5,
+    px: 1,
+    py: 0.85,
+    minHeight: 46,
+    borderRadius: '12px',
+    bgcolor: 'transparent',
+    border: '1px solid transparent',
+    boxShadow: 'none',
+    transition: 'background-color 0.15s ease',
+    '&:hover': {
+      bgcolor: 'rgba(255, 255, 255, 0.04)',
+    },
   };
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      flushBullets();
-      continue;
-    }
-
-    if (trimmed.match(/^[•\-*]/) || trimmed.match(/^\d+[.)]/)) {
-      currentBullets.push(parseBulletLine(trimmed));
-    } else {
-      flushBullets();
-      blocks.push({ type: 'text', content: trimmed });
-    }
-  }
-  flushBullets();
-
   return (
-    <Paper
-      elevation={0}
+    <Box
       sx={{
-        px: { xs: 1.75, sm: 2 },
-        py: { xs: 1.25, sm: 1.5 },
-        borderRadius: '16px 16px 16px 4px',
-        bgcolor: 'var(--accent)',
-        color: 'var(--accent-contrast)',
-        maxWidth: { xs: '90%', sm: '85%' },
-        border: '1px solid var(--accent-border-soft)',
-        boxShadow: 'var(--shadow)',
         display: 'flex',
         flexDirection: 'column',
         gap: 1.25,
+        width: '100%',
+        maxWidth: '100%',
       }}
     >
       {blocks.map((block, idx) => {
         if (block.type === 'text') {
           return (
-            <Typography
+            <Paper
               key={idx}
-              variant="body2"
+              elevation={0}
               sx={{
-                lineHeight: 1.55,
-                fontSize: 'var(--fs-sm)',
-                color: 'var(--accent-contrast)',
-                fontWeight: 'var(--fw-medium)',
+                px: { xs: 2, sm: 2.25 },
+                py: { xs: 1.35, sm: 1.55 },
+                borderRadius: '18px 18px 18px 4px',
+                bgcolor: 'var(--surface2)',
+                color: 'var(--text)',
+                border: '1px solid var(--border)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                width: 'fit-content',
+                maxWidth: '100%',
               }}
             >
-              {renderFormattedText(block.content)}
-            </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  lineHeight: 1.55,
+                  fontSize: '14px',
+                  color: 'var(--text)',
+                  fontWeight: 550,
+                  fontFamily: 'var(--font-sans)',
+                  letterSpacing: '-0.012em',
+                  whiteSpace: 'pre-line',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {renderFormattedText(block.content)}
+              </Typography>
+            </Paper>
           );
         }
 
         return (
-          <Box
+          <Paper
             key={idx}
+            elevation={0}
             sx={{
+              p: { xs: 1.5, sm: 1.75 },
+              borderRadius: '16px',
+              bgcolor: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
               display: 'flex',
               flexDirection: 'column',
               gap: 1,
-              my: 0.25,
+              width: '100%',
+              maxWidth: '100%',
             }}
           >
-            {block.items.map((bullet, bIdx) => {
-              if (bullet.kind === 'friend_debt') {
-                const friendObj = db.friends.find(f => f.name.toLowerCase() === bullet.label.toLowerCase());
-                const friendColor = friendObj?.color || bullet.label;
-                const avatarStyle = getAppAvatarStyle(friendColor);
-                const displayInitial = friendObj
-                  ? (friendObj.avatarNumber !== undefined ? String(friendObj.avatarNumber) : friendObj.name.charAt(0).toUpperCase())
-                  : bullet.label.trim().charAt(0).toUpperCase() || 'F';
-                const isPositive = bullet.isOwedToMe;
-
-                return (
-                  <Box
-                    key={bIdx}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 1.5,
-                      px: 1.5,
-                      py: 1.15,
-                      borderRadius: '12px',
-                      bgcolor: 'var(--surface)',
-                      border: '1px solid var(--border)',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                      transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
-                      '&:hover': {
-                        borderColor: isPositive ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)',
-                        bgcolor: 'var(--surface3)',
-                        transform: 'translateY(-1px)',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                      },
-                    }}
-                  >
-                    {/* Left: Avatar & Name synced with Contacts Page */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
-                      <Box
-                        sx={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: '10px',
-                          background: avatarStyle.background,
-                          color: avatarStyle.color,
-                          display: 'grid',
-                          placeItems: 'center',
-                          fontWeight: 700,
-                          fontSize: '13px',
-                          flexShrink: 0,
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                          border: '1px solid rgba(255, 255, 255, 0.15)',
-                        }}
-                      >
-                        {displayInitial}
-                      </Box>
-
-                      <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                        <Typography
-                          variant="body2"
-                          noWrap
-                          sx={{
-                            fontSize: '13.5px',
-                            fontWeight: 650,
-                            color: 'var(--text)',
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {bullet.label}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontSize: '11px',
-                            color: 'var(--text-3)',
-                            fontWeight: 500,
-                          }}
-                        >
-                          Friend
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    {/* Right: Vibrant Pill Badge */}
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.6,
-                        px: 1.3,
-                        py: 0.5,
-                        borderRadius: '99px',
-                        bgcolor: isPositive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                        border: '1px solid',
-                        borderColor: isPositive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)',
-                        color: isPositive ? '#10b981' : '#ef4444',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        letterSpacing: '0.01em',
-                        flexShrink: 0,
-                        boxShadow: isPositive ? '0 1px 4px rgba(16, 185, 129, 0.15)' : '0 1px 4px rgba(239, 68, 68, 0.15)',
-                      }}
-                    >
-                      {isPositive ? (
-                        <ArrowDownLeft size={13} strokeWidth={2.6} />
-                      ) : (
-                        <ArrowUpRight size={13} strokeWidth={2.6} />
-                      )}
-                      <span>{bullet.badgeText}</span>
-                    </Box>
-                  </Box>
-                );
-              }
-
-              if (bullet.kind === 'wallet') {
-                const walletObj = db.wallets.find(w => w.name.toLowerCase() === bullet.label.toLowerCase());
-                const iconKey = walletObj?.icon || walletObj?.name || bullet.label;
-                const walletColor = walletObj?.color || 'var(--accent)';
-                const isZero = bullet.amount === '₹0' || bullet.amount === '$0' || bullet.amount === '0';
-
-                return (
-                  <Box
-                    key={bIdx}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 1.5,
-                      px: 1.5,
-                      py: 1.15,
-                      borderRadius: '12px',
-                      bgcolor: 'var(--surface)',
-                      border: '1px solid var(--border)',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                      transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
-                      '&:hover': {
-                        borderColor: walletColor,
-                        bgcolor: 'var(--surface3)',
-                        transform: 'translateY(-1px)',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                      },
-                    }}
-                  >
-                    {/* Left: Authentic Wallet Brand Icon synced with Wallet Page */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
-                      <Box
-                        sx={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: '10px',
-                          bgcolor: 'var(--surface2)',
-                          border: '1px solid var(--border)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {renderWalletIcon(iconKey, 38, walletColor)}
-                      </Box>
-
-                      <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                        <Typography
-                          variant="body2"
-                          noWrap
-                          sx={{
-                            fontSize: '13.5px',
-                            fontWeight: 650,
-                            color: 'var(--text)',
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {bullet.label}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontSize: '11px',
-                            color: 'var(--text-3)',
-                            fontWeight: 500,
-                          }}
-                        >
-                          Account
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    {/* Right: Clean Balance Pill */}
-                    <Box
-                      sx={{
-                        px: 1.25,
-                        py: 0.45,
-                        borderRadius: '8px',
-                        bgcolor: 'var(--surface2)',
-                        border: '1px solid var(--border)',
-                        color: isZero ? 'var(--text-3)' : 'var(--text)',
-                        fontSize: '13px',
-                        fontWeight: isZero ? 600 : 750,
-                        letterSpacing: '0.01em',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {bullet.amount}
-                    </Box>
-                  </Box>
-                );
-              }
-
-              // Fallback / Transaction / Generic Item with Category Icon matching Expenses
-              const matchedCatObj = db.settings?.categories?.find(
-                c => c.name.toLowerCase() === (bullet.category || bullet.label || '').toLowerCase()
-              );
-              const catMeta = resolveCategoryMeta(bullet.category || bullet.label || 'Expense', matchedCatObj);
-
-              return (
+            {/* Header row for structured categories/accounts/debts container */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                px: 0.5,
+                pt: 0.25,
+                pb: 0.5,
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box
-                  key={bIdx}
                   sx={{
+                    color: 'var(--text-2)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1.5,
-                    px: 1.5,
-                    py: 1.15,
-                    borderRadius: '12px',
-                    bgcolor: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                    transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
-                    '&:hover': {
-                      borderColor: 'var(--border2)',
-                      bgcolor: 'var(--surface3)',
-                      transform: 'translateY(-1px)',
-                    },
+                    justifyContent: 'center',
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
-                    <Box
-                      sx={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: '10px',
-                        bgcolor: 'var(--surface2)',
-                        border: '1px solid var(--border)',
-                        display: 'grid',
-                        placeItems: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <CategoryBadge category={catMeta.name} color={catMeta.color} icon={catMeta.icon} size={15} showLabel={false} />
-                    </Box>
+                  {block.headerKind === 'category_spending' && <LayersIcon size={15} strokeWidth={2} />}
+                  {block.headerKind === 'wallet' && <LayersIcon size={15} strokeWidth={2} />}
+                  {block.headerKind === 'friend_debt' && <Users size={15} strokeWidth={2} />}
+                  {block.headerKind === 'transaction' && <ReceiptIcon size={15} strokeWidth={2} />}
+                  {block.headerKind === 'generic' && <Sparkles size={15} strokeWidth={2} />}
+                </Box>
+                <Typography
+                  sx={{
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    letterSpacing: '-0.01em',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {block.headerTitle}
+                </Typography>
+              </Box>
 
-                    <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                      <Typography
-                        variant="body2"
-                        noWrap
-                        sx={{
-                          fontSize: '13px',
-                          fontWeight: 650,
-                          color: 'var(--text)',
-                        }}
-                      >
-                        {bullet.label}
-                      </Typography>
-                      {bullet.subText && (
-                        <Typography
-                          variant="caption"
-                          noWrap
+              {block.badgeText && (
+                <Box
+                  sx={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: 'var(--text-2)',
+                    bgcolor: 'var(--accent-soft)',
+                    border: '1px solid var(--accent-border-soft)',
+                    borderRadius: '99px',
+                    px: 1.1,
+                    py: 0.25,
+                    fontFamily: 'var(--font-sans)',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {block.badgeText}
+                </Box>
+              )}
+            </Box>
+
+            {/* List of sub-card items */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, width: '100%' }}>
+              {block.items.map((bullet, bIdx) => {
+                if (bullet.kind === 'friend_debt') {
+                  const friendObj = db.friends.find(
+                    (f) => f.name.toLowerCase() === bullet.label.toLowerCase()
+                  );
+                  const friendColor = friendObj?.color || bullet.label;
+                  const avatarStyle = getAppAvatarStyle(friendColor);
+                  const displayInitial = friendObj
+                    ? (friendObj.avatarNumber !== undefined ? String(friendObj.avatarNumber) : friendObj.name.charAt(0).toUpperCase())
+                    : bullet.label.trim().charAt(0).toUpperCase() || 'F';
+                  const isPositive = bullet.isOwedToMe ?? bullet.badgeType === 'credit';
+
+                  return (
+                    <Box key={bIdx} sx={cardTileSx}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.35, minWidth: 0, flex: 1 }}>
+                        <Box
                           sx={{
-                            fontSize: '11px',
-                            color: 'var(--text-3)',
+                            width: 34,
+                            height: 34,
+                            borderRadius: '10px',
+                            background: avatarStyle.background,
+                            color: avatarStyle.color,
+                            display: 'grid',
+                            placeItems: 'center',
+                            fontWeight: 700,
+                            fontSize: '13px',
+                            flexShrink: 0,
+                            border: '1px solid var(--border)',
                           }}
                         >
-                          {bullet.subText}
-                        </Typography>
+                          {displayInitial}
+                        </Box>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                          <Typography
+                            variant="body2"
+                            noWrap
+                            sx={{
+                              fontSize: '14px',
+                              fontWeight: 650,
+                              color: 'var(--text)',
+                              lineHeight: 1.25,
+                              letterSpacing: '-0.01em',
+                              fontFamily: 'var(--font-sans)',
+                            }}
+                          >
+                            {bullet.label}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            noWrap
+                            sx={{
+                              fontSize: '11.5px',
+                              color: 'var(--text-3)',
+                              fontWeight: 500,
+                              letterSpacing: '0.01em',
+                              lineHeight: 1.2,
+                              fontFamily: 'var(--font-sans)',
+                            }}
+                          >
+                            {friendObj?.type ? friendObj.type.charAt(0).toUpperCase() + friendObj.type.slice(1) : (isPositive ? 'Owes you' : 'You owe')}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {bullet.badgeText && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.6,
+                            px: 1.15,
+                            py: 0.35,
+                            borderRadius: '99px',
+                            bgcolor: isPositive ? 'var(--credit-bg)' : 'var(--debit-bg)',
+                            border: '1px solid',
+                            borderColor: isPositive ? 'var(--credit-border)' : 'var(--debit-border)',
+                            color: isPositive ? 'var(--credit)' : 'var(--debit)',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            letterSpacing: '0.01em',
+                            fontFamily: 'var(--font-sans)',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isPositive ? (
+                            <ArrowDownLeft size={13} strokeWidth={2.6} />
+                          ) : (
+                            <ArrowUpRight size={13} strokeWidth={2.6} />
+                          )}
+                          <span>{bullet.badgeText}</span>
+                        </Box>
                       )}
                     </Box>
-                  </Box>
+                  );
+                }
 
-                  {bullet.amount && (
-                    <Box
-                      sx={{
-                        px: 1.25,
-                        py: 0.45,
-                        borderRadius: '8px',
-                        bgcolor: 'var(--surface2)',
-                        border: '1px solid var(--border)',
-                        color: bullet.badgeType === 'credit' ? 'var(--credit)' : 'var(--text)',
-                        fontSize: '12.5px',
-                        fontWeight: 750,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {bullet.amount}
+                if (bullet.kind === 'wallet') {
+                  const walletObj = db.wallets.find(
+                    (w) => w.name.toLowerCase() === bullet.label.toLowerCase()
+                  );
+                  const walletColor = walletObj?.color || '#3b82f6';
+                  const iconKey = walletObj?.icon || walletObj?.name || 'wallet';
+
+                  return (
+                    <Box key={bIdx} sx={cardTileSx}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.35, minWidth: 0, flex: 1 }}>
+                        <Box
+                          sx={{
+                            width: 34,
+                            height: 34,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {renderWalletIcon(iconKey, 34, walletColor)}
+                        </Box>
+                        <Typography
+                          noWrap
+                          sx={{
+                            fontSize: '14.5px',
+                            fontWeight: 650,
+                            color: 'var(--text)',
+                            lineHeight: 1.25,
+                            letterSpacing: '-0.01em',
+                            fontFamily: 'var(--font-sans)',
+                          }}
+                        >
+                          {bullet.label}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                        <Typography
+                          sx={{
+                            fontSize: '15px',
+                            fontWeight: 750,
+                            color: 'var(--text)',
+                            fontVariantNumeric: 'tabular-nums',
+                            letterSpacing: '-0.01em',
+                            fontFamily: 'var(--font-sans)',
+                          }}
+                        >
+                          {bullet.amount}
+                        </Typography>
+                        <ChevronRight size={14} style={{ color: 'var(--text-3)', opacity: 0.55 }} />
+                      </Box>
                     </Box>
-                  )}
-                </Box>
-              );
-            })}
-          </Box>
+                  );
+                }
+
+                if (bullet.kind === 'category_spending') {
+                  const matchedCatObj = db.settings?.categories?.find(
+                    (c) => c.name.toLowerCase() === bullet.label.toLowerCase()
+                  );
+                  const catMeta = resolveCategoryMeta(bullet.label, matchedCatObj);
+
+                  return (
+                    <Box key={bIdx} sx={cardTileSx}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.35, minWidth: 0, flex: 1 }}>
+                        <Box
+                          sx={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: '10px',
+                            background: `${catMeta.color}18`,
+                            border: '1px solid var(--border)',
+                            display: 'grid',
+                            placeItems: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <CategoryIcon icon={catMeta.icon} color={catMeta.color} size={17} />
+                        </Box>
+                        <Typography
+                          noWrap
+                          sx={{
+                            fontSize: '14.5px',
+                            fontWeight: 650,
+                            color: 'var(--text)',
+                            lineHeight: 1.25,
+                            letterSpacing: '-0.01em',
+                            fontFamily: 'var(--font-sans)',
+                          }}
+                        >
+                          {bullet.label}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                        <Typography
+                          sx={{
+                            fontSize: '15px',
+                            fontWeight: 750,
+                            color: 'var(--text)',
+                            fontVariantNumeric: 'tabular-nums',
+                            letterSpacing: '-0.01em',
+                            fontFamily: 'var(--font-sans)',
+                          }}
+                        >
+                          {bullet.amount}
+                        </Typography>
+                        <ChevronRight size={14} style={{ color: 'var(--text-3)', opacity: 0.55 }} />
+                      </Box>
+                    </Box>
+                  );
+                }
+
+                if (bullet.kind === 'transaction') {
+                  const matchedCatObj = db.settings?.categories?.find(
+                    (c) => c.name.toLowerCase() === (bullet.category || '').toLowerCase()
+                  );
+                  const catMeta = resolveCategoryMeta(bullet.category || 'Expense', matchedCatObj);
+                  const isCredit = bullet.amount?.startsWith('+') ?? false;
+
+                  return (
+                    <Box key={bIdx} sx={cardTileSx}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.35, minWidth: 0, flex: 1 }}>
+                        <Box
+                          sx={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: '10px',
+                            background: `${catMeta.color}18`,
+                            border: '1px solid var(--border)',
+                            display: 'grid',
+                            placeItems: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <CategoryIcon icon={catMeta.icon} color={catMeta.color} size={16} />
+                        </Box>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                          <Typography
+                            variant="body2"
+                            noWrap
+                            sx={{
+                              fontSize: '14px',
+                              fontWeight: 650,
+                              color: 'var(--text)',
+                              lineHeight: 1.25,
+                              letterSpacing: '-0.01em',
+                              fontFamily: 'var(--font-sans)',
+                            }}
+                          >
+                            {bullet.label}
+                          </Typography>
+                          {bullet.subText && (
+                            <Typography
+                              variant="caption"
+                              noWrap
+                              sx={{
+                                fontSize: '11.5px',
+                                color: 'var(--text-3)',
+                                fontWeight: 500,
+                                letterSpacing: '0.01em',
+                                lineHeight: 1.2,
+                                fontFamily: 'var(--font-sans)',
+                              }}
+                            >
+                              {bullet.subText}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+
+                      {bullet.amount && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                          <Typography
+                            sx={{
+                              fontSize: '15px',
+                              fontWeight: 750,
+                              color: isCredit ? 'var(--credit)' : 'var(--text)',
+                              fontVariantNumeric: 'tabular-nums',
+                              letterSpacing: '-0.01em',
+                              fontFamily: 'var(--font-sans)',
+                            }}
+                          >
+                            {bullet.amount}
+                          </Typography>
+                          <ChevronRight size={14} style={{ color: 'var(--text-3)', opacity: 0.55 }} />
+                        </Box>
+                      )}
+                    </Box>
+                  );
+                }
+
+                // Generic item fallback
+                const matchedCatObj = db.settings?.categories?.find(
+                  (c) => c.name.toLowerCase() === (bullet.category || bullet.label || '').toLowerCase()
+                );
+                const catMeta = resolveCategoryMeta(bullet.category || bullet.label || 'Expense', matchedCatObj);
+
+                return (
+                  <Box key={bIdx} sx={cardTileSx}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.35, minWidth: 0, flex: 1 }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '9px',
+                          bgcolor: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          display: 'grid',
+                          placeItems: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {bullet.amount ? (
+                          <CategoryIcon icon={catMeta.icon} color={catMeta.color} size={15} />
+                        ) : (
+                          <Sparkles size={14} color="var(--text-2)" opacity={0.8} />
+                        )}
+                      </Box>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          noWrap
+                          sx={{
+                            fontSize: '14px',
+                            fontWeight: 650,
+                            color: 'var(--text)',
+                            lineHeight: 1.25,
+                            letterSpacing: '-0.01em',
+                            fontFamily: 'var(--font-sans)',
+                          }}
+                        >
+                          {bullet.label}
+                        </Typography>
+                        {bullet.subText && (
+                          <Typography
+                            variant="caption"
+                            noWrap
+                            sx={{
+                              fontSize: '11.5px',
+                              color: 'var(--text-3)',
+                              fontWeight: 500,
+                              letterSpacing: '0.01em',
+                              lineHeight: 1.2,
+                              fontFamily: 'var(--font-sans)',
+                            }}
+                          >
+                            {bullet.subText}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+
+                    {bullet.amount && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                        <Typography
+                          sx={{
+                            fontSize: '15px',
+                            fontWeight: 750,
+                            color: 'var(--text)',
+                            fontVariantNumeric: 'tabular-nums',
+                            letterSpacing: '-0.01em',
+                            fontFamily: 'var(--font-sans)',
+                          }}
+                        >
+                          {bullet.amount}
+                        </Typography>
+                        <ChevronRight size={14} style={{ color: 'var(--text-3)', opacity: 0.55 }} />
+                      </Box>
+                    )}
+                  </Box>
+                );
+              })}
+            </Box>
+          </Paper>
         );
       })}
-    </Paper>
+    </Box>
   );
 }
 
@@ -1752,22 +2081,23 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                 justifyContent: m.sender === 'user' ? 'flex-end' : 'flex-start',
                 alignItems: 'flex-start',
                 gap: 1.25,
+                width: '100%',
               }}
             >
               {m.sender === 'bot' && (
                 <Box
                   sx={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    bgcolor: 'var(--accent)',
-                    color: 'var(--accent-contrast)',
-                    border: '1px solid var(--accent-border-soft)',
+                    width: 34,
+                    height: 34,
+                    borderRadius: '11px',
+                    bgcolor: 'var(--surface2)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border)',
                     display: 'grid',
                     placeItems: 'center',
                     flexShrink: 0,
                     mt: 0.25,
-                    boxShadow: 'var(--shadow)',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
                   }}
                 >
                   <Sparkles size={16} strokeWidth={2.2} color="currentColor" />
@@ -1775,26 +2105,79 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
               )}
 
               {m.sender === 'bot' ? (
-                <BotMessageBubble text={m.text} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', maxWidth: { xs: '92%', sm: '86%' }, width: '100%', minWidth: 0 }}>
+                  <BotMessageBubble text={m.text} />
+                  {m.timestamp && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: '11px',
+                        color: 'var(--text-3)',
+                        mt: 0.5,
+                        ml: 1,
+                        fontWeight: 500,
+                        fontFamily: 'var(--font-sans)',
+                        letterSpacing: '0.01em',
+                      }}
+                    >
+                      {m.timestamp}
+                    </Typography>
+                  )}
+                </Box>
               ) : (
-                <Paper
-                  elevation={0}
+                <Box
                   sx={{
-                    px: 2,
-                    py: 1.25,
-                    borderRadius: '16px 16px 4px 16px',
-                    bgcolor: 'var(--accent)',
-                    color: 'var(--accent-contrast)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
                     maxWidth: { xs: '85%', sm: '75%' },
-                    whiteSpace: 'pre-line',
-                    border: '1px solid var(--accent-border-soft)',
-                    boxShadow: 'var(--shadow)',
                   }}
                 >
-                  <Typography variant="body2" sx={{ lineHeight: 1.5, fontSize: 'var(--fs-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--accent-contrast)' }}>
-                    {m.text}
-                  </Typography>
-                </Paper>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      px: { xs: 2, sm: 2.25 },
+                      py: { xs: 1.25, sm: 1.5 },
+                      borderRadius: '18px 18px 4px 18px',
+                      bgcolor: 'var(--surface2)',
+                      color: 'var(--text)',
+                      whiteSpace: 'pre-line',
+                      border: '1px solid var(--border)',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        lineHeight: 1.55,
+                        fontSize: '14px',
+                        fontWeight: 550,
+                        fontFamily: 'var(--font-sans)',
+                        color: 'var(--text)',
+                        letterSpacing: '-0.012em',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {m.text}
+                    </Typography>
+                  </Paper>
+                  {m.timestamp && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: '11px',
+                        color: 'var(--text-3)',
+                        mt: 0.5,
+                        mr: 1,
+                        fontWeight: 500,
+                        fontFamily: 'var(--font-sans)',
+                        letterSpacing: '0.01em',
+                      }}
+                    >
+                      {m.timestamp}
+                    </Typography>
+                  )}
+                </Box>
               )}
             </Box>
           ))}

@@ -531,9 +531,9 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
                         {/* Bar Track & Fill */}
                         <div className="analytics-v2-bar-track">
                           <div
-                            className={`analytics-v2-bar-fill ${isSelected ? 'selected active' : ''} ${isHovered ? 'hovered' : ''}`}
+                            className={`analytics-v2-bar-fill ${hasSpend ? 'has-spend' : 'zero-spend'} ${isSelected ? 'selected active' : ''} ${isHovered ? 'hovered' : ''}`}
                             style={{
-                              height: hasSpend ? `${Math.max(8, Math.min(100, heightPercent))}%` : '4px',
+                              height: hasSpend ? `${Math.max(8, Math.min(100, heightPercent))}%` : '3px',
                             }}
                           />
                         </div>
@@ -542,17 +542,18 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
                         {isMonthView ? (
                           <div className="analytics-v2-day-meta month-meta">
                             {showDayNumber ? (
-                              <span className={`analytics-v2-day-num ${day.isToday ? 'is-today-num' : ''}`}>
+                              <span className={`analytics-v2-day-num ${day.isToday ? 'is-today-num' : ''} ${isSelected ? 'is-selected-num' : ''}`}>
                                 {day.dayNum}
                               </span>
                             ) : (
-                              <span className="analytics-v2-day-tick" />
+                              <span className={`analytics-v2-day-tick ${isSelected ? 'is-selected-tick' : ''}`} />
                             )}
                           </div>
                         ) : (
                           <div className="analytics-v2-day-meta">
                             <span className="analytics-v2-day-name">{day.dayName}</span>
                             <span className="analytics-v2-day-num">{day.dayNum}</span>
+                            {isSelected && <span className="analytics-v2-selected-dot" />}
                           </div>
                         )}
                       </div>
