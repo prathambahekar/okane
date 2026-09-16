@@ -204,6 +204,7 @@ export interface GroupedExpense {
   items: Expense[];
   isSplit: boolean;
   isSettlementGroup?: boolean;
+  isForgiven?: boolean;
   settlementItemCount?: number;
   settlementDateRange?: string;
   personalShare: number;
@@ -472,9 +473,20 @@ export function groupExpenses(
         (e.vendorSettlementId && String(e.vendorSettlementId).trim() === String(s.id).trim())
       );
 
+      const isForgiven = Boolean(s.isForgiven || (s.note && /forgiv|waiv/i.test(s.note)));
+      let noteText = s.note ? s.note.trim() : '';
+      if (isForgiven) {
+        noteText = noteText
+          .replace(/^forgiven\s*\/\s*waived\s*off$/i, '')
+          .replace(/^forgiven$/i, '')
+          .replace(/^waived\s*off$/i, '')
+          .replace(/^waived$/i, '')
+          .trim();
+      }
+
       const action = s.amount >= 0 ? 'Received' : 'Paid';
-      const cleanDesc = s.note
-        ? `Settlement: ${action} (${s.note})`
+      const cleanDesc = noteText
+        ? `Settlement: ${action} (${noteText})`
         : `Settlement: ${action}`;
 
       result.push({
@@ -491,6 +503,7 @@ export function groupExpenses(
         items: coveredExpenses,
         isSplit: false,
         isSettlementGroup: true,
+        isForgiven,
         settlementItemCount: coveredExpenses.length || (s.expenseIds || []).length,
         settlementDateRange: '',
         personalShare: 0,
@@ -984,12 +997,20 @@ export function resolveCategoryMeta(
  */
 export function cleanSettlementDescription(desc: string): string {
   if (!desc) return desc;
-  const m = desc.match(/^Settlement:\s*(Paid\s+to|Received\s+from)\s+(.+?)(?:\s*\((.*?)\))?$/i);
+
+  const cleaned = desc
+    .replace(/\s*\(\s*Forgiven\s*\/\s*Waived\s*off\s*\)/gi, '')
+    .replace(/\s*\(\s*Forgiven\s*\)/gi, '')
+    .replace(/\s*\(\s*Waived\s*off\s*\)/gi, '')
+    .replace(/\s*\(\s*Waived\s*\)/gi, '')
+    .trim();
+
+  const m = cleaned.match(/^Settlement:\s*(Paid\s+to|Received\s+from)\s+(.+?)(?:\s*\((.*?)\))?$/i);
   if (m) {
     const isPaid = m[1].toLowerCase().includes('paid');
     const action = isPaid ? 'Paid' : 'Received';
     const note = m[3]?.trim();
     return note ? `Settlement: ${action} (${note})` : `Settlement: ${action}`;
   }
-  return desc;
+  return cleaned;
 }

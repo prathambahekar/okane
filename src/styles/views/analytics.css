@@ -955,8 +955,9 @@
   font-size: var(--fs-caption);
   font-weight: 700;
   width: fit-content;
-  line-height: 1;
+  line-height: 1.2;
   box-sizing: border-box;
+  margin: 0;
 }
 
 .analytics-v2-trend-badge svg,
@@ -973,51 +974,55 @@
 
 .analytics-v2-pace-pill.faster {
   color: #dc2626;
-  background: rgba(239, 68, 68, 0.09);
-  border: 1px solid rgba(239, 68, 68, 0.22);
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.28);
 }
 
 .analytics-v2-pace-pill.slower {
-  color: var(--text);
-  background: rgba(24, 24, 27, 0.06);
-  border: 1px solid rgba(24, 24, 27, 0.14);
+  color: #15803d;
+  background: rgba(16, 185, 129, 0.10);
+  border: 1px solid rgba(16, 185, 129, 0.28);
 }
 
-[data-color-scheme="dark"] .analytics-v2-pace-pill.faster {
+[data-color-scheme="dark"] .analytics-v2-pace-pill.faster,
+[data-theme="dark"] .analytics-v2-pace-pill.faster {
   color: #f87171;
-  background: rgba(239, 68, 68, 0.16);
+  background: rgba(248, 113, 113, 0.14);
   border: 1px solid rgba(248, 113, 113, 0.28);
 }
 
-[data-color-scheme="dark"] .analytics-v2-pace-pill.slower {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+[data-color-scheme="dark"] .analytics-v2-pace-pill.slower,
+[data-theme="dark"] .analytics-v2-pace-pill.slower {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.14);
+  border: 1px solid rgba(52, 211, 153, 0.28);
 }
 
 .analytics-v2-trend-badge.down {
-  background: rgba(24, 24, 27, 0.06);
-  color: #18181b;
-  border: 1px solid rgba(24, 24, 27, 0.14);
+  color: #15803d;
+  background: rgba(16, 185, 129, 0.10);
+  border: 1px solid rgba(16, 185, 129, 0.28);
 }
 
-[data-color-scheme="dark"] .analytics-v2-trend-badge.down {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+[data-color-scheme="dark"] .analytics-v2-trend-badge.down,
+[data-theme="dark"] .analytics-v2-trend-badge.down {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.14);
+  border: 1px solid rgba(52, 211, 153, 0.28);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 .analytics-v2-trend-badge.up {
-  background: rgba(239, 68, 68, 0.12);
   color: #dc2626;
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.28);
 }
 
-[data-color-scheme="dark"] .analytics-v2-trend-badge.up {
-  background: rgba(239, 68, 68, 0.18);
+[data-color-scheme="dark"] .analytics-v2-trend-badge.up,
+[data-theme="dark"] .analytics-v2-trend-badge.up {
   color: #f87171;
-  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.14);
+  border: 1px solid rgba(248, 113, 113, 0.28);
 }
 
 .analytics-v2-trend-badge.neutral {
@@ -1831,7 +1836,6 @@
   overscroll-behavior: contain;
   padding-right: 2px;
   scroll-behavior: smooth;
-  scroll-snap-type: y mandatory;
 }
 
 .analytics-v2-day-list::-webkit-scrollbar {
@@ -1851,6 +1855,42 @@
   background: var(--text-3, rgba(255, 255, 255, 0.3));
 }
 
+.analytics-v2-scroll-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1.5px;
+  flex-shrink: 0;
+}
+
+.analytics-v2-scroll-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.analytics-v2-scroll-btn:hover:not(:disabled) {
+  background: var(--surface3);
+  color: var(--text);
+}
+
+.analytics-v2-scroll-btn:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+
 .analytics-v2-day-row {
   display: flex;
   align-items: center;
@@ -1867,7 +1907,6 @@
   width: 100%;
   box-sizing: border-box;
   user-select: none;
-  scroll-snap-align: start;
   flex-shrink: 0;
 }
 
@@ -1900,6 +1939,14 @@
   background-color: var(--surface2) !important;
   border-color: var(--border2) !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.analytics-v2-day-row.future-day {
+  opacity: 0.72;
+}
+
+.analytics-v2-day-row.future-day:hover {
+  opacity: 1;
 }
 
 .analytics-v2-day-left {
@@ -1958,6 +2005,12 @@
 .analytics-v2-day-tag.yesterday {
   background: rgba(16, 185, 129, 0.12);
   color: #10b981;
+}
+
+.analytics-v2-day-tag.upcoming {
+  background: var(--surface3);
+  color: var(--text-3);
+  font-weight: 600;
 }
 
 @media (max-width: 640px) {

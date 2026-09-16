@@ -28,7 +28,7 @@ export function initSQLTables() {
     alasql('CREATE TABLE IF NOT EXISTS friends (id STRING PRIMARY KEY, name STRING, notes STRING, color STRING, createdAt INT, type STRING, category STRING, billingCycle STRING, defaultAmount NUMBER, website STRING, avatarNumber STRING)');
     alasql('CREATE TABLE IF NOT EXISTS wallets (id STRING PRIMARY KEY, name STRING, openingBalance NUMBER, currentBalance NUMBER, color STRING, icon STRING, minBalanceAlert NUMBER, monthlySpendLimit NUMBER, isDefault INT, isHidden INT, rulesNotes STRING)');
     alasql('CREATE TABLE IF NOT EXISTS expenses (id STRING PRIMARY KEY, groupId STRING, description STRING, amount NUMBER, category STRING, date STRING, type STRING, flow STRING, friendId STRING, walletId STRING, status STRING, settled INT, settlementId STRING, notes STRING, createdAt INT, originalAmount NUMBER, originalDate STRING, settledAmount NUMBER, parentExpenseId STRING, vendorId STRING, vendorSettled INT, vendorSettlementId STRING, vendorSettledAmount NUMBER)');
-    alasql('CREATE TABLE IF NOT EXISTS settlements (id STRING PRIMARY KEY, friendId STRING, amount NUMBER, date STRING, note STRING, walletId STRING, paymentMethod STRING, createdAt INT, expenseIds STRING, originalTotal NUMBER, remainingAmount NUMBER, partialBreakdown STRING)');
+    alasql('CREATE TABLE IF NOT EXISTS settlements (id STRING PRIMARY KEY, friendId STRING, amount NUMBER, date STRING, note STRING, walletId STRING, paymentMethod STRING, createdAt INT, expenseIds STRING, originalTotal NUMBER, remainingAmount NUMBER, partialBreakdown STRING, isForgiven INT)');
     alasql('CREATE TABLE IF NOT EXISTS recurring_rules (id STRING PRIMARY KEY, title STRING, kind STRING, amount NUMBER, category STRING, walletId STRING, friendId STRING, type STRING, flow STRING, frequency STRING, intervalValue INT, startDate STRING, nextDueDate STRING, autoDeduct INT, lastDeductedDate STRING, lastLoggedDate STRING, status STRING, notes STRING, createdAt INT)');
     alasql('CREATE TABLE IF NOT EXISTS categories (name STRING PRIMARY KEY, color STRING, icon STRING)');
     alasql('CREATE TABLE IF NOT EXISTS settings (st_key STRING PRIMARY KEY, st_val STRING)');
@@ -1033,13 +1033,14 @@ export function syncDBToSQLTables(db: AppDB): void {
     (db.settlements || []).forEach(s => {
       if (!s.id || seenSettlements.has(s.id)) return;
       seenSettlements.add(s.id);
-      safeInsert('INSERT INTO settlements (id, friendId, amount, date, note, walletId, paymentMethod, createdAt, expenseIds, originalTotal, remainingAmount, partialBreakdown) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', [
+      safeInsert('INSERT INTO settlements (id, friendId, amount, date, note, walletId, paymentMethod, createdAt, expenseIds, originalTotal, remainingAmount, partialBreakdown, isForgiven) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', [
         s.id, s.friendId, Number(s.amount) || 0, s.date, s.note || '', s.walletId || null,
         s.paymentMethod || null,
         s.createdAt || Date.now(), JSON.stringify(s.expenseIds || []),
         s.originalTotal != null ? Number(s.originalTotal) : null,
         s.remainingAmount != null ? Number(s.remainingAmount) : null,
-        s.partialBreakdown ? JSON.stringify(s.partialBreakdown) : null
+        s.partialBreakdown ? JSON.stringify(s.partialBreakdown) : null,
+        s.isForgiven ? 1 : 0
       ]);
     });
 
@@ -1239,6 +1240,7 @@ export function loadDBFromSQLTables(): AppDB {
         originalTotal: s.originalTotal != null ? Number(s.originalTotal) : undefined,
         remainingAmount: s.remainingAmount != null ? Number(s.remainingAmount) : undefined,
         partialBreakdown: breakdown,
+        isForgiven: Boolean(s.isForgiven),
       };
     });
 
@@ -1754,7 +1756,7 @@ export function getDBCalculationCache(db: AppDB): DBCalculationCache {
   });
 
   (db.settlements || []).forEach(s => {
-    if (s.walletId) {
+    if (s.walletId && !s.isForgiven) {
       const amt = Number(s.amount) || 0;
       walletBalances.set(s.walletId, (walletBalances.get(s.walletId) || 0) + amt);
     }
@@ -2194,7 +2196,8 @@ export function recordSettlement(
   note: string,
   walletId?: string,
   customAmount?: number,
-  date?: string
+  date?: string,
+  isForgiven?: boolean
 ): AppDB {
   const settlementDate = date || todayISO();
   const selectedExpenses = db.expenses.filter(e => expenseIds.includes(e.id));
@@ -2338,19 +2341,23 @@ export function recordSettlement(
   });
 
   const settlementId = uid('stl');
+  const effectiveWalletId = isForgiven ? undefined : (walletId || undefined);
+  const effectivePaymentMethod = isForgiven ? 'Forgiven' : (wallet?.name || undefined);
+
   const s: Settlement = {
     id: settlementId,
     friendId,
     amount: fullNet >= 0 ? actualSettleAmount : -actualSettleAmount,
     date: settlementDate,
-    note: note || '',
+    note: note || (isForgiven ? 'Forgiven / Waived off' : ''),
     expenseIds: coveredExpenseIds.length > 0 ? coveredExpenseIds : expenseIds.slice(),
     createdAt: Date.now(),
-    walletId: walletId || undefined,
-    paymentMethod: wallet?.name || undefined,
+    walletId: effectiveWalletId,
+    paymentMethod: effectivePaymentMethod,
     originalTotal,
     remainingAmount,
     partialBreakdown: Object.keys(breakdown).length > 0 ? breakdown : undefined,
+    isForgiven: Boolean(isForgiven),
   };
 
   const finalUpdatedExpenses = updatedExpenses.map(e => {

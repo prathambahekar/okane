@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { X, Calendar, ReceiptText, Feather, Wallet, Check, RotateCcw, Pencil, ChevronDown } from 'lucide-react';
+import { X, Calendar, ReceiptText, Feather, Wallet, Check, RotateCcw, Pencil, ChevronDown, HeartHandshake, Handshake } from 'lucide-react';
 import { useStore } from '../store';
 import type { Friend } from '../types';
 import { expenseFlow, unsettledExpensesForFriend, todayISO } from '../db';
@@ -27,6 +27,8 @@ export default function SettleModal({ friend, onClose }: Props) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const [actionType, setActionType] = useState<'settle' | 'forgive'>('settle');
 
   const unsettled = useMemo(() => unsettledExpensesForFriend(db, friend.id), [db, friend.id]);
   const [selected, setSelected] = useState<Set<string>>(new Set(unsettled.map(e => e.id)));
@@ -111,12 +113,23 @@ export default function SettleModal({ friend, onClose }: Props) {
     setSettleDate(todayISO());
     setSelectedWalletId(db.settings.defaultWalletId || wallets[0]?.id || '');
     setNote('');
+    setActionType('settle');
     showToast('Reset to default');
   };
 
   const handleSettle = () => {
     if (!selected.size) return;
     const customVal = isCustomMode && !isNaN(parsedCustom) && parsedCustom > 0 ? parsedCustom : undefined;
+
+    if (actionType === 'forgive') {
+      const forgiveNote = note || 'Forgiven / Waived off';
+      recordSettlement(friend.id, Array.from(selected), forgiveNote, undefined, customVal, settleDate, true);
+      const remText = remainingBalance > 0 ? ` • ${fmtMoney(remainingBalance, currency)} remaining` : '';
+      showToast(`Forgiven ${fmtMoney(effectiveSettleAmt, currency)} (No wallet deduction)${remText}`);
+      onClose();
+      return;
+    }
+
     recordSettlement(friend.id, Array.from(selected), note, selectedWalletId, customVal, settleDate);
     const targetWallet = wallets.find(w => w.id === selectedWalletId);
     const wName = targetWallet?.name || 'Wallet';
@@ -196,7 +209,7 @@ export default function SettleModal({ friend, onClose }: Props) {
             </div>
             <div>
               <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
-                Settle with {friend.name}
+                {actionType === 'forgive' ? `Forgive Balance with ${friend.name}` : `Settle with ${friend.name}`}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
                 <span
@@ -263,13 +276,88 @@ export default function SettleModal({ friend, onClose }: Props) {
         </div>
 
         {/* Modal Body */}
-        <div className="modal-body" style={{ padding: '16px 20px 0px' }}>
+        <div className="modal-body" style={{ padding: '4px 20px 0px' }}>
           {unsettled.length === 0 ? (
             <div className="empty-state" style={{ padding: '32px 16px' }}>
               <p>No unsettled expenses with {friend.name}.</p>
             </div>
           ) : (
             <>
+              {/* Settle vs Forgive Mode Toggle */}
+              <div style={{ marginBottom: 14 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: 4,
+                    gap: 4,
+                  }}
+                >
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      textAlign: 'center',
+                      padding: '8px 12px',
+                      fontSize: 'var(--fs-sm)',
+                      fontWeight: actionType === 'settle' ? 700 : 550,
+                      borderRadius: 'var(--radius-md)',
+                      border: actionType === 'settle' ? '1px solid var(--text)' : '1px solid transparent',
+                      background: actionType === 'settle' ? 'var(--text)' : 'transparent',
+                      color: actionType === 'settle' ? 'var(--bg)' : 'var(--text-3)',
+                      boxShadow: actionType === 'settle' ? '0 2px 6px rgba(0,0,0,0.25)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      userSelect: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      whiteSpace: 'nowrap',
+                    }}
+                    onClick={() => {
+                      setActionType('settle');
+                      if (note === 'Forgiven / Waived off') setNote('');
+                    }}
+                  >
+                    <Handshake size={14} style={{ color: 'inherit' }} />
+                    <span>Settle Up</span>
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      textAlign: 'center',
+                      padding: '8px 12px',
+                      fontSize: 'var(--fs-sm)',
+                      fontWeight: actionType === 'forgive' ? 700 : 550,
+                      borderRadius: 'var(--radius-md)',
+                      border: actionType === 'forgive' ? '1px solid var(--amber-border)' : '1px solid transparent',
+                      background: actionType === 'forgive' ? 'var(--amber-bg)' : 'transparent',
+                      color: actionType === 'forgive' ? 'var(--amber)' : 'var(--text-3)',
+                      boxShadow: actionType === 'forgive' ? '0 2px 8px var(--amber-border)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      userSelect: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      whiteSpace: 'nowrap',
+                    }}
+                    onClick={() => {
+                      setActionType('forgive');
+                      if (!note) setNote('Forgiven / Waived off');
+                    }}
+                  >
+                    <HeartHandshake size={14} style={{ color: 'inherit' }} />
+                    <span>Forgive / Waive</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Tap to Select Expenses Banner */}
               <div style={{ marginBottom: 14 }}>
                 <div
@@ -294,29 +382,31 @@ export default function SettleModal({ friend, onClose }: Props) {
                         height: 32,
                         borderRadius: 'var(--radius-sm)',
                         background: 'transparent',
-                        color: 'var(--text)',
+                        color: actionType === 'forgive' ? 'var(--amber)' : 'var(--text)',
                         display: 'grid',
                         placeItems: 'center',
                         flexShrink: 0,
                       }}
                     >
-                      <ReceiptText size={20} style={{ color: 'var(--text)' }} />
+                      {actionType === 'forgive' ? <HeartHandshake size={20} style={{ color: 'var(--amber)' }} /> : <ReceiptText size={20} style={{ color: 'var(--text)' }} />}
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {selected.size === 0
-                          ? 'Tap to Select Expenses'
+                          ? (actionType === 'forgive' ? 'Tap to Select Expenses to Forgive' : 'Tap to Select Expenses')
                           : selected.size === unsettled.length
-                          ? `All ${unsettled.length} Expenses Selected`
-                          : `${selected.size} of ${unsettled.length} Expenses Selected`}
+                          ? (actionType === 'forgive' ? `All ${unsettled.length} Expenses to Forgive Selected` : `All ${unsettled.length} Expenses Selected`)
+                          : (actionType === 'forgive' ? `${selected.size} of ${unsettled.length} Expenses to Forgive` : `${selected.size} of ${unsettled.length} Expenses Selected`)}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                         {selected.size > 0 ? (
                           <>
-                            <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 500, color: 'var(--text-3)' }}>Net Total:</span>
+                            <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 500, color: 'var(--text-3)' }}>
+                              {actionType === 'forgive' ? 'Net Amount:' : 'Net Total:'}
+                            </span>
                             <span
                               style={{
-                                color: net >= 0 ? 'var(--credit)' : 'var(--debit)',
+                                color: actionType === 'forgive' ? 'var(--amber)' : (net >= 0 ? 'var(--credit)' : 'var(--debit)'),
                                 fontWeight: 700,
                                 fontSize: 'var(--fs-xs)',
                                 letterSpacing: '0.2px',
@@ -336,8 +426,8 @@ export default function SettleModal({ friend, onClose }: Props) {
 
                   <button
                     type="button"
-                    aria-label="Edit selected expenses"
-                    title="Edit selected expenses"
+                    aria-label={actionType === 'forgive' ? 'Edit expenses to forgive' : 'Edit selected expenses'}
+                    title={actionType === 'forgive' ? 'Edit expenses to forgive' : 'Edit selected expenses'}
                     style={{
                       background: 'transparent',
                       color: 'var(--text-2)',
@@ -369,7 +459,7 @@ export default function SettleModal({ friend, onClose }: Props) {
               {/* Settle Amount Mode Segment Toggle */}
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 6 }}>
-                  Settle Mode
+                  {actionType === 'forgive' ? 'Forgive Mode' : 'Settle Mode'}
                 </div>
                 <div
                   style={{
@@ -408,7 +498,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                       setCustomAmountStr('');
                     }}
                   >
-                    <span>Full</span>
+                    <span>{actionType === 'forgive' ? 'All' : 'Full'}</span>
                     <span
                       style={{
                         fontSize: 'var(--fs-xs)',
@@ -446,7 +536,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                       if (!customAmountStr) setCustomAmountStr(String(absNet));
                     }}
                   >
-                    Custom
+                    Custom Partial
                   </button>
                 </div>
               </div>
@@ -456,7 +546,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                      Custom Amount
+                      {actionType === 'forgive' ? 'Amount to Forgive' : 'Custom Amount'}
                     </label>
                     <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500 }}>
                       Total due: <span style={{ color: 'var(--text)', fontWeight: 700 }}>{fmtMoney(absNet, currency)}</span>
@@ -480,7 +570,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                       style={{
                         fontSize: 'var(--fs-lg)',
                         fontWeight: 700,
-                        color: 'var(--accent, #10b981)',
+                        color: actionType === 'forgive' ? 'var(--amber)' : 'var(--accent, #10b981)',
                         userSelect: 'none',
                         lineHeight: 1,
                       }}
@@ -548,18 +638,29 @@ export default function SettleModal({ friend, onClose }: Props) {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ color: 'var(--text-3)', fontWeight: 500, fontSize: 'var(--fs-xs)' }}>Total Debt Selected</span>
+                  <span style={{ color: 'var(--text-3)', fontWeight: 500, fontSize: 'var(--fs-xs)' }}>
+                    {actionType === 'forgive' ? 'Total Balance Selected' : 'Total Debt Selected'}
+                  </span>
                   <span style={{ fontWeight: 700, color: 'var(--text-2)', fontSize: 'var(--fs-sm)', letterSpacing: '0.2px' }}>{fmtMoney(absNet, currency)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: remainingBalance > 0 ? 6 : 0 }}>
-                  <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 'var(--fs-base)' }}>Amount Settling Now</span>
-                  <span style={{ fontWeight: 700, color: net >= 0 ? 'var(--credit)' : 'var(--debit)', fontSize: 'var(--fs-md)', letterSpacing: '0.2px' }}>
-                    {net >= 0 ? '+' : '-'}{fmtMoney(effectiveSettleAmt, currency)}
+                  <span style={{ color: 'var(--text)', fontWeight: 700, fontSize: 'var(--fs-base)' }}>
+                    {actionType === 'forgive' ? 'Amount to Waive Off' : 'Amount Settling Now'}
+                  </span>
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      color: actionType === 'forgive' ? 'var(--amber)' : (net >= 0 ? 'var(--credit)' : 'var(--debit)'),
+                      fontSize: 'var(--fs-md)',
+                      letterSpacing: '0.2px',
+                    }}
+                  >
+                    {actionType === 'forgive' ? `~${fmtMoney(effectiveSettleAmt, currency)}` : `${net >= 0 ? '+' : '-'}${fmtMoney(effectiveSettleAmt, currency)}`}
                   </span>
                 </div>
                 {isCustomMode && remainingBalance > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, marginTop: 6 }}>
-                    <span style={{ color: 'var(--text-3)', fontWeight: 500, fontSize: 'var(--fs-xs)' }}>Remaining Balance</span>
+                    <span style={{ color: 'var(--text-3)', fontWeight: 500, fontSize: 'var(--fs-xs)' }}>Remaining Balance Left</span>
                     <span style={{ fontWeight: 700, color: 'var(--text)', fontSize: 'var(--fs-sm)', letterSpacing: '0.2px' }}>
                       {fmtMoney(remainingBalance, currency)}
                     </span>
@@ -569,11 +670,11 @@ export default function SettleModal({ friend, onClose }: Props) {
 
               {/* Date & Payment Method in One Row */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 0 }}>
-                {/* Settle Date */}
+                {/* Settle / Forgive Date */}
                 <div>
                   <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
-                    <Calendar size={13} style={{ color: 'var(--accent)' }} />
-                    <span>Settle Date</span>
+                    <Calendar size={13} style={{ color: actionType === 'forgive' ? 'var(--amber)' : 'var(--accent)' }} />
+                    <span>{actionType === 'forgive' ? 'Forgive Date' : 'Settle Date'}</span>
                   </label>
                   <input
                     type="date"
@@ -595,60 +696,90 @@ export default function SettleModal({ friend, onClose }: Props) {
                   />
                 </div>
 
-                {/* Payment Method (Wallet) Dropdown */}
-                <div>
-                  <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
-                    <Wallet size={13} style={{ color: 'var(--accent)' }} />
-                    <span>Payment Method</span>
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <select
-                      value={selectedWalletId}
-                      onChange={e => {
-                        const wId = e.target.value;
-                        setSelectedWalletId(wId);
-                        const selW = wallets.find(w => w.id === wId);
-                        if (selW && (!note || note.startsWith('Paid via ') || note.startsWith('Settled via '))) {
-                          setNote(`Paid via ${selW.name}`);
-                        }
-                      }}
+                {/* Payment Method (Wallet) or Forgiven Info */}
+                {actionType === 'forgive' ? (
+                  <div>
+                    <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                      <HeartHandshake size={13} style={{ color: 'var(--amber)' }} />
+                      <span>Wallet Impact</span>
+                    </label>
+                    <div
                       style={{
-                        width: '100%',
                         height: 42,
                         fontSize: 'var(--fs-sm)',
                         fontWeight: 600,
                         borderRadius: 'var(--radius-md)',
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface2)',
-                        color: 'var(--text)',
-                        padding: '0 32px 0 12px',
-                        outline: 'none',
+                        border: '1px solid var(--amber-border)',
+                        background: 'var(--amber-bg)',
+                        color: 'var(--amber)',
+                        padding: '0 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
                         boxSizing: 'border-box',
-                        appearance: 'none',
-                        WebkitAppearance: 'none',
-                        MozAppearance: 'none',
-                        cursor: 'pointer',
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
                       }}
                     >
-                      {wallets.map(w => (
-                        <option key={w.id} value={w.id} style={{ background: 'var(--surface)', color: 'var(--text)' }}>
-                          {w.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      size={15}
-                      style={{
-                        position: 'absolute',
-                        right: 12,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        pointerEvents: 'none',
-                        color: 'var(--text-2)',
-                      }}
-                    />
+                      <span>No wallet deduction</span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                      <Wallet size={13} style={{ color: 'var(--accent)' }} />
+                      <span>Payment Method</span>
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        value={selectedWalletId}
+                        onChange={e => {
+                          const wId = e.target.value;
+                          setSelectedWalletId(wId);
+                          const selW = wallets.find(w => w.id === wId);
+                          if (selW && (!note || note.startsWith('Paid via ') || note.startsWith('Settled via '))) {
+                            setNote(`Paid via ${selW.name}`);
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          height: 42,
+                          fontSize: 'var(--fs-sm)',
+                          fontWeight: 600,
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border)',
+                          background: 'var(--surface2)',
+                          color: 'var(--text)',
+                          padding: '0 32px 0 12px',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          appearance: 'none',
+                          WebkitAppearance: 'none',
+                          MozAppearance: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {wallets.map(w => (
+                          <option key={w.id} value={w.id} style={{ background: 'var(--surface)', color: 'var(--text)' }}>
+                            {w.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown
+                        size={15}
+                        style={{
+                          position: 'absolute',
+                          right: 12,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          pointerEvents: 'none',
+                          color: 'var(--text-2)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -731,10 +862,10 @@ export default function SettleModal({ friend, onClose }: Props) {
                   borderRadius: 'var(--radius-full)',
                   fontSize: 'var(--fs-base)',
                   fontWeight: 700,
-                  background: 'var(--text)',
-                  border: '1px solid var(--text)',
-                  color: 'var(--bg)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                  background: actionType === 'forgive' ? 'var(--amber-bg)' : 'var(--text)',
+                  border: actionType === 'forgive' ? '1px solid var(--amber-border)' : '1px solid var(--text)',
+                  color: actionType === 'forgive' ? 'var(--amber)' : 'var(--bg)',
+                  boxShadow: actionType === 'forgive' ? '0 2px 8px var(--amber-border)' : '0 2px 8px rgba(0, 0, 0, 0.2)',
                   cursor: 'pointer',
                   padding: '0 18px',
                   display: 'inline-flex',
@@ -745,8 +876,17 @@ export default function SettleModal({ friend, onClose }: Props) {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <Check size={16} style={{ color: 'inherit' }} />
-                <span>Settle {fmtMoney(effectiveSettleAmt, currency)}</span>
+                {actionType === 'forgive' ? (
+                  <>
+                    <HeartHandshake size={16} style={{ color: 'inherit' }} />
+                    <span>Forgive {fmtMoney(effectiveSettleAmt, currency)}</span>
+                  </>
+                ) : (
+                  <>
+                    <Check size={16} style={{ color: 'inherit' }} />
+                    <span>Settle {fmtMoney(effectiveSettleAmt, currency)}</span>
+                  </>
+                )}
               </button>
             </>
           )}
@@ -757,12 +897,14 @@ export default function SettleModal({ friend, onClose }: Props) {
       <NoteEditorModal
         isOpen={isNoteModalOpen}
         onClose={() => setIsNoteModalOpen(false)}
-        title="Settle Note"
+        title={actionType === 'forgive' ? 'Forgive Note' : 'Settle Note'}
         initialNote={note}
         onSave={(newNote) => setNote(newNote)}
-        placeholder="Add optional settle remarks, payment reference or note..."
+        placeholder={actionType === 'forgive' ? 'e.g. Waived off small change, treated, etc.' : 'Add optional settle remarks, payment reference or note...'}
         quickTags={
-          activeWallet
+          actionType === 'forgive'
+            ? ['Waived off small change', 'Treated / On me', 'Leftover balance dismissed', 'Mutual agreement', 'Rounded off']
+            : activeWallet
             ? [`Paid via ${activeWallet.name}`, 'Cash repayment', 'Settled in full', 'Bill share', 'UPI Transfer', 'Bank Transfer']
             : ['Paid via Google Pay', 'Cash repayment', 'Settled in full', 'Bill share', 'UPI Transfer', 'Bank Transfer']
         }
@@ -781,7 +923,7 @@ export default function SettleModal({ friend, onClose }: Props) {
           onDeselectAll={deselectAll}
           currency={currency}
           db={db}
-          title="Select Expenses to Settle"
+          title={actionType === 'forgive' ? 'Select Expenses to Forgive' : 'Select Expenses to Settle'}
         />
       )}
     </div>,

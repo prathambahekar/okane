@@ -50,7 +50,6 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
   prevPeriodSpent,
   dailyAvg,
   daysPassedCount,
-  totalDaysInPeriod,
   highestDayAmount,
   noSpendDaysCount,
   chartDays,
@@ -92,14 +91,12 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
     const diff = totalSpent - prevPeriodSpent;
     const pct = Math.abs(Math.round((diff / prevPeriodSpent) * 100));
 
-    // Calculate pace trajectory if in active period
+    // Calculate pace trajectory if in active period (direct same-period comparison)
     let trajectory = 'even';
-    if (isCurrentPeriod && daysPassedCount && totalDaysInPeriod && daysPassedCount < totalDaysInPeriod) {
-      const elapsedFraction = daysPassedCount / totalDaysInPeriod;
-      const expectedSpentAtThisPace = prevPeriodSpent * elapsedFraction;
-      if (totalSpent > expectedSpentAtThisPace * 1.05) {
+    if (isCurrentPeriod && prevPeriodSpent > 0) {
+      if (totalSpent > prevPeriodSpent * 1.05) {
         trajectory = 'faster';
-      } else if (totalSpent < expectedSpentAtThisPace * 0.95) {
+      } else if (totalSpent < prevPeriodSpent * 0.95) {
         trajectory = 'slower';
       }
     }
@@ -125,7 +122,7 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
       label: `0% vs ${periodLabel}`,
       trajectory,
     };
-  }, [totalSpent, prevPeriodSpent, period, isCurrentPeriod, daysPassedCount, totalDaysInPeriod]);
+  }, [totalSpent, prevPeriodSpent, period, isCurrentPeriod]);
 
   // Determine highest value for Y-axis scaling
   const maxDaySpend = useMemo(() => {
@@ -349,7 +346,14 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
 
       {/* 3. Comparison Trend Badge & Pace / Velocity Trajectory */}
       <div className="analytics-v2-trend-row">
-        <div className={`analytics-v2-trend-badge ${comparison.type}`}>
+        <div
+          className={`analytics-v2-trend-badge ${comparison.type}`}
+          title={
+            isCurrentPeriod
+              ? `Compared to same period of ${period === 'week' ? 'last week' : 'last month'} (Day 1 through ${daysPassedCount || 1})`
+              : `Compared to previous ${period === 'week' ? 'week' : 'month'}`
+          }
+        >
           {comparison.type === 'down' && <ArrowDownRight size={14} strokeWidth={2.5} />}
           {comparison.type === 'up' && <ArrowUpRight size={14} strokeWidth={2.5} />}
           {comparison.type === 'neutral' && <Minus size={14} strokeWidth={2.5} />}
@@ -357,14 +361,14 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
         </div>
 
         {isCurrentPeriod && comparison.trajectory === 'faster' && (
-          <div className="analytics-v2-pace-pill faster" title="Spending pace is trending faster than previous period">
-            <TrendingUp size={13} strokeWidth={2.2} />
+          <div className="analytics-v2-pace-pill faster" title="Spending pace is trending faster than same period last month">
+            <TrendingUp size={14} strokeWidth={2.5} />
             <span>Pacing faster</span>
           </div>
         )}
         {isCurrentPeriod && comparison.trajectory === 'slower' && (
-          <div className="analytics-v2-pace-pill slower" title="Spending pace is trending slower than previous period">
-            <TrendingDown size={13} strokeWidth={2.2} />
+          <div className="analytics-v2-pace-pill slower" title="Spending pace is trending slower than same period last month (spending less)">
+            <TrendingDown size={14} strokeWidth={2.5} />
             <span>Pacing slower</span>
           </div>
         )}

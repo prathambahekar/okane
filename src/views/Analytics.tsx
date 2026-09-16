@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../store';
 import { groupExpenses, getGroupedExpenseAmount, type GroupedExpense } from '../utils';
@@ -8,7 +8,7 @@ import DailyWalletBalanceDrawer from '../components/DailyWalletBalanceDrawer';
 import AnalyticsHeader from '../components/analytics/AnalyticsHeader';
 import TotalSpendingCard, { type ChartDayData } from '../components/analytics/TotalSpendingCard';
 import CategoryDistributionCard from '../components/analytics/CategoryDistributionCard';
-import DailyExpenditureCard from '../components/analytics/DailyExpenditureCard';
+import DailyExpenditureCard, { type DayExpenditureRow } from '../components/analytics/DailyExpenditureCard';
 import CategoryIcon from '../components/CategoryIcon';
 import { renderWalletIcon } from '../components/WalletIconRenderer';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
@@ -55,9 +55,68 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
     setSelectedDate(null);
     setPeriod(p);
   };
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+
+  const selectedCategory = useMemo(() => {
+    return selectedCategories.length === 1 ? selectedCategories[0] : null;
+  }, [selectedCategories]);
+
+  const setSelectedCategory = useCallback((catName: string | null) => {
+    if (!catName) {
+      setSelectedCategories([]);
+    } else {
+      setSelectedCategories([catName]);
+    }
+  }, []);
+
+  const allCategoryNames = useMemo(() => {
+    return (db.settings?.categories || []).map((c) => c.name);
+  }, [db.settings?.categories]);
+
+  const isAllCategoriesSelected = useMemo(() => {
+    return (
+      selectedCategories.length === 0 ||
+      selectedCategories.length === allCategoryNames.length ||
+      (selectedCategories.length === 1 && selectedCategories[0] === '__ALL__')
+    );
+  }, [selectedCategories, allCategoryNames]);
+
+  const effectiveSelectedCount = useMemo(() => {
+    if (isAllCategoriesSelected) return allCategoryNames.length;
+    if (selectedCategories.length === 1 && selectedCategories[0] === '__NONE__') return 0;
+    return selectedCategories.length;
+  }, [isAllCategoriesSelected, selectedCategories, allCategoryNames]);
+
+  const handleToggleCategoryInDrawer = useCallback((catName: string) => {
+    if (isAllCategoriesSelected) {
+      // When "All Categories" is active, clicking a category DESELECTS it from all
+      const remaining = allCategoryNames.filter((c) => c !== catName);
+      setSelectedCategories(remaining);
+    } else {
+      // Multi-select mode
+      const isCurrentlySelected = selectedCategories.includes(catName);
+      if (isCurrentlySelected) {
+        // Deselect
+        const next = selectedCategories.filter((c) => c !== catName);
+        if (next.length === 0) {
+          setSelectedCategories(['__NONE__']);
+        } else {
+          setSelectedCategories(next);
+        }
+      } else {
+        // Select
+        const cleanPrev = selectedCategories.filter((c) => c !== '__NONE__');
+        const next = [...cleanPrev, catName];
+        if (next.length >= allCategoryNames.length) {
+          setSelectedCategories([]);
+        } else {
+          setSelectedCategories(next);
+        }
+      }
+    }
+  }, [isAllCategoriesSelected, allCategoryNames, selectedCategories]);
 
   const now = useMemo(() => new Date(), []);
   const todayStr = useMemo(() => formatISO(now), [now]);
@@ -263,46 +322,70 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
     }
   }, [period, activeWeekMonStr, activeMonthStr]);
 
-  // Preceding period boundaries for comparison
+  // Preceding period boundaries for comparison (Pair / Same-period comparison when in current period)
   const prevDateRange = useMemo(() => {
     if (period === 'week') {
       const [wy, wm, wd] = activeWeekMonStr.split('-').map(Number);
+      const isCurrentWeek = activeWeekMonStr === currentWeekMonStr;
       const prevMon = new Date(wy, wm - 1, wd - 7);
-      const prevSun = new Date(wy, wm - 1, wd - 1);
+
+      let prevEndDate: Date;
+      if (isCurrentWeek) {
+        // Compare same elapsed days of week (e.g. Mon-Wed vs Mon-Wed of last week)
+        const [ty, tm, td] = todayStr.split('-').map(Number);
+        const todayDate = new Date(ty, tm - 1, td);
+        const activeMon = new Date(wy, wm - 1, wd);
+        const elapsedDays = Math.max(0, Math.min(6, Math.floor((todayDate.getTime() - activeMon.getTime()) / (1000 * 60 * 60 * 24))));
+        prevEndDate = new Date(wy, wm - 1, wd - 7 + elapsedDays);
+      } else {
+        prevEndDate = new Date(wy, wm - 1, wd - 1);
+      }
       return {
         startDate: formatISO(prevMon),
-        endDate: formatISO(prevSun),
+        endDate: formatISO(prevEndDate),
       };
     } else {
       const [my, mm] = activeMonthStr.split('-').map(Number);
+      const isCurrentMonth = activeMonthStr === currentMonthStr;
       const firstDay = new Date(my, mm - 2, 1);
-      const lastDay = new Date(my, mm - 1, 0);
+
+      let lastDay: Date;
+      if (isCurrentMonth) {
+        // Same-period Month-to-Date: Day 1 to Today's day-of-month in previous month (e.g. 1st-16th vs 1st-16th)
+        const td = Number(todayStr.split('-')[2]);
+        const todayDayNum = td || new Date().getDate();
+        const daysInPrevMonth = new Date(my, mm - 1, 0).getDate();
+        const compareDayNum = Math.min(todayDayNum, daysInPrevMonth);
+        lastDay = new Date(my, mm - 2, compareDayNum);
+      } else {
+        lastDay = new Date(my, mm - 1, 0);
+      }
       return {
         startDate: formatISO(firstDay),
         endDate: formatISO(lastDay),
       };
     }
-  }, [period, activeWeekMonStr, activeMonthStr]);
+  }, [period, activeWeekMonStr, currentWeekMonStr, activeMonthStr, currentMonthStr, todayStr]);
 
   // Filtered expenses for active period
   const periodExpenses = useMemo(() => {
     return groupedExpenses.filter(ge => {
       if (ge.date < activeDateRange.startDate || ge.date > activeDateRange.endDate) return false;
-      if (selectedCategory && ge.category !== selectedCategory) return false;
+      if (!isAllCategoriesSelected && !selectedCategories.includes(ge.category)) return false;
       if (selectedWalletId && ge.walletId !== selectedWalletId) return false;
       return true;
     });
-  }, [groupedExpenses, activeDateRange, selectedCategory, selectedWalletId]);
+  }, [groupedExpenses, activeDateRange, isAllCategoriesSelected, selectedCategories, selectedWalletId]);
 
   // Preceding period expenses
   const prevPeriodExpenses = useMemo(() => {
     return groupedExpenses.filter(ge => {
       if (ge.date < prevDateRange.startDate || ge.date > prevDateRange.endDate) return false;
-      if (selectedCategory && ge.category !== selectedCategory) return false;
+      if (!isAllCategoriesSelected && !selectedCategories.includes(ge.category)) return false;
       if (selectedWalletId && ge.walletId !== selectedWalletId) return false;
       return true;
     });
-  }, [groupedExpenses, prevDateRange, selectedCategory, selectedWalletId]);
+  }, [groupedExpenses, prevDateRange, isAllCategoriesSelected, selectedCategories, selectedWalletId]);
 
   // Total spent in active period & previous period
   const totalSpent = useMemo(() => {
@@ -407,10 +490,10 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
 
   const activeFilterCount = useMemo(() => {
     let c = 0;
-    if (selectedCategory) c++;
+    if (!isAllCategoriesSelected) c++;
     if (selectedWalletId) c++;
     return c;
-  }, [selectedCategory, selectedWalletId]);
+  }, [isAllCategoriesSelected, selectedWalletId]);
 
   const handleDeleteExpense = (id: string) => {
     deleteExpense(id);
@@ -432,7 +515,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
     });
   }, [periodExpenses, selectedDate]);
 
-  // Base scope expenses across ALL categories for the active scope (specific selectedDate or active period, unfiltered by selectedCategory)
+  // Base scope expenses across active categories for the active scope (specific selectedDate or active period)
   const basePeriodExpenses = useMemo(() => {
     return groupedExpenses.filter(ge => {
       if (selectedDate) {
@@ -440,10 +523,11 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
       } else {
         if (ge.date < activeDateRange.startDate || ge.date > activeDateRange.endDate) return false;
       }
+      if (!isAllCategoriesSelected && !selectedCategories.includes(ge.category)) return false;
       if (selectedWalletId && ge.walletId !== selectedWalletId) return false;
       return true;
     });
-  }, [groupedExpenses, activeDateRange, selectedDate, selectedWalletId]);
+  }, [groupedExpenses, activeDateRange, selectedDate, isAllCategoriesSelected, selectedCategories, selectedWalletId]);
 
   const basePeriodTotalSpent = useMemo(() => {
     return basePeriodExpenses
@@ -471,20 +555,22 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
       }
     });
 
-    // In monthly view without a single-day filter or category filter, populate all days of the month (newest to oldest)
-    if (period === 'month' && !selectedDate && !selectedCategory) {
+    // In monthly view without a single-day filter or category filter, populate all days of the month (past/today first, future dates at end)
+    if (period === 'month' && !selectedDate && isAllCategoriesSelected) {
       const [my, mm] = activeMonthStr.split('-').map(Number);
       const totalDays = new Date(my, mm, 0).getDate();
-      const allDays = [];
+      const pastOrTodayDays: DayExpenditureRow[] = [];
+      const futureDays: DayExpenditureRow[] = [];
 
       for (let d = totalDays; d >= 1; d--) {
         const cur = new Date(my, mm - 1, d);
         const dateStr = formatISO(cur);
+        const isFuture = dateStr > todayStr;
         const data = map[dateStr] || { spend: 0, income: 0, items: [], categories: {} };
         const topCatEntry = Object.entries(data.categories).sort((a, b) => b[1] - a[1])[0];
         const dayName = cur.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 
-        allDays.push({
+        const rowItem = {
           dateStr,
           dayName,
           spend: data.spend,
@@ -494,9 +580,21 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
           topCategory: topCatEntry ? topCatEntry[0] : (data.items[0]?.category || "General"),
           isToday: dateStr === todayStr,
           isYesterday: dateStr === yesterdayStr,
-        });
+          isFuture,
+        };
+
+        if (isFuture) {
+          futureDays.push(rowItem);
+        } else {
+          pastOrTodayDays.push(rowItem);
+        }
       }
-      return allDays;
+
+      // Past & today days are in descending order (e.g. 16, 15, ..., 1)
+      // Future/yet-to-come days appear at the end in ascending order (e.g. 17, 18, ..., 30)
+      futureDays.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+
+      return [...pastOrTodayDays, ...futureDays];
     }
 
     return Object.entries(map)
@@ -520,7 +618,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
         };
       })
       .sort((a, b) => b.dateStr.localeCompare(a.dateStr));
-  }, [filteredExpenses, period, activeMonthStr, selectedDate, selectedCategory, todayStr, yesterdayStr, spendingMode]);
+  }, [filteredExpenses, period, activeMonthStr, selectedDate, isAllCategoriesSelected, todayStr, yesterdayStr, spendingMode]);
 
   // Category breakdown across all categories for the active period
   const categoryBreakdown = useMemo(() => {
@@ -696,51 +794,64 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
               {/* Category Filter */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Category
-                  </label>
-                  {selectedCategory && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Category
+                    </label>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', background: 'var(--surface2)', padding: '2px 7px', borderRadius: 9999 }}>
+                      {isAllCategoriesSelected ? 'All selected' : `${effectiveSelectedCount} of ${allCategoryNames.length}`}
+                    </span>
+                  </div>
+                  {!isAllCategoriesSelected ? (
                     <button
                       type="button"
-                      onClick={() => setSelectedCategory(null)}
+                      onClick={() => setSelectedCategories([])}
                       style={{ fontSize: 11, color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                     >
-                      Clear
+                      Select All
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategories(['__NONE__'])}
+                      style={{ fontSize: 11, color: 'var(--text-3)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      Clear All
                     </button>
                   )}
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, maxHeight: 170, overflowY: 'auto', paddingRight: 2 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, maxHeight: 180, overflowY: 'auto', paddingRight: 2 }}>
                   <button
                     type="button"
-                    onClick={() => setSelectedCategory(null)}
+                    onClick={() => setSelectedCategories([])}
                     style={{
                       padding: '7px 13px',
                       borderRadius: 9999,
-                      border: !selectedCategory ? '1px solid var(--accent)' : '1px solid var(--border)',
-                      background: !selectedCategory ? 'var(--accent)' : 'var(--surface2)',
-                      color: !selectedCategory ? 'var(--accent-contrast)' : 'var(--text-2)',
+                      border: isAllCategoriesSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      background: isAllCategoriesSelected ? 'var(--accent)' : 'var(--surface2)',
+                      color: isAllCategoriesSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
                       fontSize: 12,
-                      fontWeight: !selectedCategory ? 650 : 500,
+                      fontWeight: isAllCategoriesSelected ? 650 : 500,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 6,
-                      boxShadow: !selectedCategory ? '0 2px 8px var(--accent-soft)' : 'none',
+                      boxShadow: isAllCategoriesSelected ? '0 2px 8px var(--accent-soft)' : 'none',
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    {!selectedCategory && <Check size={13} strokeWidth={2.5} />}
+                    {isAllCategoriesSelected && <Check size={13} strokeWidth={2.5} />}
                     <span>All Categories</span>
                   </button>
 
                   {db.settings.categories.map((c) => {
-                    const isSelected = selectedCategory === c.name;
+                    const isSelected = isAllCategoriesSelected ? false : selectedCategories.includes(c.name);
                     return (
                       <button
                         key={c.name}
                         type="button"
-                        onClick={() => setSelectedCategory(isSelected ? null : c.name)}
+                        onClick={() => handleToggleCategoryInDrawer(c.name)}
                         style={{
                           padding: '7px 13px',
                           borderRadius: 'var(--radius-full)',
@@ -862,7 +973,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedCategory(null);
+                  setSelectedCategories([]);
                   setSelectedWalletId(null);
                 }}
                 disabled={activeFilterCount === 0}

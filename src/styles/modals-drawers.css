@@ -1729,14 +1729,20 @@
     letter-spacing: -0.025em;
   }
 
-  .analytics-v2-trend-badge {
+  .analytics-v2-trend-row {
+    margin-bottom: 12px;
+  }
+
+  .analytics-v2-trend-badge,
+  .analytics-v2-pace-pill {
     font-size: 11.5px;
     padding: 3px 8px;
-    margin-bottom: 12px;
+    margin: 0;
     gap: 4px;
   }
 
-  .analytics-v2-trend-badge svg {
+  .analytics-v2-trend-badge svg,
+  .analytics-v2-pace-pill svg {
     width: 13px;
     height: 13px;
   }

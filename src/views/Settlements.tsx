@@ -277,12 +277,17 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
         const matchesFriend = friendName.includes(q);
         const matchesNote = (s.note || '').toLowerCase().includes(q);
         const matchesMethod = (s.paymentMethod || '').toLowerCase().includes(q);
+        const isForgiven = Boolean(s.isForgiven);
+        const matchesForgiven = isForgiven && (
+          'forgiven'.includes(q) || 'waived'.includes(q) || 'forgotten'.includes(q) ||
+          q.includes('forgiv') || q.includes('waiv') || q.includes('forgot')
+        );
         const matchedExpenses = settlementExpensesMap[s.id] || [];
         const matchesExpenses = matchedExpenses.some(
           e => (e?.description || '').toLowerCase().includes(q) || (e?.category || '').toLowerCase().includes(q)
         );
 
-        if (!matchesFriend && !matchesNote && !matchesMethod && !matchesExpenses) {
+        if (!matchesFriend && !matchesNote && !matchesMethod && !matchesForgiven && !matchesExpenses) {
           return false;
         }
       }

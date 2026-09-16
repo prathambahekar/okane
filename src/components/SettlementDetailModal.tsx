@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { X, Handshake, ArrowDownLeft, ArrowUpRight, RotateCcw, Calendar, Wallet as WalletIcon, FileText, Store } from 'lucide-react';
+import { X, Handshake, ArrowDownLeft, ArrowUpRight, RotateCcw, Calendar, Wallet as WalletIcon, FileText, Store, HeartHandshake } from 'lucide-react';
 import { useStore } from '../store';
 import type { Settlement, Expense } from '../types';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, cleanExpenseDescription } from '../utils';
@@ -26,8 +26,9 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
   const expenses = db?.expenses || [];
 
   const friend = friends.find(f => f && f.id === settlement?.friendId);
+  const isForgiven = Boolean(settlement?.isForgiven);
   const wallet = wallets.find(w => w && w.id === settlement?.walletId);
-  const walletName = wallet?.name || settlement?.paymentMethod || 'Wallet';
+  const walletName = isForgiven ? 'None (Forgiven)' : (wallet?.name || settlement?.paymentMethod || 'Wallet');
 
   const amtVal = Number(settlement?.amount) || 0;
   const isReceived = amtVal >= 0;
@@ -75,15 +76,15 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                   background: 'transparent',
                   display: 'grid',
                   placeItems: 'center',
-                  color: 'var(--text)',
+                  color: isForgiven ? 'var(--amber)' : 'var(--text)',
                 }}
               >
-                <Handshake size={20} />
+                {isForgiven ? <HeartHandshake size={20} /> : <Handshake size={20} />}
               </div>
             )}
             <div>
               <div className="modal-title" style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.2 }}>
-                Settlement Details
+                {isForgiven ? 'Forgiven Settlement' : 'Settlement Details'}
               </div>
               <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ fontWeight: 600, color: 'var(--text)' }}>{friend ? friend.name : 'Unknown Friend'}</span>
@@ -111,13 +112,23 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
 
         {/* Body */}
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Money Paid / Received Card - Inspired by Parth Balance Card (Image 3) */}
+          {/* Money Paid / Received / Forgiven Card */}
           <div
             style={{
               padding: '16px 18px',
               borderRadius: 16,
-              background: isReceived ? 'rgba(16, 185, 129, 0.06)' : 'rgba(239, 68, 68, 0.06)',
-              border: `1px solid ${isReceived ? 'rgba(16, 185, 129, 0.18)' : 'rgba(239, 68, 68, 0.18)'}`,
+              background: isForgiven
+                ? 'var(--amber-bg)'
+                : isReceived
+                ? 'rgba(16, 185, 129, 0.06)'
+                : 'rgba(239, 68, 68, 0.06)',
+              border: `1px solid ${
+                isForgiven
+                  ? 'var(--amber-border)'
+                  : isReceived
+                  ? 'rgba(16, 185, 129, 0.18)'
+                  : 'rgba(239, 68, 68, 0.18)'
+              }`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -131,26 +142,32 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  color: 'var(--text-3)',
+                  color: isForgiven ? 'var(--amber)' : 'var(--text-3)',
                   marginBottom: 6,
                 }}
               >
-                TOTAL AMOUNT
+                {isForgiven ? 'WAIVED OFF AMOUNT' : 'TOTAL AMOUNT'}
               </div>
               <div
                 style={{
                   fontSize: 26,
                   fontWeight: 800,
-                  color: isReceived ? '#10B981' : '#F87171',
+                  color: isForgiven ? 'var(--amber)' : (isReceived ? '#10B981' : '#F87171'),
                   whiteSpace: 'nowrap',
                   letterSpacing: '-0.5px',
                   lineHeight: 1,
                 }}
               >
-                {isReceived ? '+' : '-'}{fmtMoney(absAmount, currency)}
+                {isForgiven ? `~${fmtMoney(absAmount, currency)}` : `${isReceived ? '+' : '-'}${fmtMoney(absAmount, currency)}`}
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-2)', marginTop: 6, fontWeight: 500 }}>
-                {isReceived ? 'Credited to' : 'Deducted from'} <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{walletName}</strong>
+              <div style={{ fontSize: 12.5, color: isForgiven ? 'var(--amber)' : 'var(--text-2)', marginTop: 6, fontWeight: 500 }}>
+                {isForgiven ? (
+                  <span>No wallet deduction • Balance cleared</span>
+                ) : (
+                  <>
+                    {isReceived ? 'Credited to' : 'Deducted from'} <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{walletName}</strong>
+                  </>
+                )}
               </div>
             </div>
 
@@ -158,20 +175,34 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
               <div
                 style={{
                   fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: '0.03em',
-                  color: isReceived ? '#10B981' : '#F87171',
-                  background: isReceived ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                  padding: '4px 11px',
+                  fontWeight: 650,
+                  letterSpacing: '0.01em',
+                  color: isForgiven ? 'var(--amber)' : (isReceived ? 'var(--credit)' : 'var(--debit)'),
+                  background: isForgiven ? 'var(--amber-bg)' : (isReceived ? 'var(--credit-bg)' : 'var(--debit-bg)'),
+                  border: isForgiven ? '1px solid var(--amber-border)' : `1px solid ${isReceived ? 'var(--credit-border)' : 'var(--debit-border)'}`,
+                  padding: '3px 10px',
                   borderRadius: 9999,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
-                  textTransform: 'uppercase',
                 }}
               >
-                {isReceived ? <ArrowDownLeft size={13} strokeWidth={2.5} /> : <ArrowUpRight size={13} strokeWidth={2.5} />}
-                <span>{isReceived ? 'Money Received' : 'Money Paid'}</span>
+                {isForgiven ? (
+                  <>
+                    <HeartHandshake size={12} strokeWidth={2.2} />
+                    <span>Forgiven</span>
+                  </>
+                ) : isReceived ? (
+                  <>
+                    <ArrowDownLeft size={12} strokeWidth={2.2} />
+                    <span>Received</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowUpRight size={12} strokeWidth={2.2} />
+                    <span>Paid</span>
+                  </>
+                )}
               </div>
               {settlement?.remainingAmount && settlement.remainingAmount > 0 ? (
                 <span style={{ fontSize: 10, background: 'var(--accent-soft)', color: 'var(--accent)', padding: '2px 7px', borderRadius: 4, fontWeight: 650 }}>
@@ -202,8 +233,8 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Amount Paid</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: isReceived ? 'var(--credit)' : 'var(--debit)' }}>
+                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{isForgiven ? 'Waived' : 'Amount Paid'}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: isForgiven ? 'var(--amber)' : (isReceived ? 'var(--credit)' : 'var(--debit)') }}>
                   {fmtMoney(absAmount, currency)}
                 </div>
               </div>
@@ -216,7 +247,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
             </div>
           ) : null}
 
-          {/* 2-Card Quick Info Grid (Removed Expenses Included card) */}
+          {/* 2-Card Quick Info Grid */}
           <div
             style={{
               display: 'grid',
@@ -233,7 +264,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
               }}
             >
               <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                <Calendar size={12} style={{ color: 'var(--accent)' }} /> Settlement Date
+                <Calendar size={12} style={{ color: isForgiven ? 'var(--amber)' : 'var(--accent)' }} /> {isForgiven ? 'Forgive Date' : 'Settlement Date'}
               </div>
               <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.1px' }}>
                 {fmtDate(settlement?.date || '')}
@@ -249,11 +280,25 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
               }}
             >
               <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                <WalletIcon size={12} style={{ color: 'var(--accent)' }} /> Payment Wallet
+                {isForgiven ? (
+                  <>
+                    <HeartHandshake size={12} style={{ color: 'var(--amber)' }} /> Wallet Impact
+                  </>
+                ) : (
+                  <>
+                    <WalletIcon size={12} style={{ color: 'var(--accent)' }} /> Payment Wallet
+                  </>
+                )}
               </div>
               <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 7 }}>
-                {renderWalletIcon(wallet?.icon || wallet?.id || walletName, 20)}
-                <span>{walletName}</span>
+                {isForgiven ? (
+                  <span style={{ color: 'var(--amber)' }}>No Money Moved</span>
+                ) : (
+                  <>
+                    {renderWalletIcon(wallet?.icon || wallet?.id || walletName, 20)}
+                    <span>{walletName}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -281,7 +326,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
             </div>
           )}
 
-          {/* Settled Expenses Breakdown */}
+          {/* Settled / Forgiven Expenses Breakdown */}
           <div>
             <div
               style={{
@@ -294,7 +339,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                 justifyContent: 'space-between',
               }}
             >
-              <span>Settled Expenses Breakdown</span>
+              <span>{isForgiven ? 'Forgiven Expenses Breakdown' : 'Settled Expenses Breakdown'}</span>
               <span
                 style={{
                   fontSize: 11,
@@ -454,10 +499,10 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                           style={{
                             fontSize: 13.5,
                             fontWeight: 700,
-                            color: isForFriend ? 'var(--credit)' : 'var(--debit)',
+                            color: isForgiven ? 'var(--amber)' : (isForFriend ? 'var(--credit)' : 'var(--debit)'),
                           }}
                         >
-                          {isForFriend ? '+' : '-'}{fmtMoney(Number(exp.amount) || 0, currency)}
+                          {isForgiven ? `~${fmtMoney(Number(exp.amount) || 0, currency)}` : `${isForFriend ? '+' : '-'}${fmtMoney(Number(exp.amount) || 0, currency)}`}
                         </div>
                         {(() => {
                           const isPartial = Boolean(
@@ -468,15 +513,15 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                               style={{
                                 fontSize: 10,
                                 fontWeight: 600,
-                                color: isPartial ? 'var(--accent)' : 'var(--credit)',
-                                background: isPartial ? 'var(--accent-soft)' : 'var(--credit-bg)',
+                                color: isForgiven ? 'var(--amber)' : (isPartial ? 'var(--accent)' : 'var(--credit)'),
+                                background: isForgiven ? 'var(--amber-bg)' : (isPartial ? 'var(--accent-soft)' : 'var(--credit-bg)'),
                                 padding: '1px 6px',
                                 borderRadius: 6,
                                 display: 'inline-block',
                                 marginTop: 2,
                               }}
                             >
-                              {isPartial ? 'Partially Settled' : 'Settled ✓'}
+                              {isForgiven ? 'Waived' : isPartial ? 'Partially Settled' : 'Settled ✓'}
                             </span>
                           );
                         })()}
@@ -515,9 +560,9 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                 padding: '0 20px',
                 fontSize: '14px',
                 fontWeight: 650,
-                color: '#F87171',
-                backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                border: '1px solid rgba(239, 68, 68, 0.28)',
+                color: isForgiven ? 'var(--amber)' : '#F87171',
+                backgroundColor: isForgiven ? 'var(--amber-bg)' : 'rgba(239, 68, 68, 0.12)',
+                border: isForgiven ? '1px solid var(--amber-border)' : '1px solid rgba(239, 68, 68, 0.28)',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -526,16 +571,16 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.22)';
-                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                e.currentTarget.style.backgroundColor = isForgiven ? 'var(--amber-border)' : 'rgba(239, 68, 68, 0.22)';
+                e.currentTarget.style.borderColor = isForgiven ? 'var(--amber)' : 'rgba(239, 68, 68, 0.4)';
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.12)';
-                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.28)';
+                e.currentTarget.style.backgroundColor = isForgiven ? 'var(--amber-bg)' : 'rgba(239, 68, 68, 0.12)';
+                e.currentTarget.style.borderColor = isForgiven ? 'var(--amber-border)' : 'rgba(239, 68, 68, 0.28)';
               }}
             >
               <RotateCcw size={16} strokeWidth={2.2} />
-              <span>Undo Settlement</span>
+              <span>{isForgiven ? 'Undo Forgiveness' : 'Undo Settlement'}</span>
             </button>
           ) : (
             <button

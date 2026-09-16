@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Users, RotateCcw, Edit2, Trash2,
+  Users, RotateCcw, Edit2, Trash2, HeartHandshake,
   Wallet as WalletIcon
 } from 'lucide-react';
 import CategoryIcon from '../CategoryIcon';
@@ -192,9 +192,31 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
         <td>
           {groupStatus.statusKey !== 'none' && groupStatus.statusLabel ? (
             ge.isSettlementGroup ? (
-              <span className="tx-status-pill status-settled">
-                <span>Settled ✓</span>
-              </span>
+              (ge.isForgiven || settlementObj?.isForgiven) ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3.5,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 'var(--fs-caption)',
+                    fontWeight: 650,
+                    backgroundColor: 'var(--amber-bg)',
+                    border: '1px solid var(--amber-border)',
+                    color: 'var(--amber)',
+                    lineHeight: 1.2,
+                    letterSpacing: '0.01em',
+                  }}
+                >
+                  <HeartHandshake size={11} strokeWidth={2.2} />
+                  <span>Forgiven</span>
+                </span>
+              ) : (
+                <span className="tx-status-pill status-settled">
+                  <span>Settled ✓</span>
+                </span>
+              )
             ) : (
               <span className={`tx-status-pill status-${groupStatus.statusKey}`}>
                 <span>{groupStatus.statusLabel}</span>

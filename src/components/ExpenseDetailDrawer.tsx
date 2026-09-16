@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import {
-  Users, User, Pencil, Trash2, X, Store, FileText, Wallet as WalletIcon, Tag, ArrowUpRight, ArrowDownLeft, Repeat, RotateCcw
+  Users, User, Pencil, Trash2, X, Store, FileText, Wallet as WalletIcon, Tag, ArrowUpRight, ArrowDownLeft, Repeat, RotateCcw, HeartHandshake
 } from 'lucide-react';
 import CategoryIcon, { CategoryBadge } from './CategoryIcon';
 import {
@@ -564,6 +564,30 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
 
               {/* Group / Settlement Status */}
               {groupStatus.statusKey !== 'none' && groupStatus.statusLabel && (() => {
+                const isForgiven = ge.isForgiven || settlementObj?.isForgiven || Boolean(primaryItem?.notes && /forgiv|waiv/i.test(primaryItem.notes));
+                if (isForgiven) {
+                  return (
+                    <span
+                      className="pill-badge"
+                      style={{
+                        padding: '3px 9px',
+                        fontSize: 'var(--fs-caption)',
+                        fontWeight: 650,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--amber-bg)',
+                        border: '1px solid var(--amber-border)',
+                        color: 'var(--amber)',
+                      }}
+                    >
+                      <HeartHandshake size={11} strokeWidth={2.2} />
+                      <span>Forgiven</span>
+                    </span>
+                  );
+                }
+
                 const isPositiveStatus =
                   groupStatus.statusKey === 'settled' ||
                   groupStatus.statusKey === 'paid' ||

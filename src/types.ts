@@ -99,6 +99,7 @@ export interface GroupedExpense {
   friendIds: string[];
   vendorId?: string | null;
   isSettlementGroup?: boolean;
+  isForgiven?: boolean;
   settlementItemCount?: number;
   settlementId?: string | null;
   settlementDateRange?: string;
@@ -119,6 +120,7 @@ export interface Settlement {
   originalTotal?: number;
   remainingAmount?: number;
   partialBreakdown?: Record<string, SettlementPartialBreakdownItem>;
+  isForgiven?: boolean;
 }
 
 export interface Settings {

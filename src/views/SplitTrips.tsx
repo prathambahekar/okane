@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { createPortal } from 'react-dom';
+import { motion } from 'motion/react';
 import {
   Plus,
   Trash2,
@@ -21,7 +22,6 @@ import {
   ChevronDown,
   ChevronUp,
   Compass,
-  User,
 } from 'lucide-react';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import { useStore } from '../store';
@@ -160,23 +160,21 @@ function simplifyDebts(members: TripMember[], expenses: TripExpense[]) {
   return { balances, transactions, totalSpend, perPersonAvg };
 }
 
-const GROUP_AVATAR_COLORS = [
-  { bg: 'rgba(99, 102, 241, 0.22)', text: '#818cf8', border: 'rgba(99, 102, 241, 0.4)' }, // Indigo
-  { bg: 'rgba(16, 185, 129, 0.22)', text: '#34d399', border: 'rgba(16, 185, 129, 0.4)' }, // Emerald
-  { bg: 'rgba(245, 158, 11, 0.22)', text: '#fbbf24', border: 'rgba(245, 158, 11, 0.4)' }, // Amber
-  { bg: 'rgba(236, 72, 153, 0.22)', text: '#f472b6', border: 'rgba(236, 72, 153, 0.4)' }, // Pink
-  { bg: 'rgba(6, 182, 212, 0.22)',  text: '#22d3ee', border: 'rgba(6, 182, 212, 0.4)' }, // Cyan
-  { bg: 'rgba(168, 85, 247, 0.22)', text: '#c084fc', border: 'rgba(168, 85, 247, 0.4)' }, // Purple
+const GROUP_AVATAR_THEMES = [
+  { bg: 'var(--accent-soft)', text: 'var(--accent)', border: 'var(--accent-border-soft)' },
+  { bg: 'var(--credit-bg)', text: 'var(--credit)', border: 'var(--credit-border)' },
+  { bg: 'var(--amber-bg)', text: 'var(--amber)', border: 'var(--amber-border)' },
+  { bg: 'var(--surface3)', text: 'var(--text-2)', border: 'var(--border2)' },
 ];
 
 function getGroupAvatarStyle(name: string) {
   let charSum = 0;
   for (let i = 0; i < name.length; i++) charSum += name.charCodeAt(i);
-  return GROUP_AVATAR_COLORS[charSum % GROUP_AVATAR_COLORS.length];
+  return GROUP_AVATAR_THEMES[charSum % GROUP_AVATAR_THEMES.length];
 }
 
 // -------------------------------------------------------------
-// REUSABLE BOTTOM DRAWER MODAL
+// REUSABLE BOTTOM DRAWER MODAL (Consistent with App Design System)
 // -------------------------------------------------------------
 interface BottomDrawerProps {
   isOpen: boolean;
@@ -185,10 +183,18 @@ interface BottomDrawerProps {
   subtitle?: React.ReactNode;
   children: React.ReactNode;
   icon?: React.ReactNode;
+  maxWidth?: number;
 }
 
-function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: BottomDrawerProps) {
+function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon, maxWidth = 480 }: BottomDrawerProps) {
   useBackButtonModal(isOpen, onClose, { priority: BackPriority.DRAWER });
+
+  const [isMobileScreen, setIsMobileScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 640);
+  useEffect(() => {
+    const handleResize = () => setIsMobileScreen(window.innerWidth <= 640);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -205,119 +211,95 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
 
   return createPortal(
     <div
-      className="drawer-overlay"
+      className="modal-backdrop-motion"
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 99999,
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
+        alignItems: isMobileScreen ? 'flex-end' : 'center',
+        justifyContent: 'center',
       }}
     >
-      <style>{`
-        @keyframes drawerSlideUp {
-          from { transform: translateY(100%); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes modalPopIn {
-          from { transform: scale(0.94); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        @keyframes drawerFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        .drawer-overlay {
-          justify-content: flex-end;
-          padding: 0;
-        }
-
-        .drawer-card {
-          position: relative;
-          width: 100%;
-          max-width: 480px;
-          margin: 0 auto;
-          background: var(--surface);
-          border-top-left-radius: 22px;
-          border-top-right-radius: 22px;
-          border-bottom-left-radius: 0;
-          border-bottom-right-radius: 0;
-          border: 1px solid var(--border);
-          border-bottom: none;
-          box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
-          max-height: 85vh;
-          display: flex;
-          flex-direction: column;
-          z-index: 2;
-          animation: drawerSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-          overflow: hidden;
-        }
-
-        .drawer-handle {
-          padding: 10px 0 2px 0;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          cursor: pointer;
-          width: 100%;
-          flex-shrink: 0;
-        }
-
-        @media (min-width: 640px) {
-          .drawer-overlay {
-            justify-content: center !important;
-            padding: 24px !important;
-          }
-          .drawer-card {
-            border-radius: 22px !important;
-            border: 1px solid var(--border) !important;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.25) !important;
-            max-height: 88vh !important;
-            animation: modalPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-          }
-        }
-      `}</style>
-
       {/* Backdrop overlay */}
-      <div
-        onClick={onClose}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="modal-backdrop-overlay"
         style={{
           position: 'fixed',
           inset: 0,
+          zIndex: 1,
           background: 'rgba(0, 0, 0, 0.65)',
           backdropFilter: 'blur(4px)',
-          animation: 'drawerFadeIn 0.2s ease',
-          zIndex: 1,
+          WebkitBackdropFilter: 'blur(4px)',
         }}
+        onClick={onClose}
       />
 
-      {/* Drawer Card */}
-      <div className="drawer-card">
-        {/* Top Drag Handle bar */}
-        <div className="drawer-handle" onClick={onClose}>
-          <div className="modal-drag-handle" style={{ width: '38px', height: '4px', borderRadius: 'var(--radius-full)', background: 'var(--border2, rgba(255,255,255,0.25))', opacity: 0.85 }} />
-        </div>
+      {/* Sheet panel / Desktop center dialog */}
+      <motion.div
+        initial={isMobileScreen ? { y: '100%' } : { opacity: 0, scale: 0.95, y: 16 }}
+        animate={isMobileScreen ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+        exit={isMobileScreen ? { y: '100%' } : { opacity: 0, scale: 0.95, y: 16 }}
+        transition={{ duration: isMobileScreen ? 0.32 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+        className="modal modal-dialog-panel"
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          maxWidth,
+          width: '100%',
+          maxHeight: 'min(88vh, 88dvh)',
+          borderRadius: isMobileScreen ? '22px 22px 0 0' : 22,
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--drawer-bg, var(--surface))',
+          border: '1px solid var(--border)',
+          borderBottom: isMobileScreen ? 'none' : '1px solid var(--border)',
+          overflow: 'hidden',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+          color: 'var(--text)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Top Drag Handle Pill */}
+        <div
+          style={{
+            width: 38,
+            height: 4,
+            borderRadius: 'var(--radius-full)',
+            background: 'var(--border2, rgba(255,255,255,0.25))',
+            margin: '12px auto 6px',
+            flexShrink: 0,
+            cursor: 'pointer',
+          }}
+          onClick={onClose}
+        />
 
         {/* Drawer Header */}
         <div
+          className="modal-header"
           style={{
-            padding: '12px 20px 8px 20px',
+            padding: '8px 20px 12px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            borderBottom: '1px solid var(--border)',
+            flexShrink: 0,
             gap: '12px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
             {icon && (
               <div
                 style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'transparent',
+                  width: 38,
+                  height: 38,
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
                   color: 'var(--text)',
                   display: 'grid',
                   placeItems: 'center',
@@ -327,12 +309,12 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
                 {icon}
               </div>
             )}
-            <div style={{ minWidth: 0 }}>
-              <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.3px', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {title}
-              </h3>
+              </div>
               {subtitle && (
-                <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 450, color: 'var(--text-2)', margin: '3px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 500, color: 'var(--text-2)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {subtitle}
                 </div>
               )}
@@ -341,29 +323,32 @@ function BottomDrawer({ isOpen, onClose, title, subtitle, children, icon }: Bott
 
           <button
             type="button"
-            className="drawer-close-btn"
+            className="btn-icon drawer-close-btn"
             onClick={onClose}
+            aria-label="Close"
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: 'var(--radius-sm)',
+              width: 32,
+              height: 32,
+              borderRadius: 'var(--radius-full)',
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
               color: 'var(--text-2)',
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
+              flexShrink: 0,
+              transition: 'all 0.15s ease',
             }}
           >
             <X size={16} />
           </button>
         </div>
 
-        {/* Drawer Body */}
-        <div style={{ padding: '18px 20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {/* Drawer Scrollable Body */}
+        <div style={{ padding: '18px 20px 24px 20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {children}
         </div>
-      </div>
+      </motion.div>
     </div>,
     document.body
   );
@@ -1111,7 +1096,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px', width: '100%' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)', fontWeight: 800 }}>
+                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontWeight: 600 }}>
                     Active Group Split
                   </div>
                   <div style={{ fontSize: 'var(--fs-hero-sm)', fontWeight: 800, color: 'var(--text)', marginTop: '4px', letterSpacing: '-0.3px' }}>
@@ -1165,9 +1150,9 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '5px',
-                      height: '38px',
+                      height: '36px',
                       padding: '0 12px',
-                      borderRadius: 'var(--radius-md)',
+                      borderRadius: 'var(--radius-full)',
                       background: 'var(--surface2)',
                       color: 'var(--text)',
                       border: '1px solid var(--border)',
@@ -1189,9 +1174,9 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: 'var(--radius-md)',
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: 'var(--radius-full)',
                       background: 'var(--debit-bg)',
                       color: 'var(--debit)',
                       border: '1px solid var(--debit-border)',
@@ -1239,8 +1224,8 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                     width: '100%',
                     padding: '11px 16px',
                     borderRadius: 'var(--radius-full)',
-                    background: 'var(--text)',
-                    color: 'var(--bg)',
+                    background: 'var(--accent-gradient)',
+                    color: 'var(--accent-contrast, #ffffff)',
                     border: 'none',
                     fontSize: 'var(--fs-sm)',
                     fontWeight: 750,
@@ -1249,7 +1234,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '7px',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+                    boxShadow: '0 4px 14px var(--accent-soft)',
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -1619,7 +1604,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                             </div>
 
                             {/* Bottom Row: Payer + Split Mode + Date */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', fontSize: 'var(--fs-caption)', color: 'var(--text-3)', paddingTop: '6px', borderTop: '1px dashed var(--border-subtle)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', fontSize: 'var(--fs-caption)', color: 'var(--text-3)', paddingTop: '4px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                                 <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   Paid by <strong style={{ color: 'var(--text-2)', fontWeight: 600 }}>{paidByMember?.name || 'Member'}</strong>
@@ -2794,7 +2779,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
 
             {/* Group Cards */}
             {presetGroups.length === 0 ? (
-              <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-3)', fontSize: 'var(--fs-xs)', background: 'var(--surface2)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border)' }}>
+              <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-3)', fontSize: 'var(--fs-xs)', background: 'var(--surface2)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
                 No saved groups available.{' '}
                 <button
                   type="button"
@@ -3096,29 +3081,27 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
       <BottomDrawer
         isOpen={showMembersDrawer}
         onClose={() => setShowMembersDrawer(false)}
-        title={`Trip Members (${activeTrip?.members.length || selectedArchivedTrip?.members.length || 0})`}
+        title={`Trip Members · ${activeTrip?.members.length || selectedArchivedTrip?.members.length || 0}`}
         subtitle={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginTop: '4px' }}>
             <span
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
-                padding: '2.5px 9px',
+                padding: '2px 9px',
                 borderRadius: 'var(--radius-full)',
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                color: 'var(--text)',
+                background: 'var(--accent-soft)',
+                border: '1px solid var(--accent-border-soft)',
+                color: 'var(--text-2)',
                 fontSize: 'var(--fs-caption)',
-                fontWeight: 700,
-                lineHeight: 1.2,
+                fontWeight: 550,
+                lineHeight: 1.3,
+                fontFamily: 'var(--font-sans)',
               }}
             >
-              <Users size={12} style={{ color: 'var(--accent)' }} />
+              <Users size={11} style={{ color: 'var(--text-3)', opacity: 0.9 }} />
               <span>{activeTrip ? activeTrip.groupName : selectedArchivedTrip ? selectedArchivedTrip.groupName : 'Trip Group'}</span>
-            </span>
-            <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500 }}>
-              • Tap any member for details
             </span>
           </div>
         }
@@ -3129,7 +3112,6 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
           const membersList = tripData?.members || [];
           const summary = activeTrip ? activeTripSummary : archiveTripSummary;
           const hasExpenses = (tripData?.expenses.length || 0) > 0;
-          let syncedCount = 0;
 
           return (
             <div style={{ padding: '6px 14px 20px 14px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -3146,7 +3128,6 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                   const matchingContact = db.friends.find(
                     f => f.id === m.id || f.name.trim().toLowerCase() === m.name.trim().toLowerCase()
                   );
-                  if (matchingContact || isYou) syncedCount++;
 
                   const color = getTripMemberAvatarColor(m.name, idx, matchingContact?.color);
                   const avatarStyle: React.CSSProperties = isYou
@@ -3159,6 +3140,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                     : getAvatarStyle(color);
 
                   const memBal = summary?.balances?.[m.id];
+                  const hasSubRow = (hasExpenses && memBal) || (matchingContact && !isYou);
 
                   return (
                     <div
@@ -3226,41 +3208,38 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                         </div>
 
                         {/* Status / Badge Row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
-                          {hasExpenses && memBal ? (
-                            memBal.net > 0.01 ? (
-                              <span className="trip-member-pill credit">
-                                +{fmtMoney(memBal.net, currency)}
+                        {hasSubRow && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                            {hasExpenses && memBal ? (
+                              memBal.net > 0.01 ? (
+                                <span className="trip-member-pill credit">
+                                  +{fmtMoney(memBal.net, currency)}
+                                </span>
+                              ) : memBal.net < -0.01 ? (
+                                <span className="trip-member-pill debit">
+                                  {fmtMoney(memBal.net, currency)}
+                                </span>
+                              ) : (
+                                <span className="trip-member-pill settled">
+                                  Settled ✓
+                                </span>
+                              )
+                            ) : matchingContact && !isYou ? (
+                              <span className="trip-member-pill contact">
+                                <span
+                                  style={{
+                                    width: 4,
+                                    height: 4,
+                                    borderRadius: '50%',
+                                    backgroundColor: matchingContact.color || 'var(--text-3)',
+                                    opacity: 0.85,
+                                  }}
+                                />
+                                <span>Contact</span>
                               </span>
-                            ) : memBal.net < -0.01 ? (
-                              <span className="trip-member-pill debit">
-                                {fmtMoney(memBal.net, currency)}
-                              </span>
-                            ) : (
-                              <span className="trip-member-pill settled">
-                                Settled ✓
-                              </span>
-                            )
-                          ) : matchingContact ? (
-                            <span className="trip-member-pill contact">
-                              <User size={10} strokeWidth={2.4} style={{ color: matchingContact.color || 'var(--accent)' }} />
-                              <span>Contact</span>
-                            </span>
-                          ) : (
-                            <span
-                              style={{
-                                fontSize: 'var(--fs-caption)',
-                                fontWeight: 500,
-                                color: 'var(--text-3)',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                              }}
-                            >
-                              Trip Member
-                            </span>
-                          )}
-                        </div>
+                            ) : null}
+                          </div>
+                        )}
                       </div>
 
                       {/* Chevron Navigation Indicator */}
@@ -3276,62 +3255,6 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                     </div>
                   );
                 })}
-              </div>
-
-              {/* Bottom Quick Bar */}
-              <div
-                style={{
-                  padding: '11px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '10px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Users size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                  <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)', fontWeight: 650 }}>
-                    {membersList.length} members • {syncedCount} synced
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedMemberIdForDetail(null);
-                    setBreakdownDrawerOpen(true);
-                    setShowMembersDrawer(false);
-                  }}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--surface)',
-                    color: 'var(--text)',
-                    border: '1px solid var(--border)',
-                    fontSize: 'var(--fs-xs)',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--accent)';
-                    e.currentTarget.style.color = 'var(--accent)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border)';
-                    e.currentTarget.style.color = 'var(--text)';
-                  }}
-                >
-                  <PieChart size={13} style={{ color: 'var(--accent)' }} />
-                  <span>View All Balances</span>
-                </button>
               </div>
             </div>
           );
@@ -3809,7 +3732,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                         <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 800 }}>Paid</div>
                         <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 800, color: 'var(--text)', marginTop: '2px' }}>{fmtMoney(b.paid, currency)}</div>
                       </div>
-                      <div style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
+                      <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 'var(--fs-caption)', textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 800 }}>Share</div>
                         <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 800, color: 'var(--text)', marginTop: '2px' }}>{fmtMoney(b.share, currency)}</div>
                       </div>

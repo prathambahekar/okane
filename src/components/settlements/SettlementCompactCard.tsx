@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wallet as WalletIcon } from 'lucide-react';
+import { Wallet as WalletIcon, HeartHandshake } from 'lucide-react';
 import type { Settlement, Friend, Wallet } from '../../types';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle } from '../../utils';
 import { renderWalletIcon } from '../WalletIconRenderer';
@@ -26,11 +26,12 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
   currency,
   onSelect,
 }) => {
-  const walletName = wallet?.name || settlement.paymentMethod;
+  const isForgiven = Boolean(settlement.isForgiven);
+  const walletName = isForgiven ? 'Forgiven / Waived' : (wallet?.name || settlement.paymentMethod);
   const amtVal = Number(settlement.amount) || 0;
   const isReceived = amtVal >= 0;
   const walletKeyOrName = wallet?.icon || wallet?.name || settlement.paymentMethod;
-  const hasWallet = Boolean(walletKeyOrName);
+  const hasWallet = !isForgiven && Boolean(walletKeyOrName);
 
   return (
     <div
@@ -68,16 +69,67 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
-              fontWeight: 600,
-              fontSize: 14.5,
-              color: 'var(--text)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              lineHeight: 1.3,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              minWidth: 0,
             }}
           >
-            {friend ? friend.name : 'Deleted friend'}
+            <span
+              style={{
+                fontWeight: 600,
+                fontSize: 14.5,
+                color: 'var(--text)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                lineHeight: 1.3,
+              }}
+            >
+              {friend ? friend.name : 'Deleted friend'}
+            </span>
+            {isForgiven ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3.5,
+                  padding: '1.5px 7px',
+                  borderRadius: 6,
+                  fontSize: 10.5,
+                  fontWeight: 650,
+                  backgroundColor: 'var(--amber-bg)',
+                  border: '1px solid var(--amber-border)',
+                  color: 'var(--amber)',
+                  flexShrink: 0,
+                  lineHeight: 1.2,
+                  letterSpacing: '0.01em',
+                }}
+              >
+                <HeartHandshake size={11} strokeWidth={2.2} />
+                <span>Forgiven</span>
+              </span>
+            ) : (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3.5,
+                  padding: '1.5px 7px',
+                  borderRadius: 6,
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  backgroundColor: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-2)',
+                  flexShrink: 0,
+                  lineHeight: 1.2,
+                  letterSpacing: '0.01em',
+                }}
+              >
+                <span>Settlement</span>
+              </span>
+            )}
           </div>
           <div
             style={{
@@ -122,7 +174,7 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
                 )}
               </span>
             )}
-            {settlement.note && (
+            {settlement.note && settlement.note !== 'Forgiven / Waived off' && (
               <span style={{ color: 'var(--text-3)', fontStyle: 'italic', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 "{settlement.note}"
               </span>
@@ -136,12 +188,12 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
           style={{
             fontWeight: 700,
             fontSize: 14.5,
-            color: isReceived ? 'var(--credit)' : 'var(--debit)',
+            color: isForgiven ? 'var(--amber)' : (isReceived ? 'var(--credit)' : 'var(--debit)'),
             fontVariantNumeric: 'tabular-nums',
             whiteSpace: 'nowrap',
           }}
         >
-          {isReceived ? '+' : '-'}{fmtMoney(Math.abs(amtVal), currency)}
+          {isForgiven ? `~${fmtMoney(Math.abs(amtVal), currency)}` : `${isReceived ? '+' : '-'}${fmtMoney(Math.abs(amtVal), currency)}`}
         </div>
       </div>
     </div>

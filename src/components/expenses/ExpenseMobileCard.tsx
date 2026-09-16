@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users } from 'lucide-react';
+import { Users, HeartHandshake } from 'lucide-react';
 import CategoryIcon from '../CategoryIcon';
 import { fmtMoney, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../../utils';
 import type { Expense, Friend, Wallet, Category, Settlement } from '../../types';
@@ -32,6 +32,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
   walletObj,
   friendsMap,
   walletsMap,
+  settlementObj,
 }) => {
   const isTransfer = ge.category === 'Transfer' || ge.items.some((i: Expense) => i.category === 'Transfer');
   const isIn = ge.flow === 'in' && !isTransfer;
@@ -115,6 +116,29 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
               >
                 {cleanSettlementDescription(ge.description)}
               </span>
+
+              {ge.isSettlementGroup && (ge.isForgiven || settlementObj?.isForgiven) && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3.5,
+                    padding: '1.5px 7px',
+                    borderRadius: 6,
+                    fontSize: 10.5,
+                    fontWeight: 650,
+                    backgroundColor: 'var(--amber-bg)',
+                    border: '1px solid var(--amber-border)',
+                    color: 'var(--amber)',
+                    lineHeight: 1.2,
+                    letterSpacing: '0.01em',
+                    flexShrink: 0,
+                  }}
+                >
+                  <HeartHandshake size={11} strokeWidth={2.2} />
+                  <span>Forgiven</span>
+                </span>
+              )}
 
               {!ge.isSettlementGroup && groupStatus.statusKey !== 'none' && groupStatus.statusLabel && (
                 <span

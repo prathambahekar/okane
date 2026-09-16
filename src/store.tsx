@@ -50,7 +50,7 @@ export interface DataStateContextType {
   deleteWallet: (id: string) => boolean;
   transferFunds: (fromWalletId: string, toWalletId: string, amount: number, date: string, note?: string) => void;
 
-  recordSettlement: (friendId: string, expenseIds: string[], note: string, walletId?: string, customAmount?: number, date?: string) => void;
+  recordSettlement: (friendId: string, expenseIds: string[], note: string, walletId?: string, customAmount?: number, date?: string, isForgiven?: boolean) => void;
   deleteSettlement: (id: string) => void;
   unsettleExpense: (expenseId: string) => void;
 
@@ -397,12 +397,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   }, [pushUndo, persist]);
 
-  const recordSettlement = useCallback((friendId: string, expenseIds: string[], note: string, walletId?: string, customAmount?: number, date?: string) => {
+  const recordSettlement = useCallback((friendId: string, expenseIds: string[], note: string, walletId?: string, customAmount?: number, date?: string, isForgiven?: boolean) => {
     setDB(current => {
       const snapshot = current;
-      const next = dbRecordSettlement(current, friendId, expenseIds, note, walletId, customAmount, date);
+      const next = dbRecordSettlement(current, friendId, expenseIds, note, walletId, customAmount, date, isForgiven);
       saveDB(next);
-      pushUndo('Settlement recorded', snapshot, () => persist(snapshot));
+      pushUndo(isForgiven ? 'Balance forgiven / waived off' : 'Settlement recorded', snapshot, () => persist(snapshot));
       return next;
     });
   }, [pushUndo, persist]);
