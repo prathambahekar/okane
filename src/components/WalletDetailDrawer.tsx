@@ -22,6 +22,7 @@ import {
   type GroupedExpense,
 } from '../utils';
 import { renderWalletIcon } from './WalletIconRenderer';
+import SettlementBadge from './common/SettlementBadge';
 import ConfirmDialog from './ConfirmDialog';
 import ExpenseModal from './ExpenseModal';
 import { ExpenseDetailDrawer } from './ExpenseDetailDrawer';
@@ -694,27 +695,31 @@ export default function WalletDetailDrawer({
                           >
                             {cleanSettlementDescription(tx.description)}
                           </span>
-                          {isSplit && (
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 3,
-                                padding: '1.5px 6px',
-                                borderRadius: 'var(--radius-full)',
-                                fontSize: 'var(--fs-caption)',
-                                fontWeight: 650,
-                                backgroundColor: 'rgba(99, 102, 241, 0.14)',
-                                color: '#818CF8',
-                                border: '1px solid rgba(99, 102, 241, 0.25)',
-                                whiteSpace: 'nowrap',
-                                flexShrink: 0,
-                                lineHeight: 1.1,
-                              }}
-                            >
-                              <Users size={9} />
-                              <span>Split</span>
-                            </span>
+                          {tx.isSettlement ? (
+                            <SettlementBadge settlementObj={tx.rawSettlement} flow={tx.flow} isForgiven={tx.rawSettlement?.isForgiven} />
+                          ) : (
+                            isSplit && (
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                  padding: '1.5px 6px',
+                                  borderRadius: 'var(--radius-full)',
+                                  fontSize: 'var(--fs-caption)',
+                                  fontWeight: 650,
+                                  backgroundColor: 'rgba(99, 102, 241, 0.14)',
+                                  color: '#818CF8',
+                                  border: '1px solid rgba(99, 102, 241, 0.25)',
+                                  whiteSpace: 'nowrap',
+                                  flexShrink: 0,
+                                  lineHeight: 1.1,
+                                }}
+                              >
+                                <Users size={9} />
+                                <span>Split</span>
+                              </span>
+                            )
                           )}
                         </div>
 

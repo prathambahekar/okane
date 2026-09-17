@@ -5,6 +5,7 @@ import { groupExpenses, getGroupedExpenseAmount, type GroupedExpense } from '../
 import ExpenseModal from '../components/ExpenseModal';
 import ExpenseDetailDrawer from '../components/ExpenseDetailDrawer';
 import DailyWalletBalanceDrawer from '../components/DailyWalletBalanceDrawer';
+import CategoryDetailDrawer from '../components/analytics/CategoryDetailDrawer';
 import AnalyticsHeader from '../components/analytics/AnalyticsHeader';
 import TotalSpendingCard, { type ChartDayData } from '../components/analytics/TotalSpendingCard';
 import CategoryDistributionCard from '../components/analytics/CategoryDistributionCard';
@@ -169,6 +170,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDailyBalanceDrawer, setShowDailyBalanceDrawer] = useState(false);
+  const [inspectCategoryName, setInspectCategoryName] = useState<string | null>(null);
 
   useBackButtonModal(showFilterDrawer, () => setShowFilterDrawer(false), { priority: BackPriority.DIALOG });
 
@@ -1039,6 +1041,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
           currency={currency}
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
+          onOpenCategoryDrawer={(cat) => setInspectCategoryName(cat)}
           selectedDate={selectedDate}
           onClearDate={() => setSelectedDate(null)}
           categorySettings={db.settings.categories}
@@ -1103,6 +1106,18 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
         onClose={() => setShowDailyBalanceDrawer(false)}
         initialMonth={period === 'month' ? activeMonthStr : undefined}
         initialDate={selectedDate || undefined}
+      />
+
+      {/* Category Detail Breakdown Drawer */}
+      <CategoryDetailDrawer
+        isOpen={!!inspectCategoryName}
+        onClose={() => setInspectCategoryName(null)}
+        categoryName={inspectCategoryName}
+        period={period}
+        activeMonthStr={activeMonthStr}
+        expenses={db.expenses}
+        currency={currency}
+        wallets={db.wallets}
       />
 
       {/* Confirmation Delete Dialog */}

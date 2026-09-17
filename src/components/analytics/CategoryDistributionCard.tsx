@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PieChart, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
+import { PieChart, ChevronDown, ChevronUp, RotateCcw, ChevronRight } from 'lucide-react';
 import { fmtMoney, fmtMoneyCompact } from '../../utils';
 import CategoryIcon from '../CategoryIcon';
 import type { Category } from '../../types';
@@ -17,6 +17,7 @@ interface CategoryDistributionCardProps {
   currency: string;
   selectedCategory?: string | null;
   onSelectCategory?: (cat: string | null) => void;
+  onOpenCategoryDrawer?: (cat: string) => void;
   selectedDate?: string | null;
   onClearDate?: () => void;
   categorySettings: Category[];
@@ -35,6 +36,7 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
   currency,
   selectedCategory,
   onSelectCategory,
+  onOpenCategoryDrawer,
   selectedDate,
   onClearDate,
   categorySettings,
@@ -226,6 +228,32 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
                     <span className="analytics-v2-cat-pct">
                       {Math.round(item.pct)}%
                     </span>
+
+                    {onOpenCategoryDrawer && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenCategoryDrawer(item.cat);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: '4px',
+                          margin: '0 -2px 0 4px',
+                          display: 'grid',
+                          placeItems: 'center',
+                          cursor: 'pointer',
+                          color: 'var(--text-3)',
+                          borderRadius: 'var(--radius-full)',
+                          transition: 'all 0.15s ease',
+                        }}
+                        title={`View ${item.cat} category details`}
+                        aria-label={`View ${item.cat} category details`}
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               );

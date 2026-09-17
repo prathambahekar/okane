@@ -1,9 +1,10 @@
 import React from 'react';
-import { Users, HeartHandshake } from 'lucide-react';
+import { Users } from 'lucide-react';
 import CategoryIcon from '../CategoryIcon';
 import { fmtMoney, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../../utils';
 import type { Expense, Friend, Wallet, Category, Settlement } from '../../types';
 import { SmartExpenseMeta } from './SmartExpenseMeta';
+import SettlementBadge from '../common/SettlementBadge';
 
 interface Props {
   ge: GroupedExpense;
@@ -117,27 +118,8 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                 {cleanSettlementDescription(ge.description)}
               </span>
 
-              {ge.isSettlementGroup && (ge.isForgiven || settlementObj?.isForgiven) && (
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 3.5,
-                    padding: '1.5px 7px',
-                    borderRadius: 6,
-                    fontSize: 10.5,
-                    fontWeight: 650,
-                    backgroundColor: 'var(--amber-bg)',
-                    border: '1px solid var(--amber-border)',
-                    color: 'var(--amber)',
-                    lineHeight: 1.2,
-                    letterSpacing: '0.01em',
-                    flexShrink: 0,
-                  }}
-                >
-                  <HeartHandshake size={11} strokeWidth={2.2} />
-                  <span>Forgiven</span>
-                </span>
+              {ge.isSettlementGroup && (
+                <SettlementBadge ge={ge} settlementObj={settlementObj} />
               )}
 
               {!ge.isSettlementGroup && groupStatus.statusKey !== 'none' && groupStatus.statusLabel && (

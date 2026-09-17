@@ -14,6 +14,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { renderWalletIcon } from '../components/WalletIconRenderer';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import { SmartExpenseMeta } from '../components/expenses/SmartExpenseMeta';
+import SettlementBadge from '../components/common/SettlementBadge';
 
 interface Props {
   onNavigate: (v: ViewName, arg?: string) => void;
@@ -474,6 +475,9 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                 const catMeta = resolveCategoryMeta(ge.category, cat, isSettlement);
                 const isIn = ge.flow === 'in' && ge.category !== 'Transfer';
                 const friendsInGroup = ge.friendIds.map(fid => db.friends.find(f => f.id === fid)).filter(Boolean);
+                const settlementObj = isSettlement && ge.settlementId ? db.settlements.find(s => s.id === ge.settlementId) : null;
+                const isForgiven = isSettlement && Boolean(ge.isForgiven || settlementObj?.isForgiven || (ge.description && /forgiv|waiv|forgotten/i.test(ge.description)));
+
                 return (
                   <div
                     key={`${ge.id}-${idx}`}
@@ -505,18 +509,24 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       <CategoryBadge category={catMeta.name} color={catMeta.color} icon={catMeta.icon} size={15} showLabel={false} />
                       <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
                         <div style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, width: '100%' }}>
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: '0 1 auto' }}>{cleanSettlementDescription(ge.description)}</span>
-                          {!isSettlement && ge.isSplit && (
-                            <span style={{
-                              fontSize: 'var(--fs-caption)',
-                              fontWeight: 600,
-                              padding: '1px 6px',
-                              borderRadius: 'var(--radius-xs)',
-                              background: 'var(--accent-soft)',
-                              color: 'var(--accent)',
-                              whiteSpace: 'nowrap',
-                              flexShrink: 0
-                            }}>Split</span>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: '0 1 auto' }}>
+                            {cleanSettlementDescription(ge.description)}
+                          </span>
+                          {isSettlement ? (
+                            <SettlementBadge ge={ge} settlementObj={settlementObj} isForgiven={isForgiven} />
+                          ) : (
+                            ge.isSplit && (
+                              <span style={{
+                                fontSize: 'var(--fs-caption)',
+                                fontWeight: 600,
+                                padding: '1px 6px',
+                                borderRadius: 'var(--radius-xs)',
+                                background: 'var(--accent-soft)',
+                                color: 'var(--accent)',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0
+                              }}>Split</span>
+                            )
                           )}
                         </div>
                         <SmartExpenseMeta
@@ -536,11 +546,11 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       whiteSpace: 'nowrap',
                       fontVariantNumeric: 'tabular-nums',
                       color: isSettlement
-                        ? (ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)')
+                        ? (isForgiven ? 'var(--amber)' : (ge.flow === 'in' ? 'var(--credit)' : 'var(--debit)'))
                         : (isIn ? 'var(--credit)' : 'var(--text)')
                     }}>
                       {isSettlement
-                        ? (ge.flow === 'in' ? '+' : '-')
+                        ? (isForgiven ? '~' : (ge.flow === 'in' ? '+' : '-'))
                         : (isIn ? '+' : '')}
                       {fmtMoney(ge.totalAmount, currency)}
                     </div>

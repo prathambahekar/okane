@@ -1,12 +1,13 @@
 import React from 'react';
 import {
-  Users, RotateCcw, Edit2, Trash2, HeartHandshake,
+  Users, RotateCcw, Edit2, Trash2,
   Wallet as WalletIcon
 } from 'lucide-react';
 import CategoryIcon from '../CategoryIcon';
 import { fmtMoney, friendInitial, getAvatarStyle, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../../utils';
 import type { Expense, Friend, Wallet, Category, Settlement } from '../../types';
 import { renderWalletIcon } from '../WalletIconRenderer';
+import SettlementBadge from '../common/SettlementBadge';
 
 interface Props {
   ge: GroupedExpense;
@@ -107,24 +108,28 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                 >
                   {cleanSettlementDescription(ge.description)}
                 </span>
-                {!ge.isSettlementGroup && (ge.isSplit || ge.items.length > 1) && (
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '2px 8px',
-                      borderRadius: 'var(--radius-full)',
-                      fontSize: 'var(--fs-caption)',
-                      fontWeight: 600,
-                      background: 'var(--accent-soft)',
-                      color: 'var(--accent)',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Users size={11} /> {ge.isSplit ? 'Split' : 'Breakdown'}
-                  </span>
+                {ge.isSettlementGroup ? (
+                  <SettlementBadge ge={ge} settlementObj={settlementObj} />
+                ) : (
+                  (ge.isSplit || ge.items.length > 1) && (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '2px 8px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: 'var(--fs-caption)',
+                        fontWeight: 600,
+                        background: 'var(--accent-soft)',
+                        color: 'var(--accent)',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Users size={11} /> {ge.isSplit ? 'Split' : 'Breakdown'}
+                    </span>
+                  )
                 )}
               </div>
               <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -192,31 +197,7 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
         <td>
           {groupStatus.statusKey !== 'none' && groupStatus.statusLabel ? (
             ge.isSettlementGroup ? (
-              (ge.isForgiven || settlementObj?.isForgiven) ? (
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 3.5,
-                    padding: '2px 8px',
-                    borderRadius: 6,
-                    fontSize: 'var(--fs-caption)',
-                    fontWeight: 650,
-                    backgroundColor: 'var(--amber-bg)',
-                    border: '1px solid var(--amber-border)',
-                    color: 'var(--amber)',
-                    lineHeight: 1.2,
-                    letterSpacing: '0.01em',
-                  }}
-                >
-                  <HeartHandshake size={11} strokeWidth={2.2} />
-                  <span>Forgiven</span>
-                </span>
-              ) : (
-                <span className="tx-status-pill status-settled">
-                  <span>Settled ✓</span>
-                </span>
-              )
+              <SettlementBadge ge={ge} settlementObj={settlementObj} />
             ) : (
               <span className={`tx-status-pill status-${groupStatus.statusKey}`}>
                 <span>{groupStatus.statusLabel}</span>

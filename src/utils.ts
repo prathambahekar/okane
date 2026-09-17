@@ -992,8 +992,8 @@ export function resolveCategoryMeta(
 }
 
 /**
- * Normalizes settlement descriptions so that "Settlement: Paid to <Name>" -> "Settlement: Paid"
- * and "Settlement: Received from <Name>" -> "Settlement: Received", preserving notes if attached.
+ * Normalizes settlement descriptions so that "Settlement: Paid to <Name>" or "Settlement: Received"
+ * returns clean title "Settlement", preserving notes if attached (e.g. "Settlement (Note)").
  */
 export function cleanSettlementDescription(desc: string): string {
   if (!desc) return desc;
@@ -1003,14 +1003,36 @@ export function cleanSettlementDescription(desc: string): string {
     .replace(/\s*\(\s*Forgiven\s*\)/gi, '')
     .replace(/\s*\(\s*Waived\s*off\s*\)/gi, '')
     .replace(/\s*\(\s*Waived\s*\)/gi, '')
+    .replace(/\s*\(\s*Forgotten\s*\)/gi, '')
     .trim();
 
-  const m = cleaned.match(/^Settlement:\s*(Paid\s+to|Received\s+from)\s+(.+?)(?:\s*\((.*?)\))?$/i);
-  if (m) {
-    const isPaid = m[1].toLowerCase().includes('paid');
-    const action = isPaid ? 'Paid' : 'Received';
-    const note = m[3]?.trim();
-    return note ? `Settlement: ${action} (${note})` : `Settlement: ${action}`;
+  // If it starts with "Settlement"
+  if (/^Settlement/i.test(cleaned)) {
+    // If exact "Settlement: Paid" or "Settlement: Received"
+    if (/^Settlement:\s*(Paid|Received)$/i.test(cleaned)) {
+      return 'Settlement';
+    }
+
+    // Extract the portion after "Settlement:" or "Settlement"
+    let after = cleaned.replace(/^Settlement:?\s*/i, '').trim();
+
+    // Remove "Paid to <name>", "Received from <name>", "Paid", "Received"
+    after = after
+      .replace(/^(Paid\s+to|Received\s+from|Paid|Received)\s*/i, '')
+      .trim();
+
+    if (after) {
+      // Check for note in parentheses e.g. "(Dinner)" or "Shriyansh (Dinner)"
+      const parenMatch = after.match(/\((.*?)\)/);
+      if (parenMatch) {
+        const note = parenMatch[1].trim();
+        return note ? `Settlement (${note})` : 'Settlement';
+      }
+      // If after is purely a name or redundant string, return 'Settlement'
+      return 'Settlement';
+    }
+    return 'Settlement';
   }
+
   return cleaned;
 }

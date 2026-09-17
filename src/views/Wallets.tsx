@@ -22,6 +22,7 @@ import { useStore } from '../store';
 import type { Wallet, Expense, Settlement } from '../types';
 import { walletBalance, expenseFlow, monthKey } from '../db';
 import DesktopSearchBar from '../components/DesktopSearchBar';
+import SettlementBadge from '../components/common/SettlementBadge';
 import { fmtMoney, fmtDate, typeLabel, statusLabel, groupExpenses, resolveCategoryMeta, cleanSettlementDescription, currencySymbol, type GroupedExpense } from '../utils';
 import WalletModal from '../components/WalletModal';
 import { renderWalletIcon } from '../components/WalletIconRenderer';
@@ -896,7 +897,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                           <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
                             {/* Title Line with Split Badge next to title */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
-                              <span
+                               <span
                                 style={{
                                   fontWeight: 600,
                                   fontSize: 'var(--fs-base)',
@@ -908,27 +909,31 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                               >
                                 {cleanSettlementDescription(tx.description)}
                               </span>
-                              {isSplit && (
-                                <span
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    padding: '1.5px 6px',
-                                    borderRadius: 'var(--radius-xs)',
-                                    fontSize: 'var(--fs-caption)',
-                                    fontWeight: 600,
-                                    backgroundColor: 'rgba(99, 102, 241, 0.14)',
-                                    color: '#818CF8',
-                                    border: '1px solid rgba(99, 102, 241, 0.25)',
-                                    whiteSpace: 'nowrap',
-                                    flexShrink: 0,
-                                    lineHeight: 1.1,
-                                  }}
-                                >
-                                  <Users size={9} />
-                                  <span>Split</span>
-                                </span>
+                              {tx.isSettlement ? (
+                                <SettlementBadge settlementObj={tx.rawSettlement} flow={tx.flow} isForgiven={tx.rawSettlement?.isForgiven} />
+                              ) : (
+                                isSplit && (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3,
+                                      padding: '1.5px 6px',
+                                      borderRadius: 'var(--radius-xs)',
+                                      fontSize: 'var(--fs-caption)',
+                                      fontWeight: 600,
+                                      backgroundColor: 'rgba(99, 102, 241, 0.14)',
+                                      color: '#818CF8',
+                                      border: '1px solid rgba(99, 102, 241, 0.25)',
+                                      whiteSpace: 'nowrap',
+                                      flexShrink: 0,
+                                      lineHeight: 1.1,
+                                    }}
+                                  >
+                                    <Users size={9} />
+                                    <span>Split</span>
+                                  </span>
+                                )
                               )}
                             </div>
 
