@@ -60,8 +60,8 @@ export const WALLET_PRESETS: WalletTypePreset[] = [
   },
   {
     id: 'card',
-    name: 'Cards / Debit',
-    defaultName: 'Card / Debit',
+    name: 'Cards',
+    defaultName: 'Cards',
     color: '#6366F1',
     bgLight: '#EEF2FF',
     iconKey: 'card',
@@ -76,6 +76,84 @@ export const WALLET_PRESETS: WalletTypePreset[] = [
   },
 ];
 
+/**
+ * Smartly detect the best matching wallet preset / account type based on wallet name keywords
+ */
+export function detectWalletPresetFromName(rawName: string): string | null {
+  const text = (rawName || '').toLowerCase().trim();
+  if (!text) return null;
+
+  // 1. Google Pay
+  if (
+    /\b(gpay|google\s*pay|googlepay|g\s*pay)\b/i.test(text) ||
+    text.includes('google pay') ||
+    text.includes('googlepay') ||
+    text.includes('gpay')
+  ) {
+    return 'gpay';
+  }
+
+  // 2. PhonePe
+  if (
+    /\b(phone\s*pe|phonepe|phone_pe)\b/i.test(text) ||
+    text.includes('phonepe') ||
+    text.includes('phone pe')
+  ) {
+    return 'phonepe';
+  }
+
+  // 3. Amazon Pay
+  if (
+    /\b(amazon\s*pay|amazonpay|amzn\s*pay|amz\s*pay|amazon)\b/i.test(text) ||
+    text.includes('amazon pay') ||
+    text.includes('amazonpay') ||
+    text.includes('amazon')
+  ) {
+    return 'amazonpay';
+  }
+
+  // 4. Paytm
+  if (
+    /\b(paytm|pay\s*tm)\b/i.test(text) ||
+    text.includes('paytm') ||
+    text.includes('pay tm')
+  ) {
+    return 'paytm';
+  }
+
+  // 5. Bank Account
+  if (
+    /\b(bank|account|acc|savings|current|salary|hdfc|sbi|icici|axis|kotak|pnb|canara|union\s*bank|indusind|yes\s*bank|idfc|baroda|federal|rbl|boi|citi|hsbc|scb|standard\s*chartered|cooperative)\b/i.test(text)
+  ) {
+    return 'bank';
+  }
+
+  // 6. Cards
+  if (
+    /\b(card|cards|debit|credit|visa|mastercard|master\s*card|rupay|amex|american\s*express|diners|onecard|forex)\b/i.test(text)
+  ) {
+    return 'card';
+  }
+
+  // 7. Cash
+  if (
+    /\b(cash|pocket\s*money|physical|currency|petty\s*cash)\b/i.test(text)
+  ) {
+    return 'cash';
+  }
+
+  // 8. Other UPI / BHIM
+  if (
+    /\b(upi|bhim|cred|famypay|fampay|super\s*pe|jupiter|fi\s*money|mobikwik|freecharge|airtel\s*money|airtel\s*pay|whatsapp\s*pay|navi|slice|super\.?money)\b/i.test(text) ||
+    text.includes('upi') ||
+    text.includes('bhim')
+  ) {
+    return 'other_upi';
+  }
+
+  return null;
+}
+
 const svgCommonProps = {
   fill: 'none',
   xmlns: 'http://www.w3.org/2000/svg',
@@ -85,7 +163,13 @@ const svgCommonProps = {
 };
 
 export function renderWalletIcon(iconKey?: string, size = 26, customColor?: string): React.ReactNode {
-  const key = (iconKey || '').toLowerCase().trim();
+  let key = (iconKey || '').toLowerCase().trim();
+
+  // If key is a free-form name (e.g. "HDFC Bank", "SBI", "GPay Main"), smartly resolve the preset key
+  const detectedKey = detectWalletPresetFromName(key);
+  if (detectedKey && (key.includes(' ') || !['gpay', 'phonepe', 'amazonpay', 'paytm', 'bank', 'card', 'cash', 'other_upi', 'cred', 'apple'].includes(key))) {
+    key = detectedKey;
+  }
 
   // 1. Google Pay - Crisp Google G on Adaptive Light/Dark Squircle
   if (key === 'gpay' || key.includes('google') || key.includes('gpay')) {
@@ -185,21 +269,21 @@ export function renderWalletIcon(iconKey?: string, size = 26, customColor?: stri
     );
   }
 
-  // 5. Other UPI / NPCI UPI - Authentic NPCI Green & Orange Chevron Logo with High-Definition Geometry
+  // 5. Other UPI / NPCI UPI - Authentic UPI Orange & Green Dual Arrow Mark
   if (key === 'other_upi' || key === 'upi' || key.includes('upi') || key.includes('bhim')) {
     return (
       <svg width={size} height={size} viewBox="0 0 48 48" {...svgCommonProps}>
         <rect width="48" height="48" rx="12" className="wallet-icon-upi-bg" />
         <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="11.25" className="wallet-icon-upi-border" strokeWidth="1.5" />
-        <g transform="translate(2, 0)">
-          {/* NPCI Green Left Chevron */}
-          <path
-            d="M10 12.5L22.5 24L10 35.5H16.8L29.3 24L16.8 12.5H10Z"
+        <g>
+          {/* Green Triangle (Right / Top-Behind) */}
+          <polygon
+            points="27.5,6 39.5,24 15.5,42"
             className="wallet-icon-upi-chevron-g"
           />
-          {/* NPCI Orange Right Chevron */}
-          <path
-            d="M20 12.5L32.5 24L20 35.5H26.8L39.3 24L26.8 12.5H20Z"
+          {/* Orange Triangle (Left / Foreground) */}
+          <polygon
+            points="19.5,5 31.5,23 7.5,41"
             className="wallet-icon-upi-chevron-o"
           />
         </g>
@@ -207,54 +291,30 @@ export function renderWalletIcon(iconKey?: string, size = 26, customColor?: stri
     );
   }
 
-  // 6. Bank Account - Sophisticated Architectural Classical Bank with 4 Pillars & Crest
+  // 6. Bank Account - Clean outline architectural bank badge (matching Cards & Cash)
   if (key === 'bank' || key.includes('bank') || key.includes('account')) {
+    const bankColor = (customColor && customColor !== '#ffffff') ? customColor : '#0D9488';
     return (
       <svg width={size} height={size} viewBox="0 0 48 48" {...svgCommonProps}>
-        <defs>
-          <linearGradient id="bankRoofGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#FFFFFF" />
-            <stop offset="100%" stopColor="#E2E8F0" />
-          </linearGradient>
-        </defs>
         <rect width="48" height="48" rx="12" className="wallet-icon-bank-bg" />
         <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="11.25" className="wallet-icon-bank-border" strokeWidth="1.5" />
-        {/* Triangular Pediment / Gable Roof with Overhang */}
-        <path d="M24 10.5L8.5 19H39.5L24 10.5Z" fill="url(#bankRoofGrad)" />
-        {/* Golden Central Seal Medallion */}
-        <circle cx="24" cy="16" r="2.2" fill="#F59E0B" />
-        {/* Architrave / Cornice Beams */}
-        <rect x="9.5" y="19.5" width="29" height="1.8" rx="0.5" fill="#FFFFFF" opacity="0.95" />
-        <rect x="10.5" y="21.8" width="27" height="1.2" rx="0.4" fill="#FFFFFF" opacity="0.8" />
-        {/* Recessed Central Portal Archway */}
-        <path d="M21.5 25.5C21.5 24.1 22.6 23 24 23C25.4 23 26.5 24.1 26.5 25.5V34H21.5V25.5Z" fill="#000000" opacity="0.22" />
-        {/* 4 Corinthian/Ionic Columns with Capitols & Bases */}
-        <g fill="#FFFFFF">
-          {/* Pillar 1 */}
-          <rect x="11.5" y="23.5" width="3.8" height="10.5" rx="0.8" />
-          <rect x="10.8" y="23" width="5.2" height="1.2" rx="0.4" opacity="0.9" />
-          <rect x="10.8" y="33" width="5.2" height="1.2" rx="0.4" opacity="0.9" />
-          {/* Pillar 2 */}
-          <rect x="17.8" y="23.5" width="3.8" height="10.5" rx="0.8" />
-          <rect x="17.1" y="23" width="5.2" height="1.2" rx="0.4" opacity="0.9" />
-          <rect x="17.1" y="33" width="5.2" height="1.2" rx="0.4" opacity="0.9" />
-          {/* Pillar 3 */}
-          <rect x="26.4" y="23.5" width="3.8" height="10.5" rx="0.8" />
-          <rect x="25.7" y="23" width="5.2" height="1.2" rx="0.4" opacity="0.9" />
-          <rect x="25.7" y="33" width="5.2" height="1.2" rx="0.4" opacity="0.9" />
-          {/* Pillar 4 */}
-          <rect x="32.7" y="23.5" width="3.8" height="10.5" rx="0.8" />
-          <rect x="32" y="23" width="5.2" height="1.2" rx="0.4" opacity="0.9" />
-          <rect x="32" y="33" width="5.2" height="1.2" rx="0.4" opacity="0.9" />
+        <g stroke={bankColor} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none">
+          {/* Triangular pediment roof */}
+          <path d="M10 20L24 11L38 20" />
+          {/* Roof base beam */}
+          <line x1="11" y1="20" x2="37" y2="20" />
+          {/* Columns */}
+          <line x1="15.5" y1="23.5" x2="15.5" y2="33.5" />
+          <line x1="24" y1="23.5" x2="24" y2="33.5" />
+          <line x1="32.5" y1="23.5" x2="32.5" y2="33.5" />
+          {/* Foundation base beam */}
+          <line x1="10" y1="36.5" x2="38" y2="36.5" strokeWidth="2.8" />
         </g>
-        {/* 2-tier Stepped Plinth Base */}
-        <rect x="9.5" y="34.5" width="29" height="2" rx="0.6" fill="#FFFFFF" opacity="0.9" />
-        <rect x="8" y="37" width="32" height="2.5" rx="0.8" fill="#FFFFFF" />
       </svg>
     );
   }
 
-  // 7. Cards / Debit / Credit Card - Minimal clean card badge
+  // 7. Cards / Credit Card - Minimal clean card badge
   if (key === 'card' || key.includes('card') || key.includes('debit') || key.includes('credit')) {
     const cardColor = (customColor && customColor !== '#ffffff') ? customColor : '#6366F1';
     return (

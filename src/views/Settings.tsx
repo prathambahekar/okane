@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, ArrowUpRight, Sparkles, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet, Layout } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, ArrowUpRight, Sparkles, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, Info, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet, Layout } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, downloadFile, importSQLDumpString, seedSampleData, resetAndSeedSampleData } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -3526,7 +3526,7 @@ export default function Settings({
                   <div className="settings-card-inner">
                     <div className="settings-card-left">
                       <div className="settings-card-icon">
-                        <HelpCircle size={19} />
+                        <Info size={19} />
                       </div>
                       <div className="settings-card-text">
                         <h2 className="settings-card-title">App Info</h2>
@@ -3707,7 +3707,7 @@ export default function Settings({
                     color: 'var(--accent)',
                     flexShrink: 0
                   }}>
-                    <HelpCircle size={22} />
+                    <Info size={22} />
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

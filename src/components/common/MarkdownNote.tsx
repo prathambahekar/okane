@@ -19,13 +19,6 @@ interface MarkdownNoteProps {
 function parseInlineMarkdown(text: string): React.ReactNode[] {
   if (!text) return [];
 
-  // Regex pattern matching inline markdown tokens
-  // 1: Bold (**text** or __text__)
-  // 2: Italic (*text* or _text_)
-  // 3: Strikethrough (~~text~~)
-  // 4: Inline code (`code`)
-  // 5: Markdown link [text](url)
-  // 6: Raw URL
   const inlineRegex = /(\*\*|__)(.*?)\1|(\*|_)(.*?)\3|(~~)(.*?)\5|`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s]+)/g;
 
   const elements: React.ReactNode[] = [];
@@ -34,7 +27,6 @@ function parseInlineMarkdown(text: string): React.ReactNode[] {
   let keyIndex = 0;
 
   while ((match = inlineRegex.exec(text)) !== null) {
-    // Push preceding text
     if (match.index > lastIndex) {
       elements.push(text.substring(lastIndex, match.index));
     }
@@ -42,46 +34,47 @@ function parseInlineMarkdown(text: string): React.ReactNode[] {
     const [fullMatch] = match;
 
     if (match[2] !== undefined) {
-      // Bold: **text** or __text__
+      // Bold
       elements.push(
-        <strong key={`b-${keyIndex++}`} style={{ fontWeight: 700, color: 'inherit' }}>
+        <strong key={`b-${keyIndex++}`} style={{ fontWeight: 700, color: 'var(--text)' }}>
           {parseInlineMarkdown(match[2])}
         </strong>
       );
     } else if (match[4] !== undefined) {
-      // Italic: *text* or _text_
+      // Italic
       elements.push(
-        <em key={`i-${keyIndex++}`} style={{ fontStyle: 'italic', color: 'inherit' }}>
+        <em key={`i-${keyIndex++}`} style={{ fontStyle: 'italic', color: 'var(--text-2)' }}>
           {parseInlineMarkdown(match[4])}
         </em>
       );
     } else if (match[6] !== undefined) {
-      // Strikethrough: ~~text~~
+      // Strikethrough
       elements.push(
-        <del key={`s-${keyIndex++}`} style={{ textDecoration: 'line-through', opacity: 0.75 }}>
+        <del key={`s-${keyIndex++}`} style={{ textDecoration: 'line-through', opacity: 0.65 }}>
           {parseInlineMarkdown(match[6])}
         </del>
       );
     } else if (match[7] !== undefined) {
-      // Inline code: `code`
+      // Inline code
       elements.push(
         <code
           key={`c-${keyIndex++}`}
           style={{
             background: 'var(--surface3)',
-            padding: '1px 5px',
-            borderRadius: 4,
-            fontSize: '0.9em',
-            fontFamily: 'ui-monospace, monospace',
+            padding: '1.5px 6px',
+            borderRadius: 'var(--radius-xs, 5px)',
+            fontSize: '0.88em',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
             border: '1px solid var(--border)',
-            color: 'inherit',
+            color: 'var(--text)',
+            fontWeight: 500,
           }}
         >
           {match[7]}
         </code>
       );
     } else if (match[8] !== undefined && match[9] !== undefined) {
-      // Markdown link: [text](url)
+      // Markdown link
       elements.push(
         <a
           key={`l-${keyIndex++}`}
@@ -92,7 +85,8 @@ function parseInlineMarkdown(text: string): React.ReactNode[] {
           style={{
             color: 'var(--accent)',
             textDecoration: 'underline',
-            textUnderlineOffset: '2px',
+            textUnderlineOffset: '2.5px',
+            fontWeight: 600,
           }}
         >
           {match[8]}
@@ -110,8 +104,9 @@ function parseInlineMarkdown(text: string): React.ReactNode[] {
           style={{
             color: 'var(--accent)',
             textDecoration: 'underline',
-            textUnderlineOffset: '2px',
+            textUnderlineOffset: '2.5px',
             wordBreak: 'break-all',
+            fontWeight: 600,
           }}
         >
           {match[10]}
@@ -132,11 +127,11 @@ function parseInlineMarkdown(text: string): React.ReactNode[] {
 }
 
 /**
- * High-performance, secure, responsive component that formats markdown notes:
- * - Full multi-line & paragraph support (changing lines actually changes line)
- * - Bold, italic, strikethrough, code snippets
- * - Bullet lists, numbered lists, task checklists
- * - Blockquotes and section headers
+ * High-performance, clean markdown note component:
+ * - Formatted multi-line text & lists with comfortable line heights
+ * - Checklist items, bullet points, numbered lists
+ * - Headers, code snippets, blockquotes
+ * - Consistent styling matching card surface background
  */
 export function MarkdownNote({ content, className = '', style = {}, inline = false }: MarkdownNoteProps) {
   if (!content || !content.trim()) return null;
@@ -157,7 +152,9 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
     );
   }
 
-  const lines = content.split('\n');
+  const rawLines = content.split('\n');
+  const nonEmptyCount = rawLines.filter(l => l.trim().length > 0).length;
+  const isMultiLine = nonEmptyCount > 1;
 
   return (
     <div
@@ -165,18 +162,19 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px',
-        lineHeight: 1.5,
+        gap: isMultiLine ? '6px' : '4px',
+        lineHeight: 1.55,
         wordBreak: 'break-word',
+        color: 'var(--text)',
         ...style,
       }}
     >
-      {lines.map((rawLine, idx) => {
+      {rawLines.map((rawLine, idx) => {
         const trimmed = rawLine.trim();
 
         // Empty line (preserves line-spacing between paragraphs)
         if (!trimmed) {
-          return <div key={`nl-${idx}`} style={{ height: '6px' }} />;
+          return <div key={`nl-${idx}`} style={{ height: '4px' }} />;
         }
 
         // Header 1: # Title
@@ -185,11 +183,12 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <div
               key={`h1-${idx}`}
               style={{
-                fontSize: '1.15em',
+                fontSize: '1.12em',
                 fontWeight: 750,
                 color: 'var(--text)',
                 marginTop: idx > 0 ? 4 : 0,
                 marginBottom: 2,
+                letterSpacing: '-0.01em',
               }}
             >
               {parseInlineMarkdown(trimmed.substring(2))}
@@ -203,7 +202,7 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <div
               key={`h2-${idx}`}
               style={{
-                fontSize: '1.05em',
+                fontSize: '1.04em',
                 fontWeight: 700,
                 color: 'var(--text)',
                 marginTop: idx > 0 ? 3 : 0,
@@ -221,7 +220,7 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <div
               key={`h3-${idx}`}
               style={{
-                fontSize: '0.95em',
+                fontSize: '0.96em',
                 fontWeight: 700,
                 color: 'var(--text)',
                 marginTop: idx > 0 ? 2 : 0,
@@ -233,8 +232,8 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
           );
         }
 
-        // Task checklist: - [ ] or - [x]
-        const checkMatch = trimmed.match(/^-\s*\[([ xX])\]\s*(.*)$/);
+        // Task checklist: - [ ] or - [x] or [ ] or [x]
+        const checkMatch = trimmed.match(/^-\s*\[([ xX])\]\s*(.*)$/) || trimmed.match(/^\[([ xX])\]\s*(.*)$/);
         if (checkMatch) {
           const isChecked = checkMatch[1].toLowerCase() === 'x';
           return (
@@ -242,22 +241,44 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
               key={`chk-${idx}`}
               style={{
                 display: 'flex',
-                alignItems: 'flex-start',
-                gap: 7,
-                paddingLeft: 2,
+                alignItems: 'center',
+                gap: 8,
+                padding: '2px 0',
               }}
             >
-              <input
-                type="checkbox"
-                readOnly
-                checked={isChecked}
+              <div
                 style={{
-                  marginTop: 3,
-                  accentColor: 'var(--accent)',
-                  cursor: 'default',
+                  width: 15,
+                  height: 15,
+                  borderRadius: 4,
+                  border: isChecked ? 'none' : '1.5px solid var(--border2)',
+                  background: isChecked ? 'var(--accent)' : 'var(--surface)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  marginTop: 1,
                 }}
-              />
-              <span style={{ textDecoration: isChecked ? 'line-through' : 'none', opacity: isChecked ? 0.75 : 1 }}>
+              >
+                {isChecked && (
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path
+                      d="M1 4L3.8 7L9 1"
+                      stroke="var(--accent-contrast, #ffffff)"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </div>
+              <span
+                style={{
+                  textDecoration: isChecked ? 'line-through' : 'none',
+                  opacity: isChecked ? 0.6 : 1,
+                  color: isChecked ? 'var(--text-3)' : 'var(--text)',
+                }}
+              >
                 {parseInlineMarkdown(checkMatch[2])}
               </span>
             </div>
@@ -273,8 +294,8 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
               style={{
                 display: 'flex',
                 alignItems: 'flex-start',
-                gap: 7,
-                paddingLeft: 2,
+                gap: 8,
+                padding: '1px 0',
               }}
             >
               <span
@@ -283,17 +304,19 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
                   width: 5,
                   height: 5,
                   borderRadius: '50%',
-                  background: 'var(--text-2)',
-                  marginTop: 7,
+                  background: 'var(--text-3)',
+                  marginTop: 8,
                   flexShrink: 0,
                 }}
               />
-              <span style={{ flex: 1 }}>{parseInlineMarkdown(bulletText)}</span>
+              <span style={{ flex: 1, color: 'var(--text)' }}>
+                {parseInlineMarkdown(bulletText)}
+              </span>
             </div>
           );
         }
 
-        // Numbered item: 1. item
+        // Numbered item: 1. item or 1) item
         const numMatch = trimmed.match(/^(\d+)[.)]\s*(.*)$/);
         if (numMatch) {
           return (
@@ -302,14 +325,25 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
               style={{
                 display: 'flex',
                 alignItems: 'flex-start',
-                gap: 6,
-                paddingLeft: 2,
+                gap: 7,
+                padding: '1px 0',
               }}
             >
-              <span style={{ fontWeight: 600, color: 'var(--text-2)', flexShrink: 0, fontSize: '0.95em' }}>
+              <span
+                style={{
+                  fontWeight: 650,
+                  color: 'var(--text-3)',
+                  flexShrink: 0,
+                  fontSize: '0.9em',
+                  fontVariantNumeric: 'tabular-nums',
+                  minWidth: 16,
+                }}
+              >
                 {numMatch[1]}.
               </span>
-              <span style={{ flex: 1 }}>{parseInlineMarkdown(numMatch[2])}</span>
+              <span style={{ flex: 1, color: 'var(--text)' }}>
+                {parseInlineMarkdown(numMatch[2])}
+              </span>
             </div>
           );
         }
@@ -320,9 +354,9 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <div
               key={`bq-${idx}`}
               style={{
-                borderLeft: '3px solid var(--accent)',
+                borderLeft: '2.5px solid var(--accent)',
                 paddingLeft: 10,
-                margin: '2px 0',
+                margin: '3px 0',
                 color: 'var(--text-2)',
                 fontStyle: 'italic',
               }}
@@ -334,8 +368,32 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
 
         // Standard text line
         return (
-          <div key={`ln-${idx}`} style={{ whiteSpace: 'pre-wrap' }}>
-            {parseInlineMarkdown(rawLine)}
+          <div
+            key={`ln-${idx}`}
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: isMultiLine ? 8 : 0,
+              padding: '1px 0',
+            }}
+          >
+            {isMultiLine && (
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: 4,
+                  height: 4,
+                  borderRadius: '50%',
+                  background: 'var(--text-3)',
+                  opacity: 0.7,
+                  marginTop: 8,
+                  flexShrink: 0,
+                }}
+              />
+            )}
+            <span style={{ flex: 1, color: 'var(--text)' }}>
+              {parseInlineMarkdown(rawLine)}
+            </span>
           </div>
         );
       })}

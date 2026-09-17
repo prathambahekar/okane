@@ -6,6 +6,7 @@ import {
   TrendingDown,
   Flame,
   Calendar,
+  BarChart2,
 } from 'lucide-react';
 import { fmtMoney, fmtMoneyCompact, getGroupedExpenseAmount } from '../../utils';
 import { useBackButtonModal, BackPriority } from '../../utils/backHandler';
@@ -477,11 +478,11 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
         {/* Scrollable Body - Clean canvas without nested gray cards */}
         <div
           style={{
-            padding: '12px 20px 20px',
+            padding: '8px 18px 12px',
             overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
-            gap: 20,
+            gap: 12,
             flex: 1,
             WebkitOverflowScrolling: 'touch',
           }}
@@ -491,120 +492,147 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: 14,
+              gap: 8,
             }}
           >
-            {/* Chart Header (Clean title without individual day text) */}
+            {/* Chart Header Row 1: Title + Sleek Mode Toggle */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 10,
+                gap: 8,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <Calendar size={16} style={{ color: '#f97316' }} />
-                <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Calendar size={15} style={{ color: '#f97316' }} />
+                <span style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text)' }}>
                   {period === 'week' ? 'Weekly Pace' : 'Monthly Pace'}
                 </span>
               </div>
 
-              {/* Legend & Mode Switch Pills */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span
-                      style={{
-                        width: 9,
-                        height: 9,
-                        borderRadius: '50%',
-                        background: '#f97316',
-                        display: 'inline-block',
-                      }}
-                    />
-                    <span style={{ fontSize: '12px', color: 'var(--text)', fontWeight: 650 }}>
-                      {currentPeriodLabel}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span
-                      style={{
-                        width: 9,
-                        height: 9,
-                        borderRadius: '50%',
-                        background: '#0284c7',
-                        display: 'inline-block',
-                      }}
-                    />
-                    <span style={{ fontSize: '12px', color: 'var(--text-2)', fontWeight: 550 }}>
-                      {prevPeriodLabel}
-                    </span>
-                  </div>
-                </div>
-
-                <div
+              {/* Mode Switch Pills with Icons */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  background: 'var(--surface2)',
+                  padding: '2px',
+                  borderRadius: 9999,
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setChartMode('cumulative')}
+                  title="Running Total"
+                  aria-label="Running Total"
                   style={{
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 3,
-                    background: 'var(--surface2)',
-                    padding: '3px',
+                    gap: 4,
+                    padding: '3px 9px',
                     borderRadius: 9999,
-                    border: '1px solid var(--border)',
+                    fontSize: '11px',
+                    fontWeight: 650,
+                    border: 'none',
+                    background: chartMode === 'cumulative' ? 'var(--accent)' : 'transparent',
+                    color: chartMode === 'cumulative' ? 'var(--accent-contrast)' : 'var(--text-3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setChartMode('cumulative')}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: 9999,
-                      fontSize: '11.5px',
-                      fontWeight: 650,
-                      border: 'none',
-                      background: chartMode === 'cumulative' ? 'var(--accent)' : 'transparent',
-                      color: chartMode === 'cumulative' ? 'var(--accent-contrast)' : 'var(--text-3)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    Running Total
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setChartMode('daily')}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: 9999,
-                      fontSize: '11.5px',
-                      fontWeight: 650,
-                      border: 'none',
-                      background: chartMode === 'daily' ? 'var(--accent)' : 'transparent',
-                      color: chartMode === 'daily' ? 'var(--accent-contrast)' : 'var(--text-3)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    Daily Spend
-                  </button>
-                </div>
+                  <TrendingUp size={11} strokeWidth={2.5} />
+                  <span>Total</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartMode('daily')}
+                  title="Daily Spend"
+                  aria-label="Daily Spend"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '3px 9px',
+                    borderRadius: 9999,
+                    fontSize: '11px',
+                    fontWeight: 650,
+                    border: 'none',
+                    background: chartMode === 'daily' ? 'var(--accent)' : 'transparent',
+                    color: chartMode === 'daily' ? 'var(--accent-contrast)' : 'var(--text-3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <BarChart2 size={11} strokeWidth={2.5} />
+                  <span>Daily</span>
+                </button>
               </div>
             </div>
 
-            {/* SVG Dual-Line Chart Stage - Larger & Beautiful */}
+            {/* Chart Header Row 2: Legend & Day Inspect Hint */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: '#f97316',
+                      display: 'inline-block',
+                    }}
+                  />
+                  <span style={{ fontSize: '11.5px', color: 'var(--text)', fontWeight: 650 }}>
+                    {currentPeriodLabel}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: '#0284c7',
+                      display: 'inline-block',
+                    }}
+                  />
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-2)', fontWeight: 550 }}>
+                    {prevPeriodLabel}
+                  </span>
+                </div>
+              </div>
+
+              {activeInspectedDay && (
+                <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 500 }}>
+                  {activeInspectedDay.dayLabel}
+                </div>
+              )}
+            </div>
+
+            {/* SVG Dual-Line Chart Stage - Compact & Clear */}
             <div
               style={{
                 position: 'relative',
                 width: '100%',
                 userSelect: 'none',
-                marginTop: 4,
+                marginTop: 2,
               }}
             >
               <svg
-                viewBox="0 0 500 290"
+                viewBox="0 0 500 215"
                 style={{
                   width: '100%',
                   height: 'auto',
@@ -614,12 +642,12 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
               >
                 {/* Chart Coordinate Math */}
                 {(() => {
-                  const padL = 58;
-                  const padR = 20;
-                  const padT = 28;
-                  const padB = 44;
+                  const padL = 50;
+                  const padR = 18;
+                  const padT = 18;
+                  const padB = 32;
                   const plotW = 500 - padL - padR;
-                  const plotH = 290 - padT - padB;
+                  const plotH = 215 - padT - padB;
                   const count = dayComparisons.length;
 
                   const getX = (idx: number) => {
@@ -956,13 +984,13 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
             return (
               <div
                 style={{
-                  padding: '16px 18px',
-                  borderRadius: 20,
+                  padding: '11px 13px',
+                  borderRadius: 16,
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 14,
+                  gap: 8,
                   boxShadow: 'var(--shadow)',
                 }}
               >
@@ -972,16 +1000,16 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: 10,
-                    flexWrap: 'wrap',
+                    gap: 8,
+                    flexWrap: 'nowrap',
                   }}
                 >
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 750, color: 'var(--text)' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '13.5px', fontWeight: 750, color: 'var(--text)', lineHeight: 1.2 }}>
                       {projTitle}
                     </div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
-                      Based on average pace of {fmtMoney(pacingStats.curDailyAvg, currency)}/day
+                    <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 500, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      Based on avg {fmtMoney(pacingStats.curDailyAvg, currency)}/day
                     </div>
                   </div>
 
@@ -990,10 +1018,10 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 5,
-                      padding: '5px 12px',
+                      gap: 4,
+                      padding: '4px 10px',
                       borderRadius: 9999,
-                      fontSize: '12px',
+                      fontSize: '11.5px',
                       fontWeight: 700,
                       backgroundColor: isLower
                         ? 'rgba(16, 185, 129, 0.12)'
@@ -1009,12 +1037,13 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                           : 'var(--border)'
                       }`,
                       flexShrink: 0,
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {isLower ? (
-                      <TrendingDown size={14} strokeWidth={2.4} />
+                      <TrendingDown size={13} strokeWidth={2.4} />
                     ) : diffVsPrev > 0 ? (
-                      <TrendingUp size={14} strokeWidth={2.4} />
+                      <TrendingUp size={13} strokeWidth={2.4} />
                     ) : null}
                     <span>
                       {isLower ? '' : diffVsPrev > 0 ? '+' : ''}
@@ -1028,48 +1057,48 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 10,
+                    gap: 8,
                     background: 'var(--surface)',
-                    padding: '12px 14px',
-                    borderRadius: 14,
+                    padding: '8px 10px',
+                    borderRadius: 12,
                     border: '1px solid var(--border)',
                   }}
                 >
                   {/* Column 1: Current Spent */}
                   <div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 600 }}>
+                    <div style={{ fontSize: '10.5px', color: 'var(--text-3)', fontWeight: 600 }}>
                       Current Spent
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text)', marginTop: 2 }}>
+                    <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)', marginTop: 1 }}>
                       {fmtMoney(totalSpent, currency)}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: 'var(--text-3)', marginTop: 1 }}>
+                    <div style={{ fontSize: '10px', color: 'var(--text-3)', marginTop: 1 }}>
                       Day {curDaysCount} of {maxDays}
                     </div>
                   </div>
 
                   {/* Column 2: Projected Total */}
                   <div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 600 }}>
+                    <div style={{ fontSize: '10.5px', color: 'var(--text-3)', fontWeight: 600 }}>
                       Projected Total
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#f97316', marginTop: 2 }}>
+                    <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#f97316', marginTop: 1 }}>
                       {fmtMoney(projectedTotal, currency)}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: 'var(--text-3)', marginTop: 1 }}>
-                      {isWeekPeriod ? 'By Sunday' : 'By Month-End'}
+                    <div style={{ fontSize: '10px', color: 'var(--text-3)', marginTop: 1 }}>
+                      {isWeekPeriod ? 'By Sun' : 'By End'}
                     </div>
                   </div>
 
                   {/* Column 3: Previous Period Total */}
                   <div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 600 }}>
+                    <div style={{ fontSize: '10.5px', color: 'var(--text-3)', fontWeight: 600 }}>
                       {isWeekPeriod ? 'Last Week' : 'Last Month'}
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-2)', marginTop: 2 }}>
+                    <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-2)', marginTop: 1 }}>
                       {fmtMoney(prevPeriodSpent, currency)}
                     </div>
-                    <div style={{ fontSize: '10.5px', color: 'var(--text-3)', marginTop: 1 }}>
+                    <div style={{ fontSize: '10px', color: 'var(--text-3)', marginTop: 1 }}>
                       Full Actual
                     </div>
                   </div>
@@ -1082,7 +1111,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
         {/* Footer Close Button */}
         <div
           style={{
-            padding: '12px 20px calc(14px + env(safe-area-inset-bottom, 0px))',
+            padding: '10px 18px calc(10px + env(safe-area-inset-bottom, 0px))',
             backgroundColor: 'var(--surface)',
             flexShrink: 0,
             display: 'flex',
@@ -1093,7 +1122,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
             onClick={onClose}
             style={{
               width: '100%',
-              height: 42,
+              height: 40,
               borderRadius: 'var(--radius-full)',
               border: 'none',
               background: 'var(--accent)',

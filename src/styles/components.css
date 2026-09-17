@@ -154,22 +154,22 @@
 /* 5. Other UPI / BHIM NPCI */
 .wallet-icon-upi-bg { fill: #ffffff; }
 .wallet-icon-upi-border { stroke: #e2e8f0; }
-.wallet-icon-upi-chevron-g { fill: #097939; }
-.wallet-icon-upi-chevron-o { fill: #ea580c; }
+.wallet-icon-upi-chevron-g { fill: #00843D; }
+.wallet-icon-upi-chevron-o { fill: #F47920; }
 
 [data-color-scheme="dark"] .wallet-icon-upi-bg { fill: var(--surface2, #18181b); }
 [data-color-scheme="dark"] .wallet-icon-upi-border { stroke: var(--border, rgba(255, 255, 255, 0.12)); }
-[data-color-scheme="dark"] .wallet-icon-upi-chevron-g { fill: #10b981; }
-[data-color-scheme="dark"] .wallet-icon-upi-chevron-o { fill: #f97316; }
+[data-color-scheme="dark"] .wallet-icon-upi-chevron-g { fill: #10B981; }
+[data-color-scheme="dark"] .wallet-icon-upi-chevron-o { fill: #FB923C; }
 
 /* 6. Bank Account */
-.wallet-icon-bank-bg { fill: #0d9488; }
-.wallet-icon-bank-border { stroke: rgba(13, 148, 136, 0.25); }
+.wallet-icon-bank-bg { fill: #ffffff; }
+.wallet-icon-bank-border { stroke: #e2e8f0; }
 
-[data-color-scheme="dark"] .wallet-icon-bank-bg { fill: #0d2826; }
-[data-color-scheme="dark"] .wallet-icon-bank-border { stroke: rgba(45, 212, 191, 0.25); }
+[data-color-scheme="dark"] .wallet-icon-bank-bg { fill: var(--surface2, #18181b); }
+[data-color-scheme="dark"] .wallet-icon-bank-border { stroke: var(--border, rgba(255, 255, 255, 0.12)); }
 
-/* 7. Card / Debit */
+/* 7. Cards */
 .wallet-icon-card-bg { fill: #ffffff; }
 .wallet-icon-card-border { stroke: #e2e8f0; }
 

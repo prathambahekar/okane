@@ -18,7 +18,7 @@ import {
   Palette,
   Database,
   Tag,
-  HelpCircle,
+  Info,
   FlaskConical,
   MessageSquarePlus,
   ShieldCheck,
@@ -139,7 +139,7 @@ const SETTINGS_SEARCH_ITEMS: SettingsSearchItem[] = [
     title: 'App Info & Updates',
     subtitle: `Okane v${CURRENT_APP_VERSION} • Version info & changelog`,
     category: 'System',
-    icon: HelpCircle,
+    icon: Info,
     tags: ['version', 'update', 'updates', 'build', 'github', 'info', 'release', 'changelog', 'about', 'app info']
   },
   {

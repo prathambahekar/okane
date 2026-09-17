@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { X, Wallet as WalletIcon, Plus, Check, CheckCircle2, RotateCcw } from 'lucide-react';
 import { useStore } from '../store';
 import type { Wallet } from '../types';
-import { WALLET_PRESETS, renderWalletIcon } from './WalletIconRenderer';
+import { WALLET_PRESETS, renderWalletIcon, detectWalletPresetFromName } from './WalletIconRenderer';
 import { currencySymbol } from '../utils';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 import { showSoftKeyboard } from '../utils/keyboard';
@@ -26,14 +26,8 @@ export default function WalletModal({ wallet, onClose }: Props) {
   const [selectedPresetId, setSelectedPresetId] = useState<string>(() => {
     if (wallet?.icon && wallet.icon !== 'wallet') return wallet.icon;
     if (wallet?.name) {
-      const n = wallet.name.toLowerCase();
-      if (n.includes('cash') || wallet.id === 'wal_cash') return 'cash';
-      if (n.includes('upi') || n.includes('bhim') || wallet.id === 'wal_upi') return 'other_upi';
-      if (n.includes('phonepe') || n.includes('phone')) return 'phonepe';
-      if (n.includes('paytm')) return 'paytm';
-      if (n.includes('amazon')) return 'amazonpay';
-      if (n.includes('bank') || n.includes('account')) return 'bank';
-      if (n.includes('card') || n.includes('debit') || n.includes('credit')) return 'card';
+      const detected = detectWalletPresetFromName(wallet.name);
+      if (detected) return detected;
     }
     return wallet?.icon ?? 'gpay';
   });
@@ -53,11 +47,20 @@ export default function WalletModal({ wallet, onClose }: Props) {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleNameChange = (val: string) => {
+    setName(val);
+    if (error) setError('');
+    const detected = detectWalletPresetFromName(val);
+    if (detected) {
+      setSelectedPresetId(detected);
+    }
+  };
+
   const handleSelectPreset = (presetId: string) => {
     setSelectedPresetId(presetId);
     const preset = WALLET_PRESETS.find(p => p.id === presetId);
     if (preset) {
-      if (!name || WALLET_PRESETS.some(p => p.defaultName === name || p.name === name)) {
+      if (!name || WALLET_PRESETS.some(p => p.defaultName.toLowerCase() === name.trim().toLowerCase() || p.name.toLowerCase() === name.trim().toLowerCase())) {
         setName(preset.defaultName);
       }
     }
@@ -267,10 +270,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
                 ref={nameInputRef}
                 className="form-input"
                 value={name}
-                onChange={e => {
-                  setName(e.target.value);
-                  if (error) setError('');
-                }}
+                onChange={e => handleNameChange(e.target.value)}
                 placeholder="e.g. Google Pay, HDFC Bank..."
                 style={{
                   width: '100%',
