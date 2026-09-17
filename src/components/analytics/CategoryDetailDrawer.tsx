@@ -12,7 +12,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useStore } from '../../store';
-import { fmtMoney, groupExpenses, getGroupedExpenseAmount, type GroupedExpense } from '../../utils';
+import { fmtMoney, groupExpenses, getGroupedExpenseAmount, resolveCategoryMeta, type GroupedExpense } from '../../utils';
 import type { Expense, Wallet } from '../../types';
 import { useBackButtonModal, BackPriority } from '../../utils/backHandler';
 import CategoryIcon from '../CategoryIcon';
@@ -64,14 +64,19 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
 
   // Category Metadata
   const catMeta = useMemo(() => {
-    if (!categoryName) return { color: '#8B5CF6', icon: 'Tag' };
+    if (!categoryName) {
+      return {
+        name: 'Other',
+        color: '#8B5CF6',
+        icon: 'tag',
+        bg: 'rgba(139, 92, 246, 0.12)',
+        border: 'rgba(139, 92, 246, 0.25)',
+      };
+    }
     const found = db.settings.categories.find(
       (c) => c.name.toLowerCase() === categoryName.toLowerCase()
     );
-    return {
-      color: found?.color || '#8B5CF6',
-      icon: found?.icon || 'Tag',
-    };
+    return resolveCategoryMeta(categoryName, found);
   }, [categoryName, db.settings.categories]);
 
   // Filter expenses for this category & active month/period
@@ -203,9 +208,9 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
             <div
               className="category-drawer-icon-avatar"
               style={{
-                backgroundColor: 'var(--surface2)',
+                backgroundColor: catMeta.bg,
                 color: catMeta.color,
-                border: 'none',
+                border: `1px solid ${catMeta.border}`,
               }}
             >
               <CategoryIcon category={categoryName} icon={catMeta.icon} size={20} style={{ color: catMeta.color }} />

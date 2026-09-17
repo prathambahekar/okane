@@ -373,6 +373,8 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   const periodExpenses = useMemo(() => {
     return groupedExpenses.filter(ge => {
       if (ge.category === 'Transfer' || ge.items?.some(i => i.category === 'Transfer')) return false;
+      if (ge.isSettlementGroup || ge.category === 'Settlement' || ge.category?.toLowerCase() === 'settlement') return false;
+      if (ge.category?.toLowerCase() === 'refund') return false;
       if (ge.date < activeDateRange.startDate || ge.date > activeDateRange.endDate) return false;
       if (!isAllCategoriesSelected && !selectedCategories.includes(ge.category)) return false;
       if (selectedWalletId && ge.walletId !== selectedWalletId) return false;
@@ -384,6 +386,8 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   const prevPeriodExpenses = useMemo(() => {
     return groupedExpenses.filter(ge => {
       if (ge.category === 'Transfer' || ge.items?.some(i => i.category === 'Transfer')) return false;
+      if (ge.isSettlementGroup || ge.category === 'Settlement' || ge.category?.toLowerCase() === 'settlement') return false;
+      if (ge.category?.toLowerCase() === 'refund') return false;
       if (ge.date < prevDateRange.startDate || ge.date > prevDateRange.endDate) return false;
       if (!isAllCategoriesSelected && !selectedCategories.includes(ge.category)) return false;
       if (selectedWalletId && ge.walletId !== selectedWalletId) return false;
@@ -523,6 +527,8 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   const basePeriodExpenses = useMemo(() => {
     return groupedExpenses.filter(ge => {
       if (ge.category === 'Transfer' || ge.items?.some(i => i.category === 'Transfer')) return false;
+      if (ge.isSettlementGroup || ge.category === 'Settlement' || ge.category?.toLowerCase() === 'settlement') return false;
+      if (ge.category?.toLowerCase() === 'refund') return false;
       if (selectedDate) {
         if (ge.date !== selectedDate) return false;
       } else {
@@ -853,11 +859,11 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
 
                   {db.settings.categories
                     .filter((c) => c.name.toLowerCase() !== 'refund' && c.name.toLowerCase() !== 'transfer')
-                    .map((c) => {
+                    .map((c, idx) => {
                     const isSelected = isAllCategoriesSelected || selectedCategories.includes(c.name);
                     return (
                       <button
-                        key={c.name}
+                        key={`${c.name}-${idx}`}
                         type="button"
                         onClick={() => handleToggleCategoryInDrawer(c.name)}
                         style={{

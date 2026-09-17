@@ -556,8 +556,8 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                         value={category}
                         onChange={e => setCategory(e.target.value)}
                       >
-                        {db.settings.categories.map(c => (
-                          <option key={c.name} value={c.name}>{c.name}</option>
+                        {db.settings.categories.map((c, idx) => (
+                          <option key={`${c.name}-${idx}`} value={c.name}>{c.name}</option>
                         ))}
                       </select>
                     </div>
@@ -703,8 +703,8 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                     value={category}
                     onChange={e => setCategory(e.target.value)}
                   >
-                    {db.settings.categories.map(c => (
-                      <option key={c.name} value={c.name}>{c.name}</option>
+                    {db.settings.categories.map((c, idx) => (
+                      <option key={`${c.name}-${idx}`} value={c.name}>{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -1263,11 +1263,11 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
 
                     {/* Clean Presets: 2, 3, and 6 Months */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                      {[2, 3, 6].map(m => {
+                      {[2, 3, 6].map((m, idx) => {
                         const isChipSelected = customMonths === m;
                         return (
                           <button
-                            key={m}
+                            key={`cycle-m-${m}-${idx}`}
                             type="button"
                             onClick={() => setCustomMonths(m)}
                             onMouseEnter={e => !isChipSelected && (e.currentTarget.style.borderColor = 'var(--border2)')}

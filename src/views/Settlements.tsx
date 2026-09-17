@@ -308,6 +308,10 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
     count: filteredSettlements.length,
     getScrollElement: () => listContainerRef.current?.closest<HTMLElement>('.main-content') || document.querySelector<HTMLElement>('.main-content'),
     estimateSize: () => 56,
+    getItemKey: (index) => {
+      const s = filteredSettlements[index];
+      return s?.id ? `st-${s.id}-${index}` : `st-${index}`;
+    },
     overscan: 5,
     scrollMargin,
     gap: 4,

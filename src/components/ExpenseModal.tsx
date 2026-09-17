@@ -1076,7 +1076,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                           setAutoDetectedCategory(null);
                         }}
                       >
-                        {s.categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                        {s.categories.map((c, idx) => <option key={`${c.name}-${idx}`} value={c.name}>{c.name}</option>)}
                       </select>
                     </div>
                     <div className="form-group">

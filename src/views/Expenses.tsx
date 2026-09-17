@@ -285,7 +285,10 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
       if (!group || collapsedDates[group.date]) return 56;
       return 56 + group.items.length * (isMobileScreen ? 76 : 52);
     },
-    getItemKey: (index) => dateGroups[index]?.date || index,
+    getItemKey: (index) => {
+      const group = dateGroups[index];
+      return group?.date ? `dg-${group.date}-${index}` : `dg-${index}`;
+    },
     overscan: 4,
     scrollMargin,
     gap: 12,

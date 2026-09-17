@@ -706,8 +706,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                     outline: 'none',
                   }}
                 >
-                  {s.categories.map(c => (
-                    <option key={c.name} value={c.name}>{c.name}</option>
+                  {s.categories.map((c, idx) => (
+                    <option key={`${c.name}-${idx}`} value={c.name}>{c.name}</option>
                   ))}
                 </select>
               </div>

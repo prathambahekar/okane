@@ -1792,8 +1792,8 @@ export default function Settings({
                             cursor: 'pointer'
                           }}
                         >
-                          {settings.categories.map(c => (
-                            <option key={c.name} value={c.name}>
+                          {settings.categories.map((c, cIdx) => (
+                            <option key={`${c.name}-${cIdx}`} value={c.name}>
                               {c.name}
                             </option>
                           ))}
@@ -1976,11 +1976,11 @@ export default function Settings({
                   <div className="sheet-modal-body">
                     {/* All Category Chips Grid */}
                     <div className="category-chip-list" style={{ marginBottom: 16 }}>
-                      {settings.categories.map((c: Category) => {
+                      {settings.categories.map((c: Category, cIdx: number) => {
                         const bgTint = c.color.startsWith('#') && c.color.length === 7 ? `${c.color}1c` : 'var(--accent-soft)';
                         const borderTint = c.color.startsWith('#') && c.color.length === 7 ? `${c.color}35` : 'var(--border)';
                         return (
-                          <div key={c.name} className="category-chip">
+                          <div key={`${c.name}-${cIdx}`} className="category-chip">
                             <div className="category-chip-content">
                               <span
                                 className="category-chip-icon-badge"
@@ -2756,13 +2756,13 @@ export default function Settings({
                     flexWrap: 'wrap',
                     gap: 6
                   }}>
-                    {['INR', 'USD', 'EUR', 'GBP', 'AED', 'CAD', 'AUD', 'JPY', 'SGD', 'SAR'].map(code => {
+                    {['INR', 'USD', 'EUR', 'GBP', 'AED', 'CAD', 'AUD', 'JPY', 'SGD', 'SAR'].map((code, idx) => {
                       const c = CURRENCIES.find(item => item.code === code);
                       if (!c) return null;
                       const isSelected = settings.currency === code;
                       return (
                         <button
-                          key={code}
+                          key={`${code}-${idx}`}
                           type="button"
                           onClick={() => {
                             updateSettings({ currency: code });
@@ -2808,11 +2808,11 @@ export default function Settings({
                     <p style={{ margin: '4px 0 0 0', fontSize: 'var(--fs-xs)' }}>Try searching with a different name, country or code</p>
                   </div>
                 ) : (
-                  filteredCurrencies.map((c) => {
+                  filteredCurrencies.map((c, idx) => {
                     const isSelected = settings.currency === c.code;
                     return (
                       <div
-                        key={c.code}
+                        key={`${c.code}-${idx}`}
                         onClick={() => {
                           updateSettings({ currency: c.code });
                           showToast(`Default currency set to ${c.name} (${c.code})`);

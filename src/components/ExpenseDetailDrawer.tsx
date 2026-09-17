@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import {
   Users, User, Pencil, Trash2, X, Store, FileText, Wallet as WalletIcon, Tag, ArrowUpRight, ArrowDownLeft, Repeat, RotateCcw, HeartHandshake
 } from 'lucide-react';
-import CategoryIcon, { CategoryBadge } from './CategoryIcon';
+import CategoryIcon from './CategoryIcon';
 import {
   fmtMoney,
   fmtDate,
@@ -13,6 +13,7 @@ import {
   cleanExpenseDescription,
   cleanSettlementDescription,
   getGroupSettlementStatus,
+  resolveCategoryMeta,
   type GroupedExpense
 } from '../utils';
 import type { Expense, Friend, Wallet, Category, Settlement } from '../types';
@@ -92,6 +93,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
 
   const isSettlement = ge.isSettlementGroup || ge.category === 'Settlement';
   const isTransfer = ge.category === 'Transfer' || ge.items.some((i: Expense) => i.category === 'Transfer');
+  const catMeta = resolveCategoryMeta(ge.category, categoryObj, isSettlement, categoriesMap);
   const isDebit = ge.flow === 'out';
   const flowSign = isDebit ? '-' : '+';
 
@@ -187,8 +189,6 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
   const handleToggleFriendFilter = (friendId: string) => {
     setSelectedFriendFilter(prev => (prev === friendId ? null : friendId));
   };
-
-  const categoryColor = categoryObj?.color || 'var(--accent)';
 
   const renderFriendChip = (cf: FriendRoleInfo, themeColor: string) => {
     const { friend } = cf;
@@ -440,16 +440,16 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 width: 44,
                 height: 44,
                 borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--surface2)',
-                border: 'none',
+                backgroundColor: catMeta.bg,
+                border: `1px solid ${catMeta.border}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                color: categoryColor,
+                color: catMeta.color,
               }}
             >
-              <CategoryIcon category={ge.category} icon={categoryObj?.icon} size={22} style={{ color: categoryColor }} />
+              <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={22} style={{ color: catMeta.color }} />
             </div>
 
             {/* Title and metadata */}
@@ -633,156 +633,283 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             </div>
           </div>
 
-          {/* Details Section Card */}
+          {/* 2-Tile Grid: Wallet & Category (or Category & Participants) */}
           <div
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 14,
-              padding: '16px 18px',
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--card-radius)',
+              display: 'grid',
+              gridTemplateColumns: showWallet
+                ? '1fr 1fr'
+                : (categorizedFriends.length > 0 ? '1fr 1fr' : '1fr'),
+              gap: 10,
             }}
           >
-            {/* Top Row: Wallet and Category (when wallet exists) OR Category and You Owe / They Owe (when wallet is hidden) */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: showWallet
-                  ? '1fr 1fr'
-                  : (categorizedFriends.length > 0 ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr'),
-                gap: 14,
-                alignItems: 'flex-start',
-              }}
-            >
-              {/* Wallet (Hidden when unpaid or without wallet) */}
-              {showWallet && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4, height: 16 }}>
-                    <WalletIcon size={11} style={{ color: 'var(--text-3)' }} />
-                    Wallet
-                  </span>
-                  <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 650, color: 'var(--text)', wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: 6, marginTop: 1, minHeight: 28 }}>
-                    {walletObj ? (
-                      <>
-                        {renderWalletIcon(walletObj.icon || walletObj.name, 13, walletObj.color)}
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{effectiveWalletName}</span>
-                      </>
-                    ) : (
-                      <span style={{ color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{effectiveWalletName}</span>
-                    )}
-                  </span>
-                </div>
-              )}
-
-              {/* Category */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start', minWidth: 0 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4, height: 16 }}>
-                  <Tag size={11} style={{ color: 'var(--text-3)' }} />
-                  Category
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1, minHeight: 28 }}>
-                  <CategoryBadge category={ge.category} color={categoryObj?.color} icon={categoryObj?.icon} size={11.5} />
-                </div>
-              </div>
-
-              {/* When wallet is not there, place You Owe / They Owe on the right side */}
-              {!showWallet && categorizedFriends.length > 0 && (
-                <div style={{ minWidth: 0 }}>
-                  {renderCategorizedFriends(true)}
-                </div>
-              )}
-            </div>
-
-            {/* Vendor / Store Section if detected */}
-            {detectedVendor && (() => {
-              const vendorColor = (detectedVendor.color && detectedVendor.color !== '#6366f1')
-                ? detectedVendor.color
-                : 'var(--amber, #f59e0b)';
-              const vendorBadgeStyle = getAvatarStyle(vendorColor);
-
-              return (
+            {/* Wallet Tile (When available) */}
+            {showWallet && (
+              <div
+                style={{
+                  padding: '12px 14px',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  minWidth: 0,
+                }}
+              >
                 <div
                   style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: 'var(--text-3)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    gap: 12,
+                    gap: 5,
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 'var(--radius-sm)',
-                        aspectRatio: '1 / 1',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        ...vendorBadgeStyle,
-                        flexShrink: 0,
-                        lineHeight: 1,
-                      }}
-                    >
-                      <Store size={15} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
-                      <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                        Store / Vendor
-                      </span>
-                      <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {detectedVendor.name}
-                      </span>
-                    </div>
-                  </div>
-                  <span
-                    className="app-contact-badge vendor"
+                  <WalletIcon size={12} style={{ color: 'var(--accent)' }} />
+                  <span>Wallet</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <div
                     style={{
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      padding: '3px 10px',
-                      borderRadius: 'var(--radius-full)',
-                      background: 'var(--amber-bg, rgba(245, 158, 11, 0.14))',
-                      color: 'var(--amber, #fbbf24)',
-                      border: '1px solid var(--amber-border, rgba(245, 158, 11, 0.28))',
-                      whiteSpace: 'nowrap',
+                      width: 28,
+                      height: 28,
+                      borderRadius: 'var(--radius-sm)',
+                      background: walletObj?.color ? `${walletObj.color}15` : 'var(--accent-soft)',
+                      border: `1px solid ${walletObj?.color ? `${walletObj.color}30` : 'var(--border)'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       flexShrink: 0,
                     }}
                   >
-                    Vendor
+                    {walletObj ? (
+                      renderWalletIcon(walletObj.icon || walletObj.name, 18, walletObj.color)
+                    ) : (
+                      <WalletIcon size={14} style={{ color: 'var(--text-3)' }} />
+                    )}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 'var(--fs-sm)',
+                      fontWeight: 650,
+                      color: 'var(--text)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {effectiveWalletName}
                   </span>
                 </div>
-              );
-            })()}
+              </div>
+            )}
 
-            {/* Friends Categorized: "You Owe" vs "They Owe" vs "Participants" (Rendered full-width below ONLY if wallet is present) */}
-            {showWallet && categorizedFriends.length > 0 && renderCategorizedFriends(false)}
-
-            {/* Notes if exists */}
-            {primaryItem.notes && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 4 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <FileText size={11} style={{ color: 'var(--text-3)' }} />
-                  Notes
-                </span>
-                <MarkdownNote
-                  content={primaryItem.notes}
+            {/* Category Tile */}
+            <div
+              style={{
+                padding: '12px 14px',
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: 'var(--text-3)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                }}
+              >
+                <Tag size={12} style={{ color: catMeta.color || 'var(--accent)' }} />
+                <span>Category</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <div
                   style={{
-                    fontSize: 12.5,
-                    color: 'var(--text)',
-                    lineHeight: 1.5,
-                    fontWeight: 500,
+                    width: 28,
+                    height: 28,
+                    borderRadius: 'var(--radius-sm)',
+                    background: catMeta.bg,
+                    border: `1px solid ${catMeta.border}`,
+                    color: catMeta.color,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
                   }}
-                />
+                >
+                  <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={15} style={{ color: catMeta.color }} />
+                </div>
+                <span
+                  style={{
+                    fontSize: 'var(--fs-sm)',
+                    fontWeight: 650,
+                    color: 'var(--text)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {ge.category || 'Expense'}
+                </span>
+              </div>
+            </div>
+
+            {/* When wallet is not available, place You Owe / They Owe in the right-hand tile */}
+            {!showWallet && categorizedFriends.length > 0 && (
+              <div
+                style={{
+                  padding: '12px 14px',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  minWidth: 0,
+                }}
+              >
+                {renderCategorizedFriends(true)}
               </div>
             )}
           </div>
+
+          {/* Vendor / Store Section if detected */}
+          {detectedVendor && (() => {
+            const vendorColor = (detectedVendor.color && detectedVendor.color !== '#6366f1')
+              ? detectedVendor.color
+              : 'var(--amber, #f59e0b)';
+            const vendorBadgeStyle = getAvatarStyle(vendorColor);
+
+            return (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-lg)',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 'var(--radius-sm)',
+                      aspectRatio: '1 / 1',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      ...vendorBadgeStyle,
+                      flexShrink: 0,
+                      lineHeight: 1,
+                    }}
+                  >
+                    <Store size={16} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Store / Vendor
+                    </span>
+                    <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {detectedVendor.name}
+                    </span>
+                  </div>
+                </div>
+                <span
+                  className="app-contact-badge vendor"
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '3px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--amber-bg, rgba(245, 158, 11, 0.14))',
+                    color: 'var(--amber, #fbbf24)',
+                    border: '1px solid var(--amber-border, rgba(245, 158, 11, 0.28))',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >
+                  Vendor
+                </span>
+              </div>
+            );
+          })()}
+
+          {/* Friends Categorized: "You Owe" vs "They Owe" vs "Participants" (Rendered when wallet is present) */}
+          {showWallet && categorizedFriends.length > 0 && (
+            <div
+              style={{
+                padding: '12px 14px',
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              {renderCategorizedFriends(false)}
+            </div>
+          )}
+
+          {/* Notes if exists */}
+          {primaryItem.notes && (
+            <div
+              style={{
+                padding: '12px 14px',
+                background: 'var(--surface2)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: 'var(--text-3)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                }}
+              >
+                <FileText size={12} style={{ color: 'var(--text-3)' }} />
+                <span>Notes</span>
+              </div>
+              <div
+                style={{
+                  fontSize: 'var(--fs-sm)',
+                  color: 'var(--text)',
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                }}
+              >
+                <MarkdownNote content={primaryItem.notes} />
+              </div>
+            </div>
+          )}
 
           {/* Split / Settlement Breakdown */}
           {!isTransfer && (ge.isSplit || ge.isSettlementGroup || ge.items.length > 1 || rawFriends.length > 1) && (() => {

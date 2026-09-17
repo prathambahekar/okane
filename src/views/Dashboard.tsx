@@ -159,6 +159,8 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
     const map: Record<string, { amount: number; count: number }> = {};
     allGroupedExpenses.forEach(ge => {
       if (ge.category === 'Transfer' || ge.items?.some(i => i.category === 'Transfer')) return;
+      if (ge.isSettlementGroup || ge.category === 'Settlement' || ge.category?.toLowerCase() === 'settlement') return;
+      if (ge.category?.toLowerCase() === 'refund') return;
       if (monthKey(ge.date) !== thisKey) return;
       if (ge.flow !== 'out') return;
       const amt = getGroupedExpenseAmount(ge, 'all');

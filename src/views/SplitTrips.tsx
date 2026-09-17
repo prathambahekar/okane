@@ -2748,9 +2748,9 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
 
             {/* Member Chips */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
-              {drawerMembers.map(mName => (
+              {drawerMembers.map((mName, idx) => (
                 <span
-                  key={mName}
+                  key={`${mName}-${idx}`}
                   style={{
                     padding: '6px 14px',
                     borderRadius: 'var(--radius-full)',
@@ -3114,8 +3114,8 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                   boxSizing: 'border-box'
                 }}
               >
-                {activeTrip.members.map(m => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
+                {activeTrip.members.map((m, idx) => (
+                  <option key={`${m.id || m.name}-${idx}`} value={m.id}>{m.name}</option>
                 ))}
               </select>
             </div>
@@ -3274,7 +3274,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
 
                 return (
                   <button
-                    key={m.id || idx}
+                    key={`trip-mem-${m.id || m.name}-${idx}`}
                     type="button"
                     onClick={() => {
                       setSelectedMemberIdForDetail(m.id);
@@ -3512,7 +3512,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
 
                     return (
                       <button
-                        key={m.id}
+                        key={`split-mem-${m.id || m.name}-${mIdx}`}
                         type="button"
                         onClick={() => toggleSplitMember(m.id)}
                         style={{
@@ -3611,7 +3611,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
 
                     return (
                       <div
-                        key={m.id}
+                        key={`custom-split-${m.id || m.name}-${mIdx}`}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -3990,14 +3990,14 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
                   </span>
                 </div>
 
-                {currentMembersList.map(({ member: m, balance }) => {
+                {currentMembersList.map(({ member: m, balance }, idx) => {
                   const b = balance || { paid: 0, share: 0, net: 0 };
                   const isPositive = b.net > 0.01;
                   const isNegative = b.net < -0.01;
 
                   return (
                     <button
-                      key={m.id}
+                      key={`preview-bal-${m.id || m.name}-${idx}`}
                       type="button"
                       onClick={() => setSelectedMemberIdForDetail(m.id)}
                       style={{
