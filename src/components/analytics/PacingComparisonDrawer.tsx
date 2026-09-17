@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -254,6 +254,27 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
   // Selected or hovered day for deep-dive inspection card
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [chartMode, setChartMode] = useState<'cumulative' | 'daily'>('cumulative');
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleScrubPointer = (clientX: number) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const relX = clientX - rect.left;
+    const svgX = (relX / rect.width) * 500;
+    const padL = 48;
+    const padR = 18;
+    const plotW = 500 - padL - padR;
+    const count = dayComparisons.length;
+    if (count <= 1) return;
+    const clampedX = Math.max(padL, Math.min(padL + plotW, svgX));
+    const normalized = (clampedX - padL) / plotW;
+    const nearestIdx = Math.round(normalized * (count - 1));
+    if (nearestIdx >= 0 && nearestIdx < count) {
+      setSelectedDayIndex(nearestIdx);
+    }
+  };
 
   const activeInspectedDay = useMemo(() => {
     if (selectedDayIndex !== null && dayComparisons[selectedDayIndex]) {
@@ -339,11 +360,38 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
     return Math.ceil(maxVal / 10000) * 10000;
   }, [dayComparisons, chartMode]);
 
-  // Y-axis steps
+  // Y-axis steps calibrated for both linear cumulative and power-scale daily distributions
   const yAxisSteps = useMemo(() => {
-    const step = maxBarValue / 3;
-    return [Math.round(maxBarValue), Math.round(step * 2), Math.round(step), 0];
-  }, [maxBarValue]);
+    if (chartMode === 'cumulative') {
+      const step = maxBarValue / 3;
+      return [Math.round(maxBarValue), Math.round(step * 2), Math.round(step), 0];
+    }
+
+    // Daily mode: pick clean, human-friendly milestone levels matching the power curve
+    if (maxBarValue <= 300) {
+      return [maxBarValue, Math.round(maxBarValue * 0.5), 0];
+    }
+
+    const roundToNice = (v: number) => {
+      if (v >= 20000) return Math.round(v / 5000) * 5000;
+      if (v >= 5000) return Math.round(v / 1000) * 1000;
+      if (v >= 1000) return Math.round(v / 250) * 250;
+      if (v >= 500) return Math.round(v / 100) * 100;
+      if (v >= 100) return Math.round(v / 50) * 50;
+      return Math.max(10, Math.round(v / 10) * 10);
+    };
+
+    const top = maxBarValue;
+    const mid = roundToNice(maxBarValue * 0.35);
+    const low = roundToNice(maxBarValue * 0.08);
+
+    const ticks: number[] = [top];
+    if (mid < top && mid > low) ticks.push(mid);
+    if (low < (ticks[ticks.length - 1] || top) && low > 0) ticks.push(low);
+    ticks.push(0);
+
+    return ticks;
+  }, [maxBarValue, chartMode]);
 
   if (!isOpen) return null;
 
@@ -574,13 +622,15 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
               </div>
             </div>
 
-            {/* Chart Header Row 2: Legend & Day Inspect Hint */}
+            {/* Chart Header Row 2: Legend & Interactive Day Readout */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: 8,
+                flexWrap: 'wrap',
+                minHeight: 24,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -616,36 +666,88 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
               </div>
 
               {activeInspectedDay && (
-                <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 500 }}>
-                  {activeInspectedDay.dayLabel}
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: 'var(--surface2)',
+                    padding: '2px 8px',
+                    borderRadius: 9999,
+                    border: '1px solid var(--border)',
+                    fontSize: '11px',
+                    color: 'var(--text)',
+                    fontWeight: 650,
+                  }}
+                >
+                  <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>
+                    {isMonth ? activeInspectedDay.curDateDisplay : activeInspectedDay.dayLabel}
+                  </span>
+                  <span style={{ color: '#f97316' }}>
+                    {fmtMoneyCompact(
+                      chartMode === 'cumulative' ? activeInspectedDay.curCumulative : activeInspectedDay.curSpend,
+                      currency
+                    )}
+                  </span>
+                  <span style={{ color: 'var(--text-3)', fontSize: '10px' }}>vs</span>
+                  <span style={{ color: '#0284c7' }}>
+                    {fmtMoneyCompact(
+                      chartMode === 'cumulative' ? activeInspectedDay.prevCumulative : activeInspectedDay.prevSpend,
+                      currency
+                    )}
+                  </span>
                 </div>
               )}
             </div>
 
-            {/* SVG Dual-Line Chart Stage - Compact & Clear */}
+            {/* SVG Dual-Line Chart Stage - Interactive Scrubbing & Gesture Support */}
             <div
               style={{
                 position: 'relative',
                 width: '100%',
                 userSelect: 'none',
                 marginTop: 2,
+                touchAction: 'none',
+              }}
+              onPointerDown={(e) => {
+                setIsDragging(true);
+                handleScrubPointer(e.clientX);
+              }}
+              onPointerMove={(e) => {
+                if (isDragging || e.buttons > 0) {
+                  handleScrubPointer(e.clientX);
+                }
+              }}
+              onPointerUp={() => setIsDragging(false)}
+              onPointerCancel={() => setIsDragging(false)}
+              onTouchStart={(e) => {
+                if (e.touches.length > 0) {
+                  handleScrubPointer(e.touches[0].clientX);
+                }
+              }}
+              onTouchMove={(e) => {
+                if (e.touches.length > 0) {
+                  handleScrubPointer(e.touches[0].clientX);
+                }
               }}
             >
               <svg
+                ref={svgRef}
                 viewBox="0 0 500 215"
                 style={{
                   width: '100%',
                   height: 'auto',
                   display: 'block',
                   overflow: 'visible',
+                  cursor: 'ew-resize',
                 }}
               >
                 {/* Chart Coordinate Math */}
                 {(() => {
-                  const padL = 50;
+                  const padL = 48;
                   const padR = 18;
-                  const padT = 18;
-                  const padB = 32;
+                  const padT = 24;
+                  const padB = 30;
                   const plotW = 500 - padL - padR;
                   const plotH = 215 - padT - padB;
                   const count = dayComparisons.length;
@@ -655,13 +757,24 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                     return padL + (idx / (count - 1)) * plotW;
                   };
 
+                  const isCumulative = chartMode === 'cumulative';
+
                   const getY = (val: number) => {
                     const clamped = Math.max(0, val);
-                    const ratio = maxBarValue > 0 ? clamped / maxBarValue : 0;
+                    if (maxBarValue <= 0 || clamped <= 0) return padT + plotH;
+
+                    if (!isCumulative) {
+                      // Power scale (gamma 0.48) provides high contrast & vertical dynamic range for small/medium spends
+                      // even when a large outlier spike exists in the month
+                      const ratio = Math.min(1, clamped / maxBarValue);
+                      const scaledRatio = Math.pow(ratio, 0.48);
+                      return padT + plotH - scaledRatio * plotH;
+                    }
+
+                    // Linear scale for Cumulative Running Total
+                    const ratio = Math.min(1, clamped / maxBarValue);
                     return padT + plotH - ratio * plotH;
                   };
-
-                  const isCumulative = chartMode === 'cumulative';
 
                   // Horizontal Grid Lines & Y-Axis Labels
                   const yGrid = yAxisSteps.map((val) => ({
@@ -714,6 +827,8 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
 
                   const activeIdx = activeInspectedDay ? activeInspectedDay.dayIndex : -1;
                   const activeX = activeIdx >= 0 ? getX(activeIdx) : null;
+                  const activeCurPoint = activeIdx >= 0 ? curPoints.find((p) => Math.abs(p.x - (activeX || 0)) < 0.5) : null;
+                  const activePrevPoint = activeIdx >= 0 ? prevPoints[activeIdx] : null;
 
                   return (
                     <>
@@ -742,11 +857,11 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                             strokeDasharray={i === yGrid.length - 1 ? 'none' : '4 4'}
                           />
                           <text
-                            x={padL - 10}
+                            x={padL - 8}
                             y={g.y + 4}
                             textAnchor="end"
                             fill="var(--text-2)"
-                            fontSize="12"
+                            fontSize="11.5"
                             fontWeight="650"
                             fontFamily="inherit"
                           >
@@ -776,7 +891,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                               x2={x}
                               y2={padT + plotH}
                               stroke="var(--border)"
-                              strokeOpacity={isSelected ? 0.6 : 0.25}
+                              strokeOpacity={isSelected ? 0.55 : 0.2}
                               strokeWidth={isSelected ? 1.5 : 1}
                               strokeDasharray="3 3"
                             />
@@ -785,7 +900,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                             {showTickLabel && (
                               <text
                                 x={x}
-                                y={padT + plotH + 20}
+                                y={padT + plotH + 18}
                                 textAnchor="middle"
                                 fill={
                                   day.isToday
@@ -794,7 +909,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                                     ? 'var(--text)'
                                     : 'var(--text-2)'
                                 }
-                                fontSize={isMonth ? '11' : '12.5'}
+                                fontSize={isMonth ? '11' : '12'}
                                 fontWeight={day.isToday || isSelected ? '800' : '650'}
                                 fontFamily="inherit"
                               >
@@ -809,27 +924,13 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                       {prevAreaD && <path d={prevAreaD} fill="url(#pacingPrevAreaGrad)" />}
                       {curAreaD && <path d={curAreaD} fill="url(#pacingCurAreaGrad)" />}
 
-                      {/* Active Day Vertical Scrubber Line */}
-                      {activeX !== null && (
-                        <line
-                          x1={activeX}
-                          y1={padT}
-                          x2={activeX}
-                          y2={padT + plotH}
-                          stroke="#f97316"
-                          strokeWidth="2"
-                          strokeDasharray="3 3"
-                          opacity="0.85"
-                        />
-                      )}
-
                       {/* Line 1: Previous Period (Blue Path) */}
                       {prevPathD && (
                         <path
                           d={prevPathD}
                           fill="none"
                           stroke="#0284c7"
-                          strokeWidth="2.8"
+                          strokeWidth="2.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
@@ -841,13 +942,13 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                           d={curPathD}
                           fill="none"
                           stroke="#f97316"
-                          strokeWidth="3.5"
+                          strokeWidth="3.2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
                       )}
 
-                      {/* Node Points: Previous Period (Blue Dots) */}
+                      {/* Node Points: Previous Period (Blue Dots) - Clean Non-Cluttered Rendering */}
                       {dayComparisons.map((day, idx) => {
                         const x = getX(idx);
                         const val = isCumulative ? day.prevCumulative : day.prevSpend;
@@ -855,13 +956,10 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                         const isSelected = activeIdx === idx;
 
                         const showNode =
-                          !isMonth ||
-                          idx === 0 ||
-                          (idx + 1) % 5 === 0 ||
-                          idx === count - 1 ||
-                          day.isToday ||
                           isSelected ||
-                          (!isCumulative && day.prevSpend > 0);
+                          (!isMonth && (idx === 0 || idx === count - 1 || day.isToday || val > 0)) ||
+                          (isMonth && !isCumulative && day.prevSpend > 0) ||
+                          (isMonth && isCumulative && (idx === 0 || (idx + 1) % 5 === 0 || idx === count - 1));
 
                         if (!showNode) return null;
 
@@ -870,7 +968,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                             <circle
                               cx={x}
                               cy={y}
-                              r={isSelected ? 6.5 : 4.5}
+                              r={isSelected ? 6 : 3.5}
                               fill="#0284c7"
                               stroke="var(--surface)"
                               strokeWidth={isSelected ? 2.5 : 1.5}
@@ -880,7 +978,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                         );
                       })}
 
-                      {/* Node Points: Current Period (Orange Dots) */}
+                      {/* Node Points: Current Period (Orange Dots) - Clean Non-Cluttered Rendering */}
                       {validCurDays.map((day) => {
                         const x = getX(day.dayIndex);
                         const val = isCumulative ? day.curCumulative : day.curSpend;
@@ -888,64 +986,68 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                         const isSelected = activeIdx === day.dayIndex;
 
                         const showNode =
-                          !isMonth ||
-                          day.dayIndex === 0 ||
-                          (day.dayIndex + 1) % 5 === 0 ||
-                          day.dayIndex === count - 1 ||
-                          day.isToday ||
                           isSelected ||
-                          (!isCumulative && day.curSpend > 0);
+                          day.isToday ||
+                          (!isMonth && (day.dayIndex === 0 || day.dayIndex === count - 1 || val > 0)) ||
+                          (isMonth && !isCumulative && day.curSpend > 0) ||
+                          (isMonth && isCumulative && (day.dayIndex === 0 || (day.dayIndex + 1) % 5 === 0 || day.dayIndex === count - 1));
 
                         if (!showNode) return null;
 
                         return (
                           <g key={`cur-node-${day.dayIndex}`}>
-                            {isSelected && (
-                              <circle
-                                cx={x}
-                                cy={y}
-                                r={12}
-                                fill="rgba(249, 115, 22, 0.25)"
-                              />
-                            )}
                             <circle
                               cx={x}
                               cy={y}
-                              r={isSelected ? 7 : 5}
+                              r={isSelected ? 6.5 : 4}
                               fill="#f97316"
                               stroke="var(--surface)"
                               strokeWidth={isSelected ? 2.5 : 1.5}
                               style={{ transition: 'r 0.15s ease' }}
                             />
-                            {/* Callout Value Badge for Selected Node */}
-                            {isSelected && (
-                              <g transform={`translate(${x}, ${Math.max(16, y - 14)})`}>
-                                <rect
-                                  x="-30"
-                                  y="-15"
-                                  width="60"
-                                  height="20"
-                                  rx="6"
-                                  fill="var(--accent)"
-                                />
-                                <text
-                                  x="0"
-                                  y="-1"
-                                  textAnchor="middle"
-                                  fill="var(--accent-contrast)"
-                                  fontSize="11"
-                                  fontWeight="700"
-                                  fontFamily="inherit"
-                                >
-                                  {fmtMoneyCompact(val, currency)}
-                                </text>
-                              </g>
-                            )}
                           </g>
                         );
                       })}
 
-                      {/* Interactive Invisible Column Hit Areas */}
+                      {/* Active Day Vertical Scrubber Line & Highlight Overlays */}
+                      {activeX !== null && (
+                        <g>
+                          <line
+                            x1={activeX}
+                            y1={padT}
+                            x2={activeX}
+                            y2={padT + plotH}
+                            stroke="#f97316"
+                            strokeWidth="2"
+                            strokeDasharray="4 3"
+                            opacity="0.9"
+                          />
+
+                          {/* Previous Point Ring Highlight */}
+                          {activePrevPoint && (
+                            <circle
+                              cx={activePrevPoint.x}
+                              cy={activePrevPoint.y}
+                              r={11}
+                              fill="rgba(2, 132, 199, 0.22)"
+                            />
+                          )}
+
+                          {/* Active Current Node Highlight & Callout */}
+                          {activeCurPoint && (
+                            <g>
+                              <circle
+                                cx={activeCurPoint.x}
+                                cy={activeCurPoint.y}
+                                r={12}
+                                fill="rgba(249, 115, 22, 0.25)"
+                              />
+                            </g>
+                          )}
+                        </g>
+                      )}
+
+                      {/* Interactive Invisible Column Hit Areas for Click/Tap */}
                       {dayComparisons.map((_, idx) => {
                         const x = getX(idx);
                         const colW = count > 1 ? plotW / (count - 1) : plotW;
@@ -955,9 +1057,9 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                           <rect
                             key={`hit-${idx}`}
                             x={Math.max(padL, hitLeft)}
-                            y={padT}
+                            y={padT - 10}
                             width={colW}
-                            height={plotH + padB}
+                            height={plotH + padB + 10}
                             fill="transparent"
                             cursor="pointer"
                             onClick={() => setSelectedDayIndex(idx)}
