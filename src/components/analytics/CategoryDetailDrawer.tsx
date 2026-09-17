@@ -203,9 +203,9 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
             <div
               className="category-drawer-icon-avatar"
               style={{
-                backgroundColor: `${catMeta.color}18`,
+                backgroundColor: 'var(--surface2)',
                 color: catMeta.color,
-                border: `1.5px solid ${catMeta.color}30`,
+                border: 'none',
               }}
             >
               <CategoryIcon category={categoryName} icon={catMeta.icon} size={20} style={{ color: catMeta.color }} />

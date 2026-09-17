@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, ArrowUpRight, Sparkles, Zap, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, Compass, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet, Layout } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, ArrowUpRight, Sparkles, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, HelpCircle, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet, Layout } from 'lucide-react';
 import { useStore } from '../store';
 import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, downloadFile, importSQLDumpString, seedSampleData, resetAndSeedSampleData } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
@@ -54,10 +54,10 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
       style={{
         display: 'flex',
         flexWrap: 'wrap',
-        justifyContent: 'flex-start',
-        gap: 7,
+        justifyContent: 'center',
+        gap: 8,
         alignItems: 'center',
-        padding: '4px 2px',
+        padding: '6px 4px',
         width: '100%',
       }}
     >
@@ -67,10 +67,10 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
           type="button"
           className={`color-swatch-btn ${color === c ? 'selected' : ''}`}
           style={{
-            width: 26,
-            height: 26,
-            minWidth: 26,
-            minHeight: 26,
+            width: 28,
+            height: 28,
+            minWidth: 28,
+            minHeight: 28,
             background: c,
             display: 'inline-flex',
             alignItems: 'center',
@@ -84,7 +84,7 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
           aria-label={`Select color ${c}`}
         >
           {color === c && (
-            <Check size={12} strokeWidth={2.5} style={{ color: '#ffffff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
+            <Check size={13} strokeWidth={2.5} style={{ color: '#ffffff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
           )}
         </button>
       ))}
@@ -94,10 +94,10 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
           className={`color-swatch-btn ${isCustom ? 'selected' : ''}`}
           onClick={handleCustomClick}
           style={{
-            width: 26,
-            height: 26,
-            minWidth: 26,
-            minHeight: 26,
+            width: 28,
+            height: 28,
+            minWidth: 28,
+            minHeight: 28,
             borderRadius: '50%',
             background: isCustom ? color : 'var(--surface2, #2a2a32)',
             display: 'inline-flex',
@@ -114,9 +114,9 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
           title="Choose Custom Color"
         >
           {isCustom ? (
-            <Check size={12} strokeWidth={2.5} style={{ color: '#ffffff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
+            <Check size={13} strokeWidth={2.5} style={{ color: '#ffffff', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
           ) : (
-            <Palette size={13} style={{ color: 'var(--text)' }} />
+            <Palette size={14} style={{ color: 'var(--text)' }} />
           )}
         </button>
         <input
@@ -290,8 +290,6 @@ function FormattedReleaseNotes({ notes }: { notes: string }) {
 
 export default function Settings({
   onNavigate,
-  onOpenGuide,
-  onStartExpenseTutorial,
   initialArg,
   onClearViewArg,
   onTestLock,
@@ -300,8 +298,6 @@ export default function Settings({
   mobileSearchOpen,
 }: {
   onNavigate?: (v: ViewName, arg?: string) => void;
-  onOpenGuide?: () => void;
-  onStartExpenseTutorial?: () => void;
   initialArg?: string;
   onClearViewArg?: () => void;
   onTestLock?: () => void;
@@ -356,7 +352,10 @@ export default function Settings({
   const { mode, toggleMode } = useColorMode();
   const isDark = mode === 'dark';
   const [appearanceSubView, setAppearanceSubView] = useState<'main' | 'more'>('main');
-  const [categorySubView, setCategorySubView] = useState<'list' | 'add' | 'edit'>('list');
+  const [categorySubView, setCategorySubView] = useState<'list' | 'add' | 'edit' | 'select-icon'>('list');
+  const [iconPickerTarget, setIconPickerTarget] = useState<'add' | 'edit'>('add');
+  const [iconSearchQuery, setIconSearchQuery] = useState('');
+  const [securitySubView, setSecuritySubView] = useState<'main' | 'passcode'>('main');
   const isDevMode = settings.devMode ?? false;
   const displayReleaseHistory = useMemo(() => {
     if (isDevMode) return releaseHistory;
@@ -364,7 +363,6 @@ export default function Settings({
   }, [releaseHistory, isDevMode]);
   const [showDevSheet, setShowDevSheet] = useState(false);
   const [showAppearanceSheet, setShowAppearanceSheet] = useState(false);
-  const [showPerformanceSheet, setShowPerformanceSheet] = useState(false);
   const [showAdvancedSheet, setShowAdvancedSheet] = useState(false);
   const [showCategoriesSheet, setShowCategoriesSheet] = useState(false);
   const [showPreferencesSheet, setShowPreferencesSheet] = useState(false);
@@ -429,10 +427,11 @@ export default function Settings({
     }
   }, { name: 'settings-appearance' });
 
-  useBackButtonModal(showPerformanceSheet, () => setShowPerformanceSheet(false), { name: 'settings-performance' });
   useBackButtonModal(showPreferencesSheet, () => setShowPreferencesSheet(false), { name: 'settings-preferences' });
   useBackButtonModal(showCategoriesSheet, () => {
-    if (categorySubView !== 'list') {
+    if (categorySubView === 'select-icon') {
+      setCategorySubView(iconPickerTarget);
+    } else if (categorySubView !== 'list') {
       setCategorySubView('list');
     } else {
       setShowCategoriesSheet(false);
@@ -443,8 +442,12 @@ export default function Settings({
   useBackButtonModal(showVersionSheet, () => setShowVersionSheet(false), { name: 'settings-version' });
   useBackButtonModal(showFeedbackSheet, () => setShowFeedbackSheet(false), { name: 'settings-feedback' });
   useBackButtonModal(showSecuritySheet, () => {
-    setShowSecuritySheet(false);
-    setIsPinSetupActive(false);
+    if (securitySubView === 'passcode') {
+      setSecuritySubView('main');
+    } else {
+      setShowSecuritySheet(false);
+      setIsPinSetupActive(false);
+    }
   }, { name: 'settings-security' });
   useBackButtonModal(showAdvancedSheet, () => setShowAdvancedSheet(false), { name: 'settings-advanced' });
   useBackButtonModal(showDevSheet, () => setShowDevSheet(false), { name: 'settings-dev' });
@@ -524,8 +527,6 @@ export default function Settings({
           'backup': () => setShowDataSheet(true),
           'advanced-features': () => setShowAdvancedSheet(true),
           'advanced': () => setShowAdvancedSheet(true),
-          'performance': () => setShowPerformanceSheet(true),
-          'perf': () => setShowPerformanceSheet(true),
           'security': () => setShowSecuritySheet(true),
           'security-privacy': () => setShowSecuritySheet(true),
           'app-info': () => setShowVersionSheet(true),
@@ -538,15 +539,6 @@ export default function Settings({
           'dummy': () => setShowDummyModal(true),
           'currency': () => setShowCurrencySheet(true),
         };
-
-        if (id === 'user-guide' || id === 'guide') {
-          if (onStartExpenseTutorial) {
-            onStartExpenseTutorial();
-          } else {
-            onOpenGuide?.();
-          }
-          return true;
-        }
 
         if (sheetMap[id]) {
           sheetMap[id]();
@@ -565,22 +557,13 @@ export default function Settings({
       onClearViewArg?.();
     }, 50);
     return () => clearTimeout(timer);
-  }, [initialArg, onOpenGuide, onStartExpenseTutorial, onNavigate, onClearViewArg]);
+  }, [initialArg, onNavigate, onClearViewArg]);
 
   useEffect(() => {
     const handleOpenDrawerEvent = (e: Event) => {
       const customEv = e as CustomEvent<{ id: string }>;
       const targetId = customEv?.detail?.id;
       if (!targetId) return;
-
-      if (targetId === 'user-guide' || targetId === 'guide') {
-        if (onStartExpenseTutorial) {
-          onStartExpenseTutorial();
-        } else {
-          onOpenGuide?.();
-        }
-        return;
-      }
 
       const sheetMap: Record<string, () => void> = {
         'appearance': () => setShowAppearanceSheet(true),
@@ -592,8 +575,6 @@ export default function Settings({
         'backup': () => setShowDataSheet(true),
         'advanced-features': () => setShowAdvancedSheet(true),
         'advanced': () => setShowAdvancedSheet(true),
-        'performance': () => setShowPerformanceSheet(true),
-        'perf': () => setShowPerformanceSheet(true),
         'security': () => setShowSecuritySheet(true),
         'security-privacy': () => setShowSecuritySheet(true),
         'app-info': () => setShowVersionSheet(true),
@@ -619,7 +600,7 @@ export default function Settings({
 
     window.addEventListener('open-setting-drawer', handleOpenDrawerEvent);
     return () => window.removeEventListener('open-setting-drawer', handleOpenDrawerEvent);
-  }, [onOpenGuide, onStartExpenseTutorial, onNavigate]);
+  }, [onNavigate]);
 
   const [jsonSettings, setJsonSettings] = useState<Record<string, unknown>>({
     appName: "Okane",
@@ -1259,9 +1240,8 @@ export default function Settings({
   const showSecurity = matches(['security', 'privacy', 'pin', 'biometric', 'fingerprint', 'lock', 'face id']);
   const showAdvanced = matches(['advanced', 'features', 'ai assistant', 'gemini', 'autopay', 'recurring', 'trips', 'splits', 'dummy', 'sample']);
   const showAppInfo = matches(['app info', 'version', 'updates', 'release notes', 'guide', 'tutorial', 'license', 'about', 'report bug', 'feature request', 'feedback', 'support', 'contact']);
-  const showDev = isDevMode && matches(['developer', 'dev', 'experimental', 'sql', 'database']);
-  const showPerf = isDevMode && (settings.enablePerformanceCard ?? true) && matches(['performance', 'animations', 'fps', 'rendering']);
-  const showSystemSection = showSecurity || showAdvanced || showAppInfo || showDev || showPerf;
+  const showDev = matches(['developer', 'dev', 'experimental', 'sql', 'database']);
+  const showSystemSection = showSecurity || showAdvanced || showAppInfo || showDev;
 
   return (
     <div className="view-container settings-page-container">
@@ -1689,132 +1669,6 @@ export default function Settings({
           document.body
         )}
 
-        {/* Bottom Sheet Drawer Modal for Performance & Animations */}
-        {showPerformanceSheet && createPortal(
-          <div className="sheet-backdrop" onClick={() => setShowPerformanceSheet(false)}>
-            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="sheet-drag-handle" />
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div className="drawer-header-icon">
-                    <Zap size={20} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                      Performance & Animations
-                    </h3>
-                    <p className="drawer-header-sub">
-                      Optimize app speed & page transition effects
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="drawer-close-btn"
-                  onClick={() => setShowPerformanceSheet(false)}
-                  title="Close"
-                >
-                  <X size={17} />
-                </button>
-              </div>
-
-              {/* Toggle 1: UI Animations */}
-              <div className="drawer-setting-card" style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div className="drawer-card-icon">
-                    <Sliders size={18} />
-                  </div>
-                  <div className="drawer-card-info">
-                    <div className="drawer-card-title">UI Animations & Transitions</div>
-                    <div className="drawer-card-sub">
-                      Turn off for instant page switches on mobile
-                    </div>
-                  </div>
-                </div>
-                <Switch
-                  className="custom-toggle-switch"
-                  checked={settings.enableAnimations ?? true}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    updateSettings({ enableAnimations: enabled });
-                    showToast(enabled ? 'Animations enabled' : 'Animations disabled (Instant navigation)');
-                  }}
-                  color="primary"
-                />
-              </div>
-
-              {/* Toggle 2: Ultra Performance Mode */}
-              <div className="drawer-setting-card" style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div className="drawer-card-icon">
-                    <Zap size={18} />
-                  </div>
-                  <div className="drawer-card-info">
-                    <div className="drawer-card-title">Ultra Performance Mode</div>
-                    <div className="drawer-card-sub">
-                      Removes heavy blurs & shadows for maximum frame rate
-                    </div>
-                  </div>
-                </div>
-                <Switch
-                  className="custom-toggle-switch"
-                  checked={settings.performanceMode ?? false}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    updateSettings({ performanceMode: enabled });
-                    showToast(enabled ? 'Ultra Performance Mode enabled' : 'Standard Mode enabled');
-                  }}
-                  color="primary"
-                />
-              </div>
-
-              {/* Toggle 3: Hide Scrollbars */}
-              <div className="drawer-setting-card" style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div className="drawer-card-icon">
-                    {(settings.hideScrollbar ?? true) ? (
-                      <EyeOff size={18} />
-                    ) : (
-                      <Eye size={18} />
-                    )}
-                  </div>
-                  <div className="drawer-card-info">
-                    <div className="drawer-card-title">Hide Scrollbars</div>
-                    <div className="drawer-card-sub">
-                      Hide visible scrollbars for a clean, mobile-native interface
-                    </div>
-                  </div>
-                </div>
-                <Switch
-                  className="custom-toggle-switch"
-                  checked={settings.hideScrollbar ?? true}
-                  onChange={(e) => {
-                    const hide = e.target.checked;
-                    updateSettings({ hideScrollbar: hide });
-                    showToast(hide ? 'Scrollbars hidden (Clean mobile style)' : 'Scrollbars visible');
-                  }}
-                  color="primary"
-                />
-              </div>
-
-              <div style={{
-                fontSize: 'var(--fs-xs)',
-                color: 'var(--text-3)',
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                lineHeight: 1.4
-              }}>
-                💡 <strong>Mobile performance tip:</strong> If page switching feels sluggish or stutters on your phone, turn off <strong>UI Animations</strong> or enable <strong>Ultra Performance Mode</strong> for instant, butter-smooth navigation.
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
-
         {/* Bottom Sheet Drawer Modal for Preferences */}
         {showPreferencesSheet && createPortal(
           <div className="sheet-backdrop" onClick={() => setShowPreferencesSheet(false)}>
@@ -2063,7 +1917,7 @@ export default function Settings({
             setCategorySubView('list');
           }}>
             <div
-              className="sheet-modal"
+              className="sheet-modal categories-sheet-modal"
               onClick={(e) => e.stopPropagation()}
               style={{
                 maxHeight: '92vh',
@@ -2075,22 +1929,22 @@ export default function Settings({
               {categorySubView === 'list' ? (
                 <>
                   {/* Fixed Header */}
-                  <div className="sheet-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div className="drawer-header-icon">
-                        <Tag size={20} />
+                  <div className="sheet-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div className="drawer-header-icon" style={{ flexShrink: 0 }}>
+                        <Tag size={19} />
                       </div>
-                      <div>
-                        <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           Manage Category Tags
                         </h3>
-                        <p className="drawer-header-sub">
+                        <p className="drawer-header-sub" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {settings.categories.length} category tags configured
                         </p>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                       <button
                         type="button"
                         className="drawer-reset-btn"
@@ -2123,33 +1977,31 @@ export default function Settings({
                     {/* All Category Chips Grid */}
                     <div className="category-chip-list" style={{ marginBottom: 16 }}>
                       {settings.categories.map((c: Category) => {
-                        const bgTint = c.color.startsWith('#') && c.color.length === 7 ? `${c.color}20` : 'var(--accent-soft)';
+                        const bgTint = c.color.startsWith('#') && c.color.length === 7 ? `${c.color}1c` : 'var(--accent-soft)';
+                        const borderTint = c.color.startsWith('#') && c.color.length === 7 ? `${c.color}35` : 'var(--border)';
                         return (
                           <div key={c.name} className="category-chip">
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: 22,
-                                height: 22,
-                                borderRadius: 'var(--radius-xs)',
-                                background: bgTint,
-                                color: c.color,
-                                flexShrink: 0,
-                              }}
-                            >
-                              <CategoryIcon category={c.name} icon={c.icon} size={13} style={{ color: c.color }} />
-                            </span>
-                            <span>{c.name}</span>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, marginLeft: 2 }}>
+                            <div className="category-chip-content">
+                              <span
+                                className="category-chip-icon-badge"
+                                style={{
+                                  background: bgTint,
+                                  border: `1px solid ${borderTint}`,
+                                  color: c.color,
+                                }}
+                              >
+                                <CategoryIcon category={c.name} icon={c.icon} size={14} style={{ color: c.color }} />
+                              </span>
+                              <span className="category-chip-name">{c.name}</span>
+                            </div>
+                            <div className="category-chip-actions">
                               <button
                                 type="button"
                                 className="category-chip-edit"
                                 title={`Edit ${c.name}`}
                                 onClick={() => startEditCategory(c)}
                               >
-                                <Edit2 size={13} />
+                                <Edit2 size={12} strokeWidth={2.2} />
                               </button>
                               <button
                                 type="button"
@@ -2157,7 +2009,7 @@ export default function Settings({
                                 title={`Remove ${c.name}`}
                                 onClick={() => handleDeleteCategory(c.name)}
                               >
-                                <X size={14} />
+                                <X size={13} strokeWidth={2.2} />
                               </button>
                             </div>
                           </div>
@@ -2174,7 +2026,7 @@ export default function Settings({
                         style={{
                           width: '100%',
                           minHeight: 50,
-                          padding: '8px 14px',
+                          padding: '10px 14px',
                           cursor: 'pointer',
                           textAlign: 'left',
                           background: 'var(--surface2)',
@@ -2190,25 +2042,23 @@ export default function Settings({
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                           <div
                             style={{
-                              width: 24,
-                              height: 24,
-                              background: 'transparent',
-                              border: 'none',
-                              color: 'var(--text-2)',
+                              width: 32,
+                              height: 32,
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--accent-soft)',
+                              border: '1px solid var(--accent-border-soft)',
+                              color: 'var(--accent)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               flexShrink: 0,
                             }}
                           >
-                            <Plus size={19} strokeWidth={2.2} />
+                            <Plus size={18} strokeWidth={2.4} />
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                               Add New Category
-                            </div>
-                            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 400, color: 'var(--text-3)', lineHeight: 1.35, marginTop: 2 }}>
-                              Create custom category tag, icon & color
                             </div>
                           </div>
                         </div>
@@ -2237,9 +2087,6 @@ export default function Settings({
                         <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                           Edit Category
                         </h3>
-                        <p className="drawer-header-sub">
-                          Modify category tag, icon & color
-                        </p>
                       </div>
                     </div>
 
@@ -2278,30 +2125,60 @@ export default function Settings({
 
                     <div className="form-group" style={{ marginBottom: 0, border: 'none' }}>
                       <label className="form-label" style={{ fontSize: 'var(--fs-caption)' }}>Category Icon</label>
-                      <div className="category-icon-picker">
-                        {AVAILABLE_ICONS.map(({ id, label, Icon }) => {
-                          const isSelected = editIcon === id;
-                          const bgStyle = isSelected
-                            ? (editColor.startsWith('#') && editColor.length === 7 ? `${editColor}20` : 'var(--accent-soft)')
-                            : undefined;
-                          return (
-                            <button
-                              key={id}
-                              type="button"
-                              className={`icon-picker-btn ${isSelected ? 'selected' : ''}`}
-                              onClick={() => setEditIcon(id)}
-                              title={label}
-                              style={{
-                                color: isSelected ? editColor : 'var(--text-2)',
-                                borderColor: isSelected ? editColor : undefined,
-                                background: bgStyle,
-                              }}
-                            >
-                              <Icon size={16} />
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIconPickerTarget('edit');
+                          setIconSearchQuery('');
+                          setCategorySubView('select-icon');
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          textAlign: 'left',
+                        }}
+                        className="drawer-setting-card"
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 'var(--radius-sm)',
+                              background: (editColor.startsWith('#') && editColor.length === 7 ? `${editColor}20` : 'var(--accent-soft)'),
+                              border: `1px solid ${(editColor.startsWith('#') && editColor.length === 7 ? `${editColor}40` : 'var(--border)')}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: editColor,
+                              flexShrink: 0,
+                            }}
+                          >
+                            <CategoryIcon category="" icon={editIcon} size={18} style={{ color: editColor }} />
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {AVAILABLE_ICONS.find(i => i.id === editIcon)?.label.split('/')[0].trim() || 'Select Icon'}
+                            </div>
+                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 1 }}>
+                              Tap to choose icon
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-3)', flexShrink: 0 }}>
+                          <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--accent)' }}>Select</span>
+                          <ChevronRight size={16} />
+                        </div>
+                      </button>
                     </div>
                   </div>
 
@@ -2360,6 +2237,198 @@ export default function Settings({
                     </button>
                   </div>
                 </>
+              ) : categorySubView === 'select-icon' ? (
+                <>
+                  {/* Fixed Select Icon Subview Header */}
+                  <div className="sheet-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 'none', paddingBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <button
+                        type="button"
+                        className="drawer-back-btn"
+                        onClick={() => setCategorySubView(iconPickerTarget)}
+                        title="Back"
+                      >
+                        <ArrowLeft size={17} />
+                      </button>
+                      <div>
+                        <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                          Select Category Icon
+                        </h3>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="drawer-close-btn"
+                      onClick={() => {
+                        setShowCategoriesSheet(false);
+                        setCategorySubView('list');
+                      }}
+                      title="Close"
+                    >
+                      <X size={17} />
+                    </button>
+                  </div>
+
+                  {/* Scrollable Icon Picker Body */}
+                  <div className="sheet-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, border: 'none', maxHeight: 'calc(80vh - 110px)', overflowY: 'auto' }}>
+                    {/* Search Input */}
+                    <div style={{ position: 'relative' }}>
+                      <Search
+                        size={16}
+                        style={{
+                          position: 'absolute',
+                          left: 12,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          color: 'var(--text-3)',
+                          pointerEvents: 'none',
+                        }}
+                      />
+                      <input
+                        type="text"
+                        value={iconSearchQuery}
+                        onChange={e => setIconSearchQuery(e.target.value)}
+                        placeholder="Search icons (food, travel, tech, bill...)"
+                        className="form-input"
+                        style={{
+                          paddingLeft: 36,
+                          paddingRight: iconSearchQuery ? 36 : 12,
+                          height: 38,
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: 'var(--fs-sm)',
+                          width: '100%',
+                        }}
+                      />
+                      {iconSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setIconSearchQuery('')}
+                          style={{
+                            position: 'absolute',
+                            right: 10,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'var(--surface3)',
+                            border: 'none',
+                            borderRadius: 'var(--radius-full)',
+                            width: 20,
+                            height: 20,
+                            display: 'grid',
+                            placeItems: 'center',
+                            color: 'var(--text-2)',
+                            cursor: 'pointer',
+                            padding: 0,
+                          }}
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Grid of Icons */}
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
+                        gap: 10,
+                        padding: '4px 2px 14px',
+                      }}
+                    >
+                      {AVAILABLE_ICONS.filter(item => {
+                        if (!iconSearchQuery.trim()) return true;
+                        const q = iconSearchQuery.toLowerCase().trim();
+                        return item.id.toLowerCase().includes(q) || item.label.toLowerCase().includes(q);
+                      }).map(({ id, label, Icon }) => {
+                        const currentSelectedIcon = iconPickerTarget === 'add' ? newCatIcon : editIcon;
+                        const currentColor = iconPickerTarget === 'add' ? newCatColor : editColor;
+                        const isSelected = currentSelectedIcon === id;
+                        const bgTint = isSelected
+                          ? (currentColor.startsWith('#') && currentColor.length === 7 ? `${currentColor}22` : 'var(--accent-soft)')
+                          : 'var(--surface2)';
+                        const borderTint = isSelected ? currentColor : 'var(--border)';
+
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => {
+                              if (iconPickerTarget === 'add') {
+                                setNewCatIcon(id);
+                              } else {
+                                setEditIcon(id);
+                              }
+                              setCategorySubView(iconPickerTarget);
+                            }}
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6,
+                              padding: '12px 6px',
+                              borderRadius: 'var(--radius-md)',
+                              background: bgTint,
+                              border: isSelected ? `2px solid ${borderTint}` : `1px solid ${borderTint}`,
+                              color: isSelected ? currentColor : 'var(--text-2)',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+                              boxShadow: isSelected ? `0 2px 10px ${currentColor}30` : 'none',
+                              transform: isSelected ? 'scale(1.04)' : 'none',
+                              outline: 'none',
+                              boxSizing: 'border-box',
+                            }}
+                            title={label}
+                          >
+                            <Icon size={22} style={{ color: isSelected ? currentColor : 'var(--text)' }} />
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: isSelected ? 700 : 500,
+                                color: isSelected ? currentColor : 'var(--text-3)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '100%',
+                                padding: '0 2px',
+                              }}
+                            >
+                              {label.split('/')[0].trim()}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Fixed Bottom Action Footer */}
+                  <div className="sheet-modal-footer" style={{ display: 'flex', gap: 10, borderTop: 'none', paddingTop: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => setCategorySubView(iconPickerTarget)}
+                      style={{
+                        width: '100%',
+                        height: 44,
+                        padding: '0 18px',
+                        borderRadius: 'var(--radius-full)',
+                        background: 'var(--text)',
+                        color: 'var(--surface)',
+                        border: 'none',
+                        fontSize: 'var(--fs-sm)',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <Check size={16} strokeWidth={2.5} />
+                      <span>Done</span>
+                    </button>
+                  </div>
+                </>
               ) : (
                 <>
                   {/* Fixed Add Category Subview Header without splitting lines */}
@@ -2377,9 +2446,6 @@ export default function Settings({
                         <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                           Add New Category
                         </h3>
-                        <p className="drawer-header-sub">
-                          Create custom category tag, icon & color
-                        </p>
                       </div>
                     </div>
 
@@ -2417,30 +2483,60 @@ export default function Settings({
 
                     <div className="form-group" style={{ marginBottom: 0, border: 'none' }}>
                       <label className="form-label" style={{ fontSize: 'var(--fs-caption)' }}>Category Icon</label>
-                      <div className="category-icon-picker">
-                        {AVAILABLE_ICONS.map(({ id, label, Icon }) => {
-                          const isSelected = newCatIcon === id;
-                          const bgStyle = isSelected
-                            ? (newCatColor.startsWith('#') && newCatColor.length === 7 ? `${newCatColor}20` : 'var(--accent-soft)')
-                            : undefined;
-                          return (
-                            <button
-                              key={id}
-                              type="button"
-                              className={`icon-picker-btn ${isSelected ? 'selected' : ''}`}
-                              onClick={() => setNewCatIcon(id)}
-                              title={label}
-                              style={{
-                                color: isSelected ? newCatColor : 'var(--text-2)',
-                                borderColor: isSelected ? newCatColor : undefined,
-                                background: bgStyle,
-                              }}
-                            >
-                              <Icon size={16} />
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIconPickerTarget('add');
+                          setIconSearchQuery('');
+                          setCategorySubView('select-icon');
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'var(--surface2)',
+                          border: '1px solid var(--border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          textAlign: 'left',
+                        }}
+                        className="drawer-setting-card"
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 'var(--radius-sm)',
+                              background: (newCatColor.startsWith('#') && newCatColor.length === 7 ? `${newCatColor}20` : 'var(--accent-soft)'),
+                              border: `1px solid ${(newCatColor.startsWith('#') && newCatColor.length === 7 ? `${newCatColor}40` : 'var(--border)')}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: newCatColor,
+                              flexShrink: 0,
+                            }}
+                          >
+                            <CategoryIcon category="" icon={newCatIcon} size={18} style={{ color: newCatColor }} />
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {AVAILABLE_ICONS.find(i => i.id === newCatIcon)?.label.split('/')[0].trim() || 'Select Icon'}
+                            </div>
+                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 1 }}>
+                              Tap to choose icon
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-3)', flexShrink: 0 }}>
+                          <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--accent)' }}>Select</span>
+                          <ChevronRight size={16} />
+                        </div>
+                      </button>
                     </div>
                   </div>
 
@@ -2782,42 +2878,6 @@ export default function Settings({
 
                     <div className="settings-card-right">
                       <ChevronRight className="settings-card-arrow" size={18} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Add Dummy Data Card */}
-              {showData && (settings.enableDummyData ?? false) && (
-                <div
-                  className="card settings-summary-card"
-                  onClick={() => setShowDummyModal(true)}
-                >
-                  <div className="settings-card-inner">
-                    <div className="settings-card-left">
-                      <div className="settings-card-icon">
-                        <Sparkles size={19} />
-                      </div>
-                      <div className="settings-card-text">
-                        <h2 className="settings-card-title">Add Dummy Data</h2>
-                        <p className="settings-card-sub">
-                          Populate sample expenses, friends, splits & vendor records
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="settings-card-right">
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowDummyModal(true);
-                        }}
-                        style={{ fontWeight: 650, borderRadius: 8, padding: '4px 10px', fontSize: 11.5 }}
-                      >
-                        Add Data
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -3298,40 +3358,7 @@ export default function Settings({
                   </div>
                 </div>
 
-                {/* 5. Dummy / Sample Data */}
-                <div className="drawer-setting-card">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                    <div className="drawer-card-icon">
-                      <Sparkles size={18} />
-                    </div>
-                    <div className="drawer-card-info">
-                      <div className="drawer-card-title">Sample Demo Data</div>
-                      <div className="drawer-card-sub">Load sample records</div>
-                    </div>
-                  </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {(settings.enableDummyData ?? false) && (
-                      <button
-                        type="button"
-                        className="drawer-action-icon-btn"
-                        onClick={() => { setShowAdvancedSheet(false); setShowDummyModal(true); }}
-                        title="Open Sample Data"
-                      >
-                        <ArrowUpRight size={16} />
-                      </button>
-                    )}
-                    <Switch
-                      className="custom-toggle-switch"
-                      checked={settings.enableDummyData ?? false}
-                      onChange={(e) => {
-                        const enabled = e.target.checked;
-                        updateSettings({ enableDummyData: enabled });
-                        showToast(enabled ? 'Dummy Data options enabled' : 'Dummy Data options disabled');
-                      }}
-                    />
-                  </div>
-                </div>
               </div>
             </div>
           </div>,
@@ -3391,63 +3418,60 @@ export default function Settings({
               )}
 
               {/* Developer Mode Card */}
-              {showDev && isDevMode && (
+              {showDev && (
                 <div className="card settings-summary-card" onClick={() => setShowDevSheet(true)}>
                   <div className="settings-card-inner">
                     <div className="settings-card-left">
-                      <div className="settings-card-icon">
+                      <div
+                        className="settings-card-icon"
+                        style={{
+                          background: isDevMode ? 'var(--accent)' : undefined,
+                          color: isDevMode ? 'var(--accent-contrast, #fff)' : undefined,
+                        }}
+                      >
                         <FlaskConical size={19} />
                       </div>
                       <div className="settings-card-text">
                         <h2 className="settings-card-title">Developer Mode</h2>
                         <p className="settings-card-sub">
-                          Developer tools & features
+                          Experimental features
                         </p>
                       </div>
                     </div>
 
-                    <div className="settings-card-right">
-                      <ChevronRight className="settings-card-arrow" size={18} />
+                    <div className="settings-card-right" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Switch
+                        className="custom-toggle-switch"
+                        checked={isDevMode}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          updateSettings({ devMode: checked });
+                          showToast(checked ? 'Developer Mode enabled!' : 'Developer Mode disabled');
+                        }}
+                      />
+                      <ChevronRight
+                        className="settings-card-arrow"
+                        size={18}
+                        onClick={() => setShowDevSheet(true)}
+                        style={{ cursor: 'pointer' }}
+                      />
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Performance & Animations Card (Developer Mode) */}
-              {showPerf && isDevMode && (settings.enablePerformanceCard ?? true) && (
-                <div className="card settings-summary-card" onClick={() => setShowPerformanceSheet(true)}>
+              {/* Sample Demo Data Card (Developer Mode) */}
+              {isDevMode && (settings.enableDummyData ?? false) && (
+                <div className="card settings-summary-card" onClick={() => setShowDummyModal(true)}>
                   <div className="settings-card-inner">
                     <div className="settings-card-left">
                       <div className="settings-card-icon">
-                        <Zap size={19} />
+                        <Sparkles size={19} />
                       </div>
                       <div className="settings-card-text">
-                        <h2 className="settings-card-title">Performance & Animations</h2>
+                        <h2 className="settings-card-title">Sample Demo Data</h2>
                         <p className="settings-card-sub">
-                          Speed & animation effects
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="settings-card-right">
-                      <ChevronRight className="settings-card-arrow" size={18} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Okane User Guide & Tour Card (Developer Mode) */}
-              {isDevMode && (settings.enableUserGuide ?? false) && (
-                <div className="card settings-summary-card" onClick={() => onStartExpenseTutorial ? onStartExpenseTutorial() : onOpenGuide?.()}>
-                  <div className="settings-card-inner">
-                    <div className="settings-card-left">
-                      <div className="settings-card-icon">
-                        <Compass size={19} />
-                      </div>
-                      <div className="settings-card-text">
-                        <h2 className="settings-card-title">Okane User Guide & Tour</h2>
-                        <p className="settings-card-sub">
-                          Interactive walkthrough
+                          Populate sample records
                         </p>
                       </div>
                     </div>
@@ -3586,73 +3610,37 @@ export default function Settings({
                   </div>
                 </div>
 
-                {/* 2. Performance & Animations Card Switch */}
+                {/* 4. Sample Demo Data */}
                 <div className="drawer-setting-card">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                     <div className="drawer-card-icon">
-                      <Zap size={17} />
+                      <Sparkles size={17} />
                     </div>
                     <div className="drawer-card-info">
-                      <div className="drawer-card-title">Performance & Animations Card</div>
-                      <div className="drawer-card-sub">Show performance & animations card in Settings</div>
+                      <div className="drawer-card-title">Sample Demo Data</div>
+                      <div className="drawer-card-sub">Load sample records</div>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {isDevMode && (settings.enablePerformanceCard ?? true) && (
+                    {isDevMode && (settings.enableDummyData ?? false) && (
                       <button
                         type="button"
                         className="drawer-action-icon-btn"
-                        onClick={() => { setShowDevSheet(false); setShowPerformanceSheet(true); }}
-                        title="Configure Performance"
+                        onClick={() => { setShowDevSheet(false); setShowDummyModal(true); }}
+                        title="Open Sample Data"
                       >
-                        <Sliders size={15} />
+                        <ArrowUpRight size={16} />
                       </button>
                     )}
                     <Switch
                       className="custom-toggle-switch"
                       disabled={!isDevMode}
-                      checked={isDevMode && (settings.enablePerformanceCard ?? true)}
+                      checked={isDevMode && (settings.enableDummyData ?? false)}
                       onChange={(e) => {
                         const enabled = e.target.checked;
-                        updateSettings({ enablePerformanceCard: enabled });
-                        showToast(enabled ? 'Performance Card enabled' : 'Performance Card disabled');
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* 3. User Guide */}
-                <div className="drawer-setting-card">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                    <div className="drawer-card-icon">
-                      <HelpCircle size={17} />
-                    </div>
-                    <div className="drawer-card-info">
-                      <div className="drawer-card-title">User Guide & Tour</div>
-                      <div className="drawer-card-sub">Interactive guide & walkthrough</div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {isDevMode && (settings.enableUserGuide ?? false) && onStartExpenseTutorial && (
-                      <button
-                        type="button"
-                        className="drawer-action-icon-btn"
-                        onClick={() => { setShowDevSheet(false); onStartExpenseTutorial(); }}
-                        title="Start User Guide Tour"
-                      >
-                        <HelpCircle size={15} />
-                      </button>
-                    )}
-                    <Switch
-                      className="custom-toggle-switch"
-                      disabled={!isDevMode}
-                      checked={isDevMode && (settings.enableUserGuide ?? false)}
-                      onChange={(e) => {
-                        const enabled = e.target.checked;
-                        updateSettings({ enableUserGuide: enabled });
-                        showToast(enabled ? 'User Guide enabled' : 'User Guide disabled');
+                        updateSettings({ enableDummyData: enabled });
+                        showToast(enabled ? 'Sample Demo Data enabled' : 'Sample Demo Data disabled');
                       }}
                     />
                   </div>
@@ -4424,31 +4412,53 @@ export default function Settings({
 
       {/* Bottom Sheet Drawer Modal for Security & Privacy */}
       {showSecuritySheet && createPortal(
-        <div className="sheet-backdrop" onClick={() => { setShowSecuritySheet(false); setIsPinSetupActive(false); }}>
+        <div className="sheet-backdrop" onClick={() => { setShowSecuritySheet(false); setIsPinSetupActive(false); setSecuritySubView('main'); }}>
           <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
             {/* Drag Handle */}
             <div className="sheet-drag-handle" />
 
             {/* Header */}
             <div className="sheet-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="drawer-header-icon">
-                  <ShieldCheck size={20} />
+              {securitySubView === 'passcode' ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button
+                    type="button"
+                    className="drawer-action-icon-btn"
+                    onClick={() => setSecuritySubView('main')}
+                    title="Back to Security & Privacy"
+                    style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
+                  >
+                    <ArrowLeft size={17} />
+                  </button>
+                  <div>
+                    <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Passcode Settings
+                    </h3>
+                    <p className="drawer-header-sub">
+                      PIN & Biometric Lock Controls
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                    Security & Privacy
-                  </h3>
-                  <p className="drawer-header-sub">
-                    Biometric & PIN Lock
-                  </p>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div className="drawer-header-icon">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                      Security & Privacy
+                    </h3>
+                    <p className="drawer-header-sub">
+                      Biometric & PIN Lock
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <button
                 type="button"
                 className="drawer-close-btn"
-                onClick={() => { setShowSecuritySheet(false); setIsPinSetupActive(false); }}
+                onClick={() => { setShowSecuritySheet(false); setIsPinSetupActive(false); setSecuritySubView('main'); }}
                 title="Close"
               >
                 <X size={17} />
@@ -4470,181 +4480,244 @@ export default function Settings({
                 WebkitOverflowScrolling: 'touch',
               }}
             >
-              {/* 0. Hide Amounts Switch */}
-              <div className="drawer-setting-card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div className="drawer-card-icon">
-                    {settings.hideAmounts ? (
-                      <EyeOff size={18} />
-                    ) : (
-                      <Eye size={18} />
-                    )}
-                  </div>
-                  <div className="drawer-card-info">
-                    <div className="drawer-card-title">
-                      Hide Amounts
+              {securitySubView === 'main' ? (
+                <>
+                  {/* 0. Hide Amounts Switch */}
+                  <div className="drawer-setting-card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                      <div className="drawer-card-icon">
+                        {settings.hideAmounts ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
+                      </div>
+                      <div className="drawer-card-info">
+                        <div className="drawer-card-title">
+                          Hide Amounts
+                        </div>
+                        <div className="drawer-card-sub">
+                          Mask dashboard balances
+                        </div>
+                      </div>
                     </div>
-                    <div className="drawer-card-sub">
-                      Mask dashboard balances
-                    </div>
-                  </div>
-                </div>
 
-                <Switch
-                  className="custom-toggle-switch"
-                  checked={Boolean(settings.hideAmounts)}
-                  onChange={(e) => {
-                    updateSettings({ hideAmounts: e.target.checked });
-                  }}
-                  color="primary"
-                />
-              </div>
-
-              {/* 1. Master PIN Lock Switch */}
-              <div className="drawer-setting-card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div className="drawer-card-icon">
-                    <KeyRound size={18} />
+                    <Switch
+                      className="custom-toggle-switch"
+                      checked={Boolean(settings.hideAmounts)}
+                      onChange={(e) => {
+                        updateSettings({ hideAmounts: e.target.checked });
+                      }}
+                      color="primary"
+                    />
                   </div>
-                  <div className="drawer-card-info">
-                    <div className="drawer-card-title">
-                      Passcode Lock
-                    </div>
-                    <div className="drawer-card-sub">
-                      Require 4-digit PIN
-                    </div>
-                  </div>
-                </div>
 
-                <Switch
-                  className="custom-toggle-switch"
-                  checked={isLockEnabled}
-                  onChange={(e) => handleToggleSecurityLock(e.target.checked)}
-                  color="primary"
-                />
-              </div>
-
-              {/* 2. Biometric Unlock Switch (Only use PIN if toggled off) */}
-              <div className="drawer-setting-card" style={{ opacity: isLockEnabled ? 1 : 0.65 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div className="drawer-card-icon">
-                    <Fingerprint size={18} />
-                  </div>
-                  <div className="drawer-card-info">
-                    <div className="drawer-card-title">
-                      Biometric Unlock
+                  {/* 1. Passcode Lock Switch / Sub-view Navigation */}
+                  <div
+                    className="drawer-setting-card"
+                    style={{ cursor: isLockEnabled ? 'pointer' : 'default' }}
+                    onClick={() => {
+                      if (isLockEnabled) {
+                        setSecuritySubView('passcode');
+                      }
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                      <div className="drawer-card-icon">
+                        <KeyRound size={18} />
+                      </div>
+                      <div className="drawer-card-info">
+                        <div className="drawer-card-title">
+                          Passcode Lock
+                        </div>
+                        <div className="drawer-card-sub">
+                          {isLockEnabled ? '4-Digit PIN active (Tap for settings)' : 'Disabled'}
+                        </div>
+                      </div>
                     </div>
-                    <div className="drawer-card-sub">
-                      Fingerprint & Face ID
-                    </div>
-                  </div>
-                </div>
 
-                <Switch
-                  className="custom-toggle-switch"
-                  checked={isBiometricEnabled}
-                  onChange={(e) => handleToggleBiometricOnly(e.target.checked)}
-                  color="primary"
-                />
-              </div>
-
-              {/* 3. Auto-enter on Face Recognition Switch */}
-              <div className="drawer-setting-card" style={{ opacity: isLockEnabled ? 1 : 0.65 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div className="drawer-card-icon">
-                    <ScanFace size={18} />
-                  </div>
-                  <div className="drawer-card-info">
-                    <div className="drawer-card-title">
-                      Auto Face Unlock
-                    </div>
-                    <div className="drawer-card-sub">
-                      Instant unlock
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        className="custom-toggle-switch"
+                        checked={isLockEnabled}
+                        onChange={(e) => {
+                          handleToggleSecurityLock(e.target.checked);
+                          if (!e.target.checked) {
+                            setSecuritySubView('main');
+                          }
+                        }}
+                        color="primary"
+                      />
+                      {isLockEnabled && (
+                        <button
+                          type="button"
+                          className="drawer-action-icon-btn"
+                          onClick={() => setSecuritySubView('passcode')}
+                          title="Open Passcode Settings"
+                        >
+                          <ChevronRight size={17} />
+                        </button>
+                      )}
                     </div>
                   </div>
-                </div>
+                </>
+              ) : (
+                <>
+                  {/* Sub-view: Passcode Lock Options */}
 
-                <Switch
-                  className="custom-toggle-switch"
-                  checked={Boolean(settings.autoUnlockOnFace && isLockEnabled)}
-                  disabled={!isLockEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    updateSettings({ autoUnlockOnFace: enabled });
-                    showToast(enabled ? 'Face auto-enter enabled' : 'Face auto-enter disabled');
-                  }}
-                  color="primary"
-                />
-              </div>
-
-              {/* 4. Require Lock on App Resume Switch */}
-              <div className="drawer-setting-card" style={{ opacity: isLockEnabled ? 1 : 0.65 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div className="drawer-card-icon">
-                    <Lock size={18} />
-                  </div>
-                  <div className="drawer-card-info">
-                    <div className="drawer-card-title">
-                      Resume Lock
+                  {/* 1. Master Passcode Lock Toggle */}
+                  <div className="drawer-setting-card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                      <div className="drawer-card-icon">
+                        <KeyRound size={18} />
+                      </div>
+                      <div className="drawer-card-info">
+                        <div className="drawer-card-title">
+                          Passcode Lock
+                        </div>
+                        <div className="drawer-card-sub">
+                          Require 4-digit PIN
+                        </div>
+                      </div>
                     </div>
-                    <div className="drawer-card-sub">
-                      Re-lock on app switch
-                    </div>
+
+                    <Switch
+                      className="custom-toggle-switch"
+                      checked={isLockEnabled}
+                      onChange={(e) => {
+                        handleToggleSecurityLock(e.target.checked);
+                        if (!e.target.checked) {
+                          setSecuritySubView('main');
+                        }
+                      }}
+                      color="primary"
+                    />
                   </div>
-                </div>
 
-                <Switch
-                  className="custom-toggle-switch"
-                  checked={settings.requireBiometricOnResume ?? true}
-                  disabled={!isLockEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    updateSettings({ requireBiometricOnResume: enabled });
-                    showToast(enabled ? 'Resume lock enabled' : 'Resume lock disabled');
-                  }}
-                  color="primary"
-                />
-              </div>
-
-              {/* 5. Set / Change Backup Security PIN */}
-              <div className="drawer-setting-card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div className="drawer-card-icon">
-                    <KeyRound size={18} />
-                  </div>
-                  <div className="drawer-card-info">
-                    <div className="drawer-card-title">
-                      Passcode PIN
+                  {/* 2. Biometric Unlock Switch */}
+                  <div className="drawer-setting-card" style={{ opacity: isLockEnabled ? 1 : 0.65 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                      <div className="drawer-card-icon">
+                        <Fingerprint size={18} />
+                      </div>
+                      <div className="drawer-card-info">
+                        <div className="drawer-card-title">
+                          Biometric Unlock
+                        </div>
+                        <div className="drawer-card-sub">
+                          Fingerprint & Face ID
+                        </div>
+                      </div>
                     </div>
-                    <div className="drawer-card-sub">
-                      {settings.securityPin ? 'Configured' : 'Not set'}
-                    </div>
+
+                    <Switch
+                      className="custom-toggle-switch"
+                      checked={isBiometricEnabled}
+                      disabled={!isLockEnabled}
+                      onChange={(e) => handleToggleBiometricOnly(e.target.checked)}
+                      color="primary"
+                    />
                   </div>
-                </div>
 
-                <button
-                  type="button"
-                  className="drawer-action-icon-btn"
-                  onClick={() => setIsPinSetupActive(true)}
-                  title={settings.securityPin ? 'Change PIN' : 'Set PIN'}
-                >
-                  <Edit2 size={15} />
-                </button>
-              </div>
+                  {/* 3. Auto Face Unlock Switch */}
+                  <div className="drawer-setting-card" style={{ opacity: isLockEnabled ? 1 : 0.65 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                      <div className="drawer-card-icon">
+                        <ScanFace size={18} />
+                      </div>
+                      <div className="drawer-card-info">
+                        <div className="drawer-card-title">
+                          Auto Face Unlock
+                        </div>
+                        <div className="drawer-card-sub">
+                          Instant unlock
+                        </div>
+                      </div>
+                    </div>
 
-              {/* Test Security Lock Button */}
-              {isLockEnabled && (
-                <button
-                  type="button"
-                  className="drawer-test-lock-btn"
-                  onClick={() => {
-                    setShowSecuritySheet(false);
-                    onTestLock?.();
-                  }}
-                >
-                  <ShieldCheck size={16} />
-                  <span>Test Lock Screen</span>
-                </button>
+                    <Switch
+                      className="custom-toggle-switch"
+                      checked={Boolean(settings.autoUnlockOnFace && isLockEnabled)}
+                      disabled={!isLockEnabled}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({ autoUnlockOnFace: enabled });
+                        showToast(enabled ? 'Face auto-enter enabled' : 'Face auto-enter disabled');
+                      }}
+                      color="primary"
+                    />
+                  </div>
+
+                  {/* 4. Resume Lock Switch */}
+                  <div className="drawer-setting-card" style={{ opacity: isLockEnabled ? 1 : 0.65 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                      <div className="drawer-card-icon">
+                        <Lock size={18} />
+                      </div>
+                      <div className="drawer-card-info">
+                        <div className="drawer-card-title">
+                          Resume Lock
+                        </div>
+                        <div className="drawer-card-sub">
+                          Re-lock on app switch
+                        </div>
+                      </div>
+                    </div>
+
+                    <Switch
+                      className="custom-toggle-switch"
+                      checked={settings.requireBiometricOnResume ?? true}
+                      disabled={!isLockEnabled}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({ requireBiometricOnResume: enabled });
+                        showToast(enabled ? 'Resume lock enabled' : 'Resume lock disabled');
+                      }}
+                      color="primary"
+                    />
+                  </div>
+
+                  {/* 5. Passcode PIN Config Card */}
+                  <div className="drawer-setting-card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                      <div className="drawer-card-icon">
+                        <KeyRound size={18} />
+                      </div>
+                      <div className="drawer-card-info">
+                        <div className="drawer-card-title">
+                          Passcode PIN
+                        </div>
+                        <div className="drawer-card-sub">
+                          {settings.securityPin ? 'Configured' : 'Not set'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="drawer-action-icon-btn"
+                      onClick={() => setIsPinSetupActive(true)}
+                      title={settings.securityPin ? 'Change PIN' : 'Set PIN'}
+                    >
+                      <Edit2 size={15} />
+                    </button>
+                  </div>
+
+                  {/* Test Security Lock Button - Shown ONLY when Developer Mode is ON */}
+                  {isLockEnabled && isDevMode && (
+                    <button
+                      type="button"
+                      className="drawer-test-lock-btn"
+                      onClick={() => {
+                        setShowSecuritySheet(false);
+                        onTestLock?.();
+                      }}
+                    >
+                      <ShieldCheck size={16} />
+                      <span>Test Lock Screen</span>
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

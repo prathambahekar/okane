@@ -757,30 +757,19 @@
   border: none;
   cursor: pointer;
   user-select: none;
-  background-color: #ffffff;
-  color: #09090b;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.2);
   transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
 }
 
 .empty-state-btn:hover {
-  opacity: 0.95;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  opacity: 0.92;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
 }
 
 .empty-state-btn:active {
   transform: scale(0.96);
-}
-
-[data-color-scheme="light"] .empty-state-btn {
-  background-color: #18181b;
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-
-[data-color-scheme="light"] .empty-state-btn:hover {
-  opacity: 0.92;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
 }
 
 

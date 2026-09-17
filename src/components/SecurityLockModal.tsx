@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { Fingerprint, Delete, Lock, AlertCircle } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
@@ -210,7 +211,7 @@ export default function SecurityLockModal({
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [handleKeyPress, handleDelete]);
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -226,191 +227,284 @@ export default function SecurityLockModal({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 'calc(env(safe-area-inset-top, 24px) + 16px) 24px calc(env(safe-area-inset-bottom, 24px) + 24px)',
+        padding: 'calc(env(safe-area-inset-top, 0px) + 24px) 20px calc(env(safe-area-inset-bottom, 0px) + 24px)',
         boxSizing: 'border-box',
         fontFamily: 'inherit',
         userSelect: 'none',
         WebkitUserSelect: 'none',
-        gap: 'clamp(24px, 5vh, 44px)',
+        width: '100vw',
+        height: '100vh',
+        overflowY: 'auto',
       }}
     >
-      {/* Sleek Minimal Header */}
-      <div
+      <motion.div
+        initial={{ scale: 0.98, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.98, opacity: 0 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
         style={{
+          width: '100%',
+          maxWidth: 340,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          textAlign: 'center',
-          width: '100%',
-          maxWidth: 320,
+          justifyContent: 'center',
+          gap: 32,
+          margin: 'auto',
+          boxSizing: 'border-box',
         }}
       >
-        {/* Subtle Lock Accent */}
+        {/* Sleek Minimal Header */}
         <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 18,
-            background: 'var(--surface2)',
-            border: '1px solid var(--border-soft, var(--border))',
-            display: 'grid',
-            placeItems: 'center',
-            color: 'var(--accent)',
-            marginBottom: 16,
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)',
-          }}
-        >
-          <Lock size={22} strokeWidth={2.2} />
-        </div>
-
-        <div
-          style={{
-            fontSize: 20,
-            fontWeight: 600,
-            letterSpacing: '-0.02em',
-            color: 'var(--text)',
-            margin: '0 0 4px',
-          }}
-        >
-          Enter Passcode
-        </div>
-
-        {/* Minimalist Dots Indicator */}
-        <div
-          className={isShaking ? 'animate-shake' : ''}
           style={{
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: 18,
-            marginTop: 24,
+            textAlign: 'center',
+            width: '100%',
           }}
         >
-          {[0, 1, 2, 3].map(idx => {
-            const filled = pinInput.length > idx;
-            return (
+          {/* Subtle Lock Accent */}
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 20,
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              display: 'grid',
+              placeItems: 'center',
+              color: 'var(--accent)',
+              marginBottom: 18,
+              boxShadow: 'var(--shadow)',
+            }}
+          >
+            <Lock size={24} strokeWidth={2.2} />
+          </div>
+
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              color: 'var(--text)',
+              margin: '0 0 6px',
+            }}
+          >
+            Enter Passcode
+          </div>
+
+          {/* Minimalist Dots Indicator */}
+          <div
+            className={isShaking ? 'animate-shake' : ''}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 20,
+              marginTop: 22,
+            }}
+          >
+            {[0, 1, 2, 3].map(idx => {
+              const filled = pinInput.length > idx;
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    background: errorMsg
+                      ? 'var(--debit)'
+                      : filled
+                      ? 'var(--accent)'
+                      : 'transparent',
+                    border: filled
+                      ? `2px solid ${errorMsg ? 'var(--debit)' : 'var(--accent)'}`
+                      : '2px solid var(--border2)',
+                    boxShadow: filled && !errorMsg ? '0 0 12px var(--accent-soft)' : 'none',
+                    transition: 'all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    transform: filled ? 'scale(1.2)' : 'scale(1)',
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {/* Error Message */}
+          <div
+            style={{
+              minHeight: 28,
+              marginTop: 14,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {errorMsg && (
               <div
-                key={idx}
                 style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: '50%',
-                  background: errorMsg
-                    ? 'var(--debit)'
-                    : filled
-                    ? 'var(--accent)'
-                    : 'transparent',
-                  border: filled
-                    ? `2px solid ${errorMsg ? 'var(--debit)' : 'var(--accent)'}`
-                    : '2px solid var(--border-strong, var(--border))',
-                  boxShadow: filled && !errorMsg ? '0 0 10px var(--accent-soft)' : 'none',
-                  transition: 'all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  transform: filled ? 'scale(1.2)' : 'scale(1)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--debit)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'var(--debit-bg, rgba(239, 68, 68, 0.12))',
+                  padding: '5px 14px',
+                  borderRadius: 20,
+                  border: '1px solid var(--debit-border, rgba(239, 68, 68, 0.25))',
                 }}
-              />
-            );
-          })}
+              >
+                <AlertCircle size={15} />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Error Message */}
+        {/* Modern Refined Keypad */}
         <div
           style={{
-            minHeight: 24,
-            marginTop: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '14px 18px',
+            maxWidth: 320,
+            width: '100%',
           }}
         >
-          {errorMsg && (
-            <div
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(digit => (
+            <button
+              key={digit}
+              type="button"
+              onClick={() => handleKeyPress(digit)}
               style={{
-                fontSize: 12.5,
-                fontWeight: 500,
-                color: 'var(--debit)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                background: 'var(--danger-soft, rgba(239, 68, 68, 0.12))',
-                padding: '4px 12px',
-                borderRadius: 20,
+                height: 64,
+                borderRadius: 22,
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                color: 'var(--text)',
+                fontSize: 24,
+                fontWeight: 600,
+                display: 'grid',
+                placeItems: 'center',
+                cursor: 'pointer',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                transition: 'transform 0.1s ease, background 0.15s ease',
+                boxShadow: 'var(--shadow)',
+              }}
+              onMouseDown={e => {
+                e.currentTarget.style.transform = 'scale(0.94)';
+                e.currentTarget.style.background = 'var(--surface2)';
+              }}
+              onMouseUp={e => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.background = 'var(--surface)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.background = 'var(--surface)';
               }}
             >
-              <AlertCircle size={14} />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-        </div>
-      </div>
+              {digit}
+            </button>
+          ))}
 
-      {/* Modern Refined Keypad */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '14px 20px',
-          maxWidth: 290,
-          width: '100%',
-        }}
-      >
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(digit => (
+          {/* Biometric Button */}
+          {enableBiometricLock ? (
+            <button
+              type="button"
+              onClick={authenticateBiometric}
+              title={`Scan ${biometricType}`}
+              style={{
+                height: 64,
+                borderRadius: 22,
+                border: '1px solid transparent',
+                background: 'transparent',
+                color: 'var(--accent)',
+                display: 'grid',
+                placeItems: 'center',
+                cursor: 'pointer',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                transition: 'transform 0.1s ease',
+              }}
+              onMouseDown={e => {
+                e.currentTarget.style.transform = 'scale(0.9)';
+              }}
+              onMouseUp={e => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              <Fingerprint size={26} />
+            </button>
+          ) : (
+            <div style={{ height: 64 }} />
+          )}
+
+          {/* '0' Button */}
           <button
-            key={digit}
             type="button"
-            onClick={() => handleKeyPress(digit)}
+            onClick={() => handleKeyPress('0')}
             style={{
-              height: 62,
+              height: 64,
               borderRadius: 22,
-              border: '1px solid var(--border-soft, var(--border))',
-              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
               color: 'var(--text)',
-              fontSize: 22,
-              fontWeight: 500,
+              fontSize: 24,
+              fontWeight: 600,
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
               touchAction: 'manipulation',
               WebkitTapHighlightColor: 'transparent',
               transition: 'transform 0.1s ease, background 0.15s ease',
+              boxShadow: 'var(--shadow)',
             }}
             onMouseDown={e => {
               e.currentTarget.style.transform = 'scale(0.94)';
-              e.currentTarget.style.background = 'var(--surface3, var(--border))';
+              e.currentTarget.style.background = 'var(--surface2)';
             }}
             onMouseUp={e => {
               e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.background = 'var(--surface2)';
+              e.currentTarget.style.background = 'var(--surface)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.background = 'var(--surface2)';
+              e.currentTarget.style.background = 'var(--surface)';
             }}
           >
-            {digit}
+            0
           </button>
-        ))}
 
-        {/* Biometric Button */}
-        {enableBiometricLock ? (
+          {/* Delete Button */}
           <button
             type="button"
-            onClick={authenticateBiometric}
-            title={`Scan ${biometricType}`}
+            onClick={handleDelete}
+            title="Delete digit"
             style={{
-              height: 62,
+              height: 64,
               borderRadius: 22,
               border: '1px solid transparent',
               background: 'transparent',
-              color: 'var(--accent)',
+              color: pinInput.length === 0 ? 'var(--text-3)' : 'var(--text-2)',
+              opacity: pinInput.length === 0 ? 0.25 : 1,
               display: 'grid',
               placeItems: 'center',
-              cursor: 'pointer',
+              cursor: pinInput.length === 0 ? 'default' : 'pointer',
               touchAction: 'manipulation',
               WebkitTapHighlightColor: 'transparent',
-              transition: 'transform 0.1s ease',
+              transition: 'transform 0.1s ease, opacity 0.15s ease',
             }}
             onMouseDown={e => {
-              e.currentTarget.style.transform = 'scale(0.9)';
+              if (pinInput.length > 0) {
+                e.currentTarget.style.transform = 'scale(0.9)';
+              }
             }}
             onMouseUp={e => {
               e.currentTarget.style.transform = 'scale(1)';
@@ -419,81 +513,11 @@ export default function SecurityLockModal({
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            <Fingerprint size={24} />
+            <Delete size={24} />
           </button>
-        ) : (
-          <div style={{ height: 62 }} />
-        )}
-
-        {/* '0' Button */}
-        <button
-          type="button"
-          onClick={() => handleKeyPress('0')}
-          style={{
-            height: 62,
-            borderRadius: 22,
-            border: '1px solid var(--border-soft, var(--border))',
-            background: 'var(--surface2)',
-            color: 'var(--text)',
-            fontSize: 22,
-            fontWeight: 500,
-            display: 'grid',
-            placeItems: 'center',
-            cursor: 'pointer',
-            touchAction: 'manipulation',
-            WebkitTapHighlightColor: 'transparent',
-            transition: 'transform 0.1s ease, background 0.15s ease',
-          }}
-          onMouseDown={e => {
-            e.currentTarget.style.transform = 'scale(0.94)';
-            e.currentTarget.style.background = 'var(--surface3, var(--border))';
-          }}
-          onMouseUp={e => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.background = 'var(--surface2)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.background = 'var(--surface2)';
-          }}
-        >
-          0
-        </button>
-
-        {/* Delete Button */}
-        <button
-          type="button"
-          onClick={handleDelete}
-          title="Delete digit"
-          style={{
-            height: 62,
-            borderRadius: 22,
-            border: '1px solid transparent',
-            background: 'transparent',
-            color: pinInput.length === 0 ? 'var(--text-3)' : 'var(--text-2)',
-            opacity: pinInput.length === 0 ? 0.2 : 1,
-            display: 'grid',
-            placeItems: 'center',
-            cursor: pinInput.length === 0 ? 'default' : 'pointer',
-            touchAction: 'manipulation',
-            WebkitTapHighlightColor: 'transparent',
-            transition: 'transform 0.1s ease, opacity 0.15s ease',
-          }}
-          onMouseDown={e => {
-            if (pinInput.length > 0) {
-              e.currentTarget.style.transform = 'scale(0.9)';
-            }
-          }}
-          onMouseUp={e => {
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
-        >
-          <Delete size={22} />
-        </button>
-      </div>
-    </motion.div>
+        </div>
+      </motion.div>
+    </motion.div>,
+    document.body
   );
 }

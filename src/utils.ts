@@ -521,6 +521,9 @@ export function groupExpenses(
 export type SpendingMode = 'all' | 'me';
 
 export function getGroupedExpenseAmount(ge: GroupedExpense, mode: SpendingMode = 'all'): number {
+  if (ge.category === 'Transfer' || ge.items?.some(i => i.category === 'Transfer')) {
+    return 0;
+  }
   if (ge.isSettlementGroup) {
     return mode === 'me' ? 0 : ge.totalAmount;
   }

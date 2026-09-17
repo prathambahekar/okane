@@ -9,7 +9,6 @@ import { currencySymbol, fmtMoney } from '../utils';
 import { detectCategoryFromText } from '../utils/categoryDetector';
 import { showSoftKeyboard } from '../utils/keyboard';
 import {
-  ExpenseTutorialBanner,
   FriendSplitModal,
   DebtSettlementWidget,
   VendorQuickAdd,
@@ -38,31 +37,13 @@ export interface ExpenseInitialData {
 interface Props {
   expense?: Expense | null;
   initialData?: ExpenseInitialData;
-  isTutorialMode?: boolean;
   onClose: () => void;
   zIndex?: number;
 }
 
-export default function ExpenseModal({ expense, initialData, isTutorialMode, onClose, zIndex }: Props) {
+export default function ExpenseModal({ expense, initialData, onClose, zIndex }: Props) {
   const { db, addExpense, updateExpense, deleteExpense, addFriend, showToast } = useStore();
   const s = db.settings;
-
-  // Tutorial state
-  const [tutorialStep, setTutorialStep] = useState<number>(1);
-
-  const fillTutorialSampleData = () => {
-    setDesc('Dinner with Friends');
-    setAmount('1200');
-    setCategory('Food & Dining');
-    setWhoPaid('me');
-    setSplitMode('for_friend');
-    if (db.friends.length > 0) {
-      setFriendId(db.friends[0].id);
-      setSelectedFriendIds([db.friends[0].id]);
-      setFriendShare('600');
-    }
-    showToast('✨ Sample expense data filled!');
-  };
 
   const grpItems = expense?.groupId
     ? db.expenses.filter(e => e.groupId === expense.groupId)
@@ -772,18 +753,6 @@ export default function ExpenseModal({ expense, initialData, isTutorialMode, onC
 
         <form onSubmit={handleSubmit} className="expense-modal-form">
           <div className="modal-body">
-            {isTutorialMode && (
-              <ExpenseTutorialBanner
-                tutorialStep={tutorialStep}
-                setTutorialStep={setTutorialStep}
-                flow={flow}
-                splitMode={splitMode}
-                amount={amount}
-                selectedFriendIds={selectedFriendIds}
-                onFillSampleData={fillTutorialSampleData}
-              />
-            )}
-
             <div className="form-grid">
               {/* Hero Amount Field */}
               <div className={`hero-amount-card ${flow === 'out' ? 'hero-debit' : 'hero-credit'}`}>

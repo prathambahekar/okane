@@ -73,8 +73,8 @@
 }
 
 [data-color-scheme="light"] .sheet-modal {
-  background: #ffffff;
-  border-color: #e5e7eb;
+  background: var(--surface);
+  border-color: var(--border);
 }
 
 @media (min-width: 641px) {
@@ -87,7 +87,7 @@
     max-width: 420px !important;
   }
   [data-color-scheme="light"] .sheet-modal {
-    border-color: #e5e7eb;
+    border-color: var(--border);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
   }
 }
@@ -291,8 +291,8 @@
 }
 
 [data-color-scheme="dark"] .contact-cards-container {
-  background: #121214;
-  border-color: rgba(255, 255, 255, 0.07);
+  background: var(--surface);
+  border-color: var(--border);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
@@ -749,16 +749,12 @@
   align-items: center;
   border-radius: 11px;
   border: none;
-  background: #ffffff;
-  color: #000000;
+  background: var(--accent);
+  color: var(--accent-contrast);
   cursor: pointer;
   white-space: nowrap;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
   transition: all 0.15s ease;
-}
-[data-color-scheme="light"] .profile-hero-btn-primary {
-  background: #000000;
-  color: #ffffff;
 }
 
 .profile-hero-btn-primary:hover {

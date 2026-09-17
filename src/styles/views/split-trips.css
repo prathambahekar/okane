@@ -104,6 +104,127 @@
    Split & Trips Redesigned Modern Navigation & Cards
    ========================================================================= */
 
+.split-trips-container {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 16px 16px 32px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 901px) {
+  .split-trips-container {
+    gap: 20px;
+  }
+}
+
+.splits-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.splits-page-header .page-title {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.splits-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.splits-page-header .desktop-search-pill {
+  flex: 1 1 auto;
+  max-width: 400px;
+  min-width: 140px;
+  margin: 0 auto;
+  transform: none !important;
+}
+
+@media (min-width: 901px) {
+  .splits-header-actions .split-trips-separate-btn {
+    flex: 0 0 auto;
+    height: 38px;
+    padding: 0 16px;
+  }
+
+  .splits-header-actions .split-groups-btn {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    padding: 0 !important;
+    border-radius: 9999px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+  }
+
+  .splits-header-actions .split-groups-btn .split-groups-btn-text,
+  .splits-header-actions .split-groups-btn .split-trips-tab-badge {
+    display: none !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .page-header.splits-page-header {
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    justify-content: stretch !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .splits-header-actions {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    flex-wrap: nowrap !important;
+    flex: 1 1 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .splits-header-actions .split-trips-separate-btn {
+    flex: 1 1 50% !important;
+    width: 50% !important;
+    min-width: 0 !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    padding: 10px 14px !important;
+    font-size: 13.5px !important;
+    font-weight: 650 !important;
+    height: 42px !important;
+    border-radius: 9999px !important;
+    box-sizing: border-box !important;
+    flex-shrink: 1 !important;
+  }
+
+  .splits-header-actions .split-groups-btn .split-groups-btn-text {
+    display: inline !important;
+  }
+
+  .splits-header-actions .split-groups-btn .split-trips-tab-badge {
+    display: inline-block !important;
+  }
+}
+
 .split-trips-top-nav {
   display: flex;
   align-items: center;
@@ -111,39 +232,48 @@
   width: 100%;
 }
 
+/* Secondary Button (Left: Groups) */
 .split-trips-separate-btn {
   flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: 8px;
   height: 42px;
   padding: 0 18px;
   border-radius: var(--radius-full);
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--text);
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-semibold);
+  font-size: 13.5px;
+  font-weight: 650;
   cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   user-select: none;
   outline: none;
 }
 
-.split-trips-separate-btn:hover {
-  background: var(--surface3);
+[data-color-scheme="light"] .split-trips-separate-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+[data-color-scheme="light"] .split-trips-separate-btn:hover {
+  background: var(--surface2);
   border-color: var(--border2);
   color: var(--text);
   transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
 }
 
-.split-trips-separate-btn:active {
-  background: var(--surface);
+[data-color-scheme="light"] .split-trips-separate-btn:active {
+  background: var(--surface3);
   border-color: var(--border2);
-  transform: scale(0.98);
-  opacity: 0.92;
+  transform: scale(0.97) !important;
+  box-shadow: none;
 }
 
 [data-color-scheme="dark"] .split-trips-separate-btn {
@@ -156,43 +286,60 @@
   background: var(--surface3);
   border-color: var(--border2);
   color: var(--text);
+  transform: translateY(-1px);
 }
 
 [data-color-scheme="dark"] .split-trips-separate-btn:active {
   background: var(--surface);
   border-color: var(--border2);
-  transform: scale(0.98);
+  transform: scale(0.97) !important;
 }
 
-[data-color-scheme="light"] .split-trips-separate-btn {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  box-shadow: var(--shadow);
+/* Primary Button (Right: History - Accent Gradient / Accent in Light and Dark mode) */
+.split-trips-separate-btn.split-trips-primary-btn {
+  font-weight: var(--fw-bold, 700);
+  border: none !important;
+  background: var(--accent-gradient, var(--accent)) !important;
+  color: var(--accent-contrast, #ffffff) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-[data-color-scheme="light"] .split-trips-separate-btn:hover {
-  background: var(--surface2);
-  border-color: var(--border2);
-  color: var(--text);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+.split-trips-separate-btn.split-trips-primary-btn:hover {
+  background: var(--accent) !important;
+  color: var(--accent-contrast, #ffffff) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
 }
 
-[data-color-scheme="light"] .split-trips-separate-btn:active {
-  background: var(--surface3);
-  border-color: var(--border2);
-  transform: scale(0.98);
+.split-trips-separate-btn.split-trips-primary-btn:active {
+  background: var(--accent-dark, var(--accent)) !important;
+  color: var(--accent-contrast, #ffffff) !important;
+  transform: scale(0.97) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
+/* Badges styling */
 .split-trips-tab-badge {
   font-size: var(--fs-caption);
-  font-weight: var(--fw-heavy);
-  padding: 2px 8px;
+  font-weight: 700;
+  padding: 2px 7px;
   border-radius: var(--radius-full);
   background: var(--surface3);
   color: var(--text-2);
   border: 1px solid var(--border);
   line-height: 1.2;
+}
+
+[data-color-scheme="light"] .split-trips-separate-btn.split-trips-primary-btn .split-trips-tab-badge {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+[data-color-scheme="dark"] .split-trips-separate-btn.split-trips-primary-btn .split-trips-tab-badge {
+  background: rgba(0, 0, 0, 0.12);
+  color: #000000;
+  border: 1px solid rgba(0, 0, 0, 0.18);
 }
 
 .split-hero-card {
@@ -245,25 +392,25 @@
 }
 
 .split-hero-eyebrow {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-3);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-2);
 }
 
 .split-hero-title {
-  font-size: 19px;
-  font-weight: 800;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
   color: var(--text);
   margin: 2px 0 0;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
   line-height: 1.35;
 }
 
 .split-hero-subtitle {
-  font-size: 13px;
-  font-weight: 450;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-regular);
   color: var(--text-2);
   margin: 0;
   line-height: 1.45;
@@ -281,12 +428,12 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: 11px 22px;
+  padding: 10px 20px;
   border-radius: var(--radius-full);
   background: var(--accent-gradient);
   color: var(--accent-contrast, #ffffff);
-  font-size: var(--fs-base);
-  font-weight: var(--fw-heavy);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
   border: none;
   cursor: pointer;
   box-shadow: 0 4px 14px var(--accent-soft);

@@ -36,6 +36,7 @@ interface TotalSpendingCardProps {
   onSelectDay?: (dateStr: string) => void;
   selectedDateStr?: string | null;
   selectedCategory?: string | null;
+  onOpenPacingDrawer?: () => void;
 }
 
 export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
@@ -59,6 +60,7 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
   onSelectDay,
   selectedDateStr,
   selectedCategory,
+  onOpenPacingDrawer,
 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -346,31 +348,45 @@ export const TotalSpendingCard: React.FC<TotalSpendingCardProps> = ({
 
       {/* 3. Comparison Trend Badge & Pace / Velocity Trajectory */}
       <div className="analytics-v2-trend-row">
-        <div
-          className={`analytics-v2-trend-badge ${comparison.type}`}
+        <button
+          type="button"
+          onClick={onOpenPacingDrawer}
+          className={`analytics-v2-trend-badge ${comparison.type} ${onOpenPacingDrawer ? 'is-clickable' : ''}`}
           title={
             isCurrentPeriod
-              ? `Compared to same period of ${period === 'week' ? 'last week' : 'last month'} (Day 1 through ${daysPassedCount || 1})`
-              : `Compared to previous ${period === 'week' ? 'week' : 'month'}`
+              ? `Compared to same period of ${period === 'week' ? 'last week' : 'last month'} (Day 1 through ${daysPassedCount || 1}) • Tap to view pacing comparison`
+              : `Compared to previous ${period === 'week' ? 'week' : 'month'} • Tap to view pacing comparison`
           }
         >
           {comparison.type === 'down' && <ArrowDownRight size={14} strokeWidth={2.5} />}
           {comparison.type === 'up' && <ArrowUpRight size={14} strokeWidth={2.5} />}
           {comparison.type === 'neutral' && <Minus size={14} strokeWidth={2.5} />}
           <span>{comparison.label}</span>
-        </div>
+        </button>
 
         {isCurrentPeriod && comparison.trajectory === 'faster' && (
-          <div className="analytics-v2-pace-pill faster" title="Spending pace is trending faster than same period last month">
+          <button
+            type="button"
+            onClick={onOpenPacingDrawer}
+            className="analytics-v2-pace-pill faster is-clickable"
+            title="Spending pace is trending faster than same period last month • Tap to view pace comparison"
+            aria-label="Pacing faster - open pace comparison drawer"
+          >
             <TrendingUp size={14} strokeWidth={2.5} />
             <span>Pacing faster</span>
-          </div>
+          </button>
         )}
         {isCurrentPeriod && comparison.trajectory === 'slower' && (
-          <div className="analytics-v2-pace-pill slower" title="Spending pace is trending slower than same period last month (spending less)">
+          <button
+            type="button"
+            onClick={onOpenPacingDrawer}
+            className="analytics-v2-pace-pill slower is-clickable"
+            title="Spending pace is trending slower than same period last month (spending less) • Tap to view pace comparison"
+            aria-label="Pacing slower - open pace comparison drawer"
+          >
             <TrendingDown size={14} strokeWidth={2.5} />
             <span>Pacing slower</span>
-          </div>
+          </button>
         )}
       </div>
 

@@ -30,7 +30,6 @@ import {
   Database,
   ArrowLeft,
   X,
-  HelpCircle,
   Search,
   Filter,
   ChevronRight,
@@ -55,7 +54,6 @@ import SplitTrips from './views/SplitTrips';
 import ExpenseModal from './components/ExpenseModal';
 import type { ExpenseInitialData } from './components/ExpenseModal';
 import AIAssistantModal from './components/AIAssistantModal';
-import UserGuideModal from './components/UserGuideModal';
 import Toast from './components/Toast';
 import NotificationBell from './components/NotificationBell';
 import FloatingSearchButton from './components/FloatingSearchButton';
@@ -81,8 +79,6 @@ function AppInner() {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchInitialQuery, setSearchInitialQuery] = useState('');
   const [searchInitialTab, setSearchInitialTab] = useState<SearchTab | undefined>(undefined);
-  const [showGuideModal, setShowGuideModal] = useState(false);
-  const [isExpenseTutorial, setIsExpenseTutorial] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [settingsSearchQuery, setSettingsSearchQuery] = useState('');
   const [mobileSettingsSearchOpen, setMobileSettingsSearchOpen] = useState(false);
@@ -125,7 +121,6 @@ function AppInner() {
   useBackButtonModal(moreOpen, () => setMoreOpen(false), { priority: BackPriority.DRAWER });
   useBackButtonModal(showSearchModal, () => setShowSearchModal(false), { priority: BackPriority.MODAL });
   useBackButtonModal(showAIAssistant, () => setShowAIAssistant(false), { priority: BackPriority.MODAL });
-  useBackButtonModal(showGuideModal, () => setShowGuideModal(false), { priority: BackPriority.MODAL });
 
   // View navigation history back handler (Android back button navigates backwards through views before exiting)
   useEffect(() => {
@@ -268,11 +263,6 @@ function AppInner() {
     };
   }, [db.settings?.autoOpenKeyboard]);
 
-  const handleStartExpenseTutorial = () => {
-    setShowGuideModal(false);
-    setIsExpenseTutorial(true);
-    setShowAddExpense(true);
-  };
   const { mode, setMode, toggleMode: toggleDark, accent, setAccent, customColor, setCustomColor } = useColorMode();
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
@@ -312,7 +302,6 @@ function AppInner() {
   const searchLocation = db.settings?.searchLocation ?? 'topbar';
   const enableSplitTrips = db.settings?.enableSplitTrips ?? true;
   const enableAutopay = db.settings?.enableAutopay ?? true;
-  const enableUserGuide = isDevMode && (db.settings?.enableUserGuide ?? true);
 
   useEffect(() => {
     if (view === 'split-trips' && !enableSplitTrips) {
@@ -536,8 +525,6 @@ function AppInner() {
         return (
           <Settings
             onNavigate={navigate}
-            onOpenGuide={() => setShowGuideModal(true)}
-            onStartExpenseTutorial={handleStartExpenseTutorial}
             initialArg={viewArg}
             onClearViewArg={clearViewArg}
             onTestLock={() => setIsAppLocked(true)}
@@ -1633,37 +1620,6 @@ function AppInner() {
               </Paper>
             );
           })}
-
-          {/* User guide shortcut - only shown if enabled in dev mode */}
-          {enableUserGuide && (
-            <Paper
-              elevation={0}
-              onClick={() => { setMoreOpen(false); setShowGuideModal(true); }}
-              sx={{
-                py: 2,
-                px: 1,
-                borderRadius: '16px',
-                bgcolor: 'var(--surface2)',
-                border: 'none',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 1,
-                textAlign: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                '&:active': { transform: 'scale(0.95)' }
-              }}
-            >
-              <Box sx={{ color: 'text.primary', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <HelpCircle size={20} />
-              </Box>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.78rem', lineHeight: 1.2 }}>
-                User Guide
-              </Typography>
-            </Paper>
-          )}
         </Box>
 
         {/* Bottom Row Controls - Theme card aligned with surface2 cards */}
@@ -1727,11 +1683,9 @@ function AppInner() {
           <ExpenseModal
             key="expense-modal"
             initialData={addExpenseInitialData || undefined}
-            isTutorialMode={isExpenseTutorial}
             onClose={() => {
               setShowAddExpense(false);
               setAddExpenseInitialData(null);
-              setIsExpenseTutorial(false);
             }}
           />
         )}
@@ -1745,16 +1699,6 @@ function AppInner() {
               setShowAddExpense(true);
               setShowAIAssistant(false);
             }}
-          />
-        )}
-        {showGuideModal && (
-          <UserGuideModal
-            key="user-guide-modal"
-            open={showGuideModal}
-            onClose={() => setShowGuideModal(false)}
-            onNavigate={navigate}
-            onAddExpense={() => setShowAddExpense(true)}
-            onStartExpenseTutorial={handleStartExpenseTutorial}
           />
         )}
         {isAppLocked && isSecurityLockActive && (

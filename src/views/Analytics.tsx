@@ -6,6 +6,7 @@ import ExpenseModal from '../components/ExpenseModal';
 import ExpenseDetailDrawer from '../components/ExpenseDetailDrawer';
 import DailyWalletBalanceDrawer from '../components/DailyWalletBalanceDrawer';
 import CategoryDetailDrawer from '../components/analytics/CategoryDetailDrawer';
+import PacingComparisonDrawer from '../components/analytics/PacingComparisonDrawer';
 import AnalyticsHeader from '../components/analytics/AnalyticsHeader';
 import TotalSpendingCard, { type ChartDayData } from '../components/analytics/TotalSpendingCard';
 import CategoryDistributionCard from '../components/analytics/CategoryDistributionCard';
@@ -73,7 +74,9 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   }, []);
 
   const allCategoryNames = useMemo(() => {
-    return (db.settings?.categories || []).map((c) => c.name);
+    return (db.settings?.categories || [])
+      .map((c) => c.name)
+      .filter((n) => n.toLowerCase() !== 'refund' && n.toLowerCase() !== 'transfer');
   }, [db.settings?.categories]);
 
   const isAllCategoriesSelected = useMemo(() => {
@@ -91,30 +94,26 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   }, [isAllCategoriesSelected, selectedCategories, allCategoryNames]);
 
   const handleToggleCategoryInDrawer = useCallback((catName: string) => {
-    if (isAllCategoriesSelected) {
-      // When "All Categories" is active, clicking a category DESELECTS it from all
-      const remaining = allCategoryNames.filter((c) => c !== catName);
-      setSelectedCategories(remaining);
-    } else {
-      // Multi-select mode
-      const isCurrentlySelected = selectedCategories.includes(catName);
-      if (isCurrentlySelected) {
-        // Deselect
-        const next = selectedCategories.filter((c) => c !== catName);
-        if (next.length === 0) {
-          setSelectedCategories(['__NONE__']);
-        } else {
-          setSelectedCategories(next);
-        }
+    const currentSelected = isAllCategoriesSelected
+      ? allCategoryNames
+      : selectedCategories.filter((c) => c !== '__NONE__' && c !== '__ALL__');
+    const isCurrentlySelected = currentSelected.includes(catName);
+
+    if (isCurrentlySelected) {
+      // Deselect
+      const next = currentSelected.filter((c) => c !== catName);
+      if (next.length === 0) {
+        setSelectedCategories(['__NONE__']);
       } else {
-        // Select
-        const cleanPrev = selectedCategories.filter((c) => c !== '__NONE__');
-        const next = [...cleanPrev, catName];
-        if (next.length >= allCategoryNames.length) {
-          setSelectedCategories([]);
-        } else {
-          setSelectedCategories(next);
-        }
+        setSelectedCategories(next);
+      }
+    } else {
+      // Select
+      const next = [...currentSelected, catName];
+      if (next.length >= allCategoryNames.length) {
+        setSelectedCategories([]);
+      } else {
+        setSelectedCategories(next);
       }
     }
   }, [isAllCategoriesSelected, allCategoryNames, selectedCategories]);
@@ -171,6 +170,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDailyBalanceDrawer, setShowDailyBalanceDrawer] = useState(false);
   const [inspectCategoryName, setInspectCategoryName] = useState<string | null>(null);
+  const [showPacingDrawer, setShowPacingDrawer] = useState(false);
 
   useBackButtonModal(showFilterDrawer, () => setShowFilterDrawer(false), { priority: BackPriority.DIALOG });
 
@@ -372,6 +372,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   // Filtered expenses for active period
   const periodExpenses = useMemo(() => {
     return groupedExpenses.filter(ge => {
+      if (ge.category === 'Transfer' || ge.items?.some(i => i.category === 'Transfer')) return false;
       if (ge.date < activeDateRange.startDate || ge.date > activeDateRange.endDate) return false;
       if (!isAllCategoriesSelected && !selectedCategories.includes(ge.category)) return false;
       if (selectedWalletId && ge.walletId !== selectedWalletId) return false;
@@ -382,6 +383,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   // Preceding period expenses
   const prevPeriodExpenses = useMemo(() => {
     return groupedExpenses.filter(ge => {
+      if (ge.category === 'Transfer' || ge.items?.some(i => i.category === 'Transfer')) return false;
       if (ge.date < prevDateRange.startDate || ge.date > prevDateRange.endDate) return false;
       if (!isAllCategoriesSelected && !selectedCategories.includes(ge.category)) return false;
       if (selectedWalletId && ge.walletId !== selectedWalletId) return false;
@@ -520,6 +522,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   // Base scope expenses across active categories for the active scope (specific selectedDate or active period)
   const basePeriodExpenses = useMemo(() => {
     return groupedExpenses.filter(ge => {
+      if (ge.category === 'Transfer' || ge.items?.some(i => i.category === 'Transfer')) return false;
       if (selectedDate) {
         if (ge.date !== selectedDate) return false;
       } else {
@@ -700,6 +703,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
             onSelectDay={handleToggleDate}
             selectedDateStr={selectedDate}
             selectedCategory={selectedCategory}
+            onOpenPacingDrawer={() => setShowPacingDrawer(true)}
           />
         </div>
 
@@ -826,7 +830,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, maxHeight: 180, overflowY: 'auto', paddingRight: 2 }}>
                   <button
                     type="button"
-                    onClick={() => setSelectedCategories([])}
+                    onClick={() => isAllCategoriesSelected ? setSelectedCategories(['__NONE__']) : setSelectedCategories([])}
                     style={{
                       padding: '7px 13px',
                       borderRadius: 9999,
@@ -847,8 +851,10 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                     <span>All Categories</span>
                   </button>
 
-                  {db.settings.categories.map((c) => {
-                    const isSelected = isAllCategoriesSelected ? false : selectedCategories.includes(c.name);
+                  {db.settings.categories
+                    .filter((c) => c.name.toLowerCase() !== 'refund' && c.name.toLowerCase() !== 'transfer')
+                    .map((c) => {
+                    const isSelected = isAllCategoriesSelected || selectedCategories.includes(c.name);
                     return (
                       <button
                         key={c.name}
@@ -1118,6 +1124,26 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
         expenses={db.expenses}
         currency={currency}
         wallets={db.wallets}
+      />
+
+      {/* Spending Pacing & Period Comparison Drawer */}
+      <PacingComparisonDrawer
+        isOpen={showPacingDrawer}
+        onClose={() => setShowPacingDrawer(false)}
+        period={period}
+        activeWeekMonStr={activeWeekMonStr}
+        activeMonthStr={activeMonthStr}
+        currentWeekMonStr={currentWeekMonStr}
+        currentMonthStr={currentMonthStr}
+        todayStr={todayStr}
+        totalSpent={totalSpent}
+        prevPeriodSpent={prevPeriodSpent}
+        currency={currency}
+        periodExpenses={periodExpenses}
+        prevPeriodExpenses={prevPeriodExpenses}
+        daysPassedCount={daysPassedCount}
+        totalDaysInPeriod={totalDaysInPeriod}
+        isCurrentPeriod={isCurrentPeriod}
       />
 
       {/* Confirmation Delete Dialog */}

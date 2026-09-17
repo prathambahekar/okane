@@ -133,7 +133,6 @@ export interface Settings {
   enableAutopay?: boolean;
   enableDevSQLConsole?: boolean;
   enableSplitTrips?: boolean;
-  enableUserGuide?: boolean;
   enableAutoUpdate?: boolean;
   installedVersion?: string;
   lastUpdateCheck?: string;
@@ -146,7 +145,6 @@ export interface Settings {
   performanceMode?: boolean;
   spendingMode?: 'all' | 'me';
   enableReportBugCard?: boolean;
-  enablePerformanceCard?: boolean;
   enableSecurityLock?: boolean; // Master PIN/Passcode Lock
   enableBiometricLock?: boolean; // Biometric (Fingerprint/Face) unlock
   securityPin?: string;

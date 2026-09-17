@@ -473,18 +473,14 @@
   padding: 6.5px 12px;
   border-radius: 9px;
   gap: 6px;
-  background: #ffffff;
-  color: #000000;
+  background: var(--accent);
+  color: var(--accent-contrast);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   display: inline-flex;
   align-items: center;
   border: none;
   cursor: pointer;
   transition: all 0.15s ease;
-}
-[data-color-scheme="light"] .pending-grid-settle-btn {
-  background: #000000;
-  color: #ffffff;
 }
 
 .pending-grid-settle-btn:hover {
@@ -747,16 +743,11 @@
 }
 
 .settlement-friend-pill.active {
-  background: #ffffff;
-  border-color: #ffffff;
-  color: #000000;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
   font-weight: 650;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-}
-[data-color-scheme="light"] .settlement-friend-pill.active {
-  background: #000000;
-  border-color: #000000;
-  color: #ffffff;
 }
 
 .settlement-friend-name {
@@ -789,13 +780,9 @@
 }
 
 .settlement-view-toggle-btn.active {
-  background: #ffffff;
-  color: #000000;
+  background: var(--accent);
+  color: var(--accent-contrast);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-[data-color-scheme="light"] .settlement-view-toggle-btn.active {
-  background: #000000;
-  color: #ffffff;
 }
 
 .settlement-search-wrap {

@@ -18,7 +18,6 @@ import {
   Palette,
   Database,
   Tag,
-  Zap,
   HelpCircle,
   FlaskConical,
   MessageSquarePlus,
@@ -126,22 +125,6 @@ const SETTINGS_SEARCH_ITEMS: SettingsSearchItem[] = [
     category: 'Features',
     icon: Sparkles,
     tags: ['advanced', 'envelopes', 'envelope', 'budget', 'budgeting', 'autopay', 'rules', 'trips', 'split', 'splits', 'group', 'travel', 'features']
-  },
-  {
-    id: 'performance',
-    title: 'Performance & Animations',
-    subtitle: 'Smooth animations & fast mode',
-    category: 'Features',
-    icon: Zap,
-    tags: ['performance', 'animations', 'animation', 'fps', 'speed', 'fast', 'smooth', 'ultra', 'render', 'transitions']
-  },
-  {
-    id: 'user-guide',
-    title: 'Okane User Guide & Tour',
-    subtitle: 'Interactive tutorial & feature tour',
-    category: 'Support',
-    icon: Compass,
-    tags: ['guide', 'tour', 'help', 'tutorial', 'walkthrough', 'faq', 'support', 'how to', 'docs', 'manual', 'learn']
   },
   {
     id: 'dev-mode',

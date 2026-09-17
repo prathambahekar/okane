@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Calendar, BarChart2, LineChart, TrendingUp, ArrowUpRight, ArrowDownRight, Info, Plus, Filter, ChevronDown, Layers } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef } from 'react';
+import { Calendar, BarChart2, LineChart, TrendingUp, ArrowUpRight, ArrowDownRight, Info, Plus, Filter, ChevronDown, Layers, ZoomIn, ZoomOut, RotateCcw, Move } from 'lucide-react';
 import { personalNetAmount } from '../db';
 import { fmtMoney } from '../utils';
 import type { Expense, ViewName } from '../types';
@@ -253,6 +253,114 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
     return { months, avg };
   }, [selYear, selMonthNum, currentYear, selectedMonthKey, getSpendForDate]);
 
+  // Zoom & Pan state
+  const [zoomStart, setZoomStart] = useState<number>(1);
+  const [zoomEnd, setZoomEnd] = useState<number>(maxDays);
+  const [prevMonthKey, setPrevMonthKey] = useState<string>(selectedMonthKey);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragStartXRef = useRef<number | null>(null);
+  const dragStartRangeRef = useRef<[number, number] | null>(null);
+
+  // Reset zoom whenever selected month changes
+  if (prevMonthKey !== selectedMonthKey) {
+    setPrevMonthKey(selectedMonthKey);
+    setZoomStart(1);
+    setZoomEnd(maxDays);
+  }
+
+  const isZoomed = zoomStart > 1 || zoomEnd < maxDays;
+  const zoomSpan = Math.max(1, zoomEnd - zoomStart);
+  const zoomFactor = (maxDays / Math.max(1, zoomSpan)).toFixed(1);
+
+  const handleZoomIn = useCallback(() => {
+    if (zoomSpan <= 2) return; // Min 3 days window
+    const center = (zoomStart + zoomEnd) / 2;
+    const newHalfSpan = Math.max(1, Math.floor((zoomSpan * 0.7) / 2));
+    let calcStart = Math.max(1, Math.round(center - newHalfSpan));
+    const calcEnd = Math.min(maxDays, Math.round(center + newHalfSpan));
+    if (calcEnd - calcStart < 2) {
+      calcStart = Math.max(1, calcEnd - 2);
+    }
+    setZoomStart(calcStart);
+    setZoomEnd(calcEnd);
+  }, [zoomSpan, zoomStart, zoomEnd, maxDays]);
+
+  const handleZoomOut = useCallback(() => {
+    if (!isZoomed) return;
+    const center = (zoomStart + zoomEnd) / 2;
+    const newHalfSpan = Math.ceil((zoomSpan * 1.4) / 2);
+    const newStart = Math.max(1, Math.round(center - newHalfSpan));
+    const newEnd = Math.min(maxDays, Math.round(center + newHalfSpan));
+    if (newStart <= 1 && newEnd >= maxDays) {
+      setZoomStart(1);
+      setZoomEnd(maxDays);
+    } else {
+      setZoomStart(newStart);
+      setZoomEnd(newEnd);
+    }
+  }, [isZoomed, zoomSpan, zoomStart, zoomEnd, maxDays]);
+
+  const handleResetZoom = useCallback(() => {
+    setZoomStart(1);
+    setZoomEnd(maxDays);
+  }, [maxDays]);
+
+  const handlePresetZoom = useCallback((start: number, end: number) => {
+    setZoomStart(Math.max(1, start));
+    setZoomEnd(Math.min(maxDays, end));
+  }, [maxDays]);
+
+  // Mouse / Touch Drag Panning Handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (!isZoomed) return;
+    setIsDragging(true);
+    dragStartXRef.current = e.clientX;
+    dragStartRangeRef.current = [zoomStart, zoomEnd];
+  }, [isZoomed, zoomStart, zoomEnd]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (!isDragging || dragStartXRef.current === null || !dragStartRangeRef.current) return;
+    const deltaX = e.clientX - dragStartXRef.current;
+    const chartWidthPx = e.currentTarget.getBoundingClientRect().width || 1;
+    const daysPerPx = (zoomEnd - zoomStart) / chartWidthPx;
+    const dayDelta = Math.round(deltaX * daysPerPx);
+
+    if (dayDelta !== 0) {
+      const [start, end] = dragStartRangeRef.current;
+      const windowSize = end - start;
+      let newStart = start - dayDelta;
+      let newEnd = newStart + windowSize;
+
+      if (newStart < 1) {
+        newStart = 1;
+        newEnd = newStart + windowSize;
+      }
+      if (newEnd > maxDays) {
+        newEnd = maxDays;
+        newStart = newEnd - windowSize;
+      }
+
+      setZoomStart(newStart);
+      setZoomEnd(newEnd);
+    }
+  }, [isDragging, zoomStart, zoomEnd, maxDays]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    dragStartXRef.current = null;
+    dragStartRangeRef.current = null;
+  }, []);
+
+  const handleWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
+    if (chartType === 'history') return;
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      handleZoomIn();
+    } else if (e.deltaY > 0) {
+      handleZoomOut();
+    }
+  }, [chartType, handleZoomIn, handleZoomOut]);
+
   // SVG Geometry Dimensions
   const width = 580;
   const height = 260;
@@ -265,12 +373,13 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
   const chartH = height - paddingTop - paddingBottom;
 
   const maxVal = useMemo(() => {
+    const visibleData = trendData.filter(d => d.day >= zoomStart && d.day <= zoomEnd);
     if (chartType === 'cumulative') {
-      const vals = trendData.flatMap(d => [d.selCum, d.baseCum]).filter((v): v is number => v !== null);
+      const vals = visibleData.flatMap(d => [d.selCum, d.baseCum]).filter((v): v is number => v !== null);
       const max = Math.max(...vals, 0);
       return max > 0 ? max * 1.15 : 1000;
     } else if (chartType === 'daily') {
-      const vals = trendData.flatMap(d => [d.selDaily, d.baseDaily]);
+      const vals = visibleData.flatMap(d => [d.selDaily, d.baseDaily]);
       const max = Math.max(...vals, 0);
       return max > 0 ? max * 1.2 : 500;
     } else {
@@ -279,12 +388,12 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
       const max = Math.max(...vals, 0);
       return max > 0 ? max * 1.2 : 2000;
     }
-  }, [chartType, trendData, historyMonthsData]);
+  }, [chartType, trendData, historyMonthsData, zoomStart, zoomEnd]);
 
   const getX = useCallback((day: number) => {
-    if (maxDays <= 1) return paddingLeft + chartW / 2;
-    return paddingLeft + ((day - 1) / (maxDays - 1)) * chartW;
-  }, [maxDays, paddingLeft, chartW]);
+    if (zoomSpan <= 0) return paddingLeft + chartW / 2;
+    return paddingLeft + ((day - zoomStart) / zoomSpan) * chartW;
+  }, [zoomStart, zoomSpan, paddingLeft, chartW]);
 
   const getY = useCallback((val: number | null) => {
     if (val === null) return paddingTop + chartH;
@@ -608,12 +717,213 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
       ) : (
         /* SVG Interactive Chart Render */
         <div style={{ position: 'relative', width: '100%', userSelect: 'none' }}>
+          {/* Zoom & Pan Controls Toolbar */}
+          {chartType !== 'history' && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '4px 0 10px 0', flexWrap: 'wrap' }}>
+              {/* Quick Preset Range Pills */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11, fontWeight: 650, color: 'var(--text-3)', marginRight: 2 }}>
+                  Zoom Range:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleResetZoom()}
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 10.5,
+                    fontWeight: 650,
+                    border: '1px solid var(--border)',
+                    background: !isZoomed ? 'var(--accent)' : 'var(--surface)',
+                    color: !isZoomed ? 'var(--accent-contrast)' : 'var(--text-2)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Full
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePresetZoom(1, 10)}
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 10.5,
+                    fontWeight: 650,
+                    border: '1px solid var(--border)',
+                    background: zoomStart === 1 && zoomEnd === 10 ? 'var(--accent)' : 'var(--surface)',
+                    color: zoomStart === 1 && zoomEnd === 10 ? 'var(--accent-contrast)' : 'var(--text-2)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  1–10d
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePresetZoom(11, 20)}
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 10.5,
+                    fontWeight: 650,
+                    border: '1px solid var(--border)',
+                    background: zoomStart === 11 && zoomEnd === 20 ? 'var(--accent)' : 'var(--surface)',
+                    color: zoomStart === 11 && zoomEnd === 20 ? 'var(--accent-contrast)' : 'var(--text-2)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  11–20d
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePresetZoom(21, maxDays)}
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 10.5,
+                    fontWeight: 650,
+                    border: '1px solid var(--border)',
+                    background: zoomStart === 21 && zoomEnd === maxDays ? 'var(--accent)' : 'var(--surface)',
+                    color: zoomStart === 21 && zoomEnd === maxDays ? 'var(--accent-contrast)' : 'var(--text-2)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  21–{maxDays}d
+                </button>
+              </div>
+
+              {/* Zoom Action Buttons & Badge */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {isZoomed && (
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 7px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Move size={11} /> Day {zoomStart}–{zoomEnd} ({zoomFactor}x)
+                  </span>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'var(--surface2)', padding: 2, borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <button
+                    type="button"
+                    onClick={handleZoomIn}
+                    title="Zoom In (+)"
+                    disabled={zoomSpan <= 2}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      display: 'grid',
+                      placeItems: 'center',
+                      border: 'none',
+                      background: 'transparent',
+                      color: zoomSpan <= 2 ? 'var(--text-3)' : 'var(--text)',
+                      cursor: zoomSpan <= 2 ? 'default' : 'pointer',
+                      borderRadius: 6,
+                      opacity: zoomSpan <= 2 ? 0.4 : 1,
+                    }}
+                  >
+                    <ZoomIn size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleZoomOut}
+                    title="Zoom Out (-)"
+                    disabled={!isZoomed}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      display: 'grid',
+                      placeItems: 'center',
+                      border: 'none',
+                      background: 'transparent',
+                      color: !isZoomed ? 'var(--text-3)' : 'var(--text)',
+                      cursor: !isZoomed ? 'default' : 'pointer',
+                      borderRadius: 6,
+                      opacity: !isZoomed ? 0.4 : 1,
+                    }}
+                  >
+                    <ZoomOut size={13} />
+                  </button>
+                  {isZoomed && (
+                    <button
+                      type="button"
+                      onClick={handleResetZoom}
+                      title="Reset Zoom"
+                      style={{
+                        width: 24,
+                        height: 24,
+                        display: 'grid',
+                        placeItems: 'center',
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--accent)',
+                        cursor: 'pointer',
+                        borderRadius: 6,
+                      }}
+                    >
+                      <RotateCcw size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <svg
             viewBox={`0 0 ${width} ${height}`}
-            style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
-            onMouseLeave={() => { setHoveredDay(null); setHoveredHistoryIdx(null); }}
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block',
+              overflow: 'visible',
+              cursor: isZoomed ? (isDragging ? 'grabbing' : 'grab') : 'crosshair',
+              touchAction: 'none',
+            }}
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={() => { handleMouseUp(); setHoveredDay(null); setHoveredHistoryIdx(null); }}
+            onTouchStart={(e) => {
+              if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                if (!isZoomed) return;
+                setIsDragging(true);
+                dragStartXRef.current = touch.clientX;
+                dragStartRangeRef.current = [zoomStart, zoomEnd];
+              }
+            }}
+            onTouchMove={(e) => {
+              if (e.touches.length === 1 && isDragging && dragStartXRef.current !== null && dragStartRangeRef.current) {
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - dragStartXRef.current;
+                const chartWidthPx = e.currentTarget.getBoundingClientRect().width || 1;
+                const daysPerPx = (zoomEnd - zoomStart) / chartWidthPx;
+                const dayDelta = Math.round(deltaX * daysPerPx);
+
+                if (dayDelta !== 0) {
+                  const [start, end] = dragStartRangeRef.current;
+                  const windowSize = end - start;
+                  let newStart = start - dayDelta;
+                  let newEnd = newStart + windowSize;
+
+                  if (newStart < 1) {
+                    newStart = 1;
+                    newEnd = newStart + windowSize;
+                  }
+                  if (newEnd > maxDays) {
+                    newEnd = maxDays;
+                    newStart = newEnd - windowSize;
+                  }
+
+                  setZoomStart(newStart);
+                  setZoomEnd(newEnd);
+                }
+              }
+            }}
+            onTouchEnd={handleMouseUp}
           >
             <defs>
+              {/* Plot Area Clip Path for smooth zooming */}
+              <clipPath id="monthlyTrendClip">
+                <rect x={paddingLeft - 2} y={0} width={chartW + 4} height={height} />
+              </clipPath>
+
               {/* Selected Month Gradient */}
               <linearGradient id="selMonthGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.25" />
@@ -658,9 +968,9 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
 
             {/* Mode 1 & 2: Cumulative Pace Curve & Daily Bars */}
             {(chartType === 'cumulative' || chartType === 'daily') && (
-              <>
+              <g clipPath="url(#monthlyTrendClip)">
                 {/* Today Indicator Line (if current month) */}
-                {isCurrentMonth && currentDay <= maxDays && (
+                {isCurrentMonth && currentDay >= zoomStart && currentDay <= zoomEnd && (
                   <g>
                     <line
                       x1={getX(currentDay)}
@@ -720,25 +1030,29 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                     )}
 
                     {/* Selected Month Data Circles */}
-                    {selPoints.map(p => (
-                      <circle
-                        key={p.day}
-                        cx={p.x}
-                        cy={p.y}
-                        r={hoveredDay === p.day ? 6 : (p.day === currentDay && isCurrentMonth ? 4.5 : 2.5)}
-                        fill={p.day === currentDay && isCurrentMonth ? 'var(--accent)' : 'var(--surface)'}
-                        stroke="var(--accent)"
-                        strokeWidth="2"
-                        style={{ transition: 'all 0.15s ease' }}
-                      />
-                    ))}
+                    {selPoints.map(p => {
+                      if (p.day < zoomStart || p.day > zoomEnd) return null;
+                      return (
+                        <circle
+                          key={p.day}
+                          cx={p.x}
+                          cy={p.y}
+                          r={hoveredDay === p.day ? 6 : (p.day === currentDay && isCurrentMonth ? 4.5 : 3)}
+                          fill={p.day === currentDay && isCurrentMonth ? 'var(--accent)' : 'var(--surface)'}
+                          stroke="var(--accent)"
+                          strokeWidth="2"
+                          style={{ transition: 'all 0.15s ease' }}
+                        />
+                      );
+                    })}
                   </>
                 ) : (
                   /* Daily Bars Chart Mode */
                   <g>
                     {trendData.map(d => {
+                      if (d.day < zoomStart || d.day > zoomEnd) return null;
                       const xCenter = getX(d.day);
-                      const barWidth = Math.max(3, (chartW / maxDays) * 0.38);
+                      const barWidth = Math.max(4, (chartW / zoomSpan) * 0.38);
 
                       const baseY = getY(d.baseDaily);
                       const baseH = Math.max(0, paddingTop + chartH - baseY);
@@ -776,8 +1090,9 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
 
                 {/* Interactive Touch/Hover Columns Overlay */}
                 {trendData.map(d => {
+                  if (d.day < zoomStart || d.day > zoomEnd) return null;
                   const x = getX(d.day);
-                  const colW = chartW / maxDays;
+                  const colW = chartW / zoomSpan;
                   return (
                     <rect
                       key={d.day}
@@ -794,7 +1109,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                 })}
 
                 {/* Hover Vertical Guide Line */}
-                {hoveredDay !== null && (
+                {hoveredDay !== null && hoveredDay >= zoomStart && hoveredDay <= zoomEnd && (
                   <line
                     x1={getX(hoveredDay)}
                     y1={paddingTop}
@@ -808,7 +1123,10 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
 
                 {/* X-Axis Day Labels */}
                 {trendData.map(d => {
-                  if (d.day % 5 !== 0 && d.day !== 1 && d.day !== maxDays && d.day !== currentDay) return null;
+                  if (d.day < zoomStart || d.day > zoomEnd) return null;
+                  const labelStep = zoomSpan <= 10 ? 1 : zoomSpan <= 20 ? 2 : 5;
+                  if (d.day % labelStep !== 0 && d.day !== zoomStart && d.day !== zoomEnd && d.day !== currentDay) return null;
+
                   return (
                     <text
                       key={d.day}
@@ -823,7 +1141,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                     </text>
                   );
                 })}
-              </>
+              </g>
             )}
 
             {/* Mode 3: 6-Month History Bar Chart Mode */}
@@ -922,10 +1240,75 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
             )}
           </svg>
 
+          {/* Mini Brush Timeline Bar when zoomed or in cumulative/daily mode */}
+          {chartType !== 'history' && (
+            <div
+              style={{
+                marginTop: 8,
+                marginBottom: 6,
+                padding: '0 48px 0 48px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 3,
+              }}
+            >
+              <div
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: 10,
+                  background: 'var(--surface3)',
+                  borderRadius: 5,
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  border: '1px solid var(--border)',
+                }}
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const clickRatio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                  const clickDay = Math.round(1 + clickRatio * (maxDays - 1));
+                  const windowHalf = Math.round(zoomSpan / 2);
+                  let calcStart = Math.max(1, clickDay - windowHalf);
+                  const calcEnd = Math.min(maxDays, calcStart + zoomSpan);
+                  if (calcEnd === maxDays) calcStart = Math.max(1, calcEnd - zoomSpan);
+                  setZoomStart(calcStart);
+                  setZoomEnd(calcEnd);
+                }}
+                title="Click or drag timeline to move visible zoom range"
+              >
+                {/* Active Zoom Window Indicator */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${((zoomStart - 1) / Math.max(1, maxDays - 1)) * 100}%`,
+                    width: `${Math.max(4, (zoomSpan / Math.max(1, maxDays - 1)) * 100)}%`,
+                    height: '100%',
+                    background: 'var(--accent)',
+                    opacity: 0.85,
+                    borderRadius: 4,
+                    boxShadow: '0 0 4px rgba(0,0,0,0.2)',
+                    transition: isDragging ? 'none' : 'all 0.15s ease',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-3)', fontWeight: 600 }}>
+                <span>Day 1</span>
+                {isZoomed ? (
+                  <span style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                    Scroll / drag graph to pan • Showing Days {zoomStart}–{zoomEnd}
+                  </span>
+                ) : (
+                  <span>Drag or pinch graph to inspect dates closely</span>
+                )}
+                <span>Day {maxDays}</span>
+              </div>
+            </div>
+          )}
+
           {/* Touch & Hover Details Panel (Mobile Optimized) */}
           {(chartType === 'cumulative' || chartType === 'daily') && (
             <div style={{
-              marginTop: 10,
+              marginTop: 6,
               padding: '10px 14px',
               background: 'var(--surface2)',
               borderRadius: 12,

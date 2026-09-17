@@ -158,6 +158,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
   const { catBreakdown, totalCatSpend } = useMemo(() => {
     const map: Record<string, { amount: number; count: number }> = {};
     allGroupedExpenses.forEach(ge => {
+      if (ge.category === 'Transfer' || ge.items?.some(i => i.category === 'Transfer')) return;
       if (monthKey(ge.date) !== thisKey) return;
       if (ge.flow !== 'out') return;
       const amt = getGroupedExpenseAmount(ge, 'all');

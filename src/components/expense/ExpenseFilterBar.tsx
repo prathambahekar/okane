@@ -383,7 +383,9 @@ export const ExpenseFilterBar: React.FC<Props> = ({
                 <span>All Categories</span>
               </button>
 
-              {categories.map((c, idx) => {
+              {categories
+                .filter((c) => c.name.toLowerCase() !== 'refund' && c.name.toLowerCase() !== 'transfer')
+                .map((c, idx) => {
                 const isSelected = catFilter === c.name;
                 return (
                   <button
