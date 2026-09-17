@@ -2327,78 +2327,115 @@ export default function Settings({
                     </div>
 
                     {/* Grid of Icons */}
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
-                        gap: 10,
-                        padding: '4px 2px 14px',
-                      }}
-                    >
-                      {AVAILABLE_ICONS.filter(item => {
+                    {(() => {
+                      const filteredIcons = AVAILABLE_ICONS.filter(item => {
                         if (!iconSearchQuery.trim()) return true;
                         const q = iconSearchQuery.toLowerCase().trim();
                         return item.id.toLowerCase().includes(q) || item.label.toLowerCase().includes(q);
-                      }).map(({ id, label, Icon }) => {
-                        const currentSelectedIcon = iconPickerTarget === 'add' ? newCatIcon : editIcon;
-                        const currentColor = iconPickerTarget === 'add' ? newCatColor : editColor;
-                        const isSelected = currentSelectedIcon === id;
-                        const bgTint = isSelected
-                          ? (currentColor.startsWith('#') && currentColor.length === 7 ? `${currentColor}22` : 'var(--accent-soft)')
-                          : 'var(--surface2)';
-                        const borderTint = isSelected ? currentColor : 'var(--border)';
+                      });
 
+                      if (filteredIcons.length === 0) {
                         return (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => {
-                              if (iconPickerTarget === 'add') {
-                                setNewCatIcon(id);
-                              } else {
-                                setEditIcon(id);
-                              }
-                              setCategorySubView(iconPickerTarget);
-                            }}
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 6,
-                              padding: '12px 6px',
-                              borderRadius: 'var(--radius-md)',
-                              background: bgTint,
-                              border: isSelected ? `2px solid ${borderTint}` : `1px solid ${borderTint}`,
-                              color: isSelected ? currentColor : 'var(--text-2)',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
-                              boxShadow: isSelected ? `0 2px 10px ${currentColor}30` : 'none',
-                              transform: isSelected ? 'scale(1.04)' : 'none',
-                              outline: 'none',
-                              boxSizing: 'border-box',
-                            }}
-                            title={label}
-                          >
-                            <Icon size={22} style={{ color: isSelected ? currentColor : 'var(--text)' }} />
-                            <span
+                          <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-3)' }}>
+                            <Search size={28} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                            <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--text-2)' }}>
+                              No icons found
+                            </div>
+                            <div style={{ fontSize: 'var(--fs-xs)', marginTop: 4 }}>
+                              Try searching for food, travel, tech, gaming, or bills
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setIconSearchQuery('')}
                               style={{
-                                fontSize: 10.5,
-                                fontWeight: isSelected ? 700 : 500,
-                                color: isSelected ? currentColor : 'var(--text-3)',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                maxWidth: '100%',
-                                padding: '0 2px',
+                                marginTop: 12,
+                                padding: '6px 14px',
+                                borderRadius: 'var(--radius-md)',
+                                background: 'var(--surface3)',
+                                border: 'none',
+                                color: 'var(--text)',
+                                fontSize: 'var(--fs-xs)',
+                                fontWeight: 600,
+                                cursor: 'pointer',
                               }}
                             >
-                              {label.split('/')[0].trim()}
-                            </span>
-                          </button>
+                              Clear Search
+                            </button>
+                          </div>
                         );
-                      })}
-                    </div>
+                      }
+
+                      return (
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
+                            gap: 10,
+                            padding: '4px 2px 14px',
+                          }}
+                        >
+                          {filteredIcons.map(({ id, label, Icon }) => {
+                            const currentSelectedIcon = iconPickerTarget === 'add' ? newCatIcon : editIcon;
+                            const currentColor = iconPickerTarget === 'add' ? newCatColor : editColor;
+                            const isSelected = currentSelectedIcon === id;
+                            const bgTint = isSelected
+                              ? (currentColor.startsWith('#') && currentColor.length === 7 ? `${currentColor}22` : 'var(--accent-soft)')
+                              : 'var(--surface2)';
+                            const borderTint = isSelected ? currentColor : 'var(--border)';
+
+                            return (
+                              <button
+                                key={id}
+                                type="button"
+                                onClick={() => {
+                                  if (iconPickerTarget === 'add') {
+                                    setNewCatIcon(id);
+                                  } else {
+                                    setEditIcon(id);
+                                  }
+                                  setCategorySubView(iconPickerTarget);
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  padding: '12px 6px',
+                                  borderRadius: 'var(--radius-md)',
+                                  background: bgTint,
+                                  border: isSelected ? `2px solid ${borderTint}` : `1px solid ${borderTint}`,
+                                  color: isSelected ? currentColor : 'var(--text-2)',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+                                  boxShadow: isSelected ? `0 2px 10px ${currentColor}30` : 'none',
+                                  transform: isSelected ? 'scale(1.04)' : 'none',
+                                  outline: 'none',
+                                  boxSizing: 'border-box',
+                                }}
+                                title={label}
+                              >
+                                <Icon size={22} style={{ color: isSelected ? currentColor : 'var(--text)' }} />
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontWeight: isSelected ? 700 : 500,
+                                    color: isSelected ? currentColor : 'var(--text-3)',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    maxWidth: '100%',
+                                    padding: '0 2px',
+                                  }}
+                                >
+                                  {label.split('/')[0].trim()}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Fixed Bottom Action Footer */}
