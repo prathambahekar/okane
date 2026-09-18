@@ -153,19 +153,21 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
   }
 
   const rawLines = content.split('\n');
-  const nonEmptyCount = rawLines.filter(l => l.trim().length > 0).length;
-  const isMultiLine = nonEmptyCount > 1;
 
   return (
     <div
       className={`markdown-note-container ${className}`}
       style={{
         display: 'flex',
-        flexDirection: 'column',
-        gap: isMultiLine ? '6px' : '4px',
-        lineHeight: 1.55,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: '4px 14px',
+        alignItems: 'center',
+        lineHeight: 1.5,
         wordBreak: 'break-word',
+        overflowWrap: 'break-word',
         color: 'var(--text)',
+        maxWidth: '100%',
         ...style,
       }}
     >
@@ -174,7 +176,7 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
 
         // Empty line (preserves line-spacing between paragraphs)
         if (!trimmed) {
-          return <div key={`nl-${idx}`} style={{ height: '4px' }} />;
+          return <div key={`nl-${idx}`} style={{ width: '100%', height: '4px', flexShrink: 0 }} />;
         }
 
         // Header 1: # Title
@@ -183,6 +185,8 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <div
               key={`h1-${idx}`}
               style={{
+                width: '100%',
+                flexShrink: 0,
                 fontSize: '1.12em',
                 fontWeight: 750,
                 color: 'var(--text)',
@@ -202,6 +206,8 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <div
               key={`h2-${idx}`}
               style={{
+                width: '100%',
+                flexShrink: 0,
                 fontSize: '1.04em',
                 fontWeight: 700,
                 color: 'var(--text)',
@@ -220,6 +226,8 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <div
               key={`h3-${idx}`}
               style={{
+                width: '100%',
+                flexShrink: 0,
                 fontSize: '0.96em',
                 fontWeight: 700,
                 color: 'var(--text)',
@@ -240,10 +248,11 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <div
               key={`chk-${idx}`}
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: 8,
+                gap: 7,
                 padding: '2px 0',
+                maxWidth: '100%',
               }}
             >
               <div
@@ -252,20 +261,19 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
                   height: 15,
                   borderRadius: 4,
                   border: isChecked ? 'none' : '1.5px solid var(--border2)',
-                  background: isChecked ? 'var(--accent)' : 'var(--surface)',
+                  background: isChecked ? 'var(--credit, #10b981)' : 'var(--surface2)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  marginTop: 1,
                 }}
               >
                 {isChecked && (
                   <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                     <path
                       d="M1 4L3.8 7L9 1"
-                      stroke="var(--accent-contrast, #ffffff)"
-                      strokeWidth="1.8"
+                      stroke="#ffffff"
+                      strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
@@ -277,6 +285,11 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
                   textDecoration: isChecked ? 'line-through' : 'none',
                   opacity: isChecked ? 0.6 : 1,
                   color: isChecked ? 'var(--text-3)' : 'var(--text)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
+                  maxWidth: '100%',
                 }}
               >
                 {parseInlineMarkdown(checkMatch[2])}
@@ -292,10 +305,11 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <div
               key={`li-${idx}`}
               style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 8,
-                padding: '1px 0',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '2px 0',
+                maxWidth: '100%',
               }}
             >
               <span
@@ -305,11 +319,19 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
                   height: 5,
                   borderRadius: '50%',
                   background: 'var(--text-3)',
-                  marginTop: 8,
                   flexShrink: 0,
                 }}
               />
-              <span style={{ flex: 1, color: 'var(--text)' }}>
+              <span
+                style={{
+                  color: 'var(--text)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
+                  maxWidth: '100%',
+                }}
+              >
                 {parseInlineMarkdown(bulletText)}
               </span>
             </div>
@@ -323,10 +345,11 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <div
               key={`num-${idx}`}
               style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 7,
-                padding: '1px 0',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '2px 0',
+                maxWidth: '100%',
               }}
             >
               <span
@@ -334,14 +357,22 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
                   fontWeight: 650,
                   color: 'var(--text-3)',
                   flexShrink: 0,
-                  fontSize: '0.9em',
+                  fontSize: '0.85em',
                   fontVariantNumeric: 'tabular-nums',
-                  minWidth: 16,
                 }}
               >
                 {numMatch[1]}.
               </span>
-              <span style={{ flex: 1, color: 'var(--text)' }}>
+              <span
+                style={{
+                  color: 'var(--text)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
+                  maxWidth: '100%',
+                }}
+              >
                 {parseInlineMarkdown(numMatch[2])}
               </span>
             </div>
@@ -354,11 +385,14 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <div
               key={`bq-${idx}`}
               style={{
+                width: '100%',
+                flexShrink: 0,
                 borderLeft: '2.5px solid var(--accent)',
                 paddingLeft: 10,
                 margin: '3px 0',
                 color: 'var(--text-2)',
                 fontStyle: 'italic',
+                fontSize: '13px',
               }}
             >
               {parseInlineMarkdown(trimmed.substring(2))}
@@ -371,27 +405,23 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
           <div
             key={`ln-${idx}`}
             style={{
+              width: '100%',
+              flexShrink: 0,
               display: 'flex',
               alignItems: 'flex-start',
-              gap: isMultiLine ? 8 : 0,
               padding: '1px 0',
             }}
           >
-            {isMultiLine && (
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: 4,
-                  height: 4,
-                  borderRadius: '50%',
-                  background: 'var(--text-3)',
-                  opacity: 0.7,
-                  marginTop: 8,
-                  flexShrink: 0,
-                }}
-              />
-            )}
-            <span style={{ flex: 1, color: 'var(--text)' }}>
+            <span
+              style={{
+                color: 'var(--text)',
+                fontSize: '13px',
+                fontWeight: 500,
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+                maxWidth: '100%',
+              }}
+            >
               {parseInlineMarkdown(rawLine)}
             </span>
           </div>

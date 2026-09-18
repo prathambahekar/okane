@@ -4,7 +4,7 @@ import { useStore } from '../store';
 import { walletBalance, totalWalletBalance, expenseFlow, monthKey, allFriendBalances, unsettledExpensesForFriend } from '../db';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, getGroupedExpenseAmount, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../utils';
 import type { Friend, ViewName, Expense } from '../types';
-import { CategoryBadge } from '../components/CategoryIcon';
+import CategoryIcon from '../components/CategoryIcon';
 import CategoryDistributionCard, { type CategoryBreakdownItem } from '../components/analytics/CategoryDistributionCard';
 import TransferModal from '../components/TransferModal';
 import { ExpenseDetailDrawer } from '../components/ExpenseDetailDrawer';
@@ -508,8 +508,23 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                       }
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
-                      <CategoryBadge category={catMeta.name} color={catMeta.color} icon={catMeta.icon} size={15} showLabel={false} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 'var(--radius-md, 10px)',
+                          backgroundColor: catMeta.bg,
+                          border: `1px solid ${catMeta.border}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          color: catMeta.color,
+                        }}
+                      >
+                        <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={20} style={{ color: catMeta.color }} />
+                      </div>
                       <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
                         <div style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, width: '100%' }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: '0 1 auto' }}>

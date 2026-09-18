@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Handshake, ArrowDownLeft, ArrowUpRight, RotateCcw, Calendar, Wallet as WalletIcon, FileText, Store, HeartHandshake } from 'lucide-react';
+import { motion } from 'motion/react';
+import { X, Handshake, ArrowDownLeft, ArrowUpRight, RotateCcw, Calendar, Wallet as WalletIcon, Store, HeartHandshake, ListFilter, NotebookPen, Copy, Check, ChevronDown } from 'lucide-react';
+import { MarkdownNote } from './common/MarkdownNote';
 import { useStore } from '../store';
 import type { Settlement, Expense } from '../types';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, cleanExpenseDescription } from '../utils';
+import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, cleanExpenseDescription, resolveCategoryMeta } from '../utils';
 import CategoryIcon from './CategoryIcon';
 import { renderWalletIcon } from './WalletIconRenderer';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
@@ -16,6 +19,8 @@ interface SettlementDetailModalProps {
 
 export default function SettlementDetailModal({ settlement, onClose, onUndo, zIndex = 100050 }: SettlementDetailModalProps) {
   useBackButtonModal(true, onClose, { priority: BackPriority.MODAL });
+  const [isNoteOpen, setIsNoteOpen] = useState(true);
+  const [copiedNote, setCopiedNote] = useState(false);
 
   const { db } = useStore();
   const settings = db?.settings || {};
@@ -307,22 +312,107 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
           {settlement?.note && (
             <div
               style={{
-                padding: '12px 14px',
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                borderRadius: 14,
-                fontSize: 12.5,
-                color: 'var(--text-2)',
                 display: 'flex',
-                alignItems: 'flex-start',
-                gap: 8,
+                flexDirection: 'column',
+                gap: 6,
+                padding: '2px 0',
               }}
             >
-              <FileText size={15} style={{ color: 'var(--text-3)', flexShrink: 0, marginTop: 2 }} />
-              <div>
-                <span style={{ fontWeight: 600, color: 'var(--text)' }}>Note: </span>
-                {settlement.note}
+              <div
+                onClick={() => setIsNoteOpen(!isNoteOpen)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <NotebookPen size={13} strokeWidth={2.2} style={{ color: 'var(--text-3)' }} />
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: 'var(--text-3)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                    }}
+                  >
+                    NOTE
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(settlement.note);
+                        setCopiedNote(true);
+                        setTimeout(() => setCopiedNote(false), 1800);
+                      }
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: copiedNote ? 'var(--credit, #10b981)' : 'var(--text-3)',
+                      padding: '4px',
+                      borderRadius: 'var(--radius-xs, 6px)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'color 0.15s ease',
+                    }}
+                    title="Copy note"
+                    aria-label="Copy note"
+                  >
+                    {copiedNote ? <Check size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsNoteOpen(!isNoteOpen)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-3)',
+                      padding: '4px',
+                      borderRadius: 'var(--radius-xs, 6px)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    title={isNoteOpen ? 'Collapse note' : 'Expand note'}
+                    aria-label={isNoteOpen ? 'Collapse note' : 'Expand note'}
+                  >
+                    <ChevronDown
+                      size={14}
+                      strokeWidth={2.2}
+                      style={{
+                        transform: isNoteOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+                        transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                    />
+                  </button>
+                </div>
               </div>
+
+              <motion.div
+                initial={false}
+                animate={{
+                  height: isNoteOpen ? 'auto' : 0,
+                  opacity: isNoteOpen ? 1 : 0,
+                }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div style={{ fontSize: 'var(--fs-sm, 13px)', color: 'var(--text)', lineHeight: 1.55, fontWeight: 500, paddingTop: 2 }}>
+                  <MarkdownNote content={settlement.note} />
+                </div>
+              </motion.div>
             </div>
           )}
 
@@ -330,35 +420,42 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
           <div>
             <div
               style={{
-                fontSize: 13,
-                fontWeight: 700,
+                fontSize: 'var(--fs-base, 14px)',
+                fontWeight: 650,
                 color: 'var(--text)',
-                marginBottom: 8,
+                marginBottom: 10,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}
             >
-              <span>{isForgiven ? 'Forgiven Expenses Breakdown' : 'Settled Expenses Breakdown'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ListFilter size={16} strokeWidth={2.2} style={{ color: 'var(--text-2)', flexShrink: 0 }} />
+                <span>{isForgiven ? 'Forgiven Expenses Breakdown' : 'Settled Expenses Breakdown'}</span>
+              </div>
               <span
                 style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: 'var(--text-3)',
-                  background: 'var(--surface2)',
-                  padding: '2px 8px',
-                  borderRadius: 6,
-                  letterSpacing: '0.01em',
+                  fontSize: 'var(--fs-xs, 12px)',
+                  color: 'var(--text-2)',
+                  background: 'var(--surface2, rgba(255, 255, 255, 0.05))',
+                  border: '1px solid var(--border)',
+                  padding: '3px 10px',
+                  borderRadius: 'var(--radius-full)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  flexShrink: 0,
                 }}
               >
-                {settledExpenses.length} expenses
+                <span style={{ fontWeight: 700, color: 'var(--text)' }}>{settledExpenses.length}</span>
+                <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>items</span>
               </span>
             </div>
 
             {settledExpenses.length === 0 ? (
               <div
                 style={{
-                  padding: '20px',
+                  padding: '16px 12px',
                   textAlign: 'center',
                   background: 'var(--surface2)',
                   borderRadius: 10,
@@ -373,7 +470,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 8,
+                  gap: 2,
                   maxHeight: 250,
                   overflowY: 'auto',
                   paddingRight: 4,
@@ -383,34 +480,43 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                   if (!exp) return null;
                   const cat = categories.find(c => c && c.name === exp.category);
                   const isForFriend = exp.type === 'for_friend';
+                  const catMeta = resolveCategoryMeta(exp.category, cat, false);
                   return (
-                    <div
+                    <motion.div
                       key={exp.id}
+                      className="recent-expense-row-inside-card"
+                      whileHover={{ backgroundColor: 'var(--surface3)' }}
+                      whileTap={{ scale: 0.982, backgroundColor: 'var(--surface3)' }}
+                      transition={{ duration: 0.12, ease: 'easeOut' }}
                       style={{
-                        padding: '11px 14px',
-                        background: 'var(--surface2)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 14,
+                        padding: '6px 8px',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: 'var(--radius-md, 8px)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         gap: 10,
+                        cursor: 'pointer',
+                        userSelect: 'none',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                         <div
                           style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 8,
-                            background: cat?.color ? `${cat.color}18` : 'var(--accent-soft)',
-                            display: 'grid',
-                            placeItems: 'center',
-                            color: cat?.color || 'var(--accent)',
+                            width: 36,
+                            height: 36,
+                            borderRadius: 'var(--radius-sm, 8px)',
+                            backgroundColor: catMeta.bg,
+                            border: `1px solid ${catMeta.border}`,
+                            color: catMeta.color,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             flexShrink: 0,
                           }}
                         >
-                          <CategoryIcon category={exp.category} size={16} />
+                          <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={18} style={{ color: catMeta.color }} />
                         </div>
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div
@@ -526,7 +632,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                           );
                         })()}
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>

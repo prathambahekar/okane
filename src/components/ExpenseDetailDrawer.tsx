@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import {
-  Users, User, Pencil, Trash2, X, Store, FileText, Wallet as WalletIcon, Tag, ArrowUpRight, ArrowDownLeft, Repeat, RotateCcw, HeartHandshake
+  Users, Pencil, Trash2, X, Store, Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, Repeat, RotateCcw, HeartHandshake, ListFilter, NotebookPen, Copy, Check, ChevronDown
 } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
 import {
@@ -62,6 +62,8 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
   const settlementsMap = useMemo(() => new Map((settlements || []).map(s => [s.id, s])), [settlements]);
 
   const primaryItem = ge.items[0] || (ge as unknown as Expense);
+  const [isNoteOpen, setIsNoteOpen] = useState(true);
+  const [copiedNote, setCopiedNote] = useState(false);
   const categoryObj = categoriesMap.get(ge.category);
   const walletObj = walletsMap.get(ge.walletId);
   const settlementObj = ge.settlementId ? settlementsMap.get(ge.settlementId) : null;
@@ -263,30 +265,30 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
     );
   };
 
-  const renderCategorizedFriends = (isSideBySide = false) => {
+   const renderCategorizedFriends = (isSideBySide = false) => {
     if (categorizedFriends.length === 0) return null;
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: isSideBySide ? 8 : 11, minWidth: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: isSideBySide ? 10 : 14, minWidth: 0 }}>
         {/* 1. Friends the user owes ("I owe some") */}
         {friendsIOwe.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: isSideBySide ? 4 : 6, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, height: 16 }}>
-              <span style={{ fontSize: 10, fontWeight: 750, color: 'var(--debit, #ef4444)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 3.5 }}>
-                <ArrowDownLeft size={11.5} strokeWidth={2.6} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 18 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 750, color: 'var(--debit, #ef4444)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ArrowDownLeft size={12} strokeWidth={2.6} />
                 You Owe
               </span>
               <span
                 style={{
-                  fontSize: 9.5,
+                  fontSize: 10,
                   fontWeight: 750,
-                  minWidth: 16,
-                  height: 16,
+                  minWidth: 18,
+                  height: 18,
                   borderRadius: '50%',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: '0 3px',
+                  padding: '0 4px',
                   background: 'rgba(239, 68, 68, 0.16)',
                   color: 'var(--debit, #ef4444)',
                   border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -296,7 +298,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 {friendsIOwe.length}
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2, minWidth: 0 }}>
               {friendsIOwe.map(cf => renderFriendChip(cf, 'var(--debit, #ef4444)'))}
             </div>
           </div>
@@ -304,23 +306,23 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
 
         {/* 2. Friends who owe the user ("Some owe me") */}
         {friendsOweMe.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: isSideBySide ? 4 : 6, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, height: 16 }}>
-              <span style={{ fontSize: 10, fontWeight: 750, color: 'var(--credit, #10b981)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 3.5 }}>
-                <ArrowUpRight size={11.5} strokeWidth={2.6} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 18 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 750, color: 'var(--credit, #10b981)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ArrowUpRight size={12} strokeWidth={2.6} />
                 They Owe
               </span>
               <span
                 style={{
-                  fontSize: 9.5,
+                  fontSize: 10,
                   fontWeight: 750,
-                  minWidth: 16,
-                  height: 16,
+                  minWidth: 18,
+                  height: 18,
                   borderRadius: '50%',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: '0 3px',
+                  padding: '0 4px',
                   background: 'rgba(16, 185, 129, 0.16)',
                   color: 'var(--credit, #10b981)',
                   border: '1px solid rgba(16, 185, 129, 0.3)',
@@ -330,7 +332,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 {friendsOweMe.length}
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2, minWidth: 0 }}>
               {friendsOweMe.map(cf => renderFriendChip(cf, 'var(--credit, #10b981)'))}
             </div>
           </div>
@@ -338,23 +340,23 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
 
         {/* 3. Neutral or general participants if any */}
         {friendsNeutral.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: isSideBySide ? 4 : 6, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, height: 16 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 3.5 }}>
-                <Users size={11.5} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 18 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Users size={12} />
                 Participants
               </span>
               <span
                 style={{
-                  fontSize: 9.5,
+                  fontSize: 10,
                   fontWeight: 750,
-                  minWidth: 16,
-                  height: 16,
+                  minWidth: 18,
+                  height: 18,
                   borderRadius: '50%',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: '0 3px',
+                  padding: '0 4px',
                   background: 'var(--accent-soft)',
                   color: 'var(--text-2)',
                   border: '1px solid var(--border)',
@@ -364,7 +366,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 {friendsNeutral.length}
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2, minWidth: 0 }}>
               {friendsNeutral.map(cf => renderFriendChip(cf, 'var(--accent)'))}
             </div>
           </div>
@@ -633,53 +635,33 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             </div>
           </div>
 
-          {/* 2-Tile Grid: Wallet & Category (or Category & Participants) */}
+          {/* Unified Details Card */}
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: showWallet
-                ? '1fr 1fr'
-                : (categorizedFriends.length > 0 ? '1fr 1fr' : '1fr'),
-              gap: 10,
+              padding: '20px 22px',
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-xl, 22px)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 22,
             }}
           >
-            {/* Wallet Tile (When available) */}
-            {showWallet && (
-              <div
-                style={{
-                  padding: '12px 14px',
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-lg)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                  minWidth: 0,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    color: 'var(--text-3)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                  }}
-                >
-                  <WalletIcon size={12} style={{ color: 'var(--accent)' }} />
-                  <span>Wallet</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            {/* Wallet & Category Row */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: showWallet ? '1fr 1fr' : '1fr',
+                gap: 16,
+              }}
+            >
+              {/* Wallet Section */}
+              {showWallet && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                   <div
                     style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 'var(--radius-sm)',
-                      background: walletObj?.color ? `${walletObj.color}15` : 'var(--accent-soft)',
-                      border: `1px solid ${walletObj?.color ? `${walletObj.color}30` : 'var(--border)'}`,
+                      width: 36,
+                      height: 36,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -687,61 +669,61 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     }}
                   >
                     {walletObj ? (
-                      renderWalletIcon(walletObj.icon || walletObj.name, 18, walletObj.color)
+                      renderWalletIcon(walletObj.icon || walletObj.name, 36, walletObj.color)
                     ) : (
-                      <WalletIcon size={14} style={{ color: 'var(--text-3)' }} />
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 'var(--radius-md, 10px)',
+                          background: 'var(--accent-soft)',
+                          border: '1px solid var(--border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <WalletIcon size={18} style={{ color: 'var(--text-2)' }} />
+                      </div>
                     )}
                   </div>
-                  <span
-                    style={{
-                      fontSize: 'var(--fs-sm)',
-                      fontWeight: 650,
-                      color: 'var(--text)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {effectiveWalletName}
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        color: 'var(--text-3)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        lineHeight: 1,
+                      }}
+                    >
+                      Wallet
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 'var(--fs-sm, 14px)',
+                        fontWeight: 650,
+                        color: 'var(--text)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        lineHeight: 1.25,
+                      }}
+                    >
+                      {effectiveWalletName}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Category Tile */}
-            <div
-              style={{
-                padding: '12px 14px',
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 6,
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  color: 'var(--text-3)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                }}
-              >
-                <Tag size={12} style={{ color: catMeta.color || 'var(--accent)' }} />
-                <span>Category</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              {/* Category Section */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                 <div
                   style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 'var(--radius-sm)',
+                    width: 36,
+                    height: 36,
+                    borderRadius: 'var(--radius-md, 10px)',
                     background: catMeta.bg,
                     border: `1px solid ${catMeta.border}`,
                     color: catMeta.color,
@@ -751,68 +733,52 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     flexShrink: 0,
                   }}
                 >
-                  <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={15} style={{ color: catMeta.color }} />
+                  <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={18} style={{ color: catMeta.color }} />
                 </div>
-                <span
-                  style={{
-                    fontSize: 'var(--fs-sm)',
-                    fontWeight: 650,
-                    color: 'var(--text)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {ge.category || 'Expense'}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: 'var(--text-3)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      lineHeight: 1,
+                    }}
+                  >
+                    Category
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 'var(--fs-sm, 14px)',
+                      fontWeight: 650,
+                      color: 'var(--text)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {ge.category || 'Expense'}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* When wallet is not available, place You Owe / They Owe in the right-hand tile */}
-            {!showWallet && categorizedFriends.length > 0 && (
-              <div
-                style={{
-                  padding: '12px 14px',
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-lg)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                  minWidth: 0,
-                }}
-              >
-                {renderCategorizedFriends(true)}
-              </div>
-            )}
-          </div>
+            {/* Vendor / Store Section */}
+            {detectedVendor && (() => {
+              const vendorColor = (detectedVendor.color && detectedVendor.color !== '#6366f1')
+                ? detectedVendor.color
+                : 'var(--amber, #f59e0b)';
+              const vendorBadgeStyle = getAvatarStyle(vendorColor);
 
-          {/* Vendor / Store Section if detected */}
-          {detectedVendor && (() => {
-            const vendorColor = (detectedVendor.color && detectedVendor.color !== '#6366f1')
-              ? detectedVendor.color
-              : 'var(--amber, #f59e0b)';
-            const vendorBadgeStyle = getAvatarStyle(vendorColor);
-
-            return (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  borderRadius: 'var(--radius-lg)',
-                  background: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  gap: 12,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                   <div
                     style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 'var(--radius-sm)',
+                      width: 36,
+                      height: 36,
+                      borderRadius: 'var(--radius-md, 10px)',
                       aspectRatio: '1 / 1',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -822,94 +788,151 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       lineHeight: 1,
                     }}
                   >
-                    <Store size={16} />
+                    <Store size={17} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Store / Vendor
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Vendor
                     </span>
-                    <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 'var(--fs-sm, 14px)', fontWeight: 650, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {detectedVendor.name}
                     </span>
                   </div>
                 </div>
-                <span
-                  className="app-contact-badge vendor"
+              );
+            })()}
+
+            {/* Friends Categorized: "You Owe", "They Owe", "Participants" */}
+            {categorizedFriends.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }}
+              >
+                {renderCategorizedFriends(false)}
+              </div>
+            )}
+
+            {/* Notes Section */}
+            {primaryItem.notes && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  padding: '2px 0',
+                }}
+              >
+                <div
+                  onClick={() => setIsNoteOpen(!isNoteOpen)}
                   style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: '3px 10px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--amber-bg, rgba(245, 158, 11, 0.14))',
-                    color: 'var(--amber, #fbbf24)',
-                    border: '1px solid var(--amber-border, rgba(245, 158, 11, 0.28))',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    userSelect: 'none',
                   }}
                 >
-                  Vendor
-                </span>
-              </div>
-            );
-          })()}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <NotebookPen size={13} strokeWidth={2.2} style={{ color: 'var(--text-3)' }} />
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: 'var(--text-3)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                      }}
+                    >
+                      NOTES
+                    </span>
+                  </div>
 
-          {/* Friends Categorized: "You Owe" vs "They Owe" vs "Participants" (Rendered when wallet is present) */}
-          {showWallet && categorizedFriends.length > 0 && (
-            <div
-              style={{
-                padding: '12px 14px',
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-              }}
-            >
-              {renderCategorizedFriends(false)}
-            </div>
-          )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (navigator.clipboard) {
+                          navigator.clipboard.writeText(primaryItem.notes);
+                          setCopiedNote(true);
+                          setTimeout(() => setCopiedNote(false), 1800);
+                        }
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: copiedNote ? 'var(--credit, #10b981)' : 'var(--text-3)',
+                        padding: '4px',
+                        borderRadius: 'var(--radius-xs, 6px)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'color 0.15s ease',
+                      }}
+                      title="Copy note"
+                      aria-label="Copy note"
+                    >
+                      {copiedNote ? <Check size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
+                    </button>
 
-          {/* Notes if exists */}
-          {primaryItem.notes && (
-            <div
-              style={{
-                padding: '12px 14px',
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 6,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  color: 'var(--text-3)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                }}
-              >
-                <FileText size={12} style={{ color: 'var(--text-3)' }} />
-                <span>Notes</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsNoteOpen(!isNoteOpen)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-3)',
+                        padding: '4px',
+                        borderRadius: 'var(--radius-xs, 6px)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title={isNoteOpen ? 'Collapse note' : 'Expand note'}
+                      aria-label={isNoteOpen ? 'Collapse note' : 'Expand note'}
+                    >
+                      <ChevronDown
+                        size={14}
+                        strokeWidth={2.2}
+                        style={{
+                          transform: isNoteOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+                          transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        }}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <motion.div
+                  initial={false}
+                  animate={{
+                    height: isNoteOpen ? 'auto' : 0,
+                    opacity: isNoteOpen ? 1 : 0,
+                  }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  style={{
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 'var(--fs-sm, 13px)',
+                      color: 'var(--text)',
+                      lineHeight: 1.55,
+                      fontWeight: 500,
+                      paddingTop: 2,
+                    }}
+                  >
+                    <MarkdownNote content={primaryItem.notes} />
+                  </div>
+                </motion.div>
               </div>
-              <div
-                style={{
-                  fontSize: 'var(--fs-sm)',
-                  color: 'var(--text)',
-                  lineHeight: 1.55,
-                  fontWeight: 500,
-                }}
-              >
-                <MarkdownNote content={primaryItem.notes} />
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Split / Settlement Breakdown */}
           {!isTransfer && (ge.isSplit || ge.isSettlementGroup || ge.items.length > 1 || rawFriends.length > 1) && (() => {
@@ -928,17 +951,19 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-lg)',
-                  padding: '14px 16px',
+                  padding: '12px 14px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 10,
+                  gap: 6,
                 }}
               >
                 {/* Header with Filter Pill & Total */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    <Users size={13} style={{ color: 'var(--text-2)' }} />
-                    <span>{ge.isSettlementGroup ? 'Settlement Breakdown' : 'Split Breakdown'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ListFilter size={15} strokeWidth={2.2} style={{ color: 'var(--text-2)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 'var(--fs-base, 14px)', fontWeight: 650, color: 'var(--text)', letterSpacing: '-0.1px' }}>
+                      {ge.isSettlementGroup ? 'Settlement Breakdown' : 'Split Breakdown'}
+                    </span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -947,10 +972,10 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                         type="button"
                         onClick={() => setSelectedFriendFilter(null)}
                         style={{
-                          fontSize: 10.5,
-                          fontWeight: 700,
+                          fontSize: 11,
+                          fontWeight: 600,
                           color: filteredFriendObj.color || 'var(--accent)',
-                          background: 'var(--surface3)',
+                          background: 'transparent',
                           border: `1px solid ${filteredFriendObj.color ? filteredFriendObj.color + '44' : 'var(--border)'}`,
                           padding: '2px 8px',
                           borderRadius: 'var(--radius-full)',
@@ -965,14 +990,15 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                         <X size={11} strokeWidth={2.5} />
                       </button>
                     )}
-                    <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 650, color: 'var(--text-2)', background: 'var(--surface3)', border: '1px solid var(--border)', padding: '3px 9px', borderRadius: 'var(--radius-full)' }}>
-                      Total {fmtMoney(displayTotal, currency)}
+                    <span style={{ fontSize: 'var(--fs-xs, 12px)', color: 'var(--text-2)', background: 'var(--surface3, rgba(255, 255, 255, 0.05))', border: '1px solid var(--border)', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                      <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>Total</span>
+                      <span style={{ fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(displayTotal, currency)}</span>
                     </span>
                   </div>
                 </div>
 
                 {/* Items List */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {filteredBreakdownItems.length === 0 ? (
                     <div
                       style={{
@@ -1092,32 +1118,37 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       const vendorAvatarStyle = getAvatarStyle(vendorColor);
 
                       return (
-                        <div
+                        <motion.div
                           key={`${item.id || 'item'}-${idx}`}
+                          className="recent-expense-row-inside-card"
+                          whileHover={{ backgroundColor: 'var(--surface3)' }}
+                          whileTap={{ scale: 0.982, backgroundColor: 'var(--surface3)' }}
+                          transition={{ duration: 0.12, ease: 'easeOut' }}
                           style={{
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            padding: '10px 12px',
-                            borderRadius: 'var(--radius-md)',
-                            background: 'var(--surface)',
-                            border: '1px solid var(--border)',
+                            padding: '6px 8px',
+                            borderRadius: 'var(--radius-md, 8px)',
+                            background: 'transparent',
+                            border: 'none',
                             gap: 10,
+                            cursor: 'pointer',
+                            userSelect: 'none',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-                            {/* Avatar: Friend avatar (e.g. 05), Vendor store icon with synced color, or User icon */}
+                            {/* 36x36 Tile: Friend avatar, Vendor store icon, or Category icon */}
                             {isFriendContact && directFriend ? (
                               <span
                                 style={{
-                                  width: 26,
-                                  height: 26,
-                                  borderRadius: 'var(--radius-full)',
-                                  aspectRatio: '1 / 1',
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: 'var(--radius-sm, 8px)',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  fontSize: (directFriend.avatarNumber && directFriend.avatarNumber.length > 2) ? 9 : 10.5,
+                                  fontSize: (directFriend.avatarNumber && directFriend.avatarNumber.length > 2) ? 10 : 12,
                                   fontWeight: 750,
                                   flexShrink: 0,
                                   ...getAvatarStyle(directFriend.color || 'var(--accent, #10b981)'),
@@ -1132,10 +1163,9 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                             ) : isVendorItem ? (
                               <span
                                 style={{
-                                  width: 26,
-                                  height: 26,
-                                  borderRadius: 'var(--radius-sm)',
-                                  aspectRatio: '1 / 1',
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: 'var(--radius-sm, 8px)',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1145,34 +1175,37 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                 }}
                                 title={itemVendor?.name || detectedVendor?.name || directFriend?.name || 'Vendor'}
                               >
-                                <Store size={13} strokeWidth={2.2} />
+                                <Store size={16} strokeWidth={2} />
                               </span>
-                            ) : (
-                              <span
-                                style={{
-                                  width: 26,
-                                  height: 26,
-                                  borderRadius: 'var(--radius-full)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: 'var(--text-2, #a1a1aa)',
-                                  flexShrink: 0,
-                                  background: 'rgba(255, 255, 255, 0.08)',
-                                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                                }}
-                                title="You (Personal share)"
-                              >
-                                <User size={13} strokeWidth={2.2} />
-                              </span>
-                            )}
+                            ) : (() => {
+                              const itemCatMeta = resolveCategoryMeta(item.category, categoriesMap.get(item.category), false);
+                              return (
+                                <div
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 'var(--radius-sm, 8px)',
+                                    backgroundColor: itemCatMeta.bg,
+                                    border: `1px solid ${itemCatMeta.border}`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                    color: itemCatMeta.color,
+                                  }}
+                                  title={item.category || 'Personal'}
+                                >
+                                  <CategoryIcon category={itemCatMeta.name} icon={itemCatMeta.icon} size={18} style={{ color: itemCatMeta.color }} />
+                                </div>
+                              );
+                            })()}
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2.5, minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, flex: 1 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flexWrap: 'wrap' }}>
                                 <span
                                   style={{
-                                    fontWeight: 700,
-                                    fontSize: 'var(--fs-sm)',
+                                    fontWeight: 650,
+                                    fontSize: 13.5,
                                     color: 'var(--text)',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
@@ -1187,7 +1220,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                     style={{
                                       fontSize: 10,
                                       fontWeight: 700,
-                                      padding: '1px 6.5px',
+                                      padding: '1.5px 7px',
                                       borderRadius: 'var(--radius-full)',
                                       color: statusBadge.color,
                                       background: statusBadge.bg,
@@ -1205,8 +1238,8 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                               </div>
                               <span
                                 style={{
-                                  fontSize: 11.5,
-                                  color: 'var(--text-2, #a1a1aa)',
+                                  fontSize: 'var(--fs-xs, 12px)',
+                                  color: 'var(--text-3)',
                                   fontWeight: 500,
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
@@ -1232,7 +1265,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                           >
                             {subSign}{fmtMoney(Number(item.amount) || 0, currency)}
                           </span>
-                        </div>
+                        </motion.div>
                       );
                     })
                   )}
