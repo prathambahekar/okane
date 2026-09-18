@@ -35,16 +35,16 @@ export function NotePreviewCard({
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'space-between',
-        gap: 10,
+        gap: 'var(--space-2)',
         background: 'var(--surface2)',
         border: '1px solid var(--border)',
-        borderRadius: 13,
+        borderRadius: 'var(--radius-md)',
         padding: '9px 10px 9px 12px',
         cursor: 'pointer',
         minHeight: 44,
         boxSizing: 'border-box',
         transition: 'all 0.15s ease',
-        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+        boxShadow: 'var(--shadow-sm)',
         ...style,
       }}
       title="Click to edit note"
@@ -54,16 +54,16 @@ export function NotePreviewCard({
         style={{
           width: 28,
           height: 28,
-          borderRadius: 8,
-          background: 'rgba(56, 189, 248, 0.12)',
-          border: '1px solid rgba(56, 189, 248, 0.22)',
+          borderRadius: 'var(--radius-sm)',
+          background: 'var(--accent-soft)',
+          border: '1px solid var(--accent-border-soft)',
           display: 'grid',
           placeItems: 'center',
           flexShrink: 0,
           marginTop: 1,
         }}
       >
-        <Feather size={14} strokeWidth={2.3} style={{ color: '#0284c7' }} />
+        <Feather size={14} strokeWidth={2.3} style={{ color: 'var(--accent)' }} />
       </div>
 
       {/* Center Note Content - Formatted Markdown */}
@@ -72,7 +72,7 @@ export function NotePreviewCard({
           flex: 1,
           minWidth: 0,
           overflow: 'hidden',
-          fontSize: 12.5,
+          fontSize: 'var(--fs-xs)',
           color: 'var(--text)',
           lineHeight: 1.45,
           paddingTop: 1,
@@ -81,7 +81,7 @@ export function NotePreviewCard({
         <MarkdownNote
           content={notes}
           style={{
-            fontSize: 12.5,
+            fontSize: 'var(--fs-xs)',
             color: 'var(--text)',
             lineHeight: 1.45,
             gap: 2,
@@ -101,7 +101,7 @@ export function NotePreviewCard({
           height: 30,
           minWidth: 30,
           minHeight: 30,
-          borderRadius: 8,
+          borderRadius: 'var(--radius-sm)',
           background: 'transparent',
           border: 'none',
           color: 'var(--text-3)',

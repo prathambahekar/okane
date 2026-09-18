@@ -1236,7 +1236,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
       {deletingExpenseId && (
         <ConfirmDialog
           title="Delete Expense"
-          message="Are you sure you want to delete this expense? Any amount deducted from your wallet will be added back automatically."
+          message="Removes this expense and restores the amount to your wallet."
           onConfirm={() => {
             deleteExpense(deletingExpenseId);
             setDeletingExpenseId(null);
@@ -1248,7 +1248,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
       {undoExpId && (
         <ConfirmDialog
           title="Undo Settlement"
-          message="Are you sure you want to undo this settlement? The settled money will be deducted/restored to your wallet, and this friend's debt balance will become unpaid again."
+          message="Restores your wallet balance and marks this balance as unpaid."
           confirmLabel="Undo Settlement"
           danger
           onConfirm={() => {

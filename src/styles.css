@@ -13,6 +13,7 @@
 @import './styles/layout.css';
 
 /* 4. Core Shared Components, Badges, Buttons & Icons */
+@import './styles/brand-icons.css';
 @import './styles/components.css';
 
 /* 5. Modals, Sheets & Slide-in Drawers */

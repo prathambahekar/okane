@@ -1035,13 +1035,11 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
       {delId && (
         <ConfirmDialog
           title="Undo Settlement"
-          message={`Are you sure you want to undo this settlement with ${
+          message={`Restores ${fmtMoney(Math.abs(Number(targetS?.amount) || 0), currency)} to ${targetWName} and marks expenses with ${
             targetF?.name || 'friend'
-          }? ${fmtMoney(Math.abs(Number(targetS?.amount) || 0), currency)} will be restored to your ${targetWName} wallet and ${
-            Array.isArray(targetS?.expenseIds) ? targetS.expenseIds.length : 0
-          } expense(s) will be marked as unsettled again.`}
+          } as unpaid.`}
           confirmLabel="Undo Settlement"
-          danger={false}
+          danger={true}
           onConfirm={() => handleDelete(delId)}
           onClose={() => setDelId(null)}
         />

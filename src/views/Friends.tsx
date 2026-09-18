@@ -1039,7 +1039,7 @@ export default function Friends({ onNavigate }: Props) {
       {delId && (
         <ConfirmDialog
           title="Remove Contact"
-          message="This will also remove all associated expenses and history. Are you sure?"
+          message="Permanently removes this contact and all associated expenses."
           onConfirm={() => handleDelete(delId)}
           onClose={() => setDelId(null)}
         />

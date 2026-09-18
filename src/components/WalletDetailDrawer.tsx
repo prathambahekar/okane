@@ -725,7 +725,7 @@ export default function WalletDetailDrawer({
 
                         {/* Subtitle Hierarchy */}
                         <SmartExpenseMeta
-                          category={!tx.isSettlement ? tx.category : undefined}
+                          category={!tx.isSettlement && tx.category !== 'Transfer' ? tx.category : undefined}
                           dateText={fmtDate(tx.date)}
                           vendor={vendor}
                           friends={friend && !vendor ? [friend] : []}
@@ -833,7 +833,7 @@ export default function WalletDetailDrawer({
       {undoStlId && (
         <ConfirmDialog
           title="Undo Settlement"
-          message="Are you sure you want to undo this settlement? The settlement will be deleted and associated expenses marked as unsettled again."
+          message="Restores your wallet balance and marks this balance as unpaid."
           confirmLabel="Undo Settlement"
           zIndex={zIndex + 40}
           onConfirm={() => {

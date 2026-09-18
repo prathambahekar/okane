@@ -1472,7 +1472,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
       {delExpId && (
         <ConfirmDialog
           title="Delete Expense"
-          message="Are you sure you want to delete this expense? This action cannot be undone."
+          message="Removes this expense and restores the amount to your wallet."
           confirmLabel="Delete"
           onConfirm={() => {
             if (delExpId) {

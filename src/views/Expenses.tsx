@@ -660,7 +660,7 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
           <ConfirmDialog
             key="delete-dialog"
             title="Delete Expense"
-            message="Are you sure? This will remove the expense, adjust wallet balances, and update friend accounts."
+            message="Removes this expense and restores the amount to your wallet."
             confirmLabel="Delete"
             danger
             onConfirm={() => handleDelete(delId)}
@@ -671,7 +671,7 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
           <ConfirmDialog
             key="undo-dialog"
             title="Undo Settlement"
-            message="Are you sure you want to undo this settlement? The settled money will be deducted/restored to your wallet, and this friend's debt balance will become unpaid again."
+            message="Restores your wallet balance and marks this balance as unpaid."
             confirmLabel="Undo Settlement"
             danger
             onConfirm={handleUnsettleConfirm}

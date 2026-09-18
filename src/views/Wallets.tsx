@@ -1009,7 +1009,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
       {delId && (
         <ConfirmDialog
           title="Delete Wallet"
-          message="All expenses in this wallet will be moved to another wallet. Are you sure?"
+          message="Expenses in this wallet will be moved to another wallet before deletion."
           onConfirm={() => handleDelete(delId)}
           onClose={() => setDelId(null)}
         />
@@ -1018,7 +1018,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
       {undoStlId && (
         <ConfirmDialog
           title="Undo Settlement"
-          message="Are you sure you want to undo this settlement? The settlement will be deleted and associated expenses marked as unsettled again."
+          message="Restores your wallet balance and marks this balance as unpaid."
           confirmLabel="Undo Settlement"
           onConfirm={() => {
             deleteSettlement(undoStlId);
@@ -1066,7 +1066,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
       {delExpId && (
         <ConfirmDialog
           title="Delete Expense"
-          message="Are you sure you want to delete this expense? Any amount deducted from your wallet will be added back automatically."
+          message="Removes this expense and restores the amount to your wallet."
           onConfirm={() => {
             deleteExpense(delExpId);
             setDelExpId(null);

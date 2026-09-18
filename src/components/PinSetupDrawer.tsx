@@ -201,13 +201,13 @@ export default function PinSetupDrawer({
             <div className="sheet-drag-handle" />
 
             {/* Drawer Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-5)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                 <div className="drawer-header-icon">
                   <KeyRound size={20} strokeWidth={2.2} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+                  <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 'var(--fw-bold)', margin: 0, color: 'var(--text)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
                     {hasExistingPin ? 'Change Security Passcode' : 'Create Security Passcode'}
                   </h3>
                   <p className="drawer-header-sub">
@@ -235,14 +235,14 @@ export default function PinSetupDrawer({
             </div>
 
         {/* Step Indicator Progress Bar Pills */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-6)' }}>
           {hasExistingPin ? (
             <>
               <div
                 style={{
                   flex: 1,
                   height: 4,
-                  borderRadius: 2,
+                  borderRadius: 'var(--radius-xs)',
                   background: 'var(--accent)',
                   transition: 'all 0.3s ease',
                 }}
@@ -251,7 +251,7 @@ export default function PinSetupDrawer({
                 style={{
                   flex: 1,
                   height: 4,
-                  borderRadius: 2,
+                  borderRadius: 'var(--radius-xs)',
                   background: step === 'enter' || step === 'confirm' ? 'var(--accent)' : 'var(--border)',
                   transition: 'all 0.3s ease',
                 }}
@@ -260,7 +260,7 @@ export default function PinSetupDrawer({
                 style={{
                   flex: 1,
                   height: 4,
-                  borderRadius: 2,
+                  borderRadius: 'var(--radius-xs)',
                   background: step === 'confirm' ? 'var(--accent)' : 'var(--border)',
                   transition: 'all 0.3s ease',
                 }}
@@ -272,7 +272,7 @@ export default function PinSetupDrawer({
                 style={{
                   flex: 1,
                   height: 4,
-                  borderRadius: 2,
+                  borderRadius: 'var(--radius-xs)',
                   background: 'var(--accent)',
                   transition: 'all 0.3s ease',
                 }}
@@ -281,7 +281,7 @@ export default function PinSetupDrawer({
                 style={{
                   flex: 1,
                   height: 4,
-                  borderRadius: 2,
+                  borderRadius: 'var(--radius-xs)',
                   background: step === 'confirm' ? 'var(--accent)' : 'var(--border)',
                   transition: 'all 0.3s ease',
                 }}
@@ -291,15 +291,15 @@ export default function PinSetupDrawer({
         </div>
 
         {/* Instruction Message */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+        <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
+          <div style={{ fontSize: 'var(--fs-md)', fontWeight: 'var(--fw-semibold)', color: 'var(--text)', marginBottom: 'var(--space-1)' }}>
             {step === 'verify_old'
               ? 'Enter your current 4-digit PIN'
               : step === 'enter'
               ? 'Enter a new 4-digit PIN'
               : 'Re-enter your PIN to confirm'}
           </div>
-          <div style={{ fontSize: 12.5, color: 'var(--text-3)' }}>
+          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
             {step === 'verify_old'
               ? 'Verify your identity to set a new passcode'
               : step === 'enter'
@@ -349,15 +349,16 @@ export default function PinSetupDrawer({
             {errorMsg ? (
               <div
                 style={{
-                  fontSize: 12.5,
-                  fontWeight: 500,
+                  fontSize: 'var(--fs-xs)',
+                  fontWeight: 'var(--fw-medium)',
                   color: 'var(--debit)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  background: 'var(--danger-soft, rgba(239, 68, 68, 0.12))',
+                  background: 'var(--debit-bg)',
+                  border: '1px solid var(--debit-border)',
                   padding: '4px 14px',
-                  borderRadius: 20,
+                  borderRadius: 'var(--radius-xl)',
                 }}
               >
                 <AlertCircle size={14} />
@@ -368,8 +369,8 @@ export default function PinSetupDrawer({
                 type="button"
                 onClick={handleReset}
                 style={{
-                  fontSize: 12,
-                  fontWeight: 600,
+                  fontSize: 'var(--fs-xs)',
+                  fontWeight: 'var(--fw-semibold)',
                   color: 'var(--accent)',
                   background: 'transparent',
                   border: 'none',
@@ -405,12 +406,12 @@ export default function PinSetupDrawer({
               onClick={() => handleDigitPress(digit)}
               style={{
                 height: 58,
-                borderRadius: 20,
-                border: '1px solid var(--border-soft, var(--border))',
+                borderRadius: 'var(--radius-xl)',
+                border: '1px solid var(--border)',
                 background: 'var(--surface2)',
                 color: 'var(--text)',
-                fontSize: 22,
-                fontWeight: 500,
+                fontSize: 'var(--fs-xl)',
+                fontWeight: 'var(--fw-medium)',
                 display: 'grid',
                 placeItems: 'center',
                 cursor: 'pointer',
@@ -420,7 +421,7 @@ export default function PinSetupDrawer({
               }}
               onMouseDown={e => {
                 e.currentTarget.style.transform = 'scale(0.94)';
-                e.currentTarget.style.background = 'var(--surface3, var(--border))';
+                e.currentTarget.style.background = 'var(--surface3)';
               }}
               onMouseUp={e => {
                 e.currentTarget.style.transform = 'scale(1)';
@@ -442,12 +443,12 @@ export default function PinSetupDrawer({
             title="Reset"
             style={{
               height: 58,
-              borderRadius: 20,
+              borderRadius: 'var(--radius-xl)',
               border: '1px solid transparent',
               background: 'transparent',
               color: 'var(--text-3)',
-              fontSize: 12,
-              fontWeight: 600,
+              fontSize: 'var(--fs-xs)',
+              fontWeight: 'var(--fw-semibold)',
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
@@ -474,12 +475,12 @@ export default function PinSetupDrawer({
             onClick={() => handleDigitPress('0')}
             style={{
               height: 58,
-              borderRadius: 20,
-              border: '1px solid var(--border-soft, var(--border))',
+              borderRadius: 'var(--radius-xl)',
+              border: '1px solid var(--border)',
               background: 'var(--surface2)',
               color: 'var(--text)',
-              fontSize: 22,
-              fontWeight: 500,
+              fontSize: 'var(--fs-xl)',
+              fontWeight: 'var(--fw-medium)',
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
@@ -489,7 +490,7 @@ export default function PinSetupDrawer({
             }}
             onMouseDown={e => {
               e.currentTarget.style.transform = 'scale(0.94)';
-              e.currentTarget.style.background = 'var(--surface3, var(--border))';
+              e.currentTarget.style.background = 'var(--surface3)';
             }}
             onMouseUp={e => {
               e.currentTarget.style.transform = 'scale(1)';
@@ -511,7 +512,7 @@ export default function PinSetupDrawer({
             title="Delete"
             style={{
               height: 58,
-              borderRadius: 20,
+              borderRadius: 'var(--radius-xl)',
               border: '1px solid transparent',
               background: 'transparent',
               color: currentInput.length === 0 ? 'var(--text-3)' : 'var(--text-2)',

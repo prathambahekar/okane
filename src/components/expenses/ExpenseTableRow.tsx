@@ -111,7 +111,7 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                 {ge.isSettlementGroup ? (
                   <SettlementBadge ge={ge} settlementObj={settlementObj} />
                 ) : (
-                  (ge.isSplit || ge.items.length > 1) && (
+                  !isTransfer && ge.isSplit && (
                     <span
                       style={{
                         display: 'inline-flex',
@@ -127,14 +127,14 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                         flexShrink: 0,
                       }}
                     >
-                      <Users size={11} /> {ge.isSplit ? 'Split' : 'Breakdown'}
+                      <Users size={11} /> Split
                     </span>
                   )
                 )}
               </div>
               <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {!ge.isSettlementGroup && <span style={{ flexShrink: 0 }}>{ge.category}</span>}
-                {!ge.isSettlementGroup && friendsToShow.length > 0 && <span style={{ flexShrink: 0 }}>•</span>}
+                {!ge.isSettlementGroup && !isTransfer && <span style={{ flexShrink: 0 }}>{ge.category}</span>}
+                {!ge.isSettlementGroup && !isTransfer && friendsToShow.length > 0 && <span style={{ flexShrink: 0 }}>•</span>}
                 {friendsToShow.length > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-3)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {friendsToShow.map((f: Friend | undefined, fIdx: number) => f && (

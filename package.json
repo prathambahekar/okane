@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "theme:audit": "node --experimental-strip-types scripts/theme-audit.ts",
     "set-version": "node scripts/set-version.js",
     "bump": "node scripts/set-version.js",
     "tauri": "tauri"

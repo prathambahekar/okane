@@ -710,7 +710,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
       {deletingRule && (
         <ConfirmDialog
           title="Delete Recurring Rule"
-          message={`Are you sure you want to delete "${deletingRule.title}"? This action cannot be undone.`}
+          message={`Permanently deletes "${deletingRule.title}". Future payments will not be created.`}
           confirmLabel="Delete"
           danger
           onConfirm={() => {

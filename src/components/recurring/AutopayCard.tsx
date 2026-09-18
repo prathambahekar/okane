@@ -410,19 +410,19 @@ export const AutopayCard: React.FC<Props> = ({
                   alignItems: 'center',
                   gap: 9,
                   padding: '8px 12px',
-                  borderRadius: 9,
-                  background: hoveredAction === 'delete' ? 'rgba(239, 68, 68, 0.08)' : 'transparent',
+                  borderRadius: 'var(--radius-sm)',
+                  background: hoveredAction === 'delete' ? 'var(--debit-bg)' : 'transparent',
                   border: 'none',
-                  color: 'var(--debit, #ef4444)',
-                  fontSize: 13,
-                  fontWeight: 550,
+                  color: 'var(--debit)',
+                  fontSize: 'var(--fs-sm)',
+                  fontWeight: 'var(--fw-semibold)',
                   cursor: 'pointer',
                   textAlign: 'left',
                   width: '100%',
                   transition: 'background 0.12s ease',
                 }}
               >
-                <Trash2 size={14} style={{ color: 'var(--debit, #ef4444)' }} />
+                <Trash2 size={14} style={{ color: 'var(--debit)' }} />
                 <span>Delete</span>
               </button>
             </div>
@@ -431,13 +431,13 @@ export const AutopayCard: React.FC<Props> = ({
       </div>
 
       {/* Bottom Action Row: Amount + Due Date on Left, Action Button on Right */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--space-3)' }}>
         {/* Bottom Left: Prominent Amount + Due Date / Status */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
           <div
             style={{
-              fontWeight: 800,
-              fontSize: 20,
+              fontWeight: 'var(--fw-bold)',
+              fontSize: 'var(--fs-xl)',
               color: 'var(--text)',
               letterSpacing: '-0.025em',
               fontVariantNumeric: 'tabular-nums',
@@ -453,9 +453,9 @@ export const AutopayCard: React.FC<Props> = ({
               rule.nextDueDate ? (
                 <span
                   style={{
-                    fontSize: 12,
-                    fontWeight: isDueToday || isOverdue ? 650 : 500,
-                    color: isOverdue ? 'var(--debit, #ef4444)' : isDueToday ? '#ef4444' : 'var(--text-3)',
+                    fontSize: 'var(--fs-xs)',
+                    fontWeight: isDueToday || isOverdue ? 'var(--fw-semibold)' : 'var(--fw-normal)',
+                    color: isOverdue ? 'var(--debit)' : isDueToday ? 'var(--debit)' : 'var(--text-3)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 4.5,
@@ -467,12 +467,13 @@ export const AutopayCard: React.FC<Props> = ({
                   {isDueToday && (
                     <span
                       style={{
-                        fontSize: 10,
-                        fontWeight: 700,
+                        fontSize: 'var(--fs-caption)',
+                        fontWeight: 'var(--fw-bold)',
                         padding: '1px 5px',
-                        borderRadius: 4,
-                        background: 'rgba(239, 68, 68, 0.12)',
-                        color: '#ef4444',
+                        borderRadius: 'var(--radius-xs)',
+                        background: 'var(--debit-bg)',
+                        color: 'var(--debit)',
+                        border: '1px solid var(--debit-border)',
                       }}
                     >
                       Today
@@ -481,12 +482,13 @@ export const AutopayCard: React.FC<Props> = ({
                   {isOverdue && (
                     <span
                       style={{
-                        fontSize: 10,
-                        fontWeight: 700,
+                        fontSize: 'var(--fs-caption)',
+                        fontWeight: 'var(--fw-bold)',
                         padding: '1px 5px',
-                        borderRadius: 4,
-                        background: 'rgba(239, 68, 68, 0.16)',
-                        color: '#ef4444',
+                        borderRadius: 'var(--radius-xs)',
+                        background: 'var(--debit-bg)',
+                        color: 'var(--debit)',
+                        border: '1px solid var(--debit-border)',
                       }}
                     >
                       Overdue
@@ -494,12 +496,12 @@ export const AutopayCard: React.FC<Props> = ({
                   )}
                 </span>
               ) : (
-                <span style={{ fontSize: 12, color: 'var(--text-3)' }}>No due date</span>
+                <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>No due date</span>
               )
             ) : rule.lastLoggedDate ? (
               <span
                 style={{
-                  fontSize: 12,
+                  fontSize: 'var(--fs-xs)',
                   color: 'var(--text-3)',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -514,7 +516,7 @@ export const AutopayCard: React.FC<Props> = ({
             ) : rule.notes ? (
               <span
                 style={{
-                  fontSize: 12,
+                  fontSize: 'var(--fs-xs)',
                   color: 'var(--text-3)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -526,8 +528,8 @@ export const AutopayCard: React.FC<Props> = ({
                 <MarkdownNote content={rule.notes} inline />
               </span>
             ) : (
-              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
-                {isLoggedToday ? <span style={{ color: '#10b981', fontWeight: 600 }}>Logged today</span> : 'Not logged today'}
+              <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+                {isLoggedToday ? <span style={{ color: 'var(--credit)', fontWeight: 'var(--fw-semibold)' }}>Logged today</span> : 'Not logged today'}
               </span>
             )}
           </div>
@@ -541,9 +543,9 @@ export const AutopayCard: React.FC<Props> = ({
               style={{
                 height: 38,
                 padding: '0 20px',
-                fontSize: 14,
-                fontWeight: 700,
-                borderRadius: 9999,
+                fontSize: 'var(--fs-base)',
+                fontWeight: 'var(--fw-bold)',
+                borderRadius: 'var(--radius-full)',
                 background: 'var(--surface2)',
                 color: isPaused ? 'var(--text-3)' : 'var(--text)',
                 border: '1px solid var(--border)',
@@ -552,13 +554,13 @@ export const AutopayCard: React.FC<Props> = ({
                 gap: 7,
                 cursor: isPaused ? 'not-allowed' : 'pointer',
                 transition: 'all 0.15s ease',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                boxShadow: 'var(--shadow-sm)',
               }}
               onClick={() => onPay(rule)}
               disabled={isPaused}
               title="Record autopay deduction"
             >
-              <CheckCircle2 size={16.5} strokeWidth={2.2} style={{ color: isPaused ? 'var(--text-3)' : 'var(--credit, #10b981)' }} />
+              <CheckCircle2 size={16.5} strokeWidth={2.2} style={{ color: isPaused ? 'var(--text-3)' : 'var(--credit)' }} />
               <span>Pay</span>
             </button>
           ) : (
@@ -567,24 +569,24 @@ export const AutopayCard: React.FC<Props> = ({
               style={{
                 height: 38,
                 padding: '0 20px',
-                fontSize: 14,
-                fontWeight: 700,
-                borderRadius: 9999,
-                background: isLoggedToday ? 'rgba(16, 185, 129, 0.12)' : 'var(--surface2)',
-                color: isLoggedToday ? '#10b981' : 'var(--text)',
-                border: isLoggedToday ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid var(--border)',
+                fontSize: 'var(--fs-base)',
+                fontWeight: 'var(--fw-bold)',
+                borderRadius: 'var(--radius-full)',
+                background: isLoggedToday ? 'var(--credit-bg)' : 'var(--surface2)',
+                color: isLoggedToday ? 'var(--credit)' : 'var(--text)',
+                border: isLoggedToday ? '1px solid var(--credit-border)' : '1px solid var(--border)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 7,
                 cursor: isPaused ? 'not-allowed' : 'pointer',
                 transition: 'all 0.15s ease',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                boxShadow: 'var(--shadow-sm)',
               }}
               onClick={() => onQuickLog(rule)}
               disabled={isPaused}
               title={isLoggedToday ? 'Logged for today (tap to log again)' : "Log today's expense"}
             >
-              <Zap size={16.5} strokeWidth={2.2} style={{ color: isLoggedToday ? '#10b981' : '#f59e0b' }} />
+              <Zap size={16.5} strokeWidth={2.2} style={{ color: isLoggedToday ? 'var(--credit)' : 'var(--amber)' }} />
               <span>{isLoggedToday ? 'Logged' : 'Log'}</span>
             </button>
           )}

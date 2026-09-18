@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import {
-  Users, Pencil, Trash2, X, Store, Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, Repeat, RotateCcw, HeartHandshake, ListFilter, NotebookPen, Copy, Check, ChevronDown
+  Users, Pencil, Trash2, X, Store, Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, Repeat, RotateCcw, HeartHandshake, ListFilter, NotebookPen, Copy, Check, ChevronDown, ArrowRight
 } from 'lucide-react';
 import CategoryIcon from './CategoryIcon';
 import {
@@ -98,6 +98,50 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
   const catMeta = resolveCategoryMeta(ge.category, categoryObj, isSettlement, categoriesMap);
   const isDebit = ge.flow === 'out';
   const flowSign = isDebit ? '-' : '+';
+
+  const transferWallets = useMemo(() => {
+    if (!isTransfer) return null;
+
+    const outItem = ge.items.find((i: Expense) => i.flow === 'out');
+    const inItem = ge.items.find((i: Expense) => i.flow === 'in');
+
+    const fromWId = outItem?.walletId || ge.walletId;
+    const toWId = inItem?.walletId;
+
+    let fromW = fromWId ? walletsMap.get(fromWId) : null;
+    let toW = toWId ? walletsMap.get(toWId) : null;
+
+    let fromName = fromW?.name || ge.fromWalletName;
+    let toName = toW?.name || ge.toWalletName;
+
+    // Fallback extraction from description if available
+    if ((!fromName || !toName) && ge.description) {
+      const arrowMatch = ge.description.match(/Transfer:\s*(.+?)\s*→\s*(.+?)(?:\s*\(|$)/i);
+      if (arrowMatch) {
+        if (!fromName) fromName = arrowMatch[1].trim();
+        if (!toName) toName = arrowMatch[2].trim();
+      } else {
+        const toMatch = ge.description.match(/Transfer to\s+(.+?)(?:\s*\(|$)/i);
+        if (toMatch && !toName) toName = toMatch[1].trim();
+        const fromMatch = ge.description.match(/Transfer from\s+(.+?)(?:\s*\(|$)/i);
+        if (fromMatch && !fromName) fromName = fromMatch[1].trim();
+      }
+    }
+
+    if (!fromW && fromName) {
+      fromW = db.wallets.find(w => w.name.toLowerCase() === fromName!.toLowerCase()) || null;
+    }
+    if (!toW && toName) {
+      toW = db.wallets.find(w => w.name.toLowerCase() === toName!.toLowerCase()) || null;
+    }
+
+    return {
+      fromWallet: fromW,
+      toWallet: toW,
+      fromName: fromName || fromW?.name || 'Wallet',
+      toName: toName || toW?.name || 'Wallet',
+    };
+  }, [isTransfer, ge, walletsMap, db.wallets]);
 
   const isContactVendor = (f: Friend | null | undefined): boolean => {
     if (!f) return false;
@@ -565,7 +609,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               </span>
 
               {/* Group / Settlement Status */}
-              {groupStatus.statusKey !== 'none' && groupStatus.statusLabel && (() => {
+              {!isTransfer && groupStatus.statusKey !== 'none' && groupStatus.statusLabel && (() => {
                 const isForgiven = ge.isForgiven || settlementObj?.isForgiven || Boolean(primaryItem?.notes && /forgiv|waiv/i.test(primaryItem.notes));
                 if (isForgiven) {
                   return (
@@ -647,45 +691,162 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               gap: 22,
             }}
           >
-            {/* Wallet & Category Row */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: showWallet ? '1fr 1fr' : '1fr',
-                gap: 16,
-              }}
-            >
-              {/* Wallet Section */}
-              {showWallet && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            {isTransfer ? (
+              <>
+                {/* Dedicated Transfer Wallet Route - Full Width & Ample Room */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0, width: '100%' }}>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: 'var(--text-3)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      lineHeight: 1,
+                    }}
+                  >
+                    Wallet
+                  </span>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      minWidth: 0,
+                      width: '100%',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {/* From Wallet Item */}
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, minWidth: 0, flexShrink: 0 }}>
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {transferWallets?.fromWallet ? (
+                          renderWalletIcon(
+                            transferWallets.fromWallet.icon || transferWallets.fromWallet.name,
+                            36,
+                            transferWallets.fromWallet.color
+                          )
+                        ) : (
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 'var(--radius-md, 10px)',
+                              background: 'var(--accent-soft)',
+                              border: '1px solid var(--border)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <WalletIcon size={18} style={{ color: 'var(--text-2)' }} />
+                          </div>
+                        )}
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 'var(--fs-sm, 14px)',
+                          fontWeight: 650,
+                          color: 'var(--text)',
+                          wordBreak: 'break-word',
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        {transferWallets?.fromName || 'Wallet'}
+                      </span>
+                    </div>
+
+                    {/* Direction Arrow */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--text-3)',
+                        flexShrink: 0,
+                        padding: '0 2px',
+                      }}
+                    >
+                      <ArrowRight size={17} strokeWidth={2.2} />
+                    </div>
+
+                    {/* To Wallet Item */}
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, minWidth: 0, flexShrink: 0 }}>
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {transferWallets?.toWallet ? (
+                          renderWalletIcon(
+                            transferWallets.toWallet.icon || transferWallets.toWallet.name,
+                            36,
+                            transferWallets.toWallet.color
+                          )
+                        ) : (
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 'var(--radius-md, 10px)',
+                              background: 'var(--accent-soft)',
+                              border: '1px solid var(--border)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <WalletIcon size={18} style={{ color: 'var(--text-2)' }} />
+                          </div>
+                        )}
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 'var(--fs-sm, 14px)',
+                          fontWeight: 650,
+                          color: 'var(--text)',
+                          wordBreak: 'break-word',
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        {transferWallets?.toName || 'Wallet'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Category Section (Pushed down to its own row with full width) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, width: '100%' }}>
                   <div
                     style={{
                       width: 36,
                       height: 36,
+                      borderRadius: 'var(--radius-md, 10px)',
+                      background: catMeta.bg,
+                      border: `1px solid ${catMeta.border}`,
+                      color: catMeta.color,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}
                   >
-                    {walletObj ? (
-                      renderWalletIcon(walletObj.icon || walletObj.name, 36, walletObj.color)
-                    ) : (
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 'var(--radius-md, 10px)',
-                          background: 'var(--accent-soft)',
-                          border: '1px solid var(--border)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <WalletIcon size={18} style={{ color: 'var(--text-2)' }} />
-                      </div>
-                    )}
+                    <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={18} style={{ color: catMeta.color }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                     <span
@@ -698,7 +859,122 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                         lineHeight: 1,
                       }}
                     >
-                      Wallet
+                      Category
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 'var(--fs-sm, 14px)',
+                        fontWeight: 650,
+                        color: 'var(--text)',
+                        lineHeight: 1.25,
+                      }}
+                    >
+                      {ge.category || 'Transfer'}
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* Regular Expense Wallet & Category Grid */
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: showWallet ? '1fr 1fr' : '1fr',
+                  gap: 16,
+                }}
+              >
+                {/* Wallet Section */}
+                {showWallet && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {walletObj ? (
+                        renderWalletIcon(walletObj.icon || walletObj.name, 36, walletObj.color)
+                      ) : (
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 'var(--radius-md, 10px)',
+                            background: 'var(--accent-soft)',
+                            border: '1px solid var(--border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <WalletIcon size={18} style={{ color: 'var(--text-2)' }} />
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: 'var(--text-3)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.06em',
+                          lineHeight: 1,
+                        }}
+                      >
+                        Wallet
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 'var(--fs-sm, 14px)',
+                          fontWeight: 650,
+                          color: 'var(--text)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        {effectiveWalletName}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Category Section */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 'var(--radius-md, 10px)',
+                      background: catMeta.bg,
+                      border: `1px solid ${catMeta.border}`,
+                      color: catMeta.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={18} style={{ color: catMeta.color }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        color: 'var(--text-3)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        lineHeight: 1,
+                      }}
+                    >
+                      Category
                     </span>
                     <span
                       style={{
@@ -711,59 +987,12 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                         lineHeight: 1.25,
                       }}
                     >
-                      {effectiveWalletName}
+                      {ge.category || 'Expense'}
                     </span>
                   </div>
                 </div>
-              )}
-
-              {/* Category Section */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 'var(--radius-md, 10px)',
-                    background: catMeta.bg,
-                    border: `1px solid ${catMeta.border}`,
-                    color: catMeta.color,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={18} style={{ color: catMeta.color }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                  <span
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      color: 'var(--text-3)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.06em',
-                      lineHeight: 1,
-                    }}
-                  >
-                    Category
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 'var(--fs-sm, 14px)',
-                      fontWeight: 650,
-                      color: 'var(--text)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      lineHeight: 1.25,
-                    }}
-                  >
-                    {ge.category || 'Expense'}
-                  </span>
-                </div>
               </div>
-            </div>
+            )}
 
             {/* Vendor / Store Section */}
             {detectedVendor && (() => {

@@ -122,7 +122,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                 <SettlementBadge ge={ge} settlementObj={settlementObj} />
               )}
 
-              {!ge.isSettlementGroup && groupStatus.statusKey !== 'none' && groupStatus.statusLabel && (
+              {!ge.isSettlementGroup && !isTransfer && groupStatus.statusKey !== 'none' && groupStatus.statusLabel && (
                 <span
                   className={`tx-status-pill status-${groupStatus.statusKey}`}
                   style={{
@@ -139,7 +139,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
                 </span>
               )}
 
-              {!ge.isSettlementGroup && !groupStatus.statusLabel && ge.isSplit && (
+              {!ge.isSettlementGroup && !isTransfer && !groupStatus.statusLabel && ge.isSplit && (
                 <span
                   style={{
                     display: 'inline-flex',
@@ -163,9 +163,9 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
 
             {/* Bottom Row: Smart Responsive Metadata (Category · Wallet · Contacts) */}
             <SmartExpenseMeta
-              category={!ge.isSettlementGroup ? ge.category : undefined}
+              category={!ge.isSettlementGroup && !isTransfer ? ge.category : undefined}
               wallet={
-                showWallet && activeWallet
+                showWallet && activeWallet && !isTransfer
                   ? {
                       name: activeWallet.name,
                       icon: activeWallet.icon || activeWallet.name,

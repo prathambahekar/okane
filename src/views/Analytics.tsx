@@ -12,6 +12,7 @@ import TotalSpendingCard, { type ChartDayData } from '../components/analytics/To
 import CategoryDistributionCard from '../components/analytics/CategoryDistributionCard';
 import DailyExpenditureCard, { type DayExpenditureRow } from '../components/analytics/DailyExpenditureCard';
 import CategoryIcon from '../components/CategoryIcon';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { renderWalletIcon } from '../components/WalletIconRenderer';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 import type { Expense, ViewName } from '../types';
@@ -1154,24 +1155,17 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
 
       {/* Confirmation Delete Dialog */}
       {deletingId && (
-        <div className="modal-backdrop" onClick={() => setDeletingId(null)}>
-          <div className="modal" style={{ maxWidth: 360, padding: 20, borderRadius: 'var(--radius-xl)' }}>
-            <h3 style={{ fontSize: 'var(--fs-md)', fontWeight: 700, marginBottom: 8, color: 'var(--text)' }}>Delete Expense?</h3>
-            <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)', marginBottom: 16 }}>
-              Are you sure you want to delete this expense transaction? This action cannot be undone.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button className="btn btn-secondary btn-sm" style={{ borderRadius: 'var(--radius-full)' }} onClick={() => setDeletingId(null)}>Cancel</button>
-              <button
-                className="btn btn-primary btn-sm"
-                style={{ background: 'var(--debit)', borderRadius: 'var(--radius-full)' }}
-                onClick={() => handleDeleteExpense(deletingId)}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Delete Expense"
+          message="Removes this expense and restores the amount to your wallet."
+          confirmLabel="Delete"
+          danger
+          onConfirm={() => {
+            handleDeleteExpense(deletingId);
+            setDeletingId(null);
+          }}
+          onClose={() => setDeletingId(null)}
+        />
       )}
       </div>
     </div>

@@ -3980,7 +3980,7 @@ export default function Settings({
       {showReset && (
         <ConfirmDialog
           title="Reset All Data"
-          message="This will permanently delete ALL your data including expenses, friends, wallets, and settlements. This cannot be undone."
+          message="Permanently erases all expenses, friends, wallets, and settlements."
           confirmLabel="Reset Everything"
           onConfirm={handleReset}
           onClose={() => setShowReset(false)}

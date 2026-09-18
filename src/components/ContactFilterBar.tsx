@@ -162,15 +162,15 @@ export const ContactFilterBar: React.FC<Props> = ({
                   <Filter size={18} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+                  <div style={{ fontSize: 'var(--fs-base)', fontWeight: 'var(--fw-bold)', color: 'var(--text)', lineHeight: 1.2 }}>
                     Filters & Sorting
                   </div>
                   {activeFilterCount > 0 ? (
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 550, marginTop: 2 }}>
+                    <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 'var(--fw-semibold)', marginTop: 2 }}>
                       {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}
                     </div>
                   ) : (
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
+                    <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 'var(--fw-medium)', marginTop: 2 }}>
                       Filter contact directory
                     </div>
                   )}
@@ -184,7 +184,7 @@ export const ContactFilterBar: React.FC<Props> = ({
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: '50%',
+                    borderRadius: 'var(--radius-full)',
                     backgroundColor: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
@@ -218,8 +218,8 @@ export const ContactFilterBar: React.FC<Props> = ({
               <div>
                 <div
                   style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
+                    fontSize: 'var(--fs-caption)',
+                    fontWeight: 'var(--fw-bold)',
                     letterSpacing: '0.06em',
                     color: 'var(--text-3)',
                     textTransform: 'uppercase',
@@ -235,7 +235,7 @@ export const ContactFilterBar: React.FC<Props> = ({
                     gap: 8,
                     backgroundColor: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     padding: '8px 14px',
                   }}
                 >
@@ -250,7 +250,7 @@ export const ContactFilterBar: React.FC<Props> = ({
                       background: 'transparent',
                       border: 'none',
                       outline: 'none',
-                      fontSize: '12.5px',
+                      fontSize: 'var(--fs-xs)',
                       color: 'var(--text)',
                       width: '100%',
                     }}
@@ -279,8 +279,8 @@ export const ContactFilterBar: React.FC<Props> = ({
               <div>
                 <div
                   style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
+                    fontSize: 'var(--fs-caption)',
+                    fontWeight: 'var(--fw-bold)',
                     letterSpacing: '0.06em',
                     color: 'var(--text-3)',
                     textTransform: 'uppercase',
@@ -296,7 +296,7 @@ export const ContactFilterBar: React.FC<Props> = ({
                     gap: 4,
                     backgroundColor: 'var(--surface2)',
                     padding: 3,
-                    borderRadius: 12,
+                    borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border)',
                   }}
                 >
@@ -317,14 +317,14 @@ export const ContactFilterBar: React.FC<Props> = ({
                           justifyContent: 'center',
                           gap: 6,
                           padding: '8px 4px',
-                          borderRadius: 9,
+                          borderRadius: 'var(--radius-sm)',
                           border: isSelected ? '1px solid var(--accent)' : '1px solid transparent',
                           backgroundColor: isSelected ? 'var(--accent)' : 'transparent',
                           color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
-                          fontSize: '12px',
-                          fontWeight: isSelected ? 700 : 550,
+                          fontSize: 'var(--fs-xs)',
+                          fontWeight: isSelected ? 'var(--fw-bold)' : 'var(--fw-semibold)',
                           cursor: 'pointer',
-                          boxShadow: isSelected ? '0 2px 8px var(--accent-soft)' : 'none',
+                          boxShadow: isSelected ? 'var(--shadow-sm)' : 'none',
                           transition: 'all 0.15s ease',
                           whiteSpace: 'nowrap',
                         }}
@@ -344,8 +344,8 @@ export const ContactFilterBar: React.FC<Props> = ({
                 <div>
                   <div
                     style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
+                      fontSize: 'var(--fs-caption)',
+                      fontWeight: 'var(--fw-bold)',
                       letterSpacing: '0.06em',
                       color: 'var(--text-3)',
                       textTransform: 'uppercase',
@@ -372,15 +372,15 @@ export const ContactFilterBar: React.FC<Props> = ({
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '10px 12px',
-                            borderRadius: 12,
+                            borderRadius: 'var(--radius-md)',
                             backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                             border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
                             color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
-                            fontSize: '12px',
-                            fontWeight: isSelected ? 700 : 550,
+                            fontSize: 'var(--fs-xs)',
+                            fontWeight: isSelected ? 'var(--fw-bold)' : 'var(--fw-semibold)',
                             cursor: 'pointer',
                             textAlign: 'left',
-                            boxShadow: isSelected ? '0 2px 8px var(--accent-soft)' : 'none',
+                            boxShadow: isSelected ? 'var(--shadow-sm)' : 'none',
                             transition: 'all 0.15s ease',
                           }}
                         >
@@ -402,8 +402,8 @@ export const ContactFilterBar: React.FC<Props> = ({
               <div>
                 <div
                   style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
+                    fontSize: 'var(--fs-caption)',
+                    fontWeight: 'var(--fw-bold)',
                     letterSpacing: '0.06em',
                     color: 'var(--text-3)',
                     textTransform: 'uppercase',
@@ -434,16 +434,16 @@ export const ContactFilterBar: React.FC<Props> = ({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '10px 12px',
-                          borderRadius: 12,
+                          borderRadius: 'var(--radius-md)',
                           backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                           border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
                           color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
-                          fontSize: '12px',
-                          fontWeight: isSelected ? 700 : 550,
+                          fontSize: 'var(--fs-xs)',
+                          fontWeight: isSelected ? 'var(--fw-bold)' : 'var(--fw-semibold)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                           textAlign: 'left',
-                          boxShadow: isSelected ? '0 2px 8px var(--accent-soft)' : 'none',
+                          boxShadow: isSelected ? 'var(--shadow-sm)' : 'none',
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -463,8 +463,8 @@ export const ContactFilterBar: React.FC<Props> = ({
               <div>
                 <div
                   style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
+                    fontSize: 'var(--fs-caption)',
+                    fontWeight: 'var(--fw-bold)',
                     letterSpacing: '0.06em',
                     color: 'var(--text-3)',
                     textTransform: 'uppercase',
@@ -480,7 +480,7 @@ export const ContactFilterBar: React.FC<Props> = ({
                     gap: 4,
                     backgroundColor: 'var(--surface2)',
                     padding: 3,
-                    borderRadius: 12,
+                    borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border)',
                   }}
                 >
@@ -501,14 +501,14 @@ export const ContactFilterBar: React.FC<Props> = ({
                           justifyContent: 'center',
                           gap: 6,
                           padding: '8px 4px',
-                          borderRadius: 9,
+                          borderRadius: 'var(--radius-sm)',
                           border: isSelected ? '1px solid var(--accent)' : '1px solid transparent',
                           backgroundColor: isSelected ? 'var(--accent)' : 'transparent',
                           color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
-                          fontSize: '12px',
-                          fontWeight: isSelected ? 700 : 550,
+                          fontSize: 'var(--fs-xs)',
+                          fontWeight: isSelected ? 'var(--fw-bold)' : 'var(--fw-semibold)',
                           cursor: 'pointer',
-                          boxShadow: isSelected ? '0 2px 8px var(--accent-soft)' : 'none',
+                          boxShadow: isSelected ? 'var(--shadow-sm)' : 'none',
                           transition: 'all 0.15s ease',
                           whiteSpace: 'nowrap',
                         }}
@@ -530,7 +530,7 @@ export const ContactFilterBar: React.FC<Props> = ({
                 padding: '12px 20px 16px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
+                gap: 'var(--space-3)',
                 backgroundColor: 'var(--surface)',
                 borderTop: '1px solid var(--border)',
                 flexShrink: 0,
@@ -544,9 +544,9 @@ export const ContactFilterBar: React.FC<Props> = ({
                 style={{
                   flex: 1,
                   height: 44,
-                  borderRadius: 9999,
-                  fontSize: '13.5px',
-                  fontWeight: 650,
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
+                  fontWeight: 'var(--fw-semibold)',
                   backgroundColor: 'var(--surface2)',
                   border: '1px solid var(--border)',
                   color: activeFilterCount > 0 ? 'var(--text)' : 'var(--text-3)',
@@ -569,13 +569,13 @@ export const ContactFilterBar: React.FC<Props> = ({
                 style={{
                   flex: 1.6,
                   height: 44,
-                  borderRadius: 9999,
-                  fontSize: '13.5px',
-                  fontWeight: 700,
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
+                  fontWeight: 'var(--fw-bold)',
                   backgroundColor: 'var(--accent)',
                   color: 'var(--accent-contrast)',
                   border: 'none',
-                  boxShadow: '0 3px 12px var(--accent-soft)',
+                  boxShadow: 'var(--shadow-sm)',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -586,7 +586,7 @@ export const ContactFilterBar: React.FC<Props> = ({
               >
                 <span>Apply</span>
                 {filteredCount !== undefined && (
-                  <span style={{ fontSize: '12px', opacity: 0.85, fontWeight: 600 }}>({filteredCount})</span>
+                  <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.85, fontWeight: 'var(--fw-semibold)' }}>({filteredCount})</span>
                 )}
               </button>
             </div>

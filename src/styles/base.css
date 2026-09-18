@@ -192,42 +192,40 @@ input, textarea, [contenteditable="true"], .selectable-text {
 
 /* Confirmation dialog */
 .confirm-modal {
-  max-width: 420px;
-  width: 100%;
-  border-radius: 16px;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border2);
+  position: relative !important;
+  z-index: calc(var(--modal-backdrop-z, 100050) + 10) !important;
+  max-width: 420px !important;
+  width: 100% !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: 1px solid var(--border) !important;
   overflow: hidden;
   background: var(--surface);
+  box-sizing: border-box !important;
 }
-.confirm-body { padding: 20px 20px 12px; }
+.confirm-body { padding: var(--space-3) var(--space-5) var(--space-4); }
 .confirm-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  padding: 12px 20px 18px;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: var(--space-2) !important;
+  width: 100% !important;
+  padding: var(--space-2) var(--space-5) var(--space-5) !important;
   background: var(--surface);
   border-top: none;
+  box-sizing: border-box !important;
 }
 
 @media (max-width: 640px) {
-  .modal-backdrop:has(.confirm-modal) {
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 16px !important;
-  }
   .confirm-modal {
-    margin: auto !important;
-    max-height: 90vh !important;
-    border-radius: 16px !important;
-    border-bottom: 1px solid var(--border2) !important;
-    animation: confirmPopMobile 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    border-top-left-radius: 22px !important;
+    border-top-right-radius: 22px !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-bottom: none !important;
   }
-}
-
-@keyframes confirmPopMobile {
-  from { transform: scale(0.92); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
 }
 
 

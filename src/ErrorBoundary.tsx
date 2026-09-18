@@ -53,21 +53,21 @@ export class ErrorBoundary extends Component<Props, State> {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '24px',
-            backgroundColor: '#0f0f11',
-            color: '#f4f4f5',
-            fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+            padding: 'var(--space-6)',
+            backgroundColor: 'var(--bg)',
+            color: 'var(--text)',
+            fontFamily: "var(--font-sans)",
           }}
         >
           <div
             style={{
               maxWidth: '520px',
               width: '100%',
-              backgroundColor: '#18181b',
-              borderRadius: '16px',
-              border: '1px solid #27272a',
-              padding: '28px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+              backgroundColor: 'var(--surface)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border)',
+              padding: 'var(--space-6)',
+              boxShadow: 'var(--shadow-floating)',
               textAlign: 'center',
             }}
           >
@@ -75,13 +75,14 @@ export class ErrorBoundary extends Component<Props, State> {
               style={{
                 width: '56px',
                 height: '56px',
-                borderRadius: '14px',
-                backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                color: '#ef4444',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--debit-bg)',
+                color: 'var(--debit)',
+                border: '1px solid var(--debit-border)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '16px',
+                marginBottom: 'var(--space-4)',
               }}
             >
               <AlertTriangle size={28} />
@@ -89,10 +90,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <h1
               style={{
-                fontSize: '20px',
-                fontWeight: 700,
-                marginBottom: '8px',
-                color: '#ffffff',
+                fontSize: 'var(--fs-xl)',
+                fontWeight: 'var(--fw-bold)',
+                marginBottom: 'var(--space-2)',
+                color: 'var(--text)',
               }}
             >
               Something went wrong
@@ -100,10 +101,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <p
               style={{
-                fontSize: '14px',
-                color: '#a1a1aa',
+                fontSize: 'var(--fs-base)',
+                color: 'var(--text-2)',
                 lineHeight: 1.5,
-                marginBottom: '20px',
+                marginBottom: 'var(--space-5)',
               }}
             >
               Okane encountered an unexpected issue while rendering. You can try refreshing the app or resetting the local cache if data is corrupted.
@@ -112,16 +113,16 @@ export class ErrorBoundary extends Component<Props, State> {
             {this.state.error && (
               <div
                 style={{
-                  backgroundColor: '#09090b',
-                  border: '1px solid #27272a',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '12px',
-                  color: '#f87171',
+                  backgroundColor: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: 'var(--space-3)',
+                  fontSize: 'var(--fs-xs)',
+                  color: 'var(--debit)',
                   fontFamily: 'monospace',
                   textAlign: 'left',
                   overflowX: 'auto',
-                  marginBottom: '24px',
+                  marginBottom: 'var(--space-6)',
                   maxHeight: '120px',
                 }}
               >
@@ -132,7 +133,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div
               style={{
                 display: 'flex',
-                gap: '12px',
+                gap: 'var(--space-3)',
                 justifyContent: 'center',
                 flexWrap: 'wrap',
               }}
@@ -143,14 +144,14 @@ export class ErrorBoundary extends Component<Props, State> {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: 'var(--space-2)',
                   padding: '10px 18px',
-                  borderRadius: '10px',
-                  backgroundColor: '#1976d2',
-                  color: '#ffffff',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--accent)',
+                  color: 'var(--accent-contrast)',
                   border: 'none',
-                  fontSize: '14px',
-                  fontWeight: 600,
+                  fontSize: 'var(--fs-base)',
+                  fontWeight: 'var(--fw-semibold)',
                   cursor: 'pointer',
                   transition: 'opacity 0.2s',
                 }}
@@ -165,14 +166,14 @@ export class ErrorBoundary extends Component<Props, State> {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: 'var(--space-2)',
                   padding: '10px 18px',
-                  borderRadius: '10px',
-                  backgroundColor: '#27272a',
-                  color: '#e4e4e7',
-                  border: '1px solid #3f3f46',
-                  fontSize: '14px',
-                  fontWeight: 500,
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--surface2)',
+                  color: 'var(--text)',
+                  border: '1px solid var(--border)',
+                  fontSize: 'var(--fs-base)',
+                  fontWeight: 'var(--fw-medium)',
                   cursor: 'pointer',
                 }}
               >

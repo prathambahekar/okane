@@ -269,14 +269,14 @@ export default function SecurityLockModal({
             style={{
               width: 56,
               height: 56,
-              borderRadius: 20,
+              borderRadius: 'var(--radius-xl)',
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
               display: 'grid',
               placeItems: 'center',
               color: 'var(--accent)',
-              marginBottom: 18,
-              boxShadow: 'var(--shadow)',
+              marginBottom: 'var(--space-4)',
+              boxShadow: 'var(--shadow-sm)',
             }}
           >
             <Lock size={24} strokeWidth={2.2} />
@@ -284,8 +284,8 @@ export default function SecurityLockModal({
 
           <div
             style={{
-              fontSize: 22,
-              fontWeight: 700,
+              fontSize: 'var(--fs-2xl)',
+              fontWeight: 'var(--fw-bold)',
               letterSpacing: '-0.02em',
               color: 'var(--text)',
               margin: '0 0 6px',
@@ -344,16 +344,16 @@ export default function SecurityLockModal({
             {errorMsg && (
               <div
                 style={{
-                  fontSize: 13,
-                  fontWeight: 600,
+                  fontSize: 'var(--fs-xs)',
+                  fontWeight: 'var(--fw-semibold)',
                   color: 'var(--debit)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  background: 'var(--debit-bg, rgba(239, 68, 68, 0.12))',
+                  background: 'var(--debit-bg)',
                   padding: '5px 14px',
-                  borderRadius: 20,
-                  border: '1px solid var(--debit-border, rgba(239, 68, 68, 0.25))',
+                  borderRadius: 'var(--radius-xl)',
+                  border: '1px solid var(--debit-border)',
                 }}
               >
                 <AlertCircle size={15} />
@@ -380,19 +380,19 @@ export default function SecurityLockModal({
               onClick={() => handleKeyPress(digit)}
               style={{
                 height: 64,
-                borderRadius: 22,
+                borderRadius: 'var(--radius-xl)',
                 border: '1px solid var(--border)',
                 background: 'var(--surface)',
                 color: 'var(--text)',
-                fontSize: 24,
-                fontWeight: 600,
+                fontSize: 'var(--fs-2xl)',
+                fontWeight: 'var(--fw-semibold)',
                 display: 'grid',
                 placeItems: 'center',
                 cursor: 'pointer',
                 touchAction: 'manipulation',
                 WebkitTapHighlightColor: 'transparent',
                 transition: 'transform 0.1s ease, background 0.15s ease',
-                boxShadow: 'var(--shadow)',
+                boxShadow: 'var(--shadow-sm)',
               }}
               onMouseDown={e => {
                 e.currentTarget.style.transform = 'scale(0.94)';
@@ -419,7 +419,7 @@ export default function SecurityLockModal({
               title={`Scan ${biometricType}`}
               style={{
                 height: 64,
-                borderRadius: 22,
+                borderRadius: 'var(--radius-xl)',
                 border: '1px solid transparent',
                 background: 'transparent',
                 color: 'var(--accent)',
@@ -452,19 +452,19 @@ export default function SecurityLockModal({
             onClick={() => handleKeyPress('0')}
             style={{
               height: 64,
-              borderRadius: 22,
+              borderRadius: 'var(--radius-xl)',
               border: '1px solid var(--border)',
               background: 'var(--surface)',
               color: 'var(--text)',
-              fontSize: 24,
-              fontWeight: 600,
+              fontSize: 'var(--fs-2xl)',
+              fontWeight: 'var(--fw-semibold)',
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
               touchAction: 'manipulation',
               WebkitTapHighlightColor: 'transparent',
               transition: 'transform 0.1s ease, background 0.15s ease',
-              boxShadow: 'var(--shadow)',
+              boxShadow: 'var(--shadow-sm)',
             }}
             onMouseDown={e => {
               e.currentTarget.style.transform = 'scale(0.94)';
@@ -489,7 +489,7 @@ export default function SecurityLockModal({
             title="Delete digit"
             style={{
               height: 64,
-              borderRadius: 22,
+              borderRadius: 'var(--radius-xl)',
               border: '1px solid transparent',
               background: 'transparent',
               color: pinInput.length === 0 ? 'var(--text-3)' : 'var(--text-2)',

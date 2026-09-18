@@ -160,6 +160,10 @@ export const SmartExpenseMeta: React.FC<SmartExpenseMetaProps> = React.memo(({
     ? 'no-category'
     : 'full';
 
+  if (!hasCategory && !hasWallet && !hasFriends && !hasVendor && !hasDate) {
+    return null;
+  }
+
   return (
     <div
       ref={containerRef}

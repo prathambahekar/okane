@@ -25,8 +25,8 @@ export function VendorQuickAdd({
           className="form-label"
           style={{
             margin: 0,
-            fontSize: 10.5,
-            fontWeight: 750,
+            fontSize: 'var(--fs-caption)',
+            fontWeight: 'var(--fw-bold)',
             display: 'inline-flex',
             alignItems: 'baseline',
             gap: 4,
@@ -35,7 +35,7 @@ export function VendorQuickAdd({
         >
           <Store size={12} style={{ color: 'var(--text-3)', alignSelf: 'center' }} />
           <span>Vendor</span>
-          <span style={{ fontSize: 8.5, fontWeight: 500, opacity: 0.65, letterSpacing: '0.2px', textTransform: 'lowercase' }}>
+          <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 'var(--fw-normal)', opacity: 0.65, letterSpacing: '0.2px', textTransform: 'lowercase' }}>
             (optional)
           </span>
         </label>

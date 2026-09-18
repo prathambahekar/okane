@@ -1,0 +1,92 @@
+/* ==========================================================================
+   Adaptive Wallet & Payment Brand Icons (Light & Dark Mode)
+   Brand-specific SVG styling for UPI, PhonePe, Paytm, GPay, Amazon, Apple Pay
+   ========================================================================== */
+
+/* 1. Google Pay */
+.wallet-icon-gpay-bg { fill: #ffffff; }
+.wallet-icon-gpay-border { stroke: #e2e8f0; }
+
+[data-color-scheme="dark"] .wallet-icon-gpay-bg { fill: var(--surface2, #18181b); }
+[data-color-scheme="dark"] .wallet-icon-gpay-border { stroke: var(--border, rgba(255, 255, 255, 0.12)); }
+
+/* 2. PhonePe */
+.wallet-icon-phonepe-bg { fill: #5f259f; }
+.wallet-icon-phonepe-border { stroke: rgba(95, 37, 159, 0.25); }
+
+[data-color-scheme="dark"] .wallet-icon-phonepe-bg { fill: #221438; }
+[data-color-scheme="dark"] .wallet-icon-phonepe-border { stroke: rgba(167, 139, 250, 0.25); }
+
+/* 3. Amazon Pay */
+.wallet-icon-amazon-bg { fill: #ffffff; }
+.wallet-icon-amazon-border { stroke: #e5e7eb; }
+.wallet-icon-amazon-glyph { fill: #232f3e; }
+
+[data-color-scheme="dark"] .wallet-icon-amazon-bg { fill: var(--surface2, #18181b); }
+[data-color-scheme="dark"] .wallet-icon-amazon-border { stroke: var(--border, rgba(255, 255, 255, 0.12)); }
+[data-color-scheme="dark"] .wallet-icon-amazon-glyph { fill: #ffffff; }
+
+/* 4. Paytm */
+.wallet-icon-paytm-bg { fill: #ffffff; }
+.wallet-icon-paytm-border { stroke: #00baf2; stroke-opacity: 0.4; }
+.wallet-icon-paytm-pay { fill: #002970; }
+.wallet-icon-paytm-tm { fill: #00baf2; }
+
+[data-color-scheme="dark"] .wallet-icon-paytm-bg { fill: #0c1c33; }
+[data-color-scheme="dark"] .wallet-icon-paytm-border { stroke: rgba(0, 186, 242, 0.3); }
+[data-color-scheme="dark"] .wallet-icon-paytm-pay { fill: #ffffff; }
+[data-color-scheme="dark"] .wallet-icon-paytm-tm { fill: #00baf2; }
+
+/* 5. Other UPI / BHIM NPCI */
+.wallet-icon-upi-bg { fill: #ffffff; }
+.wallet-icon-upi-border { stroke: #e2e8f0; }
+.wallet-icon-upi-chevron-g { fill: #00843D; }
+.wallet-icon-upi-chevron-o { fill: #F47920; }
+
+[data-color-scheme="dark"] .wallet-icon-upi-bg { fill: var(--surface2, #18181b); }
+[data-color-scheme="dark"] .wallet-icon-upi-border { stroke: var(--border, rgba(255, 255, 255, 0.12)); }
+[data-color-scheme="dark"] .wallet-icon-upi-chevron-g { fill: #10B981; }
+[data-color-scheme="dark"] .wallet-icon-upi-chevron-o { fill: #FB923C; }
+
+/* 6. Bank Account */
+.wallet-icon-bank-bg { fill: #ffffff; }
+.wallet-icon-bank-border { stroke: #e2e8f0; }
+
+[data-color-scheme="dark"] .wallet-icon-bank-bg { fill: var(--surface2, #18181b); }
+[data-color-scheme="dark"] .wallet-icon-bank-border { stroke: var(--border, rgba(255, 255, 255, 0.12)); }
+
+/* 7. Cards */
+.wallet-icon-card-bg { fill: #ffffff; }
+.wallet-icon-card-border { stroke: #e2e8f0; }
+
+[data-color-scheme="dark"] .wallet-icon-card-bg { fill: var(--surface2, #18181b); }
+[data-color-scheme="dark"] .wallet-icon-card-border { stroke: var(--border, rgba(255, 255, 255, 0.12)); }
+
+/* 8. Cash */
+.wallet-icon-cash-bg { fill: #ffffff; }
+.wallet-icon-cash-border { stroke: #e2e8f0; }
+
+[data-color-scheme="dark"] .wallet-icon-cash-bg { fill: var(--surface2, #18181b); }
+[data-color-scheme="dark"] .wallet-icon-cash-border { stroke: var(--border, rgba(255, 255, 255, 0.12)); }
+
+/* 9. CRED */
+.wallet-icon-cred-bg { fill: #ffffff; }
+.wallet-icon-cred-border { stroke: #e5e7eb; }
+.wallet-icon-cred-glyph { stroke: #111111; }
+
+[data-color-scheme="dark"] .wallet-icon-cred-bg { fill: var(--surface2, #18181b); }
+[data-color-scheme="dark"] .wallet-icon-cred-border { stroke: var(--border, rgba(255, 255, 255, 0.12)); }
+[data-color-scheme="dark"] .wallet-icon-cred-glyph { stroke: #ffffff; }
+
+/* 10. Apple Pay */
+.wallet-icon-apple-bg { fill: #ffffff; }
+.wallet-icon-apple-border { stroke: #e5e7eb; }
+.wallet-icon-apple-glyph { fill: #000000; }
+
+[data-color-scheme="dark"] .wallet-icon-apple-bg { fill: var(--surface2, #18181b); }
+[data-color-scheme="dark"] .wallet-icon-apple-border { stroke: var(--border, rgba(255, 255, 255, 0.12)); }
+[data-color-scheme="dark"] .wallet-icon-apple-glyph { fill: #ffffff; }
+
+/* Fallback border */
+.wallet-icon-fallback-border { stroke: rgba(255, 255, 255, 0.25); }
+[data-color-scheme="dark"] .wallet-icon-fallback-border { stroke: rgba(255, 255, 255, 0.15); }

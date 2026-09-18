@@ -744,8 +744,8 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
   const isTransfer = ge.category === 'Transfer' || primaryItem.category === 'Transfer';
   if (isTransfer) {
     return {
-      statusKey: 'completed',
-      statusLabel: 'Completed',
+      statusKey: 'none',
+      statusLabel: '',
       isAllSettled: true,
       isPartiallySettled: false,
     };

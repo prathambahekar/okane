@@ -786,7 +786,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
     setConfirmDialog({
       open: true,
       title: 'Cancel Active Trip',
-      message: `Are you sure you want to cancel and discard active trip "${activeTrip.name}"? All logged trip expenses will be removed.`,
+      message: `Discards "${activeTrip.name}" and removes all logged trip expenses.`,
       confirmLabel: 'Discard Trip',
       danger: true,
       onConfirm: () => {
@@ -989,7 +989,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
     setConfirmDialog({
       open: true,
       title: 'Delete Trip Record',
-      message: `Are you sure you want to delete "${target?.name || 'this trip'}" from history? This action cannot be undone.`,
+      message: `Permanently removes "${target?.name || 'this trip'}" from history.`,
       confirmLabel: 'Delete',
       danger: true,
       onConfirm: () => {
@@ -1008,7 +1008,7 @@ export default function SplitTrips({ initialArg }: { initialArg?: string; onClea
     setConfirmDialog({
       open: true,
       title: 'Clear Trip History',
-      message: 'Are you sure you want to clear all archived trip history permanently?',
+      message: 'Permanently removes all archived trips from history.',
       confirmLabel: 'Clear All',
       danger: true,
       onConfirm: () => {

@@ -548,7 +548,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                           )}
                         </div>
                         <SmartExpenseMeta
-                          category={!isSettlement ? ge.category : undefined}
+                          category={!isSettlement && ge.category !== 'Transfer' ? ge.category : undefined}
                           dateText={fmtDate(ge.date)}
                           friends={friendsInGroup.filter((f): f is Friend => Boolean(f && f.type !== 'vendor'))}
                           vendor={friendsInGroup.find((f): f is Friend => Boolean(f && f.type === 'vendor')) || null}
@@ -839,7 +839,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
       {delId && (
         <ConfirmDialog
           title="Delete Expense"
-          message="Are you sure you want to delete this expense? Any amount deducted from your wallet will be added back automatically."
+          message="Removes this expense and restores the amount to your wallet."
           onConfirm={() => {
             deleteExpense(delId);
             setDelId(null);
