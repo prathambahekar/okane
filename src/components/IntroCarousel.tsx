@@ -12,21 +12,21 @@ import {
   Moon,
   EyeOff,
   Eye,
-  Wallet as WalletIcon,
-  ShieldCheck,
   Plus,
   Sparkles,
   RefreshCw,
   Plane,
   Lock,
-  KeyRound,
-  Delete,
+  Wallet,
 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useStore } from '../store';
 import { CURRENCIES, type CurrencyInfo } from '../db';
-import { currencySymbol, fmtMoney } from '../utils';
+import { currencySymbol } from '../utils';
 import { useColorMode } from '../theme';
 import { renderWalletIcon } from './WalletIconRenderer';
+import PinSetupDrawer from './PinSetupDrawer';
 
 export interface IntroCarouselProps {
   isOpen: boolean;
@@ -35,15 +35,15 @@ export interface IntroCarouselProps {
 }
 
 const POPULAR_CURRENCIES: Array<{ code: string; symbol: string; name: string }> = [
-  { code: 'INR', symbol: '₹', name: 'Rupee' },
-  { code: 'USD', symbol: '$', name: 'Dollar' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'Pound' },
-  { code: 'AED', symbol: 'د.إ', name: 'Dirham' },
-  { code: 'CAD', symbol: 'C$', name: 'CAD' },
-  { code: 'AUD', symbol: 'A$', name: 'AUD' },
-  { code: 'JPY', symbol: '¥', name: 'Yen' },
-  { code: 'SGD', symbol: 'S$', name: 'SGD' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham' },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
 ];
 
 export const IntroCarousel: React.FC<IntroCarouselProps> = ({
@@ -56,6 +56,22 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
 
   const [step, setStep] = useState(0);
   const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
+
+  // Responsive Screen Mode
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Available wallets in DB
   const availableWallets = useMemo(() => {
@@ -83,11 +99,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
   // Privacy & Appearance
   const [privacyMask, setPrivacyMask] = useState(() => Boolean(db.settings?.hideAmounts));
 
-  // Passcode Lock
-  const [enablePasscode, setEnablePasscode] = useState(() => Boolean(db.settings?.enableSecurityLock));
+  // Reusable Passcode Drawer Integration
+  const [isPinDrawerOpen, setIsPinDrawerOpen] = useState(false);
+  const [enablePasscode, setEnablePasscode] = useState(() => Boolean(db.settings?.enableSecurityLock && db.settings?.securityPin));
   const [passcodePin, setPasscodePin] = useState(() => db.settings?.securityPin || '');
-  const [pinDraft, setPinDraft] = useState('');
-  const [isEditingPin, setIsEditingPin] = useState(false);
 
   // Advanced Features
   const [enableAI, setEnableAI] = useState(() => db.settings?.enableAIAssistant ?? true);
@@ -99,7 +114,22 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
   const totalSteps = 5;
   const sym = currencySymbol(selectedCurrency);
 
+  const totalOpeningBalance = useMemo(() => {
+    return Object.values(walletBalances).reduce((acc, curr) => acc + (parseFloat(curr) || 0), 0);
+  }, [walletBalances]);
+
+  const triggerHaptic = (style: ImpactStyle = ImpactStyle.Light) => {
+    try {
+      if (Capacitor.isPluginAvailable('Haptics')) {
+        Haptics.impact({ style });
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const handleSelectCurrency = (code: string) => {
+    triggerHaptic(ImpactStyle.Light);
     setSelectedCurrency(code);
     updateSettings({ currency: code });
     setShowAllCurrencies(false);
@@ -115,6 +145,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
   };
 
   const handleTogglePrivacy = () => {
+    triggerHaptic(ImpactStyle.Light);
     const nextVal = !privacyMask;
     setPrivacyMask(nextVal);
     updateSettings({ hideAmounts: nextVal });
@@ -126,6 +157,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
   };
 
   const handleThemeChange = (newMode: 'light' | 'dark') => {
+    triggerHaptic(ImpactStyle.Light);
     setMode(newMode);
     updateSettings({ colorMode: newMode });
     try {
@@ -138,43 +170,27 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
   };
 
   const handleTogglePasscode = () => {
-    const nextVal = !enablePasscode;
-    setEnablePasscode(nextVal);
-    if (!nextVal) {
+    triggerHaptic(ImpactStyle.Medium);
+    if (enablePasscode) {
+      setEnablePasscode(false);
       setPasscodePin('');
-      setPinDraft('');
-      setIsEditingPin(false);
       updateSettings({ enableSecurityLock: false, securityPin: '' });
     } else {
-      if (!passcodePin) {
-        setIsEditingPin(true);
-        setPinDraft('');
-      }
+      setIsPinDrawerOpen(true);
     }
   };
 
-  const handlePinKeyClick = (digit: string) => {
-    if (pinDraft.length < 4) {
-      const next = pinDraft + digit;
-      setPinDraft(next);
-      if (next.length === 4) {
-        setPasscodePin(next);
-        setIsEditingPin(false);
-        updateSettings({ enableSecurityLock: true, securityPin: next });
-      }
-    }
-  };
-
-  const handlePinBackspace = () => {
-    setPinDraft(prev => prev.slice(0, -1));
-  };
-
-  const handlePinClear = () => {
-    setPinDraft('');
+  const handleSavePinFromDrawer = (newPin: string) => {
+    setPasscodePin(newPin);
+    setEnablePasscode(true);
+    updateSettings({
+      enableSecurityLock: true,
+      securityPin: newPin,
+    });
   };
 
   const handleComplete = useCallback((action?: 'dashboard' | 'add-expense') => {
-    // Sync all wallet balances to database
+    triggerHaptic(ImpactStyle.Medium);
     availableWallets.forEach(w => {
       const num = parseFloat(walletBalances[w.id] || '0') || 0;
       updateWallet(w.id, {
@@ -225,6 +241,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
   ]);
 
   const handleNext = useCallback(() => {
+    triggerHaptic(ImpactStyle.Light);
     setStep(prev => {
       if (prev < totalSteps - 1) {
         setSlideDirection(1);
@@ -237,6 +254,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
   }, [totalSteps, handleComplete]);
 
   const handlePrev = useCallback(() => {
+    triggerHaptic(ImpactStyle.Light);
     setStep(prev => {
       if (prev > 0) {
         setSlideDirection(-1);
@@ -246,9 +264,9 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
     });
   }, []);
 
-  // Keyboard navigation
+  // Keyboard navigation for desktop
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isPinDrawerOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (showAllCurrencies) {
@@ -269,16 +287,16 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleNext, handlePrev, handleComplete, showAllCurrencies]);
+  }, [isOpen, isPinDrawerOpen, handleNext, handlePrev, handleComplete, showAllCurrencies]);
 
-  // Touch swipe support
+  // Touch swipe support for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (showAllCurrencies || isEditingPin) return;
+    if (showAllCurrencies || isPinDrawerOpen || isDesktop) return;
     touchStartXRef.current = e.touches[0].clientX;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartXRef.current === null || showAllCurrencies || isEditingPin) return;
+    if (touchStartXRef.current === null || showAllCurrencies || isPinDrawerOpen || isDesktop) return;
     const touchEndX = e.changedTouches[0].clientX;
     const diff = touchStartXRef.current - touchEndX;
 
@@ -302,464 +320,478 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
     c.country.toLowerCase().includes(currencySearch.toLowerCase())
   );
 
-  const configuredWallets = availableWallets.filter(w => (parseFloat(walletBalances[w.id] || '0') || 0) > 0);
+  const STEPS = [
+    {
+      id: 0,
+      title: 'Currency',
+      subtitle: 'Primary ledger unit',
+      icon: (
+        <span style={{ fontSize: '12px', fontWeight: 800 }}>
+          {selectedCurrency ? sym : '$'}
+        </span>
+      ),
+      badge: selectedCurrency,
+    },
+    {
+      id: 1,
+      title: 'Opening Balance',
+      subtitle: 'Starting wallet funds',
+      icon: <Wallet size={15} />,
+      badge: totalOpeningBalance > 0 ? `${sym}${totalOpeningBalance.toLocaleString()}` : '0',
+    },
+    {
+      id: 2,
+      title: 'Theme & Security',
+      subtitle: 'Appearance & privacy',
+      icon: mode === 'dark' ? <Moon size={15} /> : <Sun size={15} />,
+      badge: `${mode === 'dark' ? 'Dark' : 'Light'}${enablePasscode ? ' • PIN' : ''}`,
+    },
+    {
+      id: 3,
+      title: 'Productivity',
+      subtitle: 'AI, Bills & Splits',
+      icon: <Sparkles size={15} />,
+      badge: `${[enableAI, enableSubs, enableTrips].filter(Boolean).length}/3 On`,
+    },
+    {
+      id: 4,
+      title: 'Ready',
+      subtitle: 'Complete setup',
+      icon: <Check size={15} strokeWidth={2.5} />,
+      badge: 'All set!',
+    },
+  ];
 
-  return createPortal(
-    <div
-      className="intro-carousel-fullscreen"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        width: '100vw',
-        height: '100dvh',
-        background: 'var(--bg, #0a0a0c)',
-        color: 'var(--text, #ffffff)',
-        zIndex: 99999,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        boxSizing: 'border-box',
-        userSelect: 'none',
-      }}
-    >
-      {/* Top Header - Minimal counter and skip button */}
-      <header
-        style={{
-          padding: 'calc(16px + env(safe-area-inset-top, 0px)) 24px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          maxWidth: '520px',
-          width: '100%',
-          margin: '0 auto',
-          boxSizing: 'border-box',
-        }}
-      >
-        {/* Step Indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span
-            style={{
-              fontSize: '12px',
-              fontWeight: 700,
-              letterSpacing: '0.04em',
-              color: 'var(--text-3, #71717a)',
-              textTransform: 'uppercase',
-            }}
+  // Render Step Contents
+  const renderStepContent = () => {
+    switch (step) {
+      case 0:
+        return (
+          <motion.div
+            key="step-currency"
+            custom={slideDirection}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: isDesktop ? 24 : 18 }}
           >
-            Step {step + 1} of {totalSteps}
-          </span>
-        </div>
-
-        {/* Minimal text Skip button */}
-        <button
-          type="button"
-          onClick={() => handleComplete('dashboard')}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-3, #71717a)',
-            fontSize: '13.5px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            padding: '6px 10px',
-            borderRadius: 'var(--radius-full, 9999px)',
-            transition: 'color 0.15s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--text)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--text-3, #71717a)';
-          }}
-        >
-          Skip
-        </button>
-      </header>
-
-      {/* Main Content Area with Clean Transitions */}
-      <main
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          maxWidth: '520px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '0 24px',
-          boxSizing: 'border-box',
-          overflowY: 'auto',
-        }}
-      >
-        <AnimatePresence mode="wait" custom={slideDirection}>
-          {/* STEP 1: CURRENCY */}
-          {step === 0 && (
-            <motion.div
-              key="step-currency"
-              custom={slideDirection}
-              initial={{ opacity: 0, x: slideDirection > 0 ? 28 : -28 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: slideDirection > 0 ? -28 : 28 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
-            >
-              <div>
-                <h1
-                  style={{
-                    fontSize: '26px',
-                    fontWeight: 800,
-                    color: 'var(--text)',
-                    margin: '0 0 8px',
-                    letterSpacing: '-0.025em',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  Choose your currency
-                </h1>
-                <p
-                  style={{
-                    fontSize: '14px',
-                    lineHeight: 1.5,
-                    color: 'var(--text-2)',
-                    margin: 0,
-                  }}
-                >
-                  Select your primary currency. You can change this later in settings.
-                </p>
-              </div>
-
-              {/* Popular Currencies Grid */}
-              <div
+            <div style={{ textAlign: isDesktop ? 'left' : 'center', maxWidth: '640px' }}>
+              <h1
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 10,
+                  fontSize: isDesktop ? '28px' : '24px',
+                  fontWeight: 800,
+                  color: 'var(--text)',
+                  margin: '0 0 8px',
+                  letterSpacing: '-0.025em',
+                  lineHeight: 1.2,
                 }}
               >
-                {POPULAR_CURRENCIES.map((c) => {
-                  const isSelected = selectedCurrency === c.code;
+                Choose your primary currency
+              </h1>
+              <p
+                style={{
+                  fontSize: isDesktop ? '14.5px' : '13.5px',
+                  lineHeight: 1.5,
+                  color: 'var(--text-2)',
+                  margin: 0,
+                }}
+              >
+                All your accounts, reports, and analytics will use this as your default base currency.
+              </p>
+            </div>
+
+            {/* Popular Currencies Grid */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isDesktop ? 'repeat(3, 1fr)' : 'repeat(auto-fill, minmax(105px, 1fr))',
+                gap: isDesktop ? 14 : 10,
+                width: '100%',
+              }}
+            >
+              {POPULAR_CURRENCIES.map((c) => {
+                const isSelected = c.code === selectedCurrency;
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => handleSelectCurrency(c.code)}
+                    style={{
+                      padding: isDesktop ? '16px 18px' : '12px 10px',
+                      borderRadius: isDesktop ? 'var(--radius-xl, 20px)' : 'var(--radius-lg, 16px)',
+                      background: isSelected ? 'var(--text, #ffffff)' : 'var(--surface, #141416)',
+                      color: isSelected ? 'var(--bg, #0a0a0c)' : 'var(--text, #ffffff)',
+                      border: isSelected ? '2px solid var(--text, #ffffff)' : '1px solid var(--border)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: isDesktop ? 'flex-start' : 'center',
+                      justifyContent: 'center',
+                      gap: isDesktop ? 6 : 4,
+                      position: 'relative',
+                      boxShadow: isSelected ? '0 8px 24px rgba(0,0,0,0.12)' : 'var(--shadow)',
+                      transition: 'all 0.18s cubic-bezier(0.2, 0, 0, 1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.borderColor = 'var(--text-2)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.borderColor = 'var(--border)';
+                        e.currentTarget.style.transform = 'translateY(0px)';
+                      }
+                    }}
+                  >
+                    {isSelected && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: isDesktop ? 12 : 8,
+                          right: isDesktop ? 12 : 8,
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          background: 'var(--bg, #0a0a0c)',
+                          color: 'var(--text, #ffffff)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Check size={12} strokeWidth={3} />
+                      </div>
+                    )}
+                    <span style={{ fontSize: isDesktop ? '24px' : '20px', fontWeight: 800, lineHeight: 1.1 }}>
+                      {c.symbol}
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: isDesktop ? 'flex-start' : 'center' }}>
+                      <span style={{ fontSize: '13.5px', fontWeight: 800 }}>
+                        {c.code}
+                      </span>
+                      <span style={{ fontSize: '11px', fontWeight: 600, opacity: isSelected ? 0.85 : 0.6 }}>
+                        {c.name}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search All Currencies Button */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(ImpactStyle.Light);
+                setShowAllCurrencies(true);
+              }}
+              style={{
+                padding: '14px 20px',
+                borderRadius: 'var(--radius-xl, 20px)',
+                background: 'var(--surface, #141416)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-2)',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                transition: 'all 0.15s ease',
+                width: '100%',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--text-2)';
+                e.currentTarget.style.color = 'var(--text)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.color = 'var(--text-2)';
+              }}
+            >
+              <Search size={16} />
+              <span>Search all world currencies ({CURRENCIES.length})</span>
+            </button>
+          </motion.div>
+        );
+
+      case 1:
+        return (
+          <motion.div
+            key="step-balance"
+            custom={slideDirection}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: isDesktop ? 24 : 18 }}
+          >
+            <div style={{ textAlign: isDesktop ? 'left' : 'center', maxWidth: '640px' }}>
+              <h1
+                style={{
+                  fontSize: isDesktop ? '28px' : '24px',
+                  fontWeight: 800,
+                  color: 'var(--text)',
+                  margin: '0 0 8px',
+                  letterSpacing: '-0.025em',
+                  lineHeight: 1.2,
+                }}
+              >
+                Set your initial wallet balances
+              </h1>
+              <p
+                style={{
+                  fontSize: isDesktop ? '14.5px' : '13.5px',
+                  lineHeight: 1.5,
+                  color: 'var(--text-2)',
+                  margin: 0,
+                }}
+              >
+                Select an account below to enter its starting balance or add quick amounts.
+              </p>
+            </div>
+
+            {/* Wallet Selection & Balance Box */}
+            <div
+              style={{
+                background: 'var(--surface, #141416)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-xl, 24px)',
+                padding: isDesktop ? '32px 28px 28px' : '24px 18px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 20,
+                width: '100%',
+                boxSizing: 'border-box',
+                boxShadow: 'var(--shadow-lg)',
+              }}
+            >
+              {/* Horizontal Centered Amount Row */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  width: '100%',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: isDesktop ? '44px' : '36px',
+                    fontWeight: 800,
+                    color: 'var(--text-2)',
+                    marginRight: 6,
+                    lineHeight: 1,
+                  }}
+                >
+                  {sym}
+                </span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={walletBalances[selectedWalletId] || ''}
+                  onChange={(e) => handleSetWalletBalance(selectedWalletId, e.target.value)}
+                  style={{
+                    fontSize: isDesktop ? '56px' : '44px',
+                    fontWeight: 800,
+                    color: 'var(--text)',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    width: isDesktop ? '240px' : '180px',
+                    maxWidth: '70%',
+                    textAlign: 'left',
+                    padding: 0,
+                    letterSpacing: '-0.03em',
+                  }}
+                  autoFocus={!isDesktop}
+                />
+              </div>
+
+              {/* Wallet Selector Pills */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  flexWrap: 'wrap',
+                  width: '100%',
+                }}
+              >
+                {availableWallets.map((w) => {
+                  const isSelected = w.id === selectedWalletId;
+                  const val = parseFloat(walletBalances[w.id] || '0') || 0;
                   return (
                     <button
-                      key={c.code}
+                      key={w.id}
                       type="button"
-                      onClick={() => handleSelectCurrency(c.code)}
+                      onClick={() => {
+                        triggerHaptic(ImpactStyle.Light);
+                        setSelectedWalletId(w.id);
+                      }}
                       style={{
-                        padding: '12px 10px',
-                        borderRadius: 'var(--radius-lg, 16px)',
-                        background: isSelected ? 'var(--text, #ffffff)' : 'var(--surface, #141416)',
-                        color: isSelected ? 'var(--bg, #0a0a0c)' : 'var(--text, #ffffff)',
-                        border: isSelected ? '1px solid transparent' : '1px solid var(--border, rgba(255,255,255,0.08))',
+                        padding: '10px 18px',
+                        borderRadius: 'var(--radius-full, 9999px)',
+                        background: isSelected ? 'var(--text, #ffffff)' : 'var(--surface2, rgba(255,255,255,0.06))',
+                        color: isSelected ? 'var(--bg, #0a0a0c)' : 'var(--text)',
+                        border: isSelected ? '1px solid transparent' : '1px solid var(--border)',
+                        fontSize: '13px',
+                        fontWeight: 750,
                         cursor: 'pointer',
                         display: 'flex',
-                        flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 3,
+                        gap: 10,
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      <span style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1.2 }}>
-                        {c.symbol}
-                      </span>
-                      <span style={{ fontSize: '12px', fontWeight: 650, opacity: isSelected ? 0.9 : 0.7 }}>
-                        {c.code}
-                      </span>
+                      <div
+                        style={{
+                          width: 22,
+                          height: 22,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {renderWalletIcon(w.icon || w.name, 22, isSelected ? 'var(--bg)' : (w.color || 'var(--text)'))}
+                      </div>
+                      <span>{w.name}</span>
+                      {val > 0 && (
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            opacity: isSelected ? 0.9 : 0.7,
+                            marginLeft: 2,
+                          }}
+                        >
+                          • {sym}{val.toLocaleString()}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
+            </div>
 
-              {/* Show All Currencies Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrencySearch('');
-                  setShowAllCurrencies(true);
-                }}
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: 'var(--radius-lg, 16px)',
-                  background: 'var(--surface, #141416)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-2)',
-                  fontSize: '13px',
-                  fontWeight: 650,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                }}
-              >
-                <Search size={14} />
-                <span>Search all currencies ({CURRENCIES.length})</span>
-              </button>
-            </motion.div>
-          )}
-
-          {/* STEP 2: OPENING BALANCE & WALLETS */}
-          {step === 1 && (
-            <motion.div
-              key="step-balance"
-              custom={slideDirection}
-              initial={{ opacity: 0, x: slideDirection > 0 ? 28 : -28 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: slideDirection > 0 ? -28 : 28 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
-            >
-              <div>
-                <h1
-                  style={{
-                    fontSize: '26px',
-                    fontWeight: 800,
-                    color: 'var(--text)',
-                    margin: '0 0 8px',
-                    letterSpacing: '-0.025em',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  Opening balance
-                </h1>
-                <p
-                  style={{
-                    fontSize: '14px',
-                    lineHeight: 1.5,
-                    color: 'var(--text-2)',
-                    margin: 0,
-                  }}
-                >
-                  Set your starting balance for cash or bank accounts, or start from 0.
-                </p>
-              </div>
-
-              {/* Big Centered Balance Input Card */}
-              <div
-                style={{
-                  background: 'var(--surface, #141416)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-xl, 24px)',
-                  padding: '24px 20px 20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 16,
-                  width: '100%',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {/* Horizontal Centered Amount Row */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '100%',
-                    textAlign: 'center',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '34px',
-                      fontWeight: 800,
-                      color: 'var(--text-2)',
-                      marginRight: 4,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {sym}
-                  </span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={walletBalances[selectedWalletId] || ''}
-                    onChange={(e) => handleSetWalletBalance(selectedWalletId, e.target.value)}
-                    style={{
-                      fontSize: '44px',
-                      fontWeight: 800,
-                      color: 'var(--text)',
-                      background: 'transparent',
-                      border: 'none',
-                      outline: 'none',
-                      width: '160px',
-                      maxWidth: '60%',
-                      textAlign: 'left',
-                      padding: 0,
-                      letterSpacing: '-0.03em',
-                      lineHeight: 1,
-                    }}
-                  />
-                </div>
-
-                {/* Target Wallet Selection Chips */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    flexWrap: 'wrap',
-                    width: '100%',
-                  }}
-                >
-                  {availableWallets.map((w) => {
-                    const isSelected = selectedWalletId === w.id;
-                    const val = parseFloat(walletBalances[w.id] || '0') || 0;
-                    return (
-                      <button
-                        key={w.id}
-                        type="button"
-                        onClick={() => setSelectedWalletId(w.id)}
-                        style={{
-                          padding: '8px 14px',
-                          borderRadius: 'var(--radius-full, 9999px)',
-                          background: isSelected ? 'var(--text, #ffffff)' : 'var(--surface2, rgba(255,255,255,0.06))',
-                          color: isSelected ? 'var(--bg, #0a0a0c)' : 'var(--text)',
-                          border: isSelected ? '1px solid transparent' : '1px solid var(--border)',
-                          fontSize: '12.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 20,
-                            height: 20,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {renderWalletIcon(w.icon || w.name, 20, isSelected ? 'var(--bg)' : (w.color || 'var(--text)'))}
-                        </div>
-                        <span>{w.name}</span>
-                        {val > 0 && (
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 750,
-                              opacity: isSelected ? 0.9 : 0.7,
-                              marginLeft: 2,
-                            }}
-                          >
-                            • {sym}{val}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Quick Preset Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-                {[100, 500, 1000, 5000].map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => {
-                      const cur = parseFloat(walletBalances[selectedWalletId] || '0') || 0;
-                      const nextVal = String(cur + amt);
-                      handleSetWalletBalance(selectedWalletId, nextVal);
-                    }}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: 'var(--radius-full, 9999px)',
-                      background: 'var(--surface, #141416)',
-                      border: '1px solid var(--border)',
-                      color: 'var(--text-2)',
-                      fontSize: '12.5px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      transition: 'all 0.12s ease',
-                    }}
-                  >
-                    <Plus size={13} strokeWidth={2.5} />
-                    <span>{sym}{amt}</span>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 3: APPEARANCE & SECURITY */}
-          {step === 2 && (
-            <motion.div
-              key="step-theme"
-              custom={slideDirection}
-              initial={{ opacity: 0, x: slideDirection > 0 ? 28 : -28 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: slideDirection > 0 ? -28 : 28 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
-            >
-              <div>
-                <h1
-                  style={{
-                    fontSize: '26px',
-                    fontWeight: 800,
-                    color: 'var(--text)',
-                    margin: '0 0 6px',
-                    letterSpacing: '-0.025em',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  Appearance & privacy
-                </h1>
-                <p
-                  style={{
-                    fontSize: '14px',
-                    lineHeight: 1.5,
-                    color: 'var(--text-2)',
-                    margin: 0,
-                  }}
-                >
-                  Choose your theme and optional passcode protection.
-                </p>
-              </div>
-
-              {/* Minimal Theme Toggle Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {/* Dark Theme Button */}
+            {/* Quick Preset Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {[100, 500, 1000, 5000].map((amt) => (
                 <button
+                  key={amt}
                   type="button"
-                  onClick={() => handleThemeChange('dark')}
+                  onClick={() => {
+                    triggerHaptic(ImpactStyle.Light);
+                    const currentVal = parseFloat(walletBalances[selectedWalletId] || '0') || 0;
+                    const nextVal = String(currentVal + amt);
+                    handleSetWalletBalance(selectedWalletId, nextVal);
+                  }}
                   style={{
-                    padding: '16px 14px',
-                    borderRadius: 'var(--radius-xl, 18px)',
-                    background: '#121214',
-                    color: '#ffffff',
-                    border: mode === 'dark' ? '2px solid var(--text, #ffffff)' : '1px solid rgba(255,255,255,0.12)',
+                    padding: '10px 16px',
+                    borderRadius: 'var(--radius-full, 9999px)',
+                    background: 'var(--surface, #141416)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    fontSize: '13px',
+                    fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
-                    flexDirection: 'column',
                     alignItems: 'center',
-                    gap: 8,
-                    position: 'relative',
+                    gap: 6,
                     transition: 'all 0.15s ease',
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--text-2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border)';
+                  }}
                 >
+                  <Plus size={14} strokeWidth={2.5} />
+                  <span>{sym}{amt.toLocaleString()}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        );
+
+      case 2:
+        return (
+          <motion.div
+            key="step-theme"
+            custom={slideDirection}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: isDesktop ? 22 : 16 }}
+          >
+            <div style={{ textAlign: isDesktop ? 'left' : 'center', maxWidth: '640px' }}>
+              <h1
+                style={{
+                  fontSize: isDesktop ? '28px' : '24px',
+                  fontWeight: 800,
+                  color: 'var(--text)',
+                  margin: '0 0 8px',
+                  letterSpacing: '-0.025em',
+                  lineHeight: 1.2,
+                }}
+              >
+                Appearance & security
+              </h1>
+              <p
+                style={{
+                  fontSize: isDesktop ? '14.5px' : '13.5px',
+                  lineHeight: 1.5,
+                  color: 'var(--text-2)',
+                  margin: 0,
+                }}
+              >
+                Personalize the color theme and protect your financial privacy.
+              </p>
+            </div>
+
+            {/* Rich Visual Theme Toggle Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+              {/* Dark Theme Card */}
+              <button
+                type="button"
+                onClick={() => handleThemeChange('dark')}
+                style={{
+                  padding: '20px 18px',
+                  borderRadius: 'var(--radius-xl, 22px)',
+                  background: '#121214',
+                  color: '#ffffff',
+                  border: mode === 'dark' ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.12)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                  position: 'relative',
+                  textAlign: 'left',
+                  boxShadow: mode === 'dark' ? '0 12px 32px rgba(0,0,0,0.5)' : 'none',
+                  transition: 'all 0.18s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Moon size={22} strokeWidth={2.4} color="#ffffff" />
+                  </div>
                   {mode === 'dark' && (
                     <div
                       style={{
-                        position: 'absolute',
-                        top: 8,
-                        right: 8,
-                        width: 18,
-                        height: 18,
-                        borderRadius: 9,
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
                         background: '#ffffff',
                         color: '#000000',
                         display: 'flex',
@@ -767,43 +799,46 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                         justifyContent: 'center',
                       }}
                     >
-                      <Check size={12} strokeWidth={3} />
+                      <Check size={14} strokeWidth={3} />
                     </div>
                   )}
-                  <Moon size={22} strokeWidth={2.4} />
-                  <span style={{ fontSize: '13.5px', fontWeight: 750 }}>
-                    Dark
-                  </span>
-                </button>
+                </div>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>Dark Atmosphere</div>
+                  <div style={{ fontSize: '12px', color: '#a1a1aa', marginTop: 2 }}>High-contrast dark canvas</div>
+                </div>
+              </button>
 
-                {/* Light Theme Button */}
-                <button
-                  type="button"
-                  onClick={() => handleThemeChange('light')}
-                  style={{
-                    padding: '16px 14px',
-                    borderRadius: 'var(--radius-xl, 18px)',
-                    background: '#f4f4f6',
-                    color: '#171717',
-                    border: mode === 'light' ? '2px solid var(--text, #171717)' : '1px solid rgba(0,0,0,0.1)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 8,
-                    position: 'relative',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
+              {/* Light Theme Card */}
+              <button
+                type="button"
+                onClick={() => handleThemeChange('light')}
+                style={{
+                  padding: '20px 18px',
+                  borderRadius: 'var(--radius-xl, 22px)',
+                  background: '#ffffff',
+                  color: '#171717',
+                  border: mode === 'light' ? '2px solid #171717' : '1px solid #e5e7eb',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                  position: 'relative',
+                  textAlign: 'left',
+                  boxShadow: mode === 'light' ? '0 12px 32px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.18s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f4f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Sun size={22} strokeWidth={2.4} color="#171717" />
+                  </div>
                   {mode === 'light' && (
                     <div
                       style={{
-                        position: 'absolute',
-                        top: 8,
-                        right: 8,
-                        width: 18,
-                        height: 18,
-                        borderRadius: 9,
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
                         background: '#171717',
                         color: '#ffffff',
                         display: 'flex',
@@ -811,23 +846,26 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                         justifyContent: 'center',
                       }}
                     >
-                      <Check size={12} strokeWidth={3} />
+                      <Check size={14} strokeWidth={3} />
                     </div>
                   )}
-                  <Sun size={22} strokeWidth={2.4} />
-                  <span style={{ fontSize: '13.5px', fontWeight: 750 }}>
-                    Light
-                  </span>
-                </button>
-              </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#171717' }}>Light Atmosphere</div>
+                  <div style={{ fontSize: '12px', color: '#71717a', marginTop: 2 }}>Clean high-contrast light layout</div>
+                </div>
+              </button>
+            </div>
 
+            {/* Privacy & Passcode Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
               {/* Privacy Mask Toggle Card */}
               <button
                 type="button"
                 onClick={handleTogglePrivacy}
                 style={{
-                  padding: '14px 16px',
-                  borderRadius: 'var(--radius-lg, 16px)',
+                  padding: '16px 18px',
+                  borderRadius: 'var(--radius-xl, 20px)',
                   background: 'var(--surface, #141416)',
                   border: '1px solid var(--border)',
                   color: 'var(--text)',
@@ -836,38 +874,40 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   textAlign: 'left',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 'var(--radius-md, 10px)',
+                      width: 40,
+                      height: 40,
+                      borderRadius: 'var(--radius-md, 12px)',
                       background: 'var(--surface2, rgba(255,255,255,0.06))',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: 'var(--text)',
+                      flexShrink: 0,
                     }}
                   >
-                    {privacyMask ? <EyeOff size={17} /> : <Eye size={17} />}
+                    {privacyMask ? <EyeOff size={18} /> : <Eye size={18} />}
                   </div>
                   <div>
-                    <div style={{ fontSize: '13.5px', fontWeight: 750, color: 'var(--text)' }}>
-                      Mask Financial Amounts
+                    <div style={{ fontSize: '14px', fontWeight: 750, color: 'var(--text)' }}>
+                      Mask Amounts
                     </div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-3)' }}>
-                      {privacyMask ? 'Amounts hidden in public spaces' : 'Amounts shown openly'}
+                    <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                      {privacyMask ? 'Balances hidden by default' : 'Balances visible openly'}
                     </div>
                   </div>
                 </div>
 
                 <div
                   style={{
-                    width: 40,
-                    height: 24,
-                    borderRadius: 12,
+                    width: 42,
+                    height: 25,
+                    borderRadius: 13,
                     background: privacyMask ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
                     padding: 2,
                     boxSizing: 'border-box',
@@ -875,13 +915,14 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                     alignItems: 'center',
                     justifyContent: privacyMask ? 'flex-end' : 'flex-start',
                     transition: 'all 0.2s ease',
+                    flexShrink: 0,
                   }}
                 >
                   <div
                     style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: 10,
+                      width: 21,
+                      height: 21,
+                      borderRadius: 11,
                       background: privacyMask ? 'var(--bg)' : 'var(--text-3)',
                     }}
                   />
@@ -891,40 +932,42 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
               {/* Passcode Lock Toggle Card */}
               <div
                 style={{
-                  padding: '14px 16px',
-                  borderRadius: 'var(--radius-lg, 16px)',
+                  padding: '16px 18px',
+                  borderRadius: 'var(--radius-xl, 20px)',
                   background: 'var(--surface, #141416)',
                   border: '1px solid var(--border)',
                   color: 'var(--text)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 12,
+                  justifyContent: 'center',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                     <div
                       style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 'var(--radius-md, 10px)',
+                        width: 40,
+                        height: 40,
+                        borderRadius: 'var(--radius-md, 12px)',
                         background: 'var(--surface2, rgba(255,255,255,0.06))',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: 'var(--text)',
+                        flexShrink: 0,
                       }}
                     >
-                      <Lock size={17} />
+                      <Lock size={18} />
                     </div>
                     <div>
-                      <div style={{ fontSize: '13.5px', fontWeight: 750, color: 'var(--text)' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 750, color: 'var(--text)' }}>
                         App Passcode Lock
                       </div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-3)' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
                         {enablePasscode && passcodePin.length === 4
                           ? 'Protected with 4-digit PIN'
-                          : 'Lock app with secret passcode'}
+                          : 'Require 4-digit PIN code'}
                       </div>
                     </div>
                   </div>
@@ -933,59 +976,56 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                     type="button"
                     onClick={handleTogglePasscode}
                     style={{
-                      width: 40,
-                      height: 24,
-                      borderRadius: 12,
-                      background: enablePasscode ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
+                      width: 42,
+                      height: 25,
+                      borderRadius: 13,
+                      background: enablePasscode && passcodePin.length === 4 ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
                       padding: 2,
                       border: 'none',
                       cursor: 'pointer',
                       boxSizing: 'border-box',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: enablePasscode ? 'flex-end' : 'flex-start',
+                      justifyContent: enablePasscode && passcodePin.length === 4 ? 'flex-end' : 'flex-start',
                       transition: 'all 0.2s ease',
+                      flexShrink: 0,
                     }}
                   >
                     <div
                       style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 10,
-                        background: enablePasscode ? 'var(--bg)' : 'var(--text-3)',
+                        width: 21,
+                        height: 21,
+                        borderRadius: 11,
+                        background: enablePasscode && passcodePin.length === 4 ? 'var(--bg)' : 'var(--text-3)',
                       }}
                     />
                   </button>
                 </div>
 
-                {/* If Passcode Enabled & Configured */}
-                {enablePasscode && !isEditingPin && passcodePin.length === 4 && (
+                {enablePasscode && passcodePin.length === 4 && (
                   <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      paddingTop: 8,
+                      paddingTop: 10,
                       borderTop: '1px solid var(--border)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--credit, #34d399)' }}>
                       <Check size={15} strokeWidth={2.5} />
-                      <span style={{ fontSize: '12px', fontWeight: 700 }}>Passcode Active (••••)</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700 }}>Passcode Active</span>
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        setPinDraft('');
-                        setIsEditingPin(true);
-                      }}
+                      onClick={() => setIsPinDrawerOpen(true)}
                       style={{
                         background: 'var(--surface2)',
                         border: '1px solid var(--border)',
                         color: 'var(--text)',
                         fontSize: '11.5px',
-                        fontWeight: 650,
-                        padding: '4px 10px',
+                        fontWeight: 700,
+                        padding: '4px 12px',
                         borderRadius: 'var(--radius-full, 9999px)',
                         cursor: 'pointer',
                       }}
@@ -994,616 +1034,924 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          </motion.div>
+        );
 
-                {/* Interactive Keypad to enter 4-digit PIN */}
-                {enablePasscode && (isEditingPin || passcodePin.length !== 4) && (
+      case 3:
+        return (
+          <motion.div
+            key="step-advanced"
+            custom={slideDirection}
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: isDesktop ? 22 : 16 }}
+          >
+            <div style={{ textAlign: isDesktop ? 'left' : 'center', maxWidth: '640px' }}>
+              <h1
+                style={{
+                  fontSize: isDesktop ? '28px' : '24px',
+                  fontWeight: 800,
+                  color: 'var(--text)',
+                  margin: '0 0 8px',
+                  letterSpacing: '-0.025em',
+                  lineHeight: 1.2,
+                }}
+              >
+                Configure productivity modules
+              </h1>
+              <p
+                style={{
+                  fontSize: isDesktop ? '14.5px' : '13.5px',
+                  lineHeight: 1.5,
+                  color: 'var(--text-2)',
+                  margin: 0,
+                }}
+              >
+                Enable smart assistant features, recurring bill tracking, and group split tools.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
+              {/* 1. AI Assistant */}
+              <div
+                style={{
+                  padding: '18px 20px',
+                  borderRadius: 'var(--radius-xl, 20px)',
+                  background: 'var(--surface, #141416)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div
                     style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 'var(--radius-md, 12px)',
+                      background: 'var(--surface2, rgba(255,255,255,0.06))',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: 12,
-                      paddingTop: 8,
-                      borderTop: '1px solid var(--border)',
+                      justifyContent: 'center',
+                      color: 'var(--text)',
                     }}
                   >
-                    <div style={{ fontSize: '12px', color: 'var(--text-2)', fontWeight: 650 }}>
-                      Enter 4-Digit Passcode
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14.5px', fontWeight: 750, color: 'var(--text)' }}>
+                      AI Assistant (Max)
                     </div>
-
-                    {/* 4 Digit Slots */}
-                    <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>
-                      {[0, 1, 2, 3].map((idx) => {
-                        const isFilled = idx < pinDraft.length;
-                        return (
-                          <div
-                            key={idx}
-                            style={{
-                              width: 14,
-                              height: 14,
-                              borderRadius: 7,
-                              background: isFilled ? 'var(--text)' : 'transparent',
-                              border: isFilled ? '2px solid var(--text)' : '2px solid var(--text-3)',
-                              transition: 'all 0.15s ease',
-                            }}
-                          />
-                        );
-                      })}
+                    <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                      Voice & smart trigger
                     </div>
+                  </div>
+                </div>
 
-                    {/* Compact Number Pad */}
-                    <div
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(ImpactStyle.Light);
+                    const next = !enableAI;
+                    setEnableAI(next);
+                    updateSettings({ enableAIAssistant: next });
+                  }}
+                  style={{
+                    width: 42,
+                    height: 25,
+                    borderRadius: 13,
+                    background: enableAI ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
+                    padding: 2,
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: enableAI ? 'flex-end' : 'flex-start',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 21,
+                      height: 21,
+                      borderRadius: 11,
+                      background: enableAI ? 'var(--bg)' : 'var(--text-3)',
+                    }}
+                  />
+                </button>
+              </div>
+
+              {/* 2. Subscriptions */}
+              <div
+                style={{
+                  padding: '18px 20px',
+                  borderRadius: 'var(--radius-xl, 20px)',
+                  background: 'var(--surface, #141416)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 'var(--radius-md, 12px)',
+                      background: 'var(--surface2, rgba(255,255,255,0.06))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    <RefreshCw size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14.5px', fontWeight: 750, color: 'var(--text)' }}>
+                      Subscriptions & Bills
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                      Recurring bill reminders
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(ImpactStyle.Light);
+                    const next = !enableSubs;
+                    setEnableSubs(next);
+                    updateSettings({ enableAutopay: next });
+                  }}
+                  style={{
+                    width: 42,
+                    height: 25,
+                    borderRadius: 13,
+                    background: enableSubs ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
+                    padding: 2,
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: enableSubs ? 'flex-end' : 'flex-start',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 21,
+                      height: 21,
+                      borderRadius: 11,
+                      background: enableSubs ? 'var(--bg)' : 'var(--text-3)',
+                    }}
+                  />
+                </button>
+              </div>
+
+              {/* 3. Trips & Splits */}
+              <div
+                style={{
+                  padding: '18px 20px',
+                  borderRadius: 'var(--radius-xl, 20px)',
+                  background: 'var(--surface, #141416)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 'var(--radius-md, 12px)',
+                      background: 'var(--surface2, rgba(255,255,255,0.06))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    <Plane size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14.5px', fontWeight: 750, color: 'var(--text)' }}>
+                      Trips & Group Splits
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                      Travel ledgers & settlements
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(ImpactStyle.Light);
+                    const next = !enableTrips;
+                    setEnableTrips(next);
+                    updateSettings({ enableSplitTrips: next });
+                  }}
+                  style={{
+                    width: 42,
+                    height: 25,
+                    borderRadius: 13,
+                    background: enableTrips ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
+                    padding: 2,
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: enableTrips ? 'flex-end' : 'flex-start',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 21,
+                      height: 21,
+                      borderRadius: 11,
+                      background: enableTrips ? 'var(--bg)' : 'var(--text-3)',
+                    }}
+                  />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        );
+
+      case 4:
+        return (
+          <motion.div
+            key="step-ready"
+            custom={slideDirection}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: isDesktop ? 'flex-start' : 'center',
+              justifyContent: 'center',
+              textAlign: isDesktop ? 'left' : 'center',
+              padding: isDesktop ? '16px 0' : '24px 0',
+              maxWidth: '580px',
+            }}
+          >
+            {/* Minimal Circle Icon */}
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 'var(--radius-full, 9999px)',
+                background: 'var(--surface2, rgba(255,255,255,0.08))',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text)',
+                marginBottom: 20,
+                boxShadow: 'var(--shadow-lg)',
+              }}
+            >
+              <Check size={30} strokeWidth={2.5} />
+            </div>
+
+            <h1
+              style={{
+                fontSize: isDesktop ? '32px' : '26px',
+                fontWeight: 800,
+                color: 'var(--text)',
+                margin: '0 0 8px',
+                letterSpacing: '-0.025em',
+                lineHeight: 1.2,
+              }}
+            >
+              You're all set
+            </h1>
+
+            <p
+              style={{
+                fontSize: '14.5px',
+                lineHeight: 1.5,
+                color: 'var(--text-2)',
+                margin: '0 0 24px',
+              }}
+            >
+              Your personal ledger workspace is initialized with your preferences.
+            </p>
+
+            {/* Config Summary Pills */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                flexWrap: 'wrap',
+                marginBottom: 32,
+                justifyContent: isDesktop ? 'flex-start' : 'center',
+              }}
+            >
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: 'var(--radius-full)', fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>
+                Currency: {selectedCurrency} ({sym})
+              </div>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: 'var(--radius-full)', fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>
+                Theme: {mode === 'dark' ? 'Dark' : 'Light'}
+              </div>
+              {totalOpeningBalance > 0 && (
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: 'var(--radius-full)', fontSize: '12.5px', fontWeight: 700, color: 'var(--credit)' }}>
+                  Opening: {sym}{totalOpeningBalance.toLocaleString()}
+                </div>
+              )}
+            </div>
+
+            {/* Direct Open Button */}
+            <button
+              type="button"
+              onClick={() => handleComplete('dashboard')}
+              style={{
+                width: isDesktop ? 'auto' : '100%',
+                maxWidth: '320px',
+                padding: '16px 32px',
+                borderRadius: 'var(--radius-full, 9999px)',
+                background: 'var(--text, #ffffff)',
+                color: 'var(--bg, #0a0a0c)',
+                border: 'none',
+                fontSize: '15px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                transition: 'all 0.18s ease',
+              }}
+            >
+              <span>Open Dashboard</span>
+              <ArrowRight size={18} strokeWidth={2.5} />
+            </button>
+          </motion.div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return createPortal(
+    <div
+      className="intro-carousel-portal"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        width: '100vw',
+        height: '100dvh',
+        background: isDesktop ? 'rgba(0, 0, 0, 0.75)' : 'var(--bg, #0a0a0c)',
+        backdropFilter: isDesktop ? 'blur(12px)' : 'none',
+        color: 'var(--text, #ffffff)',
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        userSelect: 'none',
+        padding: isDesktop ? '24px' : 0,
+      }}
+    >
+      {/* 💻 DESKTOP SUITE CONTAINER */}
+      {isDesktop ? (
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '1040px',
+            height: '100%',
+            maxHeight: '680px',
+            background: 'var(--bg, #0a0a0c)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-2xl, 28px)',
+            boxShadow: 'var(--shadow-lg), 0 24px 60px rgba(0,0,0,0.5)',
+            display: 'grid',
+            gridTemplateColumns: '280px 1fr',
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
+          {/* Left Desktop Sidebar Timeline */}
+          <aside
+            style={{
+              background: 'var(--surface, #141416)',
+              borderRight: '1px solid var(--border)',
+              padding: '28px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div>
+              {/* App Brand Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+                <div
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+                    background: 'var(--text)',
+                    color: 'var(--bg)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 900,
+                    fontSize: '18px',
+                    letterSpacing: '-0.03em',
+                  }}
+                >
+                  ¥
+                </div>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+                    Okane Setup
+                  </div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Workspace Studio
+                  </div>
+                </div>
+              </div>
+
+              {/* Interactive Timeline List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {STEPS.map((s, idx) => {
+                  const isActive = idx === step;
+                  const isCompleted = idx < step;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(ImpactStyle.Light);
+                        setSlideDirection(idx > step ? 1 : -1);
+                        setStep(idx);
+                      }}
                       style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: 8,
-                        width: '100%',
-                        maxWidth: '220px',
-                        marginTop: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-md, 12px)',
+                        background: isActive
+                          ? 'var(--text, #ffffff)'
+                          : isCompleted
+                          ? 'var(--surface2, rgba(255,255,255,0.04))'
+                          : 'transparent',
+                        color: isActive ? 'var(--bg, #0a0a0c)' : 'var(--text)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.15s ease',
                       }}
                     >
-                      {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
-                        <button
-                          key={num}
-                          type="button"
-                          onClick={() => handlePinKeyClick(num)}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div
                           style={{
-                            height: 38,
-                            borderRadius: 'var(--radius-md, 10px)',
-                            background: 'var(--surface2, rgba(255,255,255,0.06))',
-                            border: '1px solid var(--border)',
-                            color: 'var(--text)',
-                            fontSize: '15px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            background: isActive
+                              ? 'var(--bg, #0a0a0c)'
+                              : isCompleted
+                              ? 'var(--credit-bg, rgba(52,211,153,0.15))'
+                              : 'var(--surface2, rgba(255,255,255,0.06))',
+                            color: isActive
+                              ? 'var(--text, #ffffff)'
+                              : isCompleted
+                              ? 'var(--credit, #34d399)'
+                              : 'var(--text-3)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}
                         >
-                          {num}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={handlePinClear}
-                        style={{
-                          height: 38,
-                          borderRadius: 'var(--radius-md, 10px)',
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--text-3)',
-                          fontSize: '11px',
-                          fontWeight: 650,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Clear
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handlePinKeyClick('0')}
-                        style={{
-                          height: 38,
-                          borderRadius: 'var(--radius-md, 10px)',
-                          background: 'var(--surface2, rgba(255,255,255,0.06))',
-                          border: '1px solid var(--border)',
-                          color: 'var(--text)',
-                          fontSize: '15px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        0
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handlePinBackspace}
-                        style={{
-                          height: 38,
-                          borderRadius: 'var(--radius-md, 10px)',
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--text-3)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Delete size={16} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 4: ADVANCED FEATURES */}
-          {step === 3 && (
-            <motion.div
-              key="step-advanced"
-              custom={slideDirection}
-              initial={{ opacity: 0, x: slideDirection > 0 ? 28 : -28 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: slideDirection > 0 ? -28 : 28 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
-            >
-              <div>
-                <h1
-                  style={{
-                    fontSize: '26px',
-                    fontWeight: 800,
-                    color: 'var(--text)',
-                    margin: '0 0 6px',
-                    letterSpacing: '-0.025em',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  Advanced features
-                </h1>
-                <p
-                  style={{
-                    fontSize: '14px',
-                    lineHeight: 1.5,
-                    color: 'var(--text-2)',
-                    margin: 0,
-                  }}
-                >
-                  Enable or customize additional tools & utilities.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {/* 1. AI Assistant (Max) */}
-                <div
-                  style={{
-                    padding: '14px 16px',
-                    borderRadius: 'var(--radius-lg, 16px)',
-                    background: 'var(--surface, #141416)',
-                    border: '1px solid var(--border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 'var(--radius-md, 10px)',
-                        background: 'var(--surface2, rgba(255,255,255,0.06))',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--text)',
-                      }}
-                    >
-                      <Sparkles size={17} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13.5px', fontWeight: 750, color: 'var(--text)' }}>
-                        AI Assistant (Max)
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-3)' }}>
-                        Voice & floating trigger
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !enableAI;
-                      setEnableAI(next);
-                      updateSettings({ enableAIAssistant: next });
-                    }}
-                    style={{
-                      width: 40,
-                      height: 24,
-                      borderRadius: 12,
-                      background: enableAI ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
-                      padding: 2,
-                      border: 'none',
-                      cursor: 'pointer',
-                      boxSizing: 'border-box',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: enableAI ? 'flex-end' : 'flex-start',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 10,
-                        background: enableAI ? 'var(--bg)' : 'var(--text-3)',
-                      }}
-                    />
-                  </button>
-                </div>
-
-                {/* 2. Subscriptions */}
-                <div
-                  style={{
-                    padding: '14px 16px',
-                    borderRadius: 'var(--radius-lg, 16px)',
-                    background: 'var(--surface, #141416)',
-                    border: '1px solid var(--border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 'var(--radius-md, 10px)',
-                        background: 'var(--surface2, rgba(255,255,255,0.06))',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--text)',
-                      }}
-                    >
-                      <RefreshCw size={17} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13.5px', fontWeight: 750, color: 'var(--text)' }}>
-                        Subscriptions
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-3)' }}>
-                        Recurring bills & logs
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !enableSubs;
-                      setEnableSubs(next);
-                      updateSettings({ enableAutopay: next });
-                    }}
-                    style={{
-                      width: 40,
-                      height: 24,
-                      borderRadius: 12,
-                      background: enableSubs ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
-                      padding: 2,
-                      border: 'none',
-                      cursor: 'pointer',
-                      boxSizing: 'border-box',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: enableSubs ? 'flex-end' : 'flex-start',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 10,
-                        background: enableSubs ? 'var(--bg)' : 'var(--text-3)',
-                      }}
-                    />
-                  </button>
-                </div>
-
-                {/* 3. Trips & Splits */}
-                <div
-                  style={{
-                    padding: '14px 16px',
-                    borderRadius: 'var(--radius-lg, 16px)',
-                    background: 'var(--surface, #141416)',
-                    border: '1px solid var(--border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 'var(--radius-md, 10px)',
-                        background: 'var(--surface2, rgba(255,255,255,0.06))',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--text)',
-                      }}
-                    >
-                      <Plane size={17} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13.5px', fontWeight: 750, color: 'var(--text)' }}>
-                        Trips & Splits
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-3)' }}>
-                        Group ledgers & splits
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !enableTrips;
-                      setEnableTrips(next);
-                      updateSettings({ enableSplitTrips: next });
-                    }}
-                    style={{
-                      width: 40,
-                      height: 24,
-                      borderRadius: 12,
-                      background: enableTrips ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
-                      padding: 2,
-                      border: 'none',
-                      cursor: 'pointer',
-                      boxSizing: 'border-box',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: enableTrips ? 'flex-end' : 'flex-start',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 10,
-                        background: enableTrips ? 'var(--bg)' : 'var(--text-3)',
-                      }}
-                    />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* STEP 5: READY & SUMMARY */}
-          {step === 4 && (
-            <motion.div
-              key="step-ready"
-              custom={slideDirection}
-              initial={{ opacity: 0, x: slideDirection > 0 ? 28 : -28 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: slideDirection > 0 ? -28 : 28 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
-            >
-              <div>
-                <h1
-                  style={{
-                    fontSize: '26px',
-                    fontWeight: 800,
-                    color: 'var(--text)',
-                    margin: '0 0 6px',
-                    letterSpacing: '-0.025em',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  You're all set
-                </h1>
-                <p
-                  style={{
-                    fontSize: '14px',
-                    lineHeight: 1.5,
-                    color: 'var(--text-2)',
-                    margin: 0,
-                  }}
-                >
-                  Your personal finance ledger is configured and ready to use offline.
-                </p>
-              </div>
-
-              {/* Summary Configuration Card */}
-              <div
-                style={{
-                  background: 'var(--surface, #141416)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-xl, 20px)',
-                  padding: '16px 18px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <ShieldCheck size={17} style={{ color: 'var(--text-2)' }} />
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>
-                      Local SQLite Database
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 750,
-                      padding: '2px 8px',
-                      borderRadius: 'var(--radius-full, 9999px)',
-                      background: 'var(--credit-bg, rgba(52, 211, 153, 0.12))',
-                      color: 'var(--credit, #34d399)',
-                    }}
-                  >
-                    Encrypted & Private
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <WalletIcon size={17} style={{ color: 'var(--text-2)' }} />
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>
-                      Active Currency
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>
-                    {selectedCurrency} ({sym})
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <KeyRound size={17} style={{ color: 'var(--text-2)' }} />
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>
-                      App Security
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '12.5px', fontWeight: 700, color: enablePasscode && passcodePin.length === 4 ? 'var(--credit, #34d399)' : 'var(--text-3)' }}>
-                    {enablePasscode && passcodePin.length === 4 ? 'Passcode Protected' : 'Open'}
-                  </span>
-                </div>
-
-                {configuredWallets.length > 0 && configuredWallets.map(w => {
-                  const num = parseFloat(walletBalances[w.id] || '0') || 0;
-                  return (
-                    <div key={w.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {renderWalletIcon(w.icon || w.name, 18, w.color || 'var(--accent)')}
+                          {isCompleted ? <Check size={14} strokeWidth={3} /> : s.icon}
                         </div>
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>
-                          {w.name} Balance
-                        </span>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: isActive ? 800 : 700 }}>
+                            {s.title}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '11px',
+                              opacity: isActive ? 0.8 : 0.5,
+                              color: isActive ? 'var(--bg)' : 'var(--text-2)',
+                            }}
+                          >
+                            {s.subtitle}
+                          </div>
+                        </div>
                       </div>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--credit, #34d399)' }}>
-                        {fmtMoney(num, selectedCurrency)}
+
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 750,
+                          padding: '2px 6px',
+                          borderRadius: 'var(--radius-full)',
+                          background: isActive
+                            ? 'rgba(0,0,0,0.12)'
+                            : 'var(--surface2, rgba(255,255,255,0.08))',
+                          opacity: isActive ? 1 : 0.7,
+                        }}
+                      >
+                        {s.badge}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+            </div>
 
-      {/* Footer Navigation Bar - Clean, no dividing border lines */}
-      <footer
-        style={{
-          padding: '12px 24px calc(24px + env(safe-area-inset-bottom, 0px))',
-          maxWidth: '520px',
-          width: '100%',
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxSizing: 'border-box',
-          gap: 12,
-        }}
-      >
-        {/* Back Button */}
-        {step > 0 ? (
-          <button
-            type="button"
-            onClick={handlePrev}
+            {/* Desktop Live Config Summary Box */}
+            <div
+              style={{
+                background: 'var(--surface2, rgba(255,255,255,0.03))',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg, 16px)',
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)' }}>
+                Configuration Active
+              </div>
+              <div style={{ fontSize: '12px', fontWeight: 650, color: 'var(--text-2)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Base Currency:</span>
+                  <span style={{ color: 'var(--text)', fontWeight: 750 }}>{selectedCurrency} ({sym})</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Opening Balances:</span>
+                  <span style={{ color: 'var(--text)', fontWeight: 750 }}>{sym}{totalOpeningBalance.toLocaleString()}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Passcode PIN:</span>
+                  <span style={{ color: enablePasscode ? 'var(--credit)' : 'var(--text-3)', fontWeight: 750 }}>
+                    {enablePasscode ? 'Enabled' : 'Disabled'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Right Desktop Main Action Panel */}
+          <main
             style={{
-              padding: '12px 18px',
-              borderRadius: 'var(--radius-full, 9999px)',
-              background: 'var(--surface, #141416)',
-              border: '1px solid var(--border)',
-              color: 'var(--text)',
-              fontSize: '13.5px',
-              fontWeight: 650,
-              cursor: 'pointer',
+              padding: '32px 40px',
               display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              whiteSpace: 'nowrap',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              height: '100%',
+              boxSizing: 'border-box',
+              overflowY: 'auto',
             }}
           >
-            <ChevronLeft size={16} />
-            <span>Back</span>
-          </button>
-        ) : (
-          <div style={{ width: 70 }} />
-        )}
+            {/* Top Desktop Step Bar */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', background: 'var(--surface2)', padding: '4px 10px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border)' }}>
+                  Step {step + 1} of {totalSteps}
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--text-3)', fontWeight: 600 }}>
+                  • Press <kbd style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)', fontSize: '11px' }}>→</kbd> to continue
+                </span>
+              </div>
 
-        {/* Step Dots Indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {Array.from({ length: totalSteps }).map((_, idx) => {
-            const isActive = idx === step;
-            return (
               <button
-                key={idx}
                 type="button"
-                onClick={() => {
-                  setSlideDirection(idx > step ? 1 : -1);
-                  setStep(idx);
-                }}
-                title={`Go to step ${idx + 1}`}
+                onClick={() => handleComplete('dashboard')}
                 style={{
-                  height: 5,
-                  width: isActive ? 20 : 5,
-                  borderRadius: 2.5,
-                  background: isActive ? 'var(--text, #ffffff)' : 'var(--border2, rgba(255,255,255,0.2))',
+                  background: 'transparent',
                   border: 'none',
-                  padding: 0,
+                  color: 'var(--text-3)',
+                  fontSize: '13px',
+                  fontWeight: 650,
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  transition: 'all 0.15s ease',
                 }}
-              />
-            );
-          })}
-        </div>
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--text)';
+                  e.currentTarget.style.background = 'var(--surface2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-3)';
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                Skip Setup
+              </button>
+            </div>
 
-        {/* Next / Finish Button */}
-        {isLastStep ? (
-          <button
-            type="button"
-            onClick={() => handleComplete('dashboard')}
+            {/* Desktop Step Body */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <AnimatePresence mode="wait" custom={slideDirection}>
+                {renderStepContent()}
+              </AnimatePresence>
+            </div>
+
+            {/* Desktop Bottom Action Bar */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 20, borderTop: '1px solid var(--border)', marginTop: 20 }}>
+              {step > 0 ? (
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  style={{
+                    padding: '12px 22px',
+                    borderRadius: 'var(--radius-full, 9999px)',
+                    background: 'var(--surface, #141416)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    fontSize: '13.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--text-2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border)';
+                  }}
+                >
+                  <ChevronLeft size={16} />
+                  <span>Back</span>
+                </button>
+              ) : (
+                <div />
+              )}
+
+              {isLastStep ? (
+                <button
+                  type="button"
+                  onClick={() => handleComplete('dashboard')}
+                  style={{
+                    padding: '14px 28px',
+                    borderRadius: 'var(--radius-full, 9999px)',
+                    background: 'var(--text, #ffffff)',
+                    color: 'var(--bg, #0a0a0c)',
+                    border: 'none',
+                    fontSize: '14.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                  }}
+                >
+                  <span>Get Started</span>
+                  <ArrowRight size={18} strokeWidth={2.5} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  style={{
+                    padding: '14px 28px',
+                    borderRadius: 'var(--radius-full, 9999px)',
+                    background: 'var(--text, #ffffff)',
+                    color: 'var(--bg, #0a0a0c)',
+                    border: 'none',
+                    fontSize: '14.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                  }}
+                >
+                  <span>Continue</span>
+                  <ChevronRight size={18} strokeWidth={2.5} />
+                </button>
+              )}
+            </div>
+          </main>
+        </div>
+      ) : (
+        /* 📱 MOBILE ERGONOMIC VIEW */
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            boxSizing: 'border-box',
+          }}
+        >
+          {/* Top Mobile Header */}
+          <header
             style={{
-              padding: '12px 24px',
-              borderRadius: 'var(--radius-full, 9999px)',
-              background: 'var(--text, #ffffff)',
-              color: 'var(--bg, #0a0a0c)',
-              border: 'none',
-              fontSize: '14px',
-              fontWeight: 800,
-              cursor: 'pointer',
+              padding: 'calc(16px + env(safe-area-inset-top, 0px)) 20px 12px',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              whiteSpace: 'nowrap',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
+              justifyContent: 'space-between',
+              width: '100%',
+              boxSizing: 'border-box',
             }}
           >
-            <span>Get Started</span>
-            <ArrowRight size={16} strokeWidth={2.5} />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handleNext}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  letterSpacing: '0.08em',
+                  color: 'var(--text-3, #71717a)',
+                  textTransform: 'uppercase',
+                  background: 'var(--surface2, rgba(255,255,255,0.06))',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-full, 9999px)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                Step {step + 1} of {totalSteps}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleComplete('dashboard')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-3, #71717a)',
+                fontSize: '13.5px',
+                fontWeight: 650,
+                cursor: 'pointer',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-full, 9999px)',
+              }}
+            >
+              Skip
+            </button>
+          </header>
+
+          {/* Main Mobile Content Area */}
+          <main
             style={{
-              padding: '12px 24px',
-              borderRadius: 'var(--radius-full, 9999px)',
-              background: 'var(--text, #ffffff)',
-              color: 'var(--bg, #0a0a0c)',
-              border: 'none',
-              fontSize: '14px',
-              fontWeight: 800,
-              cursor: 'pointer',
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              width: '100%',
+              padding: '0 20px',
+              boxSizing: 'border-box',
+              overflowY: 'auto',
+            }}
+          >
+            <AnimatePresence mode="wait" custom={slideDirection}>
+              {renderStepContent()}
+            </AnimatePresence>
+          </main>
+
+          {/* Mobile Footer Navigation Bar */}
+          <footer
+            style={{
+              padding: '16px 20px calc(20px + env(safe-area-inset-bottom, 0px))',
+              width: '100%',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              whiteSpace: 'nowrap',
+              justifyContent: 'space-between',
+              boxSizing: 'border-box',
+              gap: 12,
             }}
           >
-            <span>Continue</span>
-            <ChevronRight size={16} strokeWidth={2.5} />
-          </button>
-        )}
-      </footer>
+            {step > 0 ? (
+              <button
+                type="button"
+                onClick={handlePrev}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: 'var(--radius-full, 9999px)',
+                  background: 'var(--surface, #141416)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  fontSize: '13.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <ChevronLeft size={16} />
+                <span>Back</span>
+              </button>
+            ) : (
+              <div style={{ width: 80 }} />
+            )}
+
+            {/* Step Dots Indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {Array.from({ length: totalSteps }).map((_, idx) => {
+                const isActive = idx === step;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(ImpactStyle.Light);
+                      setSlideDirection(idx > step ? 1 : -1);
+                      setStep(idx);
+                    }}
+                    title={`Go to step ${idx + 1}`}
+                    style={{
+                      height: 6,
+                      width: isActive ? 20 : 6,
+                      borderRadius: 3,
+                      background: isActive ? 'var(--text, #ffffff)' : 'var(--border2, rgba(255,255,255,0.2))',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      transition: 'all 0.22s cubic-bezier(0.2, 0, 0, 1)',
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {isLastStep ? (
+              <button
+                type="button"
+                onClick={() => handleComplete('dashboard')}
+                style={{
+                  padding: '12px 22px',
+                  borderRadius: 'var(--radius-full, 9999px)',
+                  background: 'var(--text, #ffffff)',
+                  color: 'var(--bg, #0a0a0c)',
+                  border: 'none',
+                  fontSize: '14px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                }}
+              >
+                <span>Done</span>
+                <ArrowRight size={16} strokeWidth={2.5} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleNext}
+                style={{
+                  padding: '12px 22px',
+                  borderRadius: 'var(--radius-full, 9999px)',
+                  background: 'var(--text, #ffffff)',
+                  color: 'var(--bg, #0a0a0c)',
+                  border: 'none',
+                  fontSize: '14px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span>Continue</span>
+                <ChevronRight size={16} strokeWidth={2.5} />
+              </button>
+            )}
+          </footer>
+        </div>
+      )}
 
       {/* Full Currency Picker Search Modal Overlay */}
       {showAllCurrencies && (
@@ -1612,7 +1960,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
             position: 'fixed',
             inset: 0,
             zIndex: 100000,
-            background: 'rgba(0, 0, 0, 0.7)',
+            background: 'rgba(0, 0, 0, 0.75)',
             backdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
@@ -1627,7 +1975,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
           <div
             style={{
               width: '100%',
-              maxWidth: '420px',
+              maxWidth: '440px',
               maxHeight: '80vh',
               background: 'var(--surface, #141416)',
               border: '1px solid var(--border)',
@@ -1750,6 +2098,16 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
           </div>
         </div>
       )}
+
+      {/* Reusable App Passcode Setup Drawer */}
+      <PinSetupDrawer
+        key={isPinDrawerOpen ? 'open' : 'closed'}
+        isOpen={isPinDrawerOpen}
+        onClose={() => setIsPinDrawerOpen(false)}
+        hasExistingPin={Boolean(passcodePin)}
+        currentPin={passcodePin}
+        onSavePin={handleSavePinFromDrawer}
+      />
     </div>,
     document.body
   );
