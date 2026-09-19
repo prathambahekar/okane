@@ -675,6 +675,7 @@ export function defaultDB(): AppDB {
       hideAmounts: typeof localStorage !== 'undefined' ? localStorage.getItem('hide_amounts') === 'true' : false,
       hideNavLabels: typeof localStorage !== 'undefined' ? (localStorage.getItem('hide_nav_labels') !== null ? localStorage.getItem('hide_nav_labels') === 'true' : true) : true,
       enableDummyData: false,
+      hasCompletedOnboarding: typeof localStorage !== 'undefined' ? localStorage.getItem('okane_onboarding_completed') === 'true' : false,
     },
     recurringRules: [],
   };

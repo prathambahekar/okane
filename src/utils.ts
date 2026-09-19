@@ -1,5 +1,5 @@
 import { CURRENCIES } from './db';
-import type { Expense, ExpenseFlow, ExpenseType, Wallet, Friend, Category, Settlement, ContactType } from './types';
+import type { Expense, ExpenseFlow, ExpenseType, Wallet, Friend, Category, Settlement } from './types';
 import { expenseFlow, personalNetAmount } from './db';
 
 export function currencySymbol(currency: string): string {
@@ -548,98 +548,17 @@ export function getGroupedExpenseAmount(ge: GroupedExpense, mode: SpendingMode =
   return ge.totalAmount;
 }
 
-export function friendInitial(
-  nameOrFriend?: string | { name?: string; avatarNumber?: string },
-  avatarNumber?: string
-): string {
-  if (!nameOrFriend) return '?';
-  if (typeof nameOrFriend === 'object') {
-    if (nameOrFriend.avatarNumber && nameOrFriend.avatarNumber.trim()) {
-      return nameOrFriend.avatarNumber.trim();
-    }
-    return (nameOrFriend.name || '?').trim().charAt(0).toUpperCase();
-  }
-  if (avatarNumber && avatarNumber.trim()) {
-    return avatarNumber.trim();
-  }
-  return nameOrFriend.trim().charAt(0).toUpperCase();
-}
-
-export function getAvatarStyle(color?: string): React.CSSProperties {
-  if (!color) {
-    return {
-      background: 'var(--accent-soft)',
-      color: 'var(--accent)',
-      border: '1px solid var(--accent-border-soft)',
-    };
-  }
-
-  // Hex color (#RRGGBB)
-  if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
-    return {
-      background: `${color}28`,
-      color: color,
-      border: `1px solid ${color}55`,
-    };
-  }
-
-  // Short hex (#RGB)
-  if (/^#[0-9A-Fa-f]{3}$/.test(color)) {
-    const fullHex = '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
-    return {
-      background: `${fullHex}28`,
-      color: fullHex,
-      border: `1px solid ${fullHex}55`,
-    };
-  }
-
-  // CSS variables handling
-  if (color.includes('--credit')) {
-    return {
-      background: 'var(--credit-bg, rgba(16, 185, 129, 0.16))',
-      color: 'var(--credit, #10b981)',
-      border: '1px solid var(--credit-border, rgba(16, 185, 129, 0.35))',
-    };
-  }
-
-  if (color.includes('--debit')) {
-    return {
-      background: 'var(--debit-bg, rgba(239, 68, 68, 0.16))',
-      color: 'var(--debit, #ef4444)',
-      border: '1px solid var(--debit-border, rgba(239, 68, 68, 0.35))',
-    };
-  }
-
-  if (color.includes('--amber')) {
-    return {
-      background: 'var(--amber-bg, rgba(245, 158, 11, 0.16))',
-      color: 'var(--amber, #f59e0b)',
-      border: '1px solid var(--amber-border, rgba(245, 158, 11, 0.35))',
-    };
-  }
-
-  return {
-    background: 'var(--accent-soft)',
-    color: color || 'var(--accent)',
-    border: '1px solid var(--accent-border-soft)',
-  };
-}
-
-export function getContactColor(contact?: { type?: ContactType; color?: string } | null, fallback?: string): string {
-  if (!contact) return fallback || 'var(--accent)';
-  if (contact.type === 'vendor') {
-    return (contact.color && contact.color !== '#6366f1') ? contact.color : '#f59e0b';
-  }
-  if (contact.type === 'subscription') {
-    return (contact.color && contact.color !== '#6366f1') ? contact.color : '#8b5cf6';
-  }
-  return contact.color || fallback || 'var(--accent)';
-}
-
-export function getContactStyle(contact?: { type?: ContactType; color?: string } | null, fallback?: string): React.CSSProperties {
-  const color = getContactColor(contact, fallback);
-  return getAvatarStyle(color);
-}
+export {
+  AVATAR_PALETTE,
+  hashStringToNumber,
+  getConsistentAvatarColor,
+  friendInitial,
+  getAvatarStyle,
+  getAvatarPlaceholder,
+  getContactColor,
+  getContactStyle,
+  type AvatarPlaceholderResult,
+} from './utils/avatar';
 
 export function generateInsights(
   expenses: Expense[],

@@ -538,6 +538,9 @@ export default function Settings({
           'dummy-data': () => setShowDummyModal(true),
           'dummy': () => setShowDummyModal(true),
           'currency': () => setShowCurrencySheet(true),
+          'tour': () => window.dispatchEvent(new CustomEvent('app-open-intro-carousel')),
+          'intro': () => window.dispatchEvent(new CustomEvent('app-open-intro-carousel')),
+          'walkthrough': () => window.dispatchEvent(new CustomEvent('app-open-intro-carousel')),
         };
 
         if (sheetMap[id]) {
@@ -586,6 +589,9 @@ export default function Settings({
         'dummy-data': () => setShowDummyModal(true),
         'dummy': () => setShowDummyModal(true),
         'currency': () => setShowCurrencySheet(true),
+        'tour': () => window.dispatchEvent(new CustomEvent('app-open-intro-carousel')),
+        'intro': () => window.dispatchEvent(new CustomEvent('app-open-intro-carousel')),
+        'walkthrough': () => window.dispatchEvent(new CustomEvent('app-open-intro-carousel')),
       };
 
       if (sheetMap[targetId]) {
@@ -3884,15 +3890,31 @@ export default function Settings({
                 </div>
               )}
 
-              {/* Action Toolbar - Feedback at left, Version History at right */}
+              {/* Action Toolbar - Feedback, Feature Tour, and Version History */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'stretch',
                 gap: 8,
                 marginBottom: 4,
+                flexWrap: 'wrap',
               }}>
-                {/* 1. Feedback Shortcut Button (Left) */}
+                {/* 1. Feature Tour Walkthrough Button */}
+                <button
+                  type="button"
+                  className="app-version-action-btn"
+                  onClick={() => {
+                    setShowVersionSheet(false);
+                    window.dispatchEvent(new CustomEvent('app-open-intro-carousel'));
+                  }}
+                  title="Explore App Features & Overview"
+                  aria-label="App Walkthrough"
+                >
+                  <Sparkles size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                  <span>Feature Tour</span>
+                </button>
+
+                {/* 2. Feedback Shortcut Button */}
                 <button
                   type="button"
                   className="app-version-action-btn"

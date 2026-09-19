@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { X, RotateCcw, TrendingDown, TrendingUp, User, Users, HeartHandshake, Sparkles, Feather, Plus, ChevronRight } from 'lucide-react';
+import { X, RotateCcw, TrendingDown, TrendingUp, User, Users, HeartHandshake, Sparkles, Feather, ChevronRight, Plus } from 'lucide-react';
 import { useStore } from '../store';
-import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus } from '../types';
+import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus, Friend } from '../types';
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
-import { currencySymbol, fmtMoney } from '../utils';
+import { currencySymbol, fmtMoney, getAvatarStyle, friendInitial } from '../utils';
 import { detectCategoryFromText } from '../utils/categoryDetector';
 import { showSoftKeyboard } from '../utils/keyboard';
 import {
@@ -192,12 +192,27 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
   })();
 
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>(initialFriendIdsList);
+  const selectedFriends = useMemo(() => {
+    return selectedFriendIds
+      .map(id => db.friends.find(f => f.id === id))
+      .filter(Boolean) as Friend[];
+  }, [selectedFriendIds, db.friends]);
   const [isFriendPickerOpen, setIsFriendPickerOpen] = useState(false);
   const [splitCalcMode, setSplitCalcMode] = useState<'equal_all' | 'equal_friends' | 'custom'>(inferredSplitCalcMode);
   const [includeYouInCustom, setIncludeYouInCustom] = useState<boolean>(inferredIncludeYou);
   const [customFriendShares, setCustomFriendShares] = useState<Record<string, string>>(initialCustomSharesMap);
 
   const isYouSelected = splitCalcMode === 'equal_all' || (splitCalcMode === 'custom' && includeYouInCustom);
+
+  const handleSetSelectedFriendIds = useCallback((updater: React.SetStateAction<string[]>) => {
+    setSelectedFriendIds(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (whoPaid === 'me') {
+        setSplitMode(next.length > 0 ? 'for_friend' : 'just_me');
+      }
+      return next;
+    });
+  }, [whoPaid, setSplitMode]);
 
   const getFriendShare = useCallback((fId: string): number => {
     const tot = Math.round((parseFloat(amount) || 0) * 100) / 100;
@@ -398,7 +413,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
     ? (incomeMode === 'friend' ? 'for_friend' : 'personal')
     : whoPaid === 'other' || splitMode === 'pay_debt'
     ? 'by_friend'
-    : splitMode === 'for_friend'
+    : (whoPaid === 'me' && (splitMode === 'for_friend' || selectedFriendIds.length > 0))
     ? 'for_friend'
     : 'personal';
 
@@ -558,7 +573,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
       return;
     }
 
-    if (whoPaid === 'me' && splitMode === 'for_friend') {
+    if (whoPaid === 'me' && (splitMode === 'for_friend' || selectedFriendIds.length > 0)) {
       if (selectedFriendIds.length === 0) {
         setError('Please select at least one friend to split with.');
         return;
@@ -781,44 +796,24 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
               {/* SPENT TAB INPUTS */}
               {flow === 'out' ? (
                 <>
-                  {/* Ultra-Compact Unified Scope Selector */}
-                  <div className="form-group" style={{ marginBottom: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)' }}>
-                        Expense Type
+                  {/* Unified Who Paid Selector */}
+                  <div className="form-group">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <label className="form-label" style={{ margin: 0 }}>
+                        Who Paid
                       </label>
                     </div>
                     <div className="segment-control">
                       <button
                         type="button"
-                        className={`segment-btn ${whoPaid === 'me' && splitMode === 'just_me' ? 'active' : ''}`}
+                        className={`segment-btn ${whoPaid === 'me' ? 'active' : ''}`}
                         onClick={() => {
                           setWhoPaid('me');
-                          setSplitMode('just_me');
-                          setSelectedExpenseIds([]);
                           setError('');
                         }}
                       >
-                        <User size={15} style={{ color: 'inherit' }} />
-                        <span>Just Me</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`segment-btn ${whoPaid === 'me' && splitMode === 'for_friend' ? 'active' : ''}`}
-                        onClick={() => {
-                          setWhoPaid('me');
-                          setSplitMode('for_friend');
-                          setSelectedExpenseIds([]);
-                          if (!friendShare && amount) setFriendShare(amount);
-                          if (!expense) {
-                            setSplitCalcMode('equal_all');
-                            setIncludeYouInCustom(true);
-                          }
-                          setError('');
-                        }}
-                      >
-                        <Users size={15} style={{ color: 'inherit' }} />
-                        <span>With Friends</span>
+                        <User size={16} style={{ color: 'inherit' }} />
+                        <span>I Paid</span>
                       </button>
                       <button
                         type="button"
@@ -829,99 +824,266 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                           setError('');
                         }}
                       >
-                        <HeartHandshake size={15} style={{ color: 'inherit' }} />
+                        <HeartHandshake size={16} style={{ color: 'inherit' }} />
                         <span>Someone Paid</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Friend Selection & Split Summary: If With Friends */}
-                  {whoPaid === 'me' && splitMode === 'for_friend' && (
-                    <div style={{ marginBottom: 6, animation: 'fadein 0.15s ease' }}>
-                      <div
-                        onClick={() => setIsFriendPickerOpen(true)}
-                        style={{
-                          padding: '10px 14px',
-                          background: 'var(--surface2)',
-                          borderRadius: 'var(--radius-lg)',
-                          border: '1px solid var(--border)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: 10,
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                          <div
-                            style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: 'var(--radius-full)',
-                              background: 'var(--accent-gradient, var(--accent))',
-                              color: 'var(--accent-contrast, #ffffff)',
-                              display: 'grid',
-                              placeItems: 'center',
-                              fontWeight: 700,
-                              fontSize: 'var(--fs-sm)',
-                              flexShrink: 0,
-                              boxShadow: '0 2px 6px var(--accent-soft)',
-                            }}
-                          >
-                            <Users size={15} />
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {selectedFriendIds.length > 0
-                                ? `Splitting with ${selectedFriendIds.length} Friend${selectedFriendIds.length > 1 ? 's' : ''}`
-                                : 'Tap to Select Friends & Split'}
-                            </div>
-                            {selectedFriendIds.length > 0 && (
-                              <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-2)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                Friends Owe: <strong style={{ color: 'var(--credit)' }}>{fmtMoney(totalFriendsShare, s.currency)}</strong>
-                                {isYouSelected && ((parseFloat(amount) || 0) - totalFriendsShare) > 0.001 && (
-                                  <>
-                                    {' • '}
-                                    My Share: <strong style={{ color: 'var(--accent)' }}>{fmtMoney((parseFloat(amount) || 0) - totalFriendsShare, s.currency)}</strong>
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
+                  {/* If I Paid: Optional Split with Friends */}
+                  {whoPaid === 'me' && (
+                    <div style={{ animation: 'fadein 0.15s ease' }}>
+                      {selectedFriendIds.length > 0 ? (
                         <div
                           style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: '50%',
-                            background: 'var(--surface3)',
+                            padding: '8px 12px',
+                            background: 'var(--surface2)',
+                            borderRadius: 'var(--radius-md)',
                             border: '1px solid var(--border)',
-                            color: 'var(--text)',
-                            display: 'grid',
-                            placeItems: 'center',
-                            flexShrink: 0,
-                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 10,
+                            minWidth: 0,
+                            boxSizing: 'border-box',
                             transition: 'all 0.15s ease',
                           }}
                         >
-                          {selectedFriendIds.length > 0 ? (
-                            <ChevronRight size={15} />
-                          ) : (
-                            <Plus size={14} strokeWidth={2.5} />
-                          )}
+                          <div
+                            onClick={() => setIsFriendPickerOpen(true)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, cursor: 'pointer', flex: 1 }}
+                          >
+                            {/* Stacked Friend Avatars synced with Contact Page */}
+                            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                              {selectedFriends.slice(0, 2).map((fr, idx) => (
+                                <div
+                                  key={fr.id}
+                                  style={{
+                                    ...getAvatarStyle(fr.color),
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: '50%',
+                                    display: 'grid',
+                                    placeItems: 'center',
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    marginLeft: idx > 0 ? -10 : 0,
+                                    zIndex: 2 - idx,
+                                    textTransform: 'uppercase',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {friendInitial(fr.name, fr.avatarNumber)}
+                                </div>
+                              ))}
+                              {selectedFriends.length > 2 && (
+                                <div
+                                  style={{
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: '50%',
+                                    background: 'var(--surface3)',
+                                    color: 'var(--text-2)',
+                                    border: '1.5px solid var(--border)',
+                                    display: 'grid',
+                                    placeItems: 'center',
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    marginLeft: -10,
+                                    zIndex: 0,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  +{selectedFriends.length - 2}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Names & Split Badges */}
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
+                                <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {selectedFriends.length === 1
+                                    ? selectedFriends[0].name
+                                    : selectedFriends.length === 2
+                                    ? `${selectedFriends[0].name} & ${selectedFriends[1].name}`
+                                    : `${selectedFriends[0]?.name || 'Friend'} +${selectedFriends.length - 1}`}
+                                </span>
+                                <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500, flexShrink: 0 }}>
+                                  • Split
+                                </span>
+                              </div>
+
+                              {/* Badges Row - No brackets! Owed & You as Badges */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    color: 'var(--credit)',
+                                    background: 'var(--credit-bg)',
+                                    border: '1px solid var(--credit-border)',
+                                    padding: '2px 8px',
+                                    borderRadius: 'var(--radius-full)',
+                                    lineHeight: 1.2,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  Owed: {fmtMoney(totalFriendsShare, s.currency)}
+                                </span>
+                                {isYouSelected && ((parseFloat(amount) || 0) - totalFriendsShare) > 0.001 && (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      fontSize: 11,
+                                      fontWeight: 600,
+                                      color: 'var(--text-2)',
+                                      background: 'var(--surface3)',
+                                      border: '1px solid var(--border)',
+                                      padding: '2px 8px',
+                                      borderRadius: 'var(--radius-full)',
+                                      lineHeight: 1.2,
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    You: {fmtMoney((parseFloat(amount) || 0) - totalFriendsShare, s.currency)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action controls */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={() => setIsFriendPickerOpen(true)}
+                              title="Edit split details"
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '9999px',
+                                background: 'var(--surface3)',
+                                border: 'none',
+                                color: 'var(--text)',
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              Edit <ChevronRight size={12} strokeWidth={2.4} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedFriendIds([]);
+                                setSplitMode('just_me');
+                              }}
+                              title="Remove split"
+                              style={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: '50%',
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-3)',
+                                display: 'grid',
+                                placeItems: 'center',
+                                cursor: 'pointer',
+                                padding: 0,
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <X size={15} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div
+                          onClick={() => {
+                            setSplitMode('for_friend');
+                            if (!friendShare && amount) setFriendShare(amount);
+                            if (!expense) {
+                              setSplitCalcMode('equal_all');
+                              setIncludeYouInCustom(true);
+                            }
+                            setIsFriendPickerOpen(true);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '6px 12px 6px 8px',
+                            background: 'var(--surface2)',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid var(--border)',
+                            cursor: 'pointer',
+                            minHeight: 36,
+                            boxSizing: 'border-box',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                            {/* Black circular badge with white Users icon */}
+                            <div
+                              style={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: '50%',
+                                background: 'var(--accent)',
+                                color: 'var(--accent-contrast)',
+                                display: 'grid',
+                                placeItems: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Users size={13} strokeWidth={2.2} />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.1px', whiteSpace: 'nowrap' }}>
+                                Split with friends
+                              </span>
+                              <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 450, whiteSpace: 'nowrap' }}>
+                                • Optional
+                              </span>
+                            </div>
+                          </div>
+                          {/* Circular + button */}
+                          <div
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              background: 'var(--surface3)',
+                              color: 'var(--text)',
+                              display: 'grid',
+                              placeItems: 'center',
+                              flexShrink: 0,
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <Plus size={14} strokeWidth={2.5} />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* If Someone Else Paid: Friend Selector */}
                   {whoPaid === 'other' && (
-                    <div className="form-group" style={{ marginBottom: 6, animation: 'fadein 0.15s ease' }}>
-                      <label className="form-label" style={{ fontSize: 10.5, fontWeight: 750, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 4 }}>
-                        Who Paid For You? *
-                      </label>
+                    <div className="form-group" style={{ animation: 'fadein 0.15s ease' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="form-label" style={{ margin: 0 }}>
+                          Who Paid For You? *
+                        </label>
+                      </div>
                       <select className="form-select" value={friendId} onChange={e => setFriendId(e.target.value)}>
                         <option value="">Select friend who paid</option>
                         {db.friends.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -930,9 +1092,9 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                   )}
 
                   {/* Description & Note Button Merged */}
-                  <div className="form-group" style={{ marginBottom: 6 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <label className="form-label" style={{ margin: 0, fontSize: 10.5, fontWeight: 750, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)' }}>
+                  <div className="form-group">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label className="form-label" style={{ margin: 0 }}>
                         Description / Item *
                       </label>
                       <button
@@ -941,8 +1103,9 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                         onClick={() => setIsNoteModalOpen(true)}
                         title={notes ? `Note: ${notes}` : "Add note"}
                         aria-label={notes ? "Edit note" : "Add note"}
+                        style={{ width: 28, height: 28, padding: 0, borderRadius: 'var(--radius-full)' }}
                       >
-                        <Feather size={13} strokeWidth={2.2} style={{ color: notes ? '#38bdf8' : 'var(--text-2)' }} />
+                        <Feather size={14} strokeWidth={2.2} style={{ color: notes ? '#38bdf8' : 'var(--text-2)' }} />
                       </button>
                     </div>
                     <input
@@ -963,7 +1126,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                           display: 'flex',
                           alignItems: 'center',
                           gap: 6,
-                          marginTop: 8,
+                          marginTop: 6,
                           width: '100%',
                           minWidth: 0,
                           boxSizing: 'border-box',
@@ -971,14 +1134,14 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                       >
                         <span
                           style={{
-                            fontSize: 'var(--fs-caption)',
+                            fontSize: 11,
                             fontWeight: 700,
                             color: 'var(--text-3)',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: 3.5,
                             flexShrink: 0,
-                            height: 22,
+                            height: 24,
                             lineHeight: 1,
                             letterSpacing: '0.5px',
                             textTransform: 'uppercase',
@@ -1012,12 +1175,12 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                                   fontSize: 'var(--fs-xs)',
                                   fontWeight: isSelected ? 700 : 600,
                                   height: 28,
-                                  padding: '0 13px',
+                                  padding: '0 12px',
                                   borderRadius: 'var(--radius-full)',
                                   border: isSelected ? 'none' : '1px solid var(--border)',
                                   background: isSelected ? 'var(--text)' : 'var(--surface2)',
                                   color: isSelected ? 'var(--bg)' : 'var(--text-2)',
-                                  boxShadow: isSelected ? '0 1px 4px rgba(0, 0, 0, 0.2)' : 'none',
+                                  boxShadow: isSelected ? '0 1px 3px rgba(0, 0, 0, 0.15)' : 'none',
                                   flexShrink: 0,
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -1044,21 +1207,21 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
 
                   <div className="form-row">
                     <div className="form-group">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 18, height: 18, marginBottom: 4 }}>
-                        <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="form-label" style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           Category
                         </label>
                         {autoDetectedCategory && autoDetectedCategory === category && (
                           <span
                             style={{
-                              fontSize: 'var(--fs-caption)',
+                              fontSize: 10.5,
                               fontWeight: 700,
                               color: 'var(--accent)',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 2.5,
                               background: 'var(--accent-soft)',
-                              padding: '1px 6px',
+                              padding: '2px 7px',
                               borderRadius: 'var(--radius-full)',
                             }}
                             title="Category suggested automatically based on your description"
@@ -1080,8 +1243,8 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                       </select>
                     </div>
                     <div className="form-group">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 18, height: 18, marginBottom: 4 }}>
-                        <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="form-label" style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           Date Spent
                         </label>
                       </div>
@@ -1093,8 +1256,8 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                   {whoPaid === 'me' && (
                     <div className="form-row">
                       <div className="form-group">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 18, height: 18, marginBottom: 4 }}>
-                          <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--text-3)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 22, height: 22, marginBottom: 2 }}>
+                          <label className="form-label" style={{ margin: 0 }}>
                             {status === 'unpaid' ? 'Wallet' : 'Paid From'}
                           </label>
                           <div
@@ -1102,10 +1265,10 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                               display: 'inline-flex',
                               alignItems: 'center',
                               background: 'var(--surface2)',
-                              padding: '2px',
+                              padding: '1px',
                               borderRadius: 'var(--radius-full)',
                               border: 'none',
-                              gap: 2,
+                              gap: 1,
                             }}
                           >
                             <button
@@ -1115,16 +1278,17 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                padding: '2px 9px',
+                                padding: '1px 8px',
                                 borderRadius: 'var(--radius-full)',
                                 border: 'none',
-                                fontSize: 'var(--fs-caption)',
+                                fontSize: 10.5,
                                 fontWeight: status === 'paid' ? 700 : 500,
                                 cursor: 'pointer',
                                 background: status === 'paid' ? 'var(--credit-bg, rgba(16, 185, 129, 0.14))' : 'transparent',
                                 color: status === 'paid' ? 'var(--credit, #10b981)' : 'var(--text-3)',
-                                boxShadow: status === 'paid' ? '0 1px 3px var(--credit-bg)' : 'none',
+                                boxShadow: status === 'paid' ? '0 1px 2px var(--credit-bg)' : 'none',
                                 transition: 'all 0.15s ease',
+                                height: 18,
                               }}
                               onClick={() => setStatus('paid')}
                             >
@@ -1137,16 +1301,17 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                padding: '2px 9px',
+                                padding: '1px 8px',
                                 borderRadius: 'var(--radius-full)',
                                 border: 'none',
-                                fontSize: 'var(--fs-caption)',
+                                fontSize: 10.5,
                                 fontWeight: status === 'unpaid' ? 700 : 500,
                                 cursor: 'pointer',
                                 background: status === 'unpaid' ? 'var(--debit-bg, rgba(239, 68, 68, 0.15))' : 'transparent',
                                 color: status === 'unpaid' ? 'var(--debit, #ef4444)' : 'var(--text-3)',
-                                boxShadow: status === 'unpaid' ? '0 1px 3px var(--debit-bg)' : 'none',
+                                boxShadow: status === 'unpaid' ? '0 1px 2px var(--debit-bg)' : 'none',
                                 transition: 'all 0.15s ease',
+                                height: 18,
                               }}
                               onClick={() => setStatus('unpaid')}
                             >
@@ -1460,7 +1625,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
         onClose={() => setIsFriendPickerOpen(false)}
         amount={amount}
         selectedFriendIds={selectedFriendIds}
-        setSelectedFriendIds={setSelectedFriendIds}
+        setSelectedFriendIds={handleSetSelectedFriendIds}
         splitCalcMode={splitCalcMode}
         includeYouInCustom={includeYouInCustom}
         setIncludeYouInCustom={setIncludeYouInCustom}

@@ -8,7 +8,6 @@ import {
   User,
   Users,
   Store,
-  Tv,
   X,
   RotateCcw,
   Filter,
@@ -20,8 +19,8 @@ import ListItemText from '@mui/material/ListItemText';
 import { useStore } from '../store';
 import type { Friend, ContactType, ViewName } from '../types';
 import { friendBalance, contactTotalSpent, contactTransactionCount, contactLastTransaction, unsettledExpensesForFriend } from '../db';
-import { fmtMoney, friendInitial, getAvatarStyle, formatBillingCycleShort } from '../utils';
-import { renderBrandLogo } from '../components/BrandIcons';
+import { fmtMoney, formatBillingCycleShort } from '../utils';
+import { ContactAvatar } from '../components/common/ContactAvatar';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import FriendModal from '../components/FriendModal';
 import SettleModal from '../components/SettleModal';
@@ -562,8 +561,6 @@ export default function Friends({ onNavigate }: Props) {
             const unsettledCount = unsettledExpensesForFriend(db, f.id).length;
             const isOwed = bal.net > 0.004;
             const isDebt = bal.net < -0.004;
-            const brandLogo = renderBrandLogo(f.name, 22);
-
             return (
               <div
                 key={`${f.id}-${idx}`}
@@ -572,23 +569,12 @@ export default function Friends({ onNavigate }: Props) {
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                    <div
-                      className="avatar"
-                      style={{
-                        ...getAvatarStyle(f.color),
-                        width: 42,
-                        height: 42,
-                        fontSize: 'var(--fs-base)',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: 'var(--radius-sm)',
-                      }}
-                    >
-                      {fType === 'subscription' ? (brandLogo || <Tv size={18} />) : fType === 'vendor' ? <Store size={18} /> : friendInitial(f.name, f.avatarNumber)}
-                    </div>
+                    <ContactAvatar
+                      contact={f}
+                      size={42}
+                      fontSize="var(--fs-base)"
+                      borderRadius="var(--radius-sm)"
+                    />
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: 'var(--fs-base)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)', letterSpacing: '-0.01em' }}>
                         {f.name}
@@ -678,8 +664,6 @@ export default function Friends({ onNavigate }: Props) {
             const unsettledCount = unsettledExpensesForFriend(db, f.id).length;
             const isOwed = bal.net > 0.004;
             const isDebt = bal.net < -0.004;
-            const brandLogo = renderBrandLogo(f.name, 22);
-
             return (
               <div
                 key={`${f.id}-${idx}`}
@@ -688,23 +672,12 @@ export default function Friends({ onNavigate }: Props) {
               >
                 {/* Contact Avatar & Name */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
-                  <div
-                    className="avatar"
-                    style={{
-                      ...getAvatarStyle(f.color),
-                      width: 44,
-                      height: 44,
-                      fontSize: 'var(--fs-base)',
-                      fontWeight: 700,
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: 'var(--radius-sm)',
-                    }}
-                  >
-                    {fType === 'subscription' ? (brandLogo || <Tv size={20} />) : fType === 'vendor' ? <Store size={20} /> : friendInitial(f.name, f.avatarNumber)}
-                  </div>
+                  <ContactAvatar
+                    contact={f}
+                    size={44}
+                    fontSize="var(--fs-base)"
+                    borderRadius="var(--radius-sm)"
+                  />
 
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
@@ -796,8 +769,6 @@ export default function Friends({ onNavigate }: Props) {
             const bal = friendBalance(db, f.id);
             const isOwed = bal.net > 0.004;
             const isDebt = bal.net < -0.004;
-            const brandLogo = renderBrandLogo(f.name, 18);
-
             return (
               <div
                 key={`${f.id}-${idx}`}
@@ -806,23 +777,12 @@ export default function Friends({ onNavigate }: Props) {
               >
                 {/* Contact Avatar & Name */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div
-                    className="avatar"
-                    style={{
-                      ...getAvatarStyle(f.color),
-                      width: 36,
-                      height: 36,
-                      fontSize: 'var(--fs-sm)',
-                      fontWeight: 700,
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: 'var(--radius-sm)',
-                    }}
-                  >
-                    {fType === 'subscription' ? (brandLogo || <Tv size={16} />) : fType === 'vendor' ? <Store size={16} /> : friendInitial(f.name, f.avatarNumber)}
-                  </div>
+                  <ContactAvatar
+                    contact={f}
+                    size={36}
+                    fontSize="var(--fs-sm)"
+                    borderRadius="var(--radius-sm)"
+                  />
 
                   <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontWeight: 600, fontSize: 'var(--fs-base)', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>

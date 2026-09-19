@@ -59,6 +59,7 @@ import NotificationBell from './components/NotificationBell';
 import FloatingSearchButton from './components/FloatingSearchButton';
 import ContextualSearchModal, { type SearchTab } from './components/ContextualSearchModal';
 import SecurityLockModal from './components/SecurityLockModal';
+import IntroCarousel from './components/IntroCarousel';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { showSoftKeyboard } from './utils/keyboard';
@@ -82,6 +83,21 @@ function AppInner() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [settingsSearchQuery, setSettingsSearchQuery] = useState('');
   const [mobileSettingsSearchOpen, setMobileSettingsSearchOpen] = useState(false);
+  const [showIntroCarousel, setShowIntroCarousel] = useState(() => {
+    if (typeof localStorage !== 'undefined') {
+      const hasCompleted = localStorage.getItem('okane_onboarding_completed') === 'true';
+      if (hasCompleted) return false;
+    }
+    return !db.settings?.hasCompletedOnboarding;
+  });
+
+  useEffect(() => {
+    const handleOpenIntro = () => {
+      setShowIntroCarousel(true);
+    };
+    window.addEventListener('app-open-intro-carousel', handleOpenIntro);
+    return () => window.removeEventListener('app-open-intro-carousel', handleOpenIntro);
+  }, []);
 
   useEffect(() => {
     const handleOpenSearch = (e: Event) => {
@@ -121,6 +137,7 @@ function AppInner() {
   useBackButtonModal(moreOpen, () => setMoreOpen(false), { priority: BackPriority.DRAWER });
   useBackButtonModal(showSearchModal, () => setShowSearchModal(false), { priority: BackPriority.MODAL });
   useBackButtonModal(showAIAssistant, () => setShowAIAssistant(false), { priority: BackPriority.MODAL });
+  useBackButtonModal(showIntroCarousel, () => setShowIntroCarousel(false), { priority: BackPriority.MODAL });
 
   // View navigation history back handler (Android back button navigates backwards through views before exiting)
   useEffect(() => {
@@ -1711,6 +1728,18 @@ function AppInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* First-launch / on-demand introductory carousel */}
+      <IntroCarousel
+        isOpen={showIntroCarousel}
+        onClose={() => setShowIntroCarousel(false)}
+        onStartAction={(action) => {
+          if (action === 'add-expense') {
+            setShowAddExpense(true);
+          }
+        }}
+      />
+
       <Toast />
     </div>
   );

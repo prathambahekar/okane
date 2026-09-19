@@ -20,22 +20,20 @@ export function VendorQuickAdd({
 
   return (
     <div className="form-group">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 18, height: 18, marginBottom: 2 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 22, height: 22, marginBottom: 2 }}>
         <label
           className="form-label"
           style={{
             margin: 0,
-            fontSize: 'var(--fs-caption)',
-            fontWeight: 'var(--fw-bold)',
             display: 'inline-flex',
-            alignItems: 'baseline',
+            alignItems: 'center',
             gap: 4,
             whiteSpace: 'nowrap',
           }}
         >
-          <Store size={12} style={{ color: 'var(--text-3)', alignSelf: 'center' }} />
+          <Store size={12} style={{ color: 'var(--text-3)' }} />
           <span>Vendor</span>
-          <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 'var(--fw-normal)', opacity: 0.65, letterSpacing: '0.2px', textTransform: 'lowercase' }}>
+          <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.7, letterSpacing: '0.2px', textTransform: 'lowercase' }}>
             (optional)
           </span>
         </label>

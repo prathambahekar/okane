@@ -5,8 +5,6 @@ import {
   Handshake,
   Plus,
   Edit2,
-  Store,
-  Tv,
   RefreshCw,
   Zap,
   Play,
@@ -19,16 +17,14 @@ import { friendBalance, expenseFlow, contactTotalSpent } from '../db';
 import {
   fmtMoney,
   fmtDate,
-  friendInitial,
-  getAvatarStyle,
   cleanExpenseDescription,
   formatBillingCycleShort,
   groupExpenses,
   type GroupedExpense,
 } from '../utils';
 import type { ViewName, Expense } from '../types';
+import ContactAvatar from '../components/common/ContactAvatar';
 import FriendModal from '../components/FriendModal';
-import { renderBrandLogo } from '../components/BrandIcons';
 import { CategoryBadge } from '../components/CategoryIcon';
 import SettleModal from '../components/SettleModal';
 import ExpenseModal from '../components/ExpenseModal';
@@ -266,29 +262,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
           >
             {/* Contact Avatar & Title */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-              <div
-                style={{
-                  ...getAvatarStyle(friend.color),
-                  width: 44,
-                  height: 44,
-                  fontSize: 'var(--fs-lg)',
-                  fontWeight: 700,
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 'var(--radius-md)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
-                }}
-              >
-                {contactType === 'subscription' ? (
-                  renderBrandLogo(friend.name, 22) || <Tv size={20} />
-                ) : contactType === 'vendor' ? (
-                  <Store size={20} />
-                ) : (
-                  friendInitial(friend.name, friend.avatarNumber)
-                )}
-              </div>
+              <ContactAvatar
+                contact={friend}
+                size={44}
+                fontSize="var(--fs-lg)"
+                borderRadius="var(--radius-md)"
+                style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}
+              />
 
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
@@ -867,29 +847,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                  <div
-                    style={{
-                      ...getAvatarStyle(friend.color),
-                      width: 44,
-                      height: 44,
-                      fontSize: 'var(--fs-lg)',
-                      fontWeight: 700,
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: 'var(--radius-md)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
-                    }}
-                  >
-                    {contactType === 'subscription' ? (
-                      renderBrandLogo(friend.name, 22) || <Tv size={20} />
-                    ) : contactType === 'vendor' ? (
-                      <Store size={20} />
-                    ) : (
-                      friendInitial(friend.name, friend.avatarNumber)
-                    )}
-                  </div>
+                  <ContactAvatar
+                    contact={friend}
+                    size={44}
+                    fontSize="var(--fs-lg)"
+                    borderRadius="var(--radius-md)"
+                    style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}
+                  />
 
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
