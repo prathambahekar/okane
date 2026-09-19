@@ -455,6 +455,16 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                   <div
                     key={`${f.id}-${idx}`}
                     className="pending-settlement-subcard"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSettleFriend(f)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSettleFriend(f);
+                      }
+                    }}
+                    title={`Settle with ${f.name || 'Friend'}`}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, flex: 1 }}>
                       <div
@@ -541,14 +551,13 @@ export default function Settlements({ initialArg }: { initialArg?: string; onCle
                       </div>
                     </div>
 
-                    <button
-                      type="button"
+                    <div
                       className="pending-settle-btn"
-                      onClick={() => setSettleFriend(f)}
+                      aria-hidden="true"
                     >
                       <Handshake size={13.5} strokeWidth={2} />
                       <span>Settle</span>
-                    </button>
+                    </div>
                   </div>
                 );
               })}

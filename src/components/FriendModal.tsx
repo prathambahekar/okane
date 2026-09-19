@@ -372,7 +372,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gridTemplateColumns: friend?.type === 'subscription' || type === 'subscription' ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
                     gap: 4,
                     background: 'var(--surface2)',
                     padding: 4,
@@ -383,7 +383,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                   {[
                     { id: 'friend' as const, label: 'Friend', icon: User },
                     { id: 'vendor' as const, label: 'Vendor', icon: Store },
-                    { id: 'subscription' as const, label: 'Subscription', icon: Tv },
+                    ...((friend?.type === 'subscription' || type === 'subscription') ? [{ id: 'subscription' as const, label: 'Subscription', icon: Tv }] : []),
                   ].map(tab => {
                     const isSelected = type === tab.id;
                     const Icon = tab.icon;

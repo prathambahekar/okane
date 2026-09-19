@@ -377,17 +377,6 @@ export default function Friends({ onNavigate }: Props) {
             <Store size={16} style={{ flexShrink: 0, color: 'inherit' }} />
             <span className="type-label">Vendors</span>
           </button>
-
-          <button
-            type="button"
-            className={`type-btn ${typeFilter === 'subscription' ? 'active' : ''}`}
-            onClick={() => setTypeFilter('subscription')}
-            title="Subscriptions"
-            aria-label="Subscriptions"
-          >
-            <Tv size={16} style={{ flexShrink: 0, color: 'inherit' }} />
-            <span className="type-label">Subscriptions</span>
-          </button>
         </div>
 
         {/* Active Filter Chips (Accent Themed) */}
@@ -489,7 +478,7 @@ export default function Friends({ onNavigate }: Props) {
               </span>
             </div>
           </>
-        ) : typeFilter === 'vendor' ? (
+        ) : (
           <>
             <div className="summary-metric-card">
               <span className="metric-label">Vendor Orders Total</span>
@@ -504,48 +493,16 @@ export default function Friends({ onNavigate }: Props) {
               <span className="metric-value">{vendorAndSubSpend.vendorOrdersCount}</span>
             </div>
           </>
-        ) : typeFilter === 'subscription' ? (
-          <>
-            <div className="summary-metric-card">
-              <span className="metric-label">Subscriptions Spend</span>
-              <span className="metric-value">{fmtMoney(vendorAndSubSpend.subTotal, currency)}</span>
-            </div>
-            <div className="summary-metric-card">
-              <span className="metric-label">Est. Monthly Cost</span>
-              <span className="metric-value">{fmtMoney(vendorAndSubSpend.subMonthlyRecurring, currency)}</span>
-            </div>
-            <div className="summary-metric-card">
-              <span className="metric-label">Active Subscriptions</span>
-              <span className="metric-value">{counts.subscription}</span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="summary-metric-card">
-              <span className="metric-label">Vendor Orders Total</span>
-              <span className="metric-value">{fmtMoney(vendorAndSubSpend.vendorTotal, currency)}</span>
-            </div>
-            <div className="summary-metric-card">
-              <span className="metric-label">Subscriptions Spend</span>
-              <span className="metric-value">{fmtMoney(vendorAndSubSpend.subTotal, currency)}</span>
-            </div>
-            <div className="summary-metric-card">
-              <span className="metric-label">Combined Spend</span>
-              <span className="metric-value">{fmtMoney(vendorAndSubSpend.total, currency)}</span>
-            </div>
-          </>
         )}
       </div>
 
-      {/* Contacts List / Dedicated Subscriptions View */}
+      {/* Contacts List */}
       {counts[typeFilter] === 0 ? (
         <div className="card empty-state-card">
           <div className="empty-state">
             <div className="empty-state-icon-badge">
               {typeFilter === 'vendor' ? (
                 <Store size={24} strokeWidth={1.8} />
-              ) : typeFilter === 'subscription' ? (
-                <Tv size={24} strokeWidth={1.8} />
               ) : (
                 <Users size={24} strokeWidth={1.8} />
               )}
@@ -553,16 +510,12 @@ export default function Friends({ onNavigate }: Props) {
             <div className="empty-state-title">
               {typeFilter === 'friend'
                 ? 'No friends yet'
-                : typeFilter === 'vendor'
-                ? 'No vendors yet'
-                : 'No subscriptions yet'}
+                : 'No vendors yet'}
             </div>
             <p className="empty-state-desc">
               {typeFilter === 'friend'
                 ? 'Add friends to track shared expenses and balances.'
-                : typeFilter === 'vendor'
-                ? 'Add vendors and shops to log orders and payments.'
-                : 'Add subscriptions to manage renewals and recurring bills.'}
+                : 'Add vendors and shops to log orders and payments.'}
             </p>
             <button
               className="empty-state-btn"
@@ -575,9 +528,7 @@ export default function Friends({ onNavigate }: Props) {
               <span>
                 {typeFilter === 'friend'
                   ? 'Add Friend'
-                  : typeFilter === 'vendor'
-                  ? 'Add Vendor'
-                  : 'Add Subscription'}
+                  : 'Add Vendor'}
               </span>
             </button>
           </div>
@@ -589,10 +540,10 @@ export default function Friends({ onNavigate }: Props) {
               <Filter size={22} strokeWidth={1.8} />
             </div>
             <div className="empty-state-title" style={{ fontSize: '15px' }}>
-              No matching {typeFilter === 'friend' ? 'friends' : typeFilter === 'vendor' ? 'vendors' : 'subscriptions'}
+              No matching {typeFilter === 'friend' ? 'friends' : 'vendors'}
             </div>
             <p className="empty-state-desc" style={{ marginBottom: 16 }}>
-              No {typeFilter === 'friend' ? 'friends' : typeFilter === 'vendor' ? 'vendors' : 'subscriptions'} match your current filter or search.
+              No {typeFilter === 'friend' ? 'friends' : 'vendors'} match your current filter or search.
             </p>
             <button className="btn btn-secondary btn-sm" onClick={handleClearAll}>
               Clear Filters

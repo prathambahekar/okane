@@ -30,9 +30,7 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
   onToggleExpand,
   groupStatus,
   categoryObj,
-  walletObj,
   friendsMap,
-  walletsMap,
   settlementObj,
 }) => {
   const isTransfer = ge.category === 'Transfer' || ge.items.some((i: Expense) => i.category === 'Transfer');
@@ -41,16 +39,6 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
   const vendorId = ge.vendorId || ge.items.find((i: Expense) => i.vendorId)?.vendorId;
   const vendor = vendorId ? friendsMap.get(vendorId) : null;
   const friendsToShow = ge.isSettlementGroup ? rawFriends : (vendor ? rawFriends.filter(f => f.id !== vendor.id) : rawFriends);
-
-  const activeWallet = walletObj || (walletsMap && (ge.walletId ? walletsMap.get(ge.walletId) : (ge.items[0]?.walletId ? walletsMap.get(ge.items[0].walletId) : undefined)));
-
-  const isUnpaid =
-    groupStatus.statusKey === 'unpaid' ||
-    groupStatus.statusLabel?.toLowerCase() === 'unpaid' ||
-    ge.items.some((i: Expense) => i.status === 'unpaid') ||
-    (ge.items.some((i: Expense) => i.type === 'by_friend') && groupStatus.statusKey !== 'settled');
-
-  const showWallet = !isUnpaid && Boolean(activeWallet) && !ge.isSettlementGroup;
 
   const catMeta = resolveCategoryMeta(ge.category, categoryObj, ge.isSettlementGroup);
 
@@ -161,18 +149,8 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
               )}
             </div>
 
-            {/* Bottom Row: Smart Responsive Metadata (Category · Wallet · Contacts) */}
+            {/* Bottom Row: Metadata (Contacts / Friends / Settlements) */}
             <SmartExpenseMeta
-              category={!ge.isSettlementGroup && !isTransfer ? ge.category : undefined}
-              wallet={
-                showWallet && activeWallet && !isTransfer
-                  ? {
-                      name: activeWallet.name,
-                      icon: activeWallet.icon || activeWallet.name,
-                      color: activeWallet.color,
-                    }
-                  : undefined
-              }
               friends={friendsToShow}
               vendor={vendor}
               isSettlementGroup={ge.isSettlementGroup}

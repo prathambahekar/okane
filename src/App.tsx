@@ -454,7 +454,7 @@ function AppInner() {
       items: [
         { id: 'dashboard' as ViewName, label: 'Dashboard', icon: <Home size={19} /> },
         { id: 'expenses' as ViewName, label: 'Expenses', icon: <ReceiptText size={18} /> },
-        ...(enableAutopay ? [{ id: 'recurring' as ViewName, label: 'Autopay', icon: <RefreshCw size={18} />, badge: dueAutopaysCount, badgeColor: '#d32f2f', badgeBg: 'rgba(239, 83, 80, 0.15)' }] : []),
+        ...(enableAutopay ? [{ id: 'recurring' as ViewName, label: 'Subscriptions', icon: <RefreshCw size={18} />, badge: dueAutopaysCount, badgeColor: '#d32f2f', badgeBg: 'rgba(239, 83, 80, 0.15)' }] : []),
         { id: 'wallets' as ViewName, label: 'Wallets', icon: <Wallet size={18} /> },
       ]
     },
@@ -488,7 +488,7 @@ function AppInner() {
 
   const moreItems: { id: ViewName; label: string; icon: React.ReactNode }[] = [
     ...(enableSplitTrips ? [{ id: 'split-trips' as ViewName, label: 'Splits & Groups', icon: <Users size={20} /> }] : []),
-    ...(enableAutopay ? [{ id: 'recurring' as ViewName, label: 'Autopay', icon: <RefreshCw size={20} /> }] : []),
+    ...(enableAutopay ? [{ id: 'recurring' as ViewName, label: 'Subscriptions', icon: <RefreshCw size={20} /> }] : []),
     { id: 'wallets', label: 'Wallets', icon: <Wallet size={20} /> },
     { id: 'settlements', label: 'Settlements', icon: <Handshake size={20} /> },
     { id: 'analytics', label: 'Statistics', icon: <BarChart3 size={20} /> },
@@ -839,7 +839,7 @@ function AppInner() {
                    view === 'friends' ? 'Contacts' :
                    view === 'friend-detail' ? 'Contact Details' :
                    view === 'wallets' ? 'Wallets' :
-                   view === 'recurring' ? 'Autopay' :
+                   view === 'recurring' ? 'Subscriptions' :
                    view === 'analytics' ? 'Statistics' :
                    view === 'settlements' ? 'Settlements' :
                    view === 'split-trips' ? 'Splits & Groups' :
@@ -989,8 +989,8 @@ function AppInner() {
                     flexShrink: 0,
                     transition: 'transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease',
                   }}
-                  title="Add Subscription / Autopay"
-                  aria-label="Add Subscription / Autopay"
+                  title="Add Subscription"
+                  aria-label="Add Subscription"
                 >
                   <Plus size={18} />
                 </button>

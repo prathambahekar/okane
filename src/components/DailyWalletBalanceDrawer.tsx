@@ -919,7 +919,6 @@ export default function DailyWalletBalanceDrawer({
                           <div className="day-tx-meta">
                             <span className="day-tx-title">{cleanDesc || tx.description}</span>
                             <SmartExpenseMeta
-                              category={tx.category}
                               wallet={{
                                 name: tx.walletName,
                                 icon: walletObj?.icon || tx.walletName,

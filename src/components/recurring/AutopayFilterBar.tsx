@@ -165,7 +165,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
                     </div>
                   ) : (
                     <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
-                      Refine subscriptions & autopay
+                      Refine subscriptions
                     </div>
                   )}
                 </div>

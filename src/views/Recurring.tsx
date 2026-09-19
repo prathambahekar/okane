@@ -254,10 +254,10 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
       {/* Page Header Bar matching Expenses / Settlements */}
       <div className="page-header" style={{ marginBottom: 14 }}>
         <div>
-          <h1 className="page-title">Autopay</h1>
+          <h1 className="page-title">Subscriptions</h1>
         </div>
         <div className="desktop-search-filter-wrap desktop-only">
-          <DesktopSearchBar placeholder="Search subscriptions, autopay..." defaultTab="recurring" />
+          <DesktopSearchBar placeholder="Search subscriptions..." defaultTab="recurring" />
           <button
             type="button"
             id="desktop-filter-recurring-btn"

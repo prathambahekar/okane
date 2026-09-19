@@ -519,7 +519,7 @@ export const DailyExpenditureCard: React.FC<DailyExpenditureCardProps> = ({
                         {row.count === 0 ? (
                           row.isFuture ? 'Upcoming day' : 'No transactions'
                         ) : (
-                          `${row.count} ${row.count === 1 ? 'item' : 'items'} · ${row.topCategory}`
+                          `${row.count} ${row.count === 1 ? 'item' : 'items'}`
                         )}
                       </div>
                     </div>

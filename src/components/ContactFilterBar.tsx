@@ -11,7 +11,6 @@ import {
   Check,
   User,
   Store,
-  Tv,
   ArrowUpDown,
   LayoutGrid,
   List,
@@ -292,7 +291,7 @@ export const ContactFilterBar: React.FC<Props> = ({
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
                     gap: 4,
                     backgroundColor: 'var(--surface2)',
                     padding: 3,
@@ -303,7 +302,6 @@ export const ContactFilterBar: React.FC<Props> = ({
                   {[
                     { id: 'friend' as ContactType, label: 'Friends', icon: <User size={13} /> },
                     { id: 'vendor' as ContactType, label: 'Vendors', icon: <Store size={13} /> },
-                    { id: 'subscription' as ContactType, label: 'Subscriptions', icon: <Tv size={13} /> },
                   ].map(tab => {
                     const isSelected = typeFilter === tab.id;
                     return (

@@ -377,7 +377,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
       : activeTab === 'trips'
       ? 'Search trips & split groups...'
       : activeTab === 'recurring'
-      ? 'Search subscriptions & autopays...'
+      ? 'Search subscriptions...'
       : activeTab === 'settings'
       ? 'Search settings, themes, currency, backups, features...'
       : 'Search across expenses, contacts, settings...';

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Plus, TrendingUp, TrendingDown, Users, ReceiptText, ArrowLeftRight, ArrowRight, Eye, EyeOff, Flame, CheckCircle2, ArrowUpRight, ArrowDownLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '../store';
 import { walletBalance, totalWalletBalance, expenseFlow, monthKey, allFriendBalances, unsettledExpensesForFriend } from '../db';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, groupExpenses, getGroupedExpenseAmount, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../utils';
+import { fmtMoney, friendInitial, getAvatarStyle, groupExpenses, getGroupedExpenseAmount, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../utils';
 import type { Friend, ViewName, Expense } from '../types';
 import CategoryIcon from '../components/CategoryIcon';
 import CategoryDistributionCard, { type CategoryBreakdownItem } from '../components/analytics/CategoryDistributionCard';
@@ -548,8 +548,6 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                           )}
                         </div>
                         <SmartExpenseMeta
-                          category={!isSettlement && ge.category !== 'Transfer' ? ge.category : undefined}
-                          dateText={fmtDate(ge.date)}
                           friends={friendsInGroup.filter((f): f is Friend => Boolean(f && f.type !== 'vendor'))}
                           vendor={friendsInGroup.find((f): f is Friend => Boolean(f && f.type === 'vendor')) || null}
                           style={{ fontSize: 'var(--fs-xs)', marginTop: 2 }}

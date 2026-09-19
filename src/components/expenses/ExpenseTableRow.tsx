@@ -132,10 +132,8 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                   )
                 )}
               </div>
-              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {!ge.isSettlementGroup && !isTransfer && <span style={{ flexShrink: 0 }}>{ge.category}</span>}
-                {!ge.isSettlementGroup && !isTransfer && friendsToShow.length > 0 && <span style={{ flexShrink: 0 }}>•</span>}
-                {friendsToShow.length > 0 && (
+              {friendsToShow.length > 0 && (
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-3)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {friendsToShow.map((f: Friend | undefined, fIdx: number) => f && (
                       <span key={`${f.id}-${fIdx}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
@@ -146,8 +144,8 @@ export const ExpenseTableRow: React.FC<Props> = React.memo(({
                       </span>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </td>

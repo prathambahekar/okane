@@ -21,7 +21,6 @@ import {
   fmtDate,
   friendInitial,
   getAvatarStyle,
-  typeLabel,
   cleanExpenseDescription,
   formatBillingCycleShort,
   groupExpenses,
@@ -740,10 +739,6 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       ? 'var(--debit, #ef4444)'
                       : 'var(--text)';
 
-                    const subLabel = isSettlement && friend
-                      ? friend.name
-                      : (e.category || typeLabel(e.type, contactType));
-
                     return (
                       <div
                         key={`${e.id}-${idx}`}
@@ -768,8 +763,6 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                             </div>
                             <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
                               <span>{fmtDate(e.originalDate || e.date)}</span>
-                              <span>•</span>
-                              <span>{subLabel}</span>
                             </div>
                           </div>
                         </div>
@@ -1086,10 +1079,6 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                         ? 'var(--debit, #ef4444)'
                         : 'var(--text)';
 
-                      const subLabel = isSettlement && friend
-                        ? friend.name
-                        : (e.category || typeLabel(e.type, contactType));
-
                       return (
                         <div
                           key={`${e.id}-${idx}`}
@@ -1115,28 +1104,6 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                               </div>
                               <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
                                 <span>{fmtDate(e.originalDate || e.date)}</span>
-                                <span>•</span>
-                                {isSettlement && friend ? (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <span
-                                      className="avatar avatar-sm"
-                                      style={{
-                                        ...getAvatarStyle(friend.color),
-                                        width: 14,
-                                        height: 14,
-                                        fontSize: 7.5,
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                      }}
-                                    >
-                                      {friendInitial(friend.name, friend.avatarNumber)}
-                                    </span>
-                                    <span>{friend.name}</span>
-                                  </span>
-                                ) : (
-                                  <span>{subLabel}</span>
-                                )}
                               </div>
                             </div>
                           </div>

@@ -1,8 +1,7 @@
 import React from 'react';
-import { Wallet as WalletIcon, HeartHandshake } from 'lucide-react';
+import { HeartHandshake } from 'lucide-react';
 import type { Settlement, Friend, Wallet } from '../../types';
 import { fmtMoney, fmtDate, friendInitial, getAvatarStyle } from '../../utils';
-import { renderWalletIcon } from '../WalletIconRenderer';
 
 interface SettlementCompactCardProps {
   settlement: Settlement;
@@ -13,25 +12,15 @@ interface SettlementCompactCardProps {
   onUndo?: (id: string) => void;
 }
 
-function getWalletIconNode(keyOrName?: string) {
-  if (!keyOrName) return <WalletIcon size={13} strokeWidth={2} />;
-  const rendered = renderWalletIcon(keyOrName, 13);
-  return rendered || <WalletIcon size={13} strokeWidth={2} />;
-}
-
 export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React.memo(({
   settlement,
   friend,
-  wallet,
   currency,
   onSelect,
 }) => {
   const isForgiven = Boolean(settlement.isForgiven);
-  const walletName = isForgiven ? 'Forgiven / Waived' : (wallet?.name || settlement.paymentMethod);
   const amtVal = Number(settlement.amount) || 0;
   const isReceived = amtVal >= 0;
-  const walletKeyOrName = wallet?.icon || wallet?.name || settlement.paymentMethod;
-  const hasWallet = !isForgiven && Boolean(walletKeyOrName);
 
   return (
     <div
@@ -88,7 +77,7 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
             >
               {friend ? friend.name : 'Deleted friend'}
             </span>
-            {isForgiven ? (
+            {isForgiven && (
               <span
                 style={{
                   display: 'inline-flex',
@@ -109,26 +98,6 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
                 <HeartHandshake size={11} strokeWidth={2.2} />
                 <span>Forgiven</span>
               </span>
-            ) : (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 3.5,
-                  padding: '1.5px 7px',
-                  borderRadius: 6,
-                  fontSize: 10.5,
-                  fontWeight: 600,
-                  backgroundColor: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-2)',
-                  flexShrink: 0,
-                  lineHeight: 1.2,
-                  letterSpacing: '0.01em',
-                }}
-              >
-                <span>Settlement</span>
-              </span>
             )}
           </div>
           <div
@@ -146,34 +115,6 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
             }}
           >
             <span style={{ flexShrink: 0 }}>{fmtDate(settlement.date)}</span>
-            {hasWallet && (
-              <span
-                title={walletName || 'Wallet'}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  padding: '2px 6px',
-                  borderRadius: 6,
-                  backgroundColor: 'var(--surface2)',
-                  border: '1px solid var(--border)',
-                  fontSize: 11,
-                  fontWeight: 550,
-                  color: 'var(--text-2)',
-                  flexShrink: 0,
-                  lineHeight: 1.2,
-                }}
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, width: 13, height: 13 }}>
-                  {getWalletIconNode(walletKeyOrName)}
-                </span>
-                {walletName && (
-                  <span className="settlement-wallet-name-desktop" style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120, whiteSpace: 'nowrap' }}>
-                    {walletName}
-                  </span>
-                )}
-              </span>
-            )}
             {settlement.note && settlement.note !== 'Forgiven / Waived off' && (
               <span style={{ color: 'var(--text-3)', fontStyle: 'italic', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 "{settlement.note}"

@@ -3325,14 +3325,14 @@ export default function Settings({
                   />
                 </div>
 
-                {/* 2. Autopay & Subscriptions */}
+                {/* 2. Subscriptions */}
                 <div className="drawer-setting-card">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                     <div className="drawer-card-icon">
                       <RefreshCw size={18} />
                     </div>
                     <div className="drawer-card-info">
-                      <div className="drawer-card-title">Autopay & Subs</div>
+                      <div className="drawer-card-title">Subscriptions</div>
                       <div className="drawer-card-sub">Recurring bills & logs</div>
                     </div>
                   </div>
@@ -3343,7 +3343,7 @@ export default function Settings({
                         type="button"
                         className="drawer-action-icon-btn"
                         onClick={() => { setShowAdvancedSheet(false); onNavigate('recurring'); }}
-                        title="Open Autopay & Subscriptions"
+                        title="Open Subscriptions"
                       >
                         <ArrowUpRight size={16} />
                       </button>
@@ -3354,7 +3354,7 @@ export default function Settings({
                       onChange={(e) => {
                         const enabled = e.target.checked;
                         updateSettings({ enableAutopay: enabled });
-                        showToast(enabled ? 'Autopay enabled' : 'Autopay disabled');
+                        showToast(enabled ? 'Subscriptions enabled' : 'Subscriptions disabled');
                       }}
                     />
                   </div>
