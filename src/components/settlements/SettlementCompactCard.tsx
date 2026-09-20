@@ -43,7 +43,7 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
               ...getAvatarStyle(friend.color),
               width: 38,
               height: 38,
-              fontSize: 13.5,
+              fontSize: 'var(--fs-sm)',
               fontWeight: 700,
               flexShrink: 0,
               borderRadius: 11,
@@ -67,7 +67,7 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
             <span
               style={{
                 fontWeight: 600,
-                fontSize: 14.5,
+                fontSize: 'var(--fs-base)',
                 color: 'var(--text)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -84,8 +84,8 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
                   alignItems: 'center',
                   gap: 3.5,
                   padding: '1.5px 7px',
-                  borderRadius: 6,
-                  fontSize: 10.5,
+                  borderRadius: 'var(--radius-xs)',
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 650,
                   backgroundColor: 'var(--amber-bg)',
                   border: '1px solid var(--amber-border)',
@@ -102,7 +102,7 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
           </div>
           <div
             style={{
-              fontSize: 12,
+              fontSize: 'var(--fs-xs)',
               color: 'var(--text-3)',
               marginTop: 2.5,
               fontWeight: 500,
@@ -128,7 +128,7 @@ export const SettlementCompactCard: React.FC<SettlementCompactCardProps> = React
         <div
           style={{
             fontWeight: 700,
-            fontSize: 14.5,
+            fontSize: 'var(--fs-base)',
             color: isForgiven ? 'var(--amber)' : (isReceived ? 'var(--credit)' : 'var(--debit)'),
             fontVariantNumeric: 'tabular-nums',
             whiteSpace: 'nowrap',

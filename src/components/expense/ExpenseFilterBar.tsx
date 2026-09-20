@@ -140,15 +140,15 @@ export const ExpenseFilterBar: React.FC<Props> = ({
               <Filter size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+              <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
                 Filters & Sorting
               </div>
               {activeFilterCount > 0 ? (
-                <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 550, marginTop: 2 }}>
+                <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 550, marginTop: 2 }}>
                   {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}
                 </div>
               ) : (
-                <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
+                <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
                   Refine transaction view
                 </div>
               )}
@@ -226,7 +226,7 @@ export const ExpenseFilterBar: React.FC<Props> = ({
           <div>
             <div
               style={{
-                fontSize: '11.5px',
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.6px',
@@ -239,8 +239,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               {[
                 { id: '', label: 'All', icon: Layers },
-                { id: 'out', label: 'Spent', icon: ArrowUpRight, color: 'var(--debit, #ef4444)' },
-                { id: 'in', label: 'Received', icon: ArrowDownLeft, color: 'var(--credit, #22c55e)' },
+                { id: 'out', label: 'Spent', icon: ArrowUpRight, color: 'var(--debit)' },
+                { id: 'in', label: 'Received', icon: ArrowDownLeft, color: 'var(--credit)' },
               ].map(f => {
                 const isSelected = flowFilter === f.id;
                 const Icon = f.icon;
@@ -255,8 +255,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
                       justifyContent: 'center',
                       gap: 6,
                       padding: '10px 8px',
-                      borderRadius: 12,
-                      fontSize: '12.5px',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: isSelected ? 700 : 550,
                       backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                       color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -278,7 +278,7 @@ export const ExpenseFilterBar: React.FC<Props> = ({
           <div>
             <div
               style={{
-                fontSize: '11.5px',
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.6px',
@@ -306,8 +306,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '10px 14px',
-                      borderRadius: 12,
-                      fontSize: '12.5px',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: isSelected ? 700 : 550,
                       backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                       color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -329,7 +329,7 @@ export const ExpenseFilterBar: React.FC<Props> = ({
           <div>
             <div
               style={{
-                fontSize: '11.5px',
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.6px',
@@ -349,7 +349,7 @@ export const ExpenseFilterBar: React.FC<Props> = ({
                     background: 'none',
                     border: 'none',
                     color: 'var(--text-2)',
-                    fontSize: '11px',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 600,
                     cursor: 'pointer',
                     padding: 0,
@@ -368,8 +368,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
                   alignItems: 'center',
                   gap: 6,
                   padding: '7px 14px',
-                  borderRadius: 9999,
-                  fontSize: '12.5px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-xs)',
                   fontWeight: catFilter === '' ? 700 : 550,
                   backgroundColor: catFilter === '' ? 'var(--accent)' : 'var(--surface2)',
                   color: catFilter === '' ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -397,8 +397,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
                       alignItems: 'center',
                       gap: 6,
                       padding: '7px 14px',
-                      borderRadius: 9999,
-                      fontSize: '12.5px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: isSelected ? 700 : 550,
                       backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                       color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -420,7 +420,7 @@ export const ExpenseFilterBar: React.FC<Props> = ({
           <div>
             <div
               style={{
-                fontSize: '11.5px',
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.6px',
@@ -448,8 +448,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '10px 14px',
-                      borderRadius: 12,
-                      fontSize: '12.5px',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: isSelected ? 700 : 550,
                       backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                       color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -472,7 +472,7 @@ export const ExpenseFilterBar: React.FC<Props> = ({
             <div>
               <div
                 style={{
-                  fontSize: '11.5px',
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.6px',
@@ -492,7 +492,7 @@ export const ExpenseFilterBar: React.FC<Props> = ({
                       background: 'none',
                       border: 'none',
                       color: 'var(--text-2)',
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 600,
                       cursor: 'pointer',
                       padding: 0,
@@ -511,8 +511,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
                     alignItems: 'center',
                     gap: 6,
                     padding: '7px 14px',
-                    borderRadius: 9999,
-                    fontSize: '12.5px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: 'var(--fs-xs)',
                     fontWeight: walletFilter === '' ? 700 : 550,
                     backgroundColor: walletFilter === '' ? 'var(--accent)' : 'var(--surface2)',
                     color: walletFilter === '' ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -538,8 +538,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
                         alignItems: 'center',
                         gap: 6,
                         padding: '7px 14px',
-                        borderRadius: 9999,
-                        fontSize: '12.5px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: isSelected ? 700 : 550,
                         backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                         color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -578,8 +578,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
             style={{
               flex: 1,
               height: 44,
-              borderRadius: 9999,
-              fontSize: '13.5px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: 'var(--fs-sm)',
               fontWeight: 650,
               backgroundColor: 'var(--surface2)',
               border: '1px solid var(--border)',
@@ -603,8 +603,8 @@ export const ExpenseFilterBar: React.FC<Props> = ({
             style={{
               flex: 1.6,
               height: 44,
-              borderRadius: 9999,
-              fontSize: '13.5px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: 'var(--fs-sm)',
               fontWeight: 700,
               backgroundColor: 'var(--accent)',
               color: 'var(--accent-contrast)',
@@ -620,7 +620,7 @@ export const ExpenseFilterBar: React.FC<Props> = ({
           >
             <span>Apply</span>
             {filteredCount !== undefined && (
-              <span style={{ fontSize: '12px', opacity: 0.85, fontWeight: 600 }}>({filteredCount})</span>
+              <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.85, fontWeight: 600 }}>({filteredCount})</span>
             )}
           </button>
         </div>

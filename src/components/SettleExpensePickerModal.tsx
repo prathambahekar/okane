@@ -280,28 +280,28 @@ export default function SettleExpensePickerModal({
                 ...getAvatarStyle(friend.color),
                 width: 44,
                 height: 44,
-                borderRadius: 14,
-                fontSize: 16,
+                borderRadius: 'var(--radius-md)',
+                fontSize: 'var(--fs-lg)',
                 fontWeight: 800,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+                boxShadow: 'var(--shadow)',
               }}
             >
               {isVendor ? <Store size={20} /> : friendInitial(friend.name, friend.avatarNumber)}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2, letterSpacing: '-0.3px' }}>
+              <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 800, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2, letterSpacing: '-0.3px' }}>
                 {title}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>
+                <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-2)' }}>
                   {friend.name}
                 </span>
-                <span style={{ color: 'var(--text-3)', fontSize: 10, opacity: 0.6 }}>•</span>
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-3)' }}>
+                <span style={{ color: 'var(--text-3)', fontSize: 'var(--fs-caption)', opacity: 0.6 }}>•</span>
+                <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 500, color: 'var(--text-3)' }}>
                   {expenses.length} pending transaction{expenses.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -313,7 +313,7 @@ export default function SettleExpensePickerModal({
             style={{
               width: 32,
               height: 32,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -350,7 +350,7 @@ export default function SettleExpensePickerModal({
               position: 'relative',
               background: isSearchFocused ? 'var(--surface)' : 'var(--surface2)',
               border: isSearchFocused ? '1px solid var(--border2)' : '1px solid var(--border)',
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               padding: '0 13px',
               height: 38,
               boxShadow: 'none',
@@ -378,7 +378,7 @@ export default function SettleExpensePickerModal({
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                fontSize: 13,
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 500,
                 color: 'var(--text)',
                 padding: '7px 0',
@@ -427,8 +427,8 @@ export default function SettleExpensePickerModal({
                 style={{
                   height: 35,
                   padding: '0 16px',
-                  borderRadius: 9999,
-                  fontSize: 13,
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: filterType === 'all' ? 700 : 550,
                   background: filterType === 'all' ? 'var(--text)' : 'var(--surface2)',
                   color: filterType === 'all' ? 'var(--bg)' : 'var(--text-2)',
@@ -449,8 +449,8 @@ export default function SettleExpensePickerModal({
                 style={{
                   height: 35,
                   padding: '0 16px',
-                  borderRadius: 9999,
-                  fontSize: 13,
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: filterType === 'owed_to_me' ? 700 : 550,
                   background: filterType === 'owed_to_me' ? 'var(--text)' : 'var(--surface2)',
                   color: filterType === 'owed_to_me' ? 'var(--bg)' : 'var(--text-2)',
@@ -471,8 +471,8 @@ export default function SettleExpensePickerModal({
                 style={{
                   height: 35,
                   padding: '0 16px',
-                  borderRadius: 9999,
-                  fontSize: 13,
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: filterType === 'owed_by_me' ? 700 : 550,
                   background: filterType === 'owed_by_me' ? 'var(--text)' : 'var(--surface2)',
                   color: filterType === 'owed_by_me' ? 'var(--bg)' : 'var(--text-2)',
@@ -498,7 +498,7 @@ export default function SettleExpensePickerModal({
               style={{
                 width: 36,
                 height: 35,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 background: isFilterActive ? 'var(--surface3)' : 'var(--surface2)',
                 color: isFilterActive ? 'var(--text)' : 'var(--text-2)',
                 border: isFilterActive ? '1px solid var(--border2)' : '1px solid var(--border)',
@@ -552,8 +552,8 @@ export default function SettleExpensePickerModal({
           {filteredExpenses.length === 0 ? (
             <div style={{ padding: '36px 16px', textAlign: 'center', color: 'var(--text-3)' }}>
               <ReceiptText size={28} style={{ opacity: 0.4, margin: '0 auto 8px' }} />
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>No expenses found</div>
-              <div style={{ fontSize: 11.5, marginTop: 2 }}>
+              <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--text-2)' }}>No expenses found</div>
+              <div style={{ fontSize: 'var(--fs-caption)', marginTop: 2 }}>
                 {search ? 'Try adjusting your search query' : 'No unsettled transactions match this filter'}
               </div>
             </div>
@@ -580,7 +580,7 @@ export default function SettleExpensePickerModal({
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     boxShadow: 'none',
-                    borderRadius: 16,
+                    borderRadius: 'var(--radius-lg)',
                     cursor: 'pointer',
                     userSelect: 'none',
                     transition: 'all 0.12s ease',
@@ -591,7 +591,7 @@ export default function SettleExpensePickerModal({
                     style={{
                       width: 20,
                       height: 20,
-                      borderRadius: 6,
+                      borderRadius: 'var(--radius-xs)',
                       border: isSelected ? 'none' : '1.5px solid var(--border2, var(--text-3))',
                       background: isSelected ? 'var(--text)' : 'transparent',
                       color: 'var(--bg)',
@@ -609,7 +609,7 @@ export default function SettleExpensePickerModal({
                     style={{
                       width: 38,
                       height: 38,
-                      borderRadius: 12,
+                      borderRadius: 'var(--radius-md)',
                       backgroundColor: catMeta.bg,
                       display: 'grid',
                       placeItems: 'center',
@@ -629,7 +629,7 @@ export default function SettleExpensePickerModal({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span
                         style={{
-                          fontSize: 14,
+                          fontSize: 'var(--fs-base)',
                           fontWeight: 700,
                           color: 'var(--text)',
                           lineHeight: 1.3,
@@ -645,10 +645,10 @@ export default function SettleExpensePickerModal({
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: 4.5,
-                            fontSize: 10.5,
+                            fontSize: 'var(--fs-caption)',
                             fontWeight: 650,
                             padding: '2px 7px',
-                            borderRadius: 6,
+                            borderRadius: 'var(--radius-xs)',
                             background: 'var(--surface3)',
                             color: 'var(--text)',
                             border: '1px solid var(--border)',
@@ -678,7 +678,7 @@ export default function SettleExpensePickerModal({
                       ) : null}
                     </div>
 
-                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 500, color: 'var(--text-2)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span>{fmtDate(e.originalDate || e.date)}</span>
                       {e.category ? (
                         <>
@@ -689,7 +689,7 @@ export default function SettleExpensePickerModal({
                       {hasDiffOrig ? (
                         <>
                           <span style={{ color: 'var(--text-3)', fontSize: 9 }}>•</span>
-                          <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 11.5 }}>Orig {fmtMoney(origAmt!, currency)}</span>
+                          <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 'var(--fs-caption)' }}>Orig {fmtMoney(origAmt!, currency)}</span>
                         </>
                       ) : null}
                     </div>
@@ -700,7 +700,7 @@ export default function SettleExpensePickerModal({
                     <div
                       style={{
                         fontWeight: 750,
-                        fontSize: 14,
+                        fontSize: 'var(--fs-base)',
                         letterSpacing: '0.2px',
                         color: isToMe ? 'var(--credit)' : 'var(--debit)',
                       }}
@@ -708,7 +708,7 @@ export default function SettleExpensePickerModal({
                       {isToMe ? '+' : '-'}{fmtMoney(e.amount, currency)}
                     </div>
                     {hasDiffOrig ? (
-                      <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>
+                      <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', marginTop: 1 }}>
                         og {fmtMoney(origAmt!, currency)}
                       </div>
                     ) : null}
@@ -738,7 +738,7 @@ export default function SettleExpensePickerModal({
               alignItems: 'center',
               padding: '12px 16px',
               background: 'var(--surface2)',
-              borderRadius: 18,
+              borderRadius: 'var(--radius-xl)',
               border: '1px solid var(--border)',
             }}
           >
@@ -758,25 +758,25 @@ export default function SettleExpensePickerModal({
               >
                 <Check size={13} strokeWidth={2.8} />
               </div>
-              <span style={{ fontSize: 13, color: 'var(--text-2)' }}>
+              <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)' }}>
                 <strong style={{ color: 'var(--text)', fontWeight: 700 }}>{selectedSet.size}</strong> of {expenses.length} selected
               </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-3)', letterSpacing: '0.2px' }}>
+              <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-3)', letterSpacing: '0.2px' }}>
                 Net Total:
               </span>
               <span
                 style={{
                   fontWeight: 750,
-                  fontSize: 14,
+                  fontSize: 'var(--fs-base)',
                   letterSpacing: '0.2px',
                   color: netTotal >= 0 ? 'var(--credit)' : 'var(--debit)',
                   background: netTotal >= 0 ? 'rgba(34, 197, 94, 0.14)' : 'rgba(239, 68, 68, 0.14)',
                   border: netTotal >= 0 ? '1px solid rgba(34, 197, 94, 0.28)' : '1px solid rgba(239, 68, 68, 0.28)',
                   padding: '3px 9px',
-                  borderRadius: 8,
+                  borderRadius: 'var(--radius-sm)',
                   display: 'inline-flex',
                   alignItems: 'center',
                 }}
@@ -794,8 +794,8 @@ export default function SettleExpensePickerModal({
               style={{
                 flex: 1,
                 height: 44,
-                borderRadius: 9999,
-                fontSize: 13.5,
+                borderRadius: 'var(--radius-full)',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 650,
                 border: '1px solid var(--border)',
                 background: 'var(--surface2)',
@@ -830,13 +830,13 @@ export default function SettleExpensePickerModal({
               style={{
                 flex: 1.2,
                 height: 44,
-                borderRadius: 9999,
-                fontSize: 13.5,
+                borderRadius: 'var(--radius-full)',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 700,
                 background: 'var(--text)',
                 border: '1px solid var(--text)',
                 color: 'var(--bg)',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                boxShadow: 'var(--shadow)',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -897,7 +897,7 @@ export default function SettleExpensePickerModal({
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Filter size={15} strokeWidth={2.2} style={{ color: 'var(--text-2)' }} />
-                    <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Filter & Sort</span>
+                    <span style={{ fontSize: 'var(--fs-md)', fontWeight: 700, color: 'var(--text)' }}>Filter & Sort</span>
                   </div>
                   <button
                     type="button"
@@ -918,7 +918,7 @@ export default function SettleExpensePickerModal({
 
                 {/* Sort By Section */}
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)', marginBottom: 8 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)', marginBottom: 8 }}>
                     SORT BY
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -937,8 +937,8 @@ export default function SettleExpensePickerModal({
                           onClick={() => setSortBy(opt.id as ExpenseSortOption)}
                           style={{
                             padding: '6px 13px',
-                            borderRadius: 9999,
-                            fontSize: 12,
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: 'var(--fs-xs)',
                             fontWeight: isSelected ? 700 : 500,
                             background: isSelected ? 'var(--text)' : 'var(--surface2)',
                             color: isSelected ? 'var(--bg)' : 'var(--text-2)',
@@ -956,7 +956,7 @@ export default function SettleExpensePickerModal({
 
                 {/* Quick Selection Section */}
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)', marginBottom: 8 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)', marginBottom: 8 }}>
                     SELECTION
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -974,8 +974,8 @@ export default function SettleExpensePickerModal({
                       style={{
                         flex: 1,
                         padding: '8px 12px',
-                        borderRadius: 10,
-                        fontSize: 12,
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: 650,
                         background: 'var(--surface2)',
                         color: 'var(--text)',
@@ -998,8 +998,8 @@ export default function SettleExpensePickerModal({
                       style={{
                         flex: 1,
                         padding: '8px 12px',
-                        borderRadius: 10,
-                        fontSize: 12,
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: 650,
                         background: 'var(--surface2)',
                         color: 'var(--text)',
@@ -1020,7 +1020,7 @@ export default function SettleExpensePickerModal({
                 {/* Participant Filter (If vendor has multiple participants) */}
                 {isVendor && friendStats.hasMultipleParticipants && (
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)', marginBottom: 8 }}>
+                    <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-3)', marginBottom: 8 }}>
                       PARTICIPANT
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -1029,8 +1029,8 @@ export default function SettleExpensePickerModal({
                         onClick={() => setFriendFilter('all')}
                         style={{
                           padding: '5px 11px',
-                          borderRadius: 9999,
-                          fontSize: 12,
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: friendFilter === 'all' ? 700 : 500,
                           background: friendFilter === 'all' ? 'var(--text)' : 'var(--surface2)',
                           color: friendFilter === 'all' ? 'var(--bg)' : 'var(--text-2)',
@@ -1046,8 +1046,8 @@ export default function SettleExpensePickerModal({
                           onClick={() => setFriendFilter('personal')}
                           style={{
                             padding: '5px 11px',
-                            borderRadius: 9999,
-                            fontSize: 12,
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: 'var(--fs-xs)',
                             fontWeight: friendFilter === 'personal' ? 700 : 500,
                             background: friendFilter === 'personal' ? 'var(--text)' : 'var(--surface2)',
                             color: friendFilter === 'personal' ? 'var(--bg)' : 'var(--text-2)',
@@ -1067,8 +1067,8 @@ export default function SettleExpensePickerModal({
                             onClick={() => setFriendFilter(f.id)}
                             style={{
                               padding: '5px 11px',
-                              borderRadius: 9999,
-                              fontSize: 12,
+                              borderRadius: 'var(--radius-full)',
+                              fontSize: 'var(--fs-xs)',
                               fontWeight: isActive ? 700 : 500,
                               background: isActive ? 'var(--text)' : 'var(--surface2)',
                               color: isActive ? 'var(--bg)' : 'var(--text-2)',
@@ -1090,11 +1090,11 @@ export default function SettleExpensePickerModal({
                   onClick={() => setShowFilterSheet(false)}
                   style={{
                     height: 40,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     background: 'var(--text)',
                     color: 'var(--bg)',
                     border: 'none',
-                    fontSize: 13,
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 700,
                     cursor: 'pointer',
                     marginTop: 4,

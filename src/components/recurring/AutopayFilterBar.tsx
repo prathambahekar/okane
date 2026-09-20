@@ -156,15 +156,15 @@ export const AutopayFilterBar: React.FC<Props> = ({
                   <Filter size={18} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+                  <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
                     Filters & Sorting
                   </div>
                   {activeFilterCount > 0 ? (
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 550, marginTop: 2 }}>
+                    <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 550, marginTop: 2 }}>
                       {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}
                     </div>
                   ) : (
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
+                    <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
                       Refine subscriptions
                     </div>
                   )}
@@ -216,7 +216,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
               <div>
                 <div
                   style={{
-                    fontSize: '11.5px',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.6px',
@@ -233,7 +233,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
                     gap: 10,
                     backgroundColor: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: 12,
+                    borderRadius: 'var(--radius-md)',
                     padding: '10px 14px',
                     transition: 'border-color 0.15s ease',
                   }}
@@ -249,7 +249,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
                       background: 'transparent',
                       border: 'none',
                       outline: 'none',
-                      fontSize: '13px',
+                      fontSize: 'var(--fs-sm)',
                       color: 'var(--text)',
                       width: '100%',
                       fontFamily: 'inherit',
@@ -270,7 +270,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
                         padding: 2,
                         display: 'grid',
                         placeItems: 'center',
-                        borderRadius: 4,
+                        borderRadius: 'var(--radius-xs)',
                       }}
                       aria-label="Clear search text"
                     >
@@ -284,7 +284,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
               <div>
                 <div
                   style={{
-                    fontSize: '11.5px',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.6px',
@@ -311,8 +311,8 @@ export const AutopayFilterBar: React.FC<Props> = ({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '10px 14px',
-                          borderRadius: 12,
-                          fontSize: '12.5px',
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: isSelected ? 700 : 550,
                           backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                           color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -325,7 +325,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
                           <Icon size={14} style={{ color: isSelected ? 'var(--accent-contrast)' : 'var(--text-3)', flexShrink: 0 }} />
                           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.label}</span>
-                          <span style={{ fontSize: '11px', opacity: isSelected ? 0.9 : 0.65 }}>({tab.count})</span>
+                          <span style={{ fontSize: 'var(--fs-caption)', opacity: isSelected ? 0.9 : 0.65 }}>({tab.count})</span>
                         </div>
                         {isSelected && <Check size={14} style={{ color: 'var(--accent-contrast)', flexShrink: 0 }} />}
                       </button>
@@ -338,7 +338,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
               <div>
                 <div
                   style={{
-                    fontSize: '11.5px',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.6px',
@@ -351,8 +351,8 @@ export const AutopayFilterBar: React.FC<Props> = ({
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                   {[
                     { id: 'all' as AutopayStatusFilter, label: 'All Statuses', icon: Layers },
-                    { id: 'active' as AutopayStatusFilter, label: 'Active Only', icon: Play, color: 'var(--credit, #22c55e)' },
-                    { id: 'due' as AutopayStatusFilter, label: 'Due / Overdue', icon: AlertTriangle, color: '#ef4444' },
+                    { id: 'active' as AutopayStatusFilter, label: 'Active Only', icon: Play, color: 'var(--credit)' },
+                    { id: 'due' as AutopayStatusFilter, label: 'Due / Overdue', icon: AlertTriangle, color: 'var(--debit)' },
                     { id: 'paused' as AutopayStatusFilter, label: 'Paused', icon: Pause, color: 'var(--text-3)' },
                   ].map(opt => {
                     const isSelected = statusFilter === opt.id;
@@ -367,8 +367,8 @@ export const AutopayFilterBar: React.FC<Props> = ({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '10px 14px',
-                          borderRadius: 12,
-                          fontSize: '12.5px',
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: isSelected ? 700 : 550,
                           backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                           color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -394,7 +394,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
               <div>
                 <div
                   style={{
-                    fontSize: '11.5px',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.6px',
@@ -423,8 +423,8 @@ export const AutopayFilterBar: React.FC<Props> = ({
                           alignItems: 'center',
                           gap: 6,
                           padding: '7px 14px',
-                          borderRadius: 9999,
-                          fontSize: '12.5px',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: isSelected ? 700 : 550,
                           backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                           color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -445,7 +445,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
               <div>
                 <div
                   style={{
-                    fontSize: '11.5px',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.6px',
@@ -474,8 +474,8 @@ export const AutopayFilterBar: React.FC<Props> = ({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '10px 14px',
-                          borderRadius: 12,
-                          fontSize: '12.5px',
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: isSelected ? 700 : 550,
                           backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                           color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -514,8 +514,8 @@ export const AutopayFilterBar: React.FC<Props> = ({
                 style={{
                   flex: 1,
                   height: 44,
-                  borderRadius: 9999,
-                  fontSize: '13.5px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 650,
                   backgroundColor: 'var(--surface2)',
                   border: '1px solid var(--border)',
@@ -539,8 +539,8 @@ export const AutopayFilterBar: React.FC<Props> = ({
                 style={{
                   flex: 1.6,
                   height: 44,
-                  borderRadius: 9999,
-                  fontSize: '13.5px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 700,
                   backgroundColor: 'var(--accent)',
                   color: 'var(--accent-contrast)',
@@ -556,7 +556,7 @@ export const AutopayFilterBar: React.FC<Props> = ({
               >
                 <span>Apply</span>
                 {filteredCount !== undefined && (
-                  <span style={{ fontSize: '12px', opacity: 0.85, fontWeight: 600 }}>({filteredCount})</span>
+                  <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.85, fontWeight: 600 }}>({filteredCount})</span>
                 )}
               </button>
             </div>

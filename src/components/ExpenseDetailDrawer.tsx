@@ -254,7 +254,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
           gap: 7,
           padding: '3px 10px 3px 3.5px',
           borderRadius: 'var(--radius-full)',
-          background: isSelected ? 'var(--surface3, #242630)' : 'var(--surface, #141416)',
+          background: isSelected ? 'var(--surface3)' : 'var(--surface)',
           border: isSelected ? `1.5px solid ${friendColor}` : '1px solid var(--border)',
           fontSize: 'var(--fs-xs)',
           fontWeight: isSelected ? 750 : 650,
@@ -318,13 +318,13 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
         {friendsIOwe.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 18 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 750, color: 'var(--debit, #ef4444)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 750, color: 'var(--debit)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <ArrowDownLeft size={12} strokeWidth={2.6} />
                 You Owe
               </span>
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 750,
                   minWidth: 18,
                   height: 18,
@@ -333,9 +333,9 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   padding: '0 4px',
-                  background: 'rgba(239, 68, 68, 0.16)',
-                  color: 'var(--debit, #ef4444)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: 'var(--debit-bg)',
+                  color: 'var(--debit)',
+                  border: '1px solid var(--debit-border)',
                   lineHeight: 1,
                 }}
               >
@@ -343,7 +343,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2, minWidth: 0 }}>
-              {friendsIOwe.map(cf => renderFriendChip(cf, 'var(--debit, #ef4444)'))}
+              {friendsIOwe.map(cf => renderFriendChip(cf, 'var(--debit)'))}
             </div>
           </div>
         )}
@@ -352,13 +352,13 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
         {friendsOweMe.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 18 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 750, color: 'var(--credit, #10b981)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 750, color: 'var(--credit)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <ArrowUpRight size={12} strokeWidth={2.6} />
                 They Owe
               </span>
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 750,
                   minWidth: 18,
                   height: 18,
@@ -367,9 +367,9 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   padding: '0 4px',
-                  background: 'rgba(16, 185, 129, 0.16)',
-                  color: 'var(--credit, #10b981)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  background: 'var(--credit-bg)',
+                  color: 'var(--credit)',
+                  border: '1px solid var(--credit-border)',
                   lineHeight: 1,
                 }}
               >
@@ -377,7 +377,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2, minWidth: 0 }}>
-              {friendsOweMe.map(cf => renderFriendChip(cf, 'var(--credit, #10b981)'))}
+              {friendsOweMe.map(cf => renderFriendChip(cf, 'var(--credit)'))}
             </div>
           </div>
         )}
@@ -386,13 +386,13 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
         {friendsNeutral.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 18 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <Users size={12} />
                 Participants
               </span>
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 750,
                   minWidth: 18,
                   height: 18,
@@ -458,7 +458,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
           background: 'var(--drawer-bg, var(--surface))',
           border: '1px solid var(--border)',
           overflow: 'hidden',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+          boxShadow: 'var(--shadow-floating)',
           color: 'var(--text)',
         }}
       >
@@ -571,7 +571,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 style={{
                   fontWeight: 800,
                   fontSize: 'var(--fs-xl)',
-                  color: isDebit ? 'var(--debit, #ef4444)' : 'var(--credit, #10b981)',
+                  color: isDebit ? 'var(--debit)' : 'var(--credit)',
                   fontVariantNumeric: 'tabular-nums',
                   letterSpacing: '-0.4px',
                   marginTop: 2,
@@ -640,20 +640,20 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                   groupStatus.statusKey === 'completed';
                 const isPartial = groupStatus.statusKey === 'partial';
                 const badgeBg = isPositiveStatus
-                  ? 'var(--credit-bg, rgba(16, 185, 129, 0.12))'
+                  ? 'var(--credit-bg)'
                   : isPartial
                   ? 'rgba(245, 158, 11, 0.15)'
-                  : 'var(--debit-bg, rgba(239, 68, 68, 0.12))';
+                  : 'var(--debit-bg)';
                 const badgeBorder = isPositiveStatus
-                  ? 'var(--credit-border, rgba(16, 185, 129, 0.28))'
+                  ? 'var(--credit-border)'
                   : isPartial
                   ? 'rgba(245, 158, 11, 0.3)'
-                  : 'var(--debit-border, rgba(239, 68, 68, 0.25))';
+                  : 'var(--debit-border)';
                 const badgeColor = isPositiveStatus
-                  ? 'var(--credit, #10b981)'
+                  ? 'var(--credit)'
                   : isPartial
                   ? '#f59e0b'
-                  : 'var(--debit, #ef4444)';
+                  : 'var(--debit)';
 
                 return (
                   <span
@@ -697,7 +697,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0, width: '100%' }}>
                   <span
                     style={{
-                      fontSize: 10.5,
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       color: 'var(--text-3)',
                       textTransform: 'uppercase',
@@ -851,7 +851,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                     <span
                       style={{
-                        fontSize: 10.5,
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: 700,
                         color: 'var(--text-3)',
                         textTransform: 'uppercase',
@@ -918,7 +918,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                       <span
                         style={{
-                          fontSize: 10.5,
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: 700,
                           color: 'var(--text-3)',
                           textTransform: 'uppercase',
@@ -966,7 +966,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                     <span
                       style={{
-                        fontSize: 10.5,
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: 700,
                         color: 'var(--text-3)',
                         textTransform: 'uppercase',
@@ -998,7 +998,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
             {detectedVendor && (() => {
               const vendorColor = (detectedVendor.color && detectedVendor.color !== '#6366f1')
                 ? detectedVendor.color
-                : 'var(--amber, #f59e0b)';
+                : 'var(--amber)';
               const vendorBadgeStyle = getAvatarStyle(vendorColor);
 
               return (
@@ -1020,7 +1020,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     <Store size={17} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       Vendor
                     </span>
                     <span style={{ fontSize: 'var(--fs-sm, 14px)', fontWeight: 650, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1068,7 +1068,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     <NotebookPen size={13} strokeWidth={2.2} style={{ color: 'var(--text-3)' }} />
                     <span
                       style={{
-                        fontSize: '11px',
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: 700,
                         color: 'var(--text-3)',
                         textTransform: 'uppercase',
@@ -1092,7 +1092,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       style={{
                         background: 'transparent',
                         border: 'none',
-                        color: copiedNote ? 'var(--credit, #10b981)' : 'var(--text-3)',
+                        color: copiedNote ? 'var(--credit)' : 'var(--text-3)',
                         padding: '4px',
                         borderRadius: 'var(--radius-xs, 6px)',
                         cursor: 'pointer',
@@ -1201,7 +1201,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                         type="button"
                         onClick={() => setSelectedFriendFilter(null)}
                         style={{
-                          fontSize: 11,
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: 600,
                           color: filteredFriendObj.color || 'var(--accent)',
                           background: 'transparent',
@@ -1219,7 +1219,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                         <X size={11} strokeWidth={2.5} />
                       </button>
                     )}
-                    <span style={{ fontSize: 'var(--fs-xs, 12px)', color: 'var(--text-2)', background: 'var(--surface3, rgba(255, 255, 255, 0.05))', border: '1px solid var(--border)', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                    <span style={{ fontSize: 'var(--fs-xs, 12px)', color: 'var(--text-2)', background: 'var(--surface3)', border: '1px solid var(--border)', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                       <span style={{ color: 'var(--text-3)', fontWeight: 500 }}>Total</span>
                       <span style={{ fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{fmtMoney(displayTotal, currency)}</span>
                     </span>
@@ -1293,44 +1293,44 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       if (isPartial) {
                         statusBadge = {
                           label: 'Partially Settled',
-                          color: '#f59e0b',
-                          bg: 'rgba(245, 158, 11, 0.12)',
-                          border: 'rgba(245, 158, 11, 0.28)',
+                          color: 'var(--amber)',
+                          bg: 'var(--amber-bg)',
+                          border: 'var(--amber-border)',
                         };
                       } else if (isItemSettled) {
                         statusBadge = {
                           label: 'Settled ✓',
-                          color: '#10b981',
-                          bg: 'rgba(16, 185, 129, 0.12)',
-                          border: 'rgba(16, 185, 129, 0.28)',
+                          color: 'var(--credit)',
+                          bg: 'var(--credit-bg)',
+                          border: 'var(--credit-border)',
                         };
                       } else if (item.type === 'for_friend') {
                         statusBadge = {
                           label: 'Owes You',
-                          color: '#10b981',
-                          bg: 'rgba(16, 185, 129, 0.12)',
-                          border: 'rgba(16, 185, 129, 0.28)',
+                          color: 'var(--credit)',
+                          bg: 'var(--credit-bg)',
+                          border: 'var(--credit-border)',
                         };
                       } else if (item.type === 'by_friend') {
                         statusBadge = {
                           label: 'You Owe',
-                          color: '#ef4444',
-                          bg: 'rgba(239, 68, 68, 0.12)',
-                          border: 'rgba(239, 68, 68, 0.28)',
+                          color: 'var(--debit)',
+                          bg: 'var(--debit-bg)',
+                          border: 'var(--debit-border)',
                         };
                       } else if (item.status === 'paid') {
                         statusBadge = {
                           label: 'Paid',
-                          color: '#10b981',
-                          bg: 'rgba(16, 185, 129, 0.12)',
-                          border: 'rgba(16, 185, 129, 0.28)',
+                          color: 'var(--credit)',
+                          bg: 'var(--credit-bg)',
+                          border: 'var(--credit-border)',
                         };
                       } else {
                         statusBadge = {
                           label: 'Unsettled',
-                          color: '#ef4444',
-                          bg: 'rgba(239, 68, 68, 0.12)',
-                          border: 'rgba(239, 68, 68, 0.28)',
+                          color: 'var(--debit)',
+                          bg: 'var(--debit-bg)',
+                          border: 'var(--debit-border)',
                         };
                       }
 
@@ -1340,7 +1340,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       // Amount and sign
                       const isSubDebit = item.type === 'personal' || item.type === 'by_friend';
                       const subSign = isSubDebit ? '-' : '+';
-                      const subColor = isSubDebit ? 'var(--debit, #ef4444)' : 'var(--credit, #10b981)';
+                      const subColor = isSubDebit ? 'var(--debit)' : 'var(--credit)';
 
                       // Vendor avatar styling synced with above icon and contacts
                       const vendorColor = itemVendor?.color || detectedVendor?.color || directFriend?.color || '#f59e0b';
@@ -1380,7 +1380,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                   fontSize: (directFriend.avatarNumber && directFriend.avatarNumber.length > 2) ? 10 : 12,
                                   fontWeight: 750,
                                   flexShrink: 0,
-                                  ...getAvatarStyle(directFriend.color || 'var(--accent, #10b981)'),
+                                  ...getAvatarStyle(directFriend.color || 'var(--accent)'),
                                   boxShadow: `0 1px 3px ${directFriend.color ? directFriend.color + '22' : 'rgba(0,0,0,0.1)'}`,
                                   letterSpacing: '-0.3px',
                                   lineHeight: 1,
@@ -1434,7 +1434,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                 <span
                                   style={{
                                     fontWeight: 650,
-                                    fontSize: 13.5,
+                                    fontSize: 'var(--fs-sm)',
                                     color: 'var(--text)',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
@@ -1447,7 +1447,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                 {statusBadge && (
                                   <span
                                     style={{
-                                      fontSize: 10,
+                                      fontSize: 'var(--fs-caption)',
                                       fontWeight: 700,
                                       padding: '1.5px 7px',
                                       borderRadius: 'var(--radius-full)',
@@ -1484,7 +1484,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                           <span
                             style={{
                               fontWeight: 750,
-                              fontSize: 13.5,
+                              fontSize: 'var(--fs-sm)',
                               marginLeft: 8,
                               color: subColor,
                               fontVariantNumeric: 'tabular-nums',

@@ -442,7 +442,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
               style={{
                 width: '38px',
                 height: '4px',
-                borderRadius: '9999px',
+                borderRadius: 'var(--radius-full)',
                 backgroundColor: 'var(--border2)',
                 opacity: 0.8,
               }}
@@ -471,7 +471,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
               gap: '10px',
               backgroundColor: 'var(--surface2)',
               border: isInputFocused ? '1px solid var(--border2)' : '1px solid var(--border)',
-              borderRadius: '16px',
+              borderRadius: 'var(--radius-lg)',
               padding: isMobile ? '10px 14px' : '11px 16px',
               minWidth: 0,
               transition: 'all 0.15s ease',
@@ -491,7 +491,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                fontSize: '15px',
+                fontSize: 'var(--fs-md)',
                 fontWeight: 450,
                 color: 'var(--text)',
                 minWidth: 0,
@@ -532,7 +532,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
             style={{
               width: 36,
               height: 36,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               display: 'grid',
               placeItems: 'center',
               backgroundColor: 'var(--surface2)',
@@ -590,8 +590,8 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                   gap: '6px',
                   height: '32px',
                   padding: '0 14px',
-                  borderRadius: '9999px',
-                  fontSize: '13px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: isSelected ? 700 : 500,
                   backgroundColor: isSelected ? 'var(--text)' : 'var(--surface2)',
                   color: isSelected ? 'var(--bg)' : 'var(--text-2)',
@@ -641,8 +641,8 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
               >
                 <Search size={22} />
               </div>
-              <div style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text)' }}>No results found</div>
-              <div style={{ fontSize: '12.5px', color: 'var(--text-3)', marginTop: '4px' }}>
+              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text)' }}>No results found</div>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: '4px' }}>
                 {query ? (
                   <span>No matches found for &ldquo;{query}&rdquo;</span>
                 ) : (
@@ -657,7 +657,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                 <div>
                   <div
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
@@ -696,7 +696,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                             padding: '12px 14px',
                             background: 'var(--surface2)',
                             border: '1px solid var(--border)',
-                            borderRadius: '16px',
+                            borderRadius: 'var(--radius-lg)',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
@@ -722,7 +722,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               style={{
                                 width: '42px',
                                 height: '42px',
-                                borderRadius: '13px',
+                                borderRadius: 'var(--radius-md)',
                                 backgroundColor: catMeta.bg,
                                 border: `1px solid ${catMeta.border}`,
                                 display: 'grid',
@@ -747,7 +747,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               >
                                 <span
                                   style={{
-                                    fontSize: '14.5px',
+                                    fontSize: 'var(--fs-base)',
                                     fontWeight: 650,
                                     color: 'var(--text)',
                                     overflow: 'hidden',
@@ -764,7 +764,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                                       alignItems: 'center',
                                       gap: '3px',
                                       padding: '1px 6px',
-                                      borderRadius: '4px',
+                                      borderRadius: 'var(--radius-xs)',
                                       fontSize: '10.5px',
                                       fontWeight: 600,
                                       backgroundColor: 'var(--accent-soft)',
@@ -785,7 +785,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                                 dateText={fmtDate(ge.date)}
                                 vendor={vendor}
                                 friends={!vendor ? friendsToShow : []}
-                                style={{ fontSize: '12px', marginTop: '3px' }}
+                                style={{ fontSize: 'var(--fs-xs)', marginTop: '3px' }}
                               />
                             </div>
                           </div>
@@ -794,16 +794,16 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                           <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: '12px' }}>
                             <div
                               style={{
-                                fontSize: '15px',
+                                fontSize: 'var(--fs-md)',
                                 fontWeight: 700,
                                 fontVariantNumeric: 'tabular-nums',
-                                color: isIn ? 'var(--credit, #22c55e)' : (ge.flow === 'out' ? 'var(--debit, #ef4444)' : 'var(--text)'),
+                                color: isIn ? 'var(--credit)' : (ge.flow === 'out' ? 'var(--debit)' : 'var(--text)'),
                               }}
                             >
                               {isIn ? '+' : (ge.flow === 'out' ? '-' : '')}{fmtMoney(ge.totalAmount, currency)}
                             </div>
                             {isSplit && ge.personalShare > 0 && ge.personalShare !== ge.totalAmount && (
-                              <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 500, marginTop: '2px' }}>
+                              <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500, marginTop: '2px' }}>
                                 You: {fmtMoney(ge.personalShare, currency)}
                               </div>
                             )}
@@ -820,7 +820,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                 <div>
                   <div
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
@@ -857,7 +857,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                             padding: '12px 14px',
                             background: 'var(--surface2)',
                             border: '1px solid var(--border)',
-                            borderRadius: '16px',
+                            borderRadius: 'var(--radius-lg)',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
@@ -883,10 +883,10 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               style={{
                                 width: '42px',
                                 height: '42px',
-                                borderRadius: '13px',
+                                borderRadius: 'var(--radius-md)',
                                 display: 'grid',
                                 placeItems: 'center',
-                                fontSize: '14px',
+                                fontSize: 'var(--fs-base)',
                                 fontWeight: 700,
                                 flexShrink: 0,
                                 ...avatarStyle,
@@ -903,7 +903,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                             <div style={{ minWidth: 0 }}>
                               <div
                                 style={{
-                                  fontSize: '14.5px',
+                                  fontSize: 'var(--fs-base)',
                                   fontWeight: 650,
                                   color: 'var(--text)',
                                   overflow: 'hidden',
@@ -913,7 +913,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               >
                                 {f.name}
                               </div>
-                              <div style={{ fontSize: '12px', color: 'var(--text-3)', textTransform: 'capitalize', marginTop: '3px' }}>
+                              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', textTransform: 'capitalize', marginTop: '3px' }}>
                                 {fType} {f.category ? `• ${f.category}` : ''}
                               </div>
                             </div>
@@ -921,15 +921,15 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
 
                           <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: '12px' }}>
                             {bal.net > 0.004 ? (
-                              <span style={{ fontSize: '13.5px', fontWeight: 650, color: 'var(--credit, #22c55e)' }}>
+                              <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 650, color: 'var(--credit)' }}>
                                 Owes {fmtMoney(bal.owedToMe, currency)}
                               </span>
                             ) : bal.net < -0.004 ? (
-                              <span style={{ fontSize: '13.5px', fontWeight: 650, color: 'var(--debit, #ef4444)' }}>
+                              <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 650, color: 'var(--debit)' }}>
                                 You owe {fmtMoney(bal.owedByMe, currency)}
                               </span>
                             ) : (
-                              <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-3)' }}>
+                              <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 500, color: 'var(--text-3)' }}>
                                 Settled
                               </span>
                             )}
@@ -946,7 +946,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                 <div>
                   <div
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
@@ -973,7 +973,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                             padding: '12px 14px',
                             background: 'var(--surface2)',
                             border: '1px solid var(--border)',
-                            borderRadius: '16px',
+                            borderRadius: 'var(--radius-lg)',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
@@ -998,15 +998,15 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               {renderWalletIcon(w.icon || w.name, 40, w.color)}
                             </div>
                             <div>
-                              <div style={{ fontSize: '14.5px', fontWeight: 650, color: 'var(--text)' }}>{w.name}</div>
-                              <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>
+                              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)' }}>{w.name}</div>
+                              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: '2px' }}>
                                 {w.icon ? `${w.icon} • Wallet` : 'Wallet Account'}
                               </div>
                             </div>
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ fontSize: '14.5px', fontWeight: 700, color: bal < 0 ? 'var(--debit, #ef4444)' : 'var(--text)' }}>
+                            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: bal < 0 ? 'var(--debit)' : 'var(--text)' }}>
                               {fmtMoney(bal, currency)}
                             </div>
                             <ChevronRight size={15} style={{ color: 'var(--text-3)' }} />
@@ -1023,7 +1023,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                 <div>
                   <div
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
@@ -1040,9 +1040,9 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                       const amtVal = Number(s.amount) || 0;
                       const isReceived = amtVal >= 0;
                       const absAmount = Math.abs(amtVal);
-                      const sColor = isReceived ? '#10B981' : '#F43F5E';
-                      const sBg = isReceived ? 'rgba(16, 185, 129, 0.14)' : 'rgba(244, 63, 94, 0.14)';
-                      const sBorder = isReceived ? 'rgba(16, 185, 129, 0.28)' : 'rgba(244, 63, 94, 0.28)';
+                      const sColor = isReceived ? 'var(--credit)' : 'var(--debit)';
+                      const sBg = isReceived ? 'var(--credit-bg)' : 'var(--debit-bg)';
+                      const sBorder = isReceived ? 'var(--credit-border)' : 'var(--debit-border)';
 
                       return (
                         <div
@@ -1057,7 +1057,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                             padding: '12px 14px',
                             background: 'var(--surface2)',
                             border: '1px solid var(--border)',
-                            borderRadius: '16px',
+                            borderRadius: 'var(--radius-lg)',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
@@ -1082,7 +1082,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               style={{
                                 width: '42px',
                                 height: '42px',
-                                borderRadius: '13px',
+                                borderRadius: 'var(--radius-md)',
                                 backgroundColor: sBg,
                                 border: `1px solid ${sBorder}`,
                                 color: sColor,
@@ -1094,17 +1094,17 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               <Handshake size={18} style={{ color: sColor }} />
                             </div>
                             <div>
-                              <div style={{ fontSize: '14.5px', fontWeight: 650, color: 'var(--text)' }}>
+                              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)' }}>
                                 {isReceived ? 'Received from' : 'Paid to'} {friend?.name || 'Contact'}
                               </div>
-                              <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>
+                              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: '2px' }}>
                                 {fmtDate(s.date)} {s.paymentMethod ? `• ${s.paymentMethod}` : ''}
                               </div>
                             </div>
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ fontSize: '15px', fontWeight: 700, color: sColor }}>
+                            <div style={{ fontSize: 'var(--fs-md)', fontWeight: 700, color: sColor }}>
                               {isReceived ? '+' : '-'}{fmtMoney(absAmount, currency)}
                             </div>
                             <ChevronRight size={15} style={{ color: 'var(--text-3)' }} />
@@ -1121,7 +1121,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                 <div>
                   <div
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
@@ -1149,7 +1149,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                           padding: '12px 14px',
                           background: 'var(--surface2)',
                           border: '1px solid var(--border)',
-                          borderRadius: '16px',
+                          borderRadius: 'var(--radius-lg)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                         }}
@@ -1175,20 +1175,20 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                             style={{
                               width: '42px',
                               height: '42px',
-                              borderRadius: '13px',
-                              backgroundColor: 'rgba(249, 115, 22, 0.14)',
-                              border: '1px solid rgba(249, 115, 22, 0.28)',
-                              color: '#F97316',
+                              borderRadius: 'var(--radius-md)',
+                              backgroundColor: 'var(--amber-bg)',
+                              border: '1px solid var(--amber-border)',
+                              color: 'var(--amber)',
                               display: 'grid',
                               placeItems: 'center',
                               flexShrink: 0,
                             }}
                           >
-                            <Compass size={19} style={{ color: '#F97316' }} />
+                            <Compass size={19} style={{ color: 'var(--amber)' }} />
                           </div>
                           <div>
-                            <div style={{ fontSize: '14.5px', fontWeight: 650, color: 'var(--text)' }}>{t.name}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>{t.groupName || 'Trip Group'}</div>
+                            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)' }}>{t.name}</div>
+                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: '2px' }}>{t.groupName || 'Trip Group'}</div>
                           </div>
                         </div>
                         <ChevronRight size={16} style={{ color: 'var(--text-3)' }} />
@@ -1203,7 +1203,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                 <div>
                   <div
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
@@ -1231,7 +1231,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                             padding: '12px 14px',
                             background: 'var(--surface2)',
                             border: '1px solid var(--border)',
-                            borderRadius: '16px',
+                            borderRadius: 'var(--radius-lg)',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
@@ -1256,7 +1256,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               style={{
                                 width: '42px',
                                 height: '42px',
-                                borderRadius: '13px',
+                                borderRadius: 'var(--radius-md)',
                                 backgroundColor: rCatMeta.bg,
                                 border: `1px solid ${rCatMeta.border}`,
                                 color: rCatMeta.color,
@@ -1268,14 +1268,14 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               <CategoryIcon category={rCatMeta.name} icon={rCatMeta.icon} size={19} style={{ color: rCatMeta.color }} />
                             </div>
                             <div>
-                              <div style={{ fontSize: '14.5px', fontWeight: 650, color: 'var(--text)' }}>{r.title}</div>
-                              <div style={{ fontSize: '12px', color: 'var(--text-3)', textTransform: 'capitalize', marginTop: '2px' }}>
+                              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)' }}>{r.title}</div>
+                              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', textTransform: 'capitalize', marginTop: '2px' }}>
                                 {r.frequency} • {r.category || 'Subscription'}
                               </div>
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text)' }}>
+                            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)' }}>
                               {fmtMoney(Number(r.amount), currency)}
                             </div>
                             <ChevronRight size={15} style={{ color: 'var(--text-3)' }} />
@@ -1292,7 +1292,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                 <div>
                   <div
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                       letterSpacing: '0.6px',
@@ -1308,14 +1308,14 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                       const IconComponent = s.icon;
                       const getSettingColor = (cat: string) => {
                         switch (cat) {
-                          case 'General': return { color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.14)', border: 'rgba(59, 130, 246, 0.28)' };
-                          case 'Preferences': return { color: '#6366F1', bg: 'rgba(99, 102, 241, 0.14)', border: 'rgba(99, 102, 241, 0.28)' };
-                          case 'Security': return { color: '#EF4444', bg: 'rgba(239, 68, 68, 0.14)', border: 'rgba(239, 68, 68, 0.28)' };
-                          case 'Data': return { color: '#10B981', bg: 'rgba(16, 185, 129, 0.14)', border: 'rgba(16, 185, 129, 0.28)' };
-                          case 'Features': return { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.14)', border: 'rgba(245, 158, 11, 0.28)' };
-                          case 'Support': return { color: '#EC4899', bg: 'rgba(236, 72, 153, 0.14)', border: 'rgba(236, 72, 153, 0.28)' };
-                          case 'System': return { color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.14)', border: 'rgba(139, 92, 246, 0.28)' };
-                          default: return { color: 'var(--accent)', bg: 'var(--accent-soft)', border: 'var(--accent-border-soft)' };
+                          case 'General': return { color: 'var(--accent)', bg: 'var(--accent-soft)', border: 'var(--accent-border)' };
+                          case 'Preferences': return { color: 'var(--accent)', bg: 'var(--accent-soft)', border: 'var(--accent-border)' };
+                          case 'Security': return { color: 'var(--debit)', bg: 'var(--debit-bg)', border: 'var(--debit-border)' };
+                          case 'Data': return { color: 'var(--credit)', bg: 'var(--credit-bg)', border: 'var(--credit-border)' };
+                          case 'Features': return { color: 'var(--amber)', bg: 'var(--amber-bg)', border: 'var(--amber-border)' };
+                          case 'Support': return { color: 'var(--accent)', bg: 'var(--accent-soft)', border: 'var(--accent-border)' };
+                          case 'System': return { color: 'var(--accent)', bg: 'var(--accent-soft)', border: 'var(--accent-border)' };
+                          default: return { color: 'var(--accent)', bg: 'var(--accent-soft)', border: 'var(--accent-border)' };
                         }
                       };
                       const setStyle = getSettingColor(s.category);
@@ -1340,7 +1340,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                             padding: '12px 14px',
                             background: 'var(--surface2)',
                             border: '1px solid var(--border)',
-                            borderRadius: '16px',
+                            borderRadius: 'var(--radius-lg)',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
@@ -1370,7 +1370,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               style={{
                                 width: '42px',
                                 height: '42px',
-                                borderRadius: '13px',
+                                borderRadius: 'var(--radius-md)',
                                 backgroundColor: setStyle.bg,
                                 border: `1px solid ${setStyle.border}`,
                                 color: setStyle.color,
@@ -1382,12 +1382,12 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                               <IconComponent size={19} style={{ color: setStyle.color }} />
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '14.5px', fontWeight: 650, color: 'var(--text)' }}>
+                              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)' }}>
                                 {s.title}
                               </div>
                               <div
                                 style={{
-                                  fontSize: '12px',
+                                  fontSize: 'var(--fs-xs)',
                                   color: 'var(--text-3)',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
@@ -1400,7 +1400,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-3)', flexShrink: 0, marginLeft: '8px' }}>
-                            <span style={{ fontSize: '12px', color: 'var(--text-3)', fontWeight: 500 }}>Open</span>
+                            <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontWeight: 500 }}>Open</span>
                             <ChevronRight size={15} style={{ color: 'var(--text-3)' }} />
                           </div>
                         </div>

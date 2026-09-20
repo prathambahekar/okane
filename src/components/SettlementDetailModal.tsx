@@ -51,7 +51,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
       style={{ zIndex }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="modal modal-dialog-panel" style={{ maxWidth: 420, width: '100%', borderRadius: 22 }}>
+      <div className="modal modal-dialog-panel" style={{ maxWidth: 420, width: '100%', borderRadius: 'var(--radius-xl)' }}>
         {/* Top Handle Pill */}
         <div className="modal-handle-bar">
           <div className="modal-handle" />
@@ -77,7 +77,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: 10,
+                  borderRadius: 'var(--radius-md)',
                   background: 'transparent',
                   display: 'grid',
                   placeItems: 'center',
@@ -88,12 +88,12 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
               </div>
             )}
             <div>
-              <div className="modal-title" style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.2 }}>
+              <div className="modal-title" style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, lineHeight: 1.2 }}>
                 {isForgiven ? 'Forgiven Settlement' : 'Settlement Details'}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 500, color: 'var(--text-2)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ fontWeight: 600, color: 'var(--text)' }}>{friend ? friend.name : 'Unknown Friend'}</span>
-                <span style={{ color: 'var(--text-3)', fontSize: 10 }}>•</span>
+                <span style={{ color: 'var(--text-3)', fontSize: 'var(--fs-caption)' }}>•</span>
                 <span style={{ color: 'var(--text-2)', letterSpacing: '-0.1px' }}>{fmtDate(settlement?.date || '')}</span>
               </div>
             </div>
@@ -105,7 +105,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
             style={{
               width: 32,
               height: 32,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
@@ -121,7 +121,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
           <div
             style={{
               padding: '16px 18px',
-              borderRadius: 16,
+              borderRadius: 'var(--radius-lg)',
               background: isForgiven
                 ? 'var(--amber-bg)'
                 : isReceived
@@ -143,7 +143,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
             <div>
               <div
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
@@ -155,7 +155,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
               </div>
               <div
                 style={{
-                  fontSize: 26,
+                  fontSize: 'var(--fs-hero-sm)',
                   fontWeight: 800,
                   color: isForgiven ? 'var(--amber)' : (isReceived ? '#10B981' : '#F87171'),
                   whiteSpace: 'nowrap',
@@ -165,7 +165,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
               >
                 {isForgiven ? `~${fmtMoney(absAmount, currency)}` : `${isReceived ? '+' : '-'}${fmtMoney(absAmount, currency)}`}
               </div>
-              <div style={{ fontSize: 12.5, color: isForgiven ? 'var(--amber)' : 'var(--text-2)', marginTop: 6, fontWeight: 500 }}>
+              <div style={{ fontSize: 'var(--fs-xs)', color: isForgiven ? 'var(--amber)' : 'var(--text-2)', marginTop: 6, fontWeight: 500 }}>
                 {isForgiven ? (
                   <span>No wallet deduction • Balance cleared</span>
                 ) : (
@@ -179,14 +179,14 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 650,
                   letterSpacing: '0.01em',
                   color: isForgiven ? 'var(--amber)' : (isReceived ? 'var(--credit)' : 'var(--debit)'),
                   background: isForgiven ? 'var(--amber-bg)' : (isReceived ? 'var(--credit-bg)' : 'var(--debit-bg)'),
                   border: isForgiven ? '1px solid var(--amber-border)' : `1px solid ${isReceived ? 'var(--credit-border)' : 'var(--debit-border)'}`,
                   padding: '3px 10px',
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
@@ -210,7 +210,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                 )}
               </div>
               {settlement?.remainingAmount && settlement.remainingAmount > 0 ? (
-                <span style={{ fontSize: 10, background: 'var(--accent-soft)', color: 'var(--accent)', padding: '2px 7px', borderRadius: 4, fontWeight: 650 }}>
+                <span style={{ fontSize: 'var(--fs-caption)', background: 'var(--accent-soft)', color: 'var(--accent)', padding: '2px 7px', borderRadius: 'var(--radius-xs)', fontWeight: 650 }}>
                   Partial
                 </span>
               ) : null}
@@ -224,7 +224,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                 padding: '12px 14px',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
-                borderRadius: 14,
+                borderRadius: 'var(--radius-md)',
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: 8,
@@ -232,20 +232,20 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
               }}
             >
               <div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Original Total</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)' }}>Original Total</div>
+                <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)' }}>
                   {fmtMoney(settlement.originalTotal, currency)}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>{isForgiven ? 'Waived' : 'Amount Paid'}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: isForgiven ? 'var(--amber)' : (isReceived ? 'var(--credit)' : 'var(--debit)') }}>
+                <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)' }}>{isForgiven ? 'Waived' : 'Amount Paid'}</div>
+                <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: isForgiven ? 'var(--amber)' : (isReceived ? 'var(--credit)' : 'var(--debit)') }}>
                   {fmtMoney(absAmount, currency)}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)' }}>Remaining Left</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
+                <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)' }}>Remaining Left</div>
+                <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--accent)' }}>
                   {fmtMoney(settlement.remainingAmount || 0, currency)}
                 </div>
               </div>
@@ -265,13 +265,13 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                 padding: '12px 14px',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
-                borderRadius: 14,
+                borderRadius: 'var(--radius-md)',
               }}
             >
-              <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                 <Calendar size={12} style={{ color: isForgiven ? 'var(--amber)' : 'var(--accent)' }} /> {isForgiven ? 'Forgive Date' : 'Settlement Date'}
               </div>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.1px' }}>
+              <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.1px' }}>
                 {fmtDate(settlement?.date || '')}
               </div>
             </div>
@@ -281,10 +281,10 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                 padding: '12px 14px',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
-                borderRadius: 14,
+                borderRadius: 'var(--radius-md)',
               }}
             >
-              <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                 {isForgiven ? (
                   <>
                     <HeartHandshake size={12} style={{ color: 'var(--amber)' }} /> Wallet Impact
@@ -295,7 +295,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                   </>
                 )}
               </div>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 7 }}>
+              <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 7 }}>
                 {isForgiven ? (
                   <span style={{ color: 'var(--amber)' }}>No Money Moved</span>
                 ) : (
@@ -332,7 +332,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                   <NotebookPen size={13} strokeWidth={2.2} style={{ color: 'var(--text-3)' }} />
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       color: 'var(--text-3)',
                       textTransform: 'uppercase',
@@ -356,7 +356,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                     style={{
                       background: 'transparent',
                       border: 'none',
-                      color: copiedNote ? 'var(--credit, #10b981)' : 'var(--text-3)',
+                      color: copiedNote ? 'var(--credit)' : 'var(--text-3)',
                       padding: '4px',
                       borderRadius: 'var(--radius-xs, 6px)',
                       cursor: 'pointer',
@@ -437,7 +437,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                 style={{
                   fontSize: 'var(--fs-xs, 12px)',
                   color: 'var(--text-2)',
-                  background: 'var(--surface2, rgba(255, 255, 255, 0.05))',
+                  background: 'var(--surface2)',
                   border: '1px solid var(--border)',
                   padding: '3px 10px',
                   borderRadius: 'var(--radius-full)',
@@ -458,8 +458,8 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                   padding: '16px 12px',
                   textAlign: 'center',
                   background: 'var(--surface2)',
-                  borderRadius: 10,
-                  fontSize: 12.5,
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: 'var(--fs-xs)',
                   color: 'var(--text-3)',
                 }}
               >
@@ -521,7 +521,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div
                             style={{
-                              fontSize: 13,
+                              fontSize: 'var(--fs-sm)',
                               fontWeight: 650,
                               color: 'var(--text)',
                               whiteSpace: 'nowrap',
@@ -545,10 +545,10 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       gap: 4,
-                                      fontSize: 10.5,
+                                      fontSize: 'var(--fs-caption)',
                                       fontWeight: 600,
                                       padding: '2px 7px',
-                                      borderRadius: 9999,
+                                      borderRadius: 'var(--radius-full)',
                                       background: 'var(--surface3)',
                                       color: 'var(--text-2)',
                                       whiteSpace: 'nowrap',
@@ -584,14 +584,14 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                               return null;
                             })()}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: 'var(--text-2)', marginTop: 3, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', fontWeight: 500, color: 'var(--text-2)', marginTop: 3, flexWrap: 'wrap' }}>
                             <span>{fmtDate(exp.originalDate || exp.date)}</span>
                             <span style={{ color: 'var(--text-3)', fontSize: 9 }}>•</span>
                             <span>{exp.category || 'General'}</span>
                             {exp.originalAmount && Math.abs(exp.originalAmount - Number(exp.amount || 0)) > 0.01 ? (
                               <>
                                 <span style={{ color: 'var(--text-3)', fontSize: 9 }}>•</span>
-                                <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 11.5 }}>
+                                <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 'var(--fs-caption)' }}>
                                   og {fmtMoney(exp.originalAmount, currency)}
                                 </span>
                               </>
@@ -603,7 +603,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div
                           style={{
-                            fontSize: 13.5,
+                            fontSize: 'var(--fs-sm)',
                             fontWeight: 700,
                             color: isForgiven ? 'var(--amber)' : (isForFriend ? 'var(--credit)' : 'var(--debit)'),
                           }}
@@ -617,12 +617,12 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                           return (
                             <span
                               style={{
-                                fontSize: 10,
+                                fontSize: 'var(--fs-caption)',
                                 fontWeight: 600,
                                 color: isForgiven ? 'var(--amber)' : (isPartial ? 'var(--accent)' : 'var(--credit)'),
                                 background: isForgiven ? 'var(--amber-bg)' : (isPartial ? 'var(--accent-soft)' : 'var(--credit-bg)'),
                                 padding: '1px 6px',
-                                borderRadius: 6,
+                                borderRadius: 'var(--radius-xs)',
                                 display: 'inline-block',
                                 marginTop: 2,
                               }}
@@ -662,9 +662,9 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
               style={{
                 width: '100%',
                 height: 44,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 padding: '0 20px',
-                fontSize: '14px',
+                fontSize: 'var(--fs-base)',
                 fontWeight: 650,
                 color: isForgiven ? 'var(--amber)' : '#F87171',
                 backgroundColor: isForgiven ? 'var(--amber-bg)' : 'rgba(239, 68, 68, 0.12)',
@@ -695,9 +695,9 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
               style={{
                 width: '100%',
                 height: 44,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 padding: '0 20px',
-                fontSize: '14px',
+                fontSize: 'var(--fs-base)',
                 fontWeight: 650,
                 color: 'var(--text)',
                 backgroundColor: 'var(--surface2)',

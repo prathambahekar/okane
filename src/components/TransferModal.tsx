@@ -177,7 +177,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -199,7 +199,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -411,7 +411,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                     justifyContent: 'center',
                     color: 'var(--text-2)',
                     cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                    boxShadow: 'var(--shadow)',
                     transition: 'transform 0.2s ease, border-color 0.15s ease, color 0.15s ease',
                   }}
                   onMouseDown={e => e.currentTarget.style.transform = 'rotate(180deg) scale(0.95)'}
@@ -649,7 +649,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   background: 'var(--text)',
                   border: '1px solid var(--text)',
                   color: 'var(--bg)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                  boxShadow: 'var(--shadow)',
                   cursor: 'pointer',
                   padding: '0 18px',
                   display: 'inline-flex',

@@ -828,7 +828,7 @@ export function resolveCategoryMeta(
   if (isSettlementGroup || normCat === 'settlement') {
     return {
       name: 'Settlement',
-      color: '#10B981',
+      color: 'var(--credit)',
       icon: 'refund',
       bg: 'rgba(16, 185, 129, 0.12)',
       border: 'rgba(16, 185, 129, 0.25)',
@@ -838,7 +838,7 @@ export function resolveCategoryMeta(
   if (normCat === 'transfer') {
     return {
       name: 'Transfer',
-      color: '#6366F1',
+      color: 'var(--accent)',
       icon: 'transfer',
       bg: 'rgba(99, 102, 241, 0.12)',
       border: 'rgba(99, 102, 241, 0.25)',
@@ -848,7 +848,7 @@ export function resolveCategoryMeta(
   if (normCat === 'income' || normCat === 'salary' || normCat === 'deposit') {
     return {
       name: categoryName || 'Income',
-      color: '#10B981',
+      color: 'var(--credit)',
       icon: 'income',
       bg: 'rgba(16, 185, 129, 0.12)',
       border: 'rgba(16, 185, 129, 0.25)',
@@ -858,7 +858,7 @@ export function resolveCategoryMeta(
   if (normCat === 'groceries' || normCat === 'grocery' || normCat === 'supermarket' || normCat === 'zepto' || normCat === 'zeptoo' || normCat === 'blinkit' || normCat === 'instamart') {
     return {
       name: categoryName || 'Groceries',
-      color: '#10B981',
+      color: 'var(--credit)',
       icon: 'groceries',
       bg: 'rgba(16, 185, 129, 0.12)',
       border: 'rgba(16, 185, 129, 0.25)',

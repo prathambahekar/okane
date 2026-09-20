@@ -701,7 +701,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6,
-                    fontSize: '12px',
+                    fontSize: 'var(--fs-xs)',
                     fontWeight: 500,
                     color: 'var(--text-2)',
                     marginTop: 8,
@@ -835,15 +835,15 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
 
                     const getBadgeColors = (sKey: string) => {
                       if (sKey === 'settled' || sKey === 'paid' || sKey === 'completed') {
-                        return { bg: 'rgba(16, 185, 129, 0.12)', color: '#10B981', border: 'rgba(16, 185, 129, 0.25)' };
+                        return { bg: 'rgba(16, 185, 129, 0.12)', color: 'var(--credit)', border: 'rgba(16, 185, 129, 0.25)' };
                       }
                       if (sKey === 'unsettled' || sKey === 'unpaid' || sKey === 'overdue') {
-                        return { bg: 'rgba(239, 68, 68, 0.12)', color: '#F87171', border: 'rgba(239, 68, 68, 0.25)' };
+                        return { bg: 'rgba(239, 68, 68, 0.12)', color: 'var(--debit)', border: 'rgba(239, 68, 68, 0.25)' };
                       }
                       if (sKey === 'partial') {
-                        return { bg: 'rgba(245, 158, 11, 0.12)', color: '#F59E0B', border: 'rgba(245, 158, 11, 0.25)' };
+                        return { bg: 'rgba(245, 158, 11, 0.12)', color: 'var(--amber)', border: 'rgba(245, 158, 11, 0.25)' };
                       }
-                      return { bg: 'var(--surface3, rgba(255,255,255,0.06))', color: 'var(--text-2)', border: 'var(--border)' };
+                      return { bg: 'var(--surface3)', color: 'var(--text-2)', border: 'var(--border)' };
                     };
 
                     return (
@@ -887,7 +887,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                             }}
                           >
                             {tx.isSettlement ? (
-                              <Handshake size={19} style={{ color: '#10B981' }} />
+                              <Handshake size={19} style={{ color: 'var(--credit)' }} />
                             ) : (
                               <CategoryIcon category={catMeta.name} icon={catMeta.icon} size={19} style={{ color: catMeta.color }} />
                             )}
@@ -923,7 +923,7 @@ export default function Wallets({ initialArg, onClearViewArg }: { initialArg?: s
                                       fontSize: 'var(--fs-caption)',
                                       fontWeight: 600,
                                       backgroundColor: 'rgba(99, 102, 241, 0.14)',
-                                      color: '#818CF8',
+                                      color: 'var(--accent)',
                                       border: '1px solid rgba(99, 102, 241, 0.25)',
                                       whiteSpace: 'nowrap',
                                       flexShrink: 0,

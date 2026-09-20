@@ -504,7 +504,7 @@ function NoteEditorContent({
             gap: 12,
           }}
         >
-          <div style={{ fontSize: 16.5, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.2px' }}>
+          <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.2px' }}>
             {title}
           </div>
 
@@ -515,7 +515,7 @@ function NoteEditorContent({
             style={{
               width: 32,
               height: 32,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
@@ -595,9 +595,9 @@ function NoteEditorContent({
                       maxHeight: 220,
                       background: 'var(--surface2)',
                       border: isFocused ? '1px solid var(--border2)' : '1px solid var(--border)',
-                      borderRadius: 14,
+                      borderRadius: 'var(--radius-md)',
                       padding: '12px 14px 28px',
-                      fontSize: 13.5,
+                      fontSize: 'var(--fs-sm)',
                       color: 'var(--text)',
                       outline: 'none',
                       resize: 'none',
@@ -640,9 +640,9 @@ function NoteEditorContent({
                   gap: 8,
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 12,
+                  borderRadius: 'var(--radius-md)',
                   padding: '6px 8px',
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               >
                 <div
@@ -668,7 +668,7 @@ function NoteEditorContent({
                       border: '1px solid var(--border)',
                       borderRadius: 9,
                       padding: '0 10px',
-                      fontSize: 13,
+                      fontSize: 'var(--fs-sm)',
                       color: 'var(--text)',
                       cursor: 'pointer',
                       display: 'inline-flex',
@@ -676,7 +676,7 @@ function NoteEditorContent({
                       justifyContent: 'center',
                       gap: 4,
                       fontWeight: 750,
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                      boxShadow: 'var(--shadow-sm)',
                       transition: 'all 0.15s ease',
                     }}
                     onMouseDown={e => e.preventDefault()}
@@ -695,7 +695,7 @@ function NoteEditorContent({
                       border: '1px solid var(--border)',
                       borderRadius: 9,
                       padding: '0 10px',
-                      fontSize: 13,
+                      fontSize: 'var(--fs-sm)',
                       color: 'var(--text)',
                       cursor: 'pointer',
                       display: 'inline-flex',
@@ -703,7 +703,7 @@ function NoteEditorContent({
                       justifyContent: 'center',
                       gap: 4,
                       fontStyle: 'italic',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                      boxShadow: 'var(--shadow-sm)',
                       transition: 'all 0.15s ease',
                     }}
                     onMouseDown={e => e.preventDefault()}
@@ -722,14 +722,14 @@ function NoteEditorContent({
                       border: '1px solid var(--border)',
                       borderRadius: 9,
                       padding: '0 10px',
-                      fontSize: 13,
+                      fontSize: 'var(--fs-sm)',
                       color: 'var(--text)',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 4,
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                      boxShadow: 'var(--shadow-sm)',
                       transition: 'all 0.15s ease',
                     }}
                     onMouseDown={e => e.preventDefault()}
@@ -748,14 +748,14 @@ function NoteEditorContent({
                       border: '1px solid var(--border)',
                       borderRadius: 9,
                       padding: '0 10px',
-                      fontSize: 13,
+                      fontSize: 'var(--fs-sm)',
                       color: 'var(--text)',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 4,
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                      boxShadow: 'var(--shadow-sm)',
                       transition: 'all 0.15s ease',
                     }}
                     onMouseDown={e => e.preventDefault()}
@@ -774,14 +774,14 @@ function NoteEditorContent({
                       border: '1px solid var(--border)',
                       borderRadius: 9,
                       padding: '0 10px',
-                      fontSize: 13,
+                      fontSize: 'var(--fs-sm)',
                       color: 'var(--text)',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 4,
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                      boxShadow: 'var(--shadow-sm)',
                       transition: 'all 0.15s ease',
                     }}
                     onMouseDown={e => e.preventDefault()}
@@ -800,14 +800,14 @@ function NoteEditorContent({
                       border: '1px solid var(--border)',
                       borderRadius: 9,
                       padding: '0 10px',
-                      fontSize: 13,
+                      fontSize: 'var(--fs-sm)',
                       color: 'var(--text)',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 4,
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                      boxShadow: 'var(--shadow-sm)',
                       transition: 'all 0.15s ease',
                     }}
                     onMouseDown={e => e.preventDefault()}
@@ -836,12 +836,12 @@ function NoteEditorContent({
             style={{
               flex: 1,
               height: 44,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
               color: 'var(--text)',
               fontWeight: 700,
-              fontSize: 13.5,
+              fontSize: 'var(--fs-sm)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -862,12 +862,12 @@ function NoteEditorContent({
             style={{
               flex: 1.25,
               height: 44,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               background: 'var(--text)',
               color: 'var(--bg)',
               border: 'none',
               fontWeight: 700,
-              fontSize: 13.5,
+              fontSize: 'var(--fs-sm)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',

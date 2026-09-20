@@ -325,7 +325,7 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
               width: 40,
               height: 40,
               padding: 0,
-              borderRadius: '9999px',
+              borderRadius: 'var(--radius-full)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -348,7 +348,7 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
                   borderRadius: 'var(--radius-full)',
                   background: 'var(--text)',
                   color: 'var(--surface)',
-                  fontSize: 10,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 750,
                   display: 'flex',
                   alignItems: 'center',
@@ -391,7 +391,7 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
             title="Spent (Money Out)"
             aria-label="Spent"
           >
-            <ArrowUpRight size={16} style={{ flexShrink: 0, color: flowFilter === 'out' ? 'inherit' : 'var(--debit, #ef4444)' }} />
+            <ArrowUpRight size={16} style={{ flexShrink: 0, color: flowFilter === 'out' ? 'inherit' : 'var(--debit)' }} />
             <span>Spent</span>
           </button>
 
@@ -402,7 +402,7 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
             title="Received (Money In)"
             aria-label="Received"
           >
-            <ArrowDownLeft size={16} style={{ flexShrink: 0, color: flowFilter === 'in' ? 'inherit' : 'var(--credit, #22c55e)' }} />
+            <ArrowDownLeft size={16} style={{ flexShrink: 0, color: flowFilter === 'in' ? 'inherit' : 'var(--credit)' }} />
             <span>Received</span>
           </button>
         </div>

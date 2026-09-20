@@ -100,7 +100,7 @@ function AudioWaveVisualizer({ volume, isListening }: { volume: number; isListen
         px: 1,
         py: 0.5,
         height: '28px',
-        borderRadius: '99px',
+        borderRadius: 'var(--radius-full)',
         bgcolor: 'rgba(239, 68, 68, 0.08)',
         border: '1px solid rgba(239, 68, 68, 0.22)',
         flexShrink: 0,
@@ -114,7 +114,7 @@ function AudioWaveVisualizer({ volume, isListening }: { volume: number; isListen
             sx={{
               width: '3px',
               height: `${computedHeight}px`,
-              borderRadius: '99px',
+              borderRadius: 'var(--radius-full)',
               bgcolor: 'var(--debit)',
               transition: 'height 0.06s ease-out, opacity 0.12s ease',
               opacity: Math.max(0.4, Math.min(1, 0.5 + volume * 0.7)),
@@ -468,7 +468,7 @@ function BotMessageBubble({ text }: { text: string }) {
     px: 1,
     py: 0.85,
     minHeight: 46,
-    borderRadius: '12px',
+    borderRadius: 'var(--radius-md)',
     bgcolor: 'transparent',
     border: '1px solid transparent',
     boxShadow: 'none',
@@ -501,7 +501,7 @@ function BotMessageBubble({ text }: { text: string }) {
                 bgcolor: 'var(--surface2)',
                 color: 'var(--text)',
                 border: '1px solid var(--border)',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                boxShadow: 'var(--shadow)',
                 width: 'fit-content',
                 maxWidth: '100%',
               }}
@@ -510,7 +510,7 @@ function BotMessageBubble({ text }: { text: string }) {
                 variant="body2"
                 sx={{
                   lineHeight: 1.55,
-                  fontSize: '14px',
+                  fontSize: 'var(--fs-base)',
                   color: 'var(--text)',
                   fontWeight: 550,
                   fontFamily: 'var(--font-sans)',
@@ -531,10 +531,10 @@ function BotMessageBubble({ text }: { text: string }) {
             elevation={0}
             sx={{
               p: { xs: 1.5, sm: 1.75 },
-              borderRadius: '16px',
+              borderRadius: 'var(--radius-lg)',
               bgcolor: 'var(--surface2)',
               border: '1px solid var(--border)',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+              boxShadow: 'var(--shadow)',
               display: 'flex',
               flexDirection: 'column',
               gap: 1,
@@ -570,7 +570,7 @@ function BotMessageBubble({ text }: { text: string }) {
                 </Box>
                 <Typography
                   sx={{
-                    fontSize: '14px',
+                    fontSize: 'var(--fs-base)',
                     fontWeight: 700,
                     color: 'var(--text)',
                     letterSpacing: '-0.01em',
@@ -584,12 +584,12 @@ function BotMessageBubble({ text }: { text: string }) {
               {block.badgeText && (
                 <Box
                   sx={{
-                    fontSize: '11px',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 600,
                     color: 'var(--text-2)',
                     bgcolor: 'var(--accent-soft)',
                     border: '1px solid var(--accent-border-soft)',
-                    borderRadius: '99px',
+                    borderRadius: 'var(--radius-full)',
                     px: 1.1,
                     py: 0.25,
                     fontFamily: 'var(--font-sans)',
@@ -622,13 +622,13 @@ function BotMessageBubble({ text }: { text: string }) {
                           sx={{
                             width: 34,
                             height: 34,
-                            borderRadius: '10px',
+                            borderRadius: 'var(--radius-md)',
                             background: avatarStyle.background,
                             color: avatarStyle.color,
                             display: 'grid',
                             placeItems: 'center',
                             fontWeight: 700,
-                            fontSize: '13px',
+                            fontSize: 'var(--fs-sm)',
                             flexShrink: 0,
                             border: '1px solid var(--border)',
                           }}
@@ -640,7 +640,7 @@ function BotMessageBubble({ text }: { text: string }) {
                             variant="body2"
                             noWrap
                             sx={{
-                              fontSize: '14px',
+                              fontSize: 'var(--fs-base)',
                               fontWeight: 650,
                               color: 'var(--text)',
                               lineHeight: 1.25,
@@ -654,7 +654,7 @@ function BotMessageBubble({ text }: { text: string }) {
                             variant="caption"
                             noWrap
                             sx={{
-                              fontSize: '11.5px',
+                              fontSize: 'var(--fs-caption)',
                               color: 'var(--text-3)',
                               fontWeight: 500,
                               letterSpacing: '0.01em',
@@ -675,12 +675,12 @@ function BotMessageBubble({ text }: { text: string }) {
                             gap: 0.6,
                             px: 1.15,
                             py: 0.35,
-                            borderRadius: '99px',
+                            borderRadius: 'var(--radius-full)',
                             bgcolor: isPositive ? 'var(--credit-bg)' : 'var(--debit-bg)',
                             border: '1px solid',
                             borderColor: isPositive ? 'var(--credit-border)' : 'var(--debit-border)',
                             color: isPositive ? 'var(--credit)' : 'var(--debit)',
-                            fontSize: '12px',
+                            fontSize: 'var(--fs-xs)',
                             fontWeight: 700,
                             letterSpacing: '0.01em',
                             fontFamily: 'var(--font-sans)',
@@ -724,7 +724,7 @@ function BotMessageBubble({ text }: { text: string }) {
                         <Typography
                           noWrap
                           sx={{
-                            fontSize: '14.5px',
+                            fontSize: 'var(--fs-base)',
                             fontWeight: 650,
                             color: 'var(--text)',
                             lineHeight: 1.25,
@@ -739,7 +739,7 @@ function BotMessageBubble({ text }: { text: string }) {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
                         <Typography
                           sx={{
-                            fontSize: '15px',
+                            fontSize: 'var(--fs-md)',
                             fontWeight: 750,
                             color: 'var(--text)',
                             fontVariantNumeric: 'tabular-nums',
@@ -768,7 +768,7 @@ function BotMessageBubble({ text }: { text: string }) {
                           sx={{
                             width: 34,
                             height: 34,
-                            borderRadius: '10px',
+                            borderRadius: 'var(--radius-md)',
                             background: `${catMeta.color}18`,
                             border: '1px solid var(--border)',
                             display: 'grid',
@@ -781,7 +781,7 @@ function BotMessageBubble({ text }: { text: string }) {
                         <Typography
                           noWrap
                           sx={{
-                            fontSize: '14.5px',
+                            fontSize: 'var(--fs-base)',
                             fontWeight: 650,
                             color: 'var(--text)',
                             lineHeight: 1.25,
@@ -796,7 +796,7 @@ function BotMessageBubble({ text }: { text: string }) {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
                         <Typography
                           sx={{
-                            fontSize: '15px',
+                            fontSize: 'var(--fs-md)',
                             fontWeight: 750,
                             color: 'var(--text)',
                             fontVariantNumeric: 'tabular-nums',
@@ -826,7 +826,7 @@ function BotMessageBubble({ text }: { text: string }) {
                           sx={{
                             width: 34,
                             height: 34,
-                            borderRadius: '10px',
+                            borderRadius: 'var(--radius-md)',
                             background: `${catMeta.color}18`,
                             border: '1px solid var(--border)',
                             display: 'grid',
@@ -841,7 +841,7 @@ function BotMessageBubble({ text }: { text: string }) {
                             variant="body2"
                             noWrap
                             sx={{
-                              fontSize: '14px',
+                              fontSize: 'var(--fs-base)',
                               fontWeight: 650,
                               color: 'var(--text)',
                               lineHeight: 1.25,
@@ -856,7 +856,7 @@ function BotMessageBubble({ text }: { text: string }) {
                               variant="caption"
                               noWrap
                               sx={{
-                                fontSize: '11.5px',
+                                fontSize: 'var(--fs-caption)',
                                 color: 'var(--text-3)',
                                 fontWeight: 500,
                                 letterSpacing: '0.01em',
@@ -874,7 +874,7 @@ function BotMessageBubble({ text }: { text: string }) {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
                           <Typography
                             sx={{
-                              fontSize: '15px',
+                              fontSize: 'var(--fs-md)',
                               fontWeight: 750,
                               color: isCredit ? 'var(--credit)' : 'var(--text)',
                               fontVariantNumeric: 'tabular-nums',
@@ -923,7 +923,7 @@ function BotMessageBubble({ text }: { text: string }) {
                           variant="body2"
                           noWrap
                           sx={{
-                            fontSize: '14px',
+                            fontSize: 'var(--fs-base)',
                             fontWeight: 650,
                             color: 'var(--text)',
                             lineHeight: 1.25,
@@ -938,7 +938,7 @@ function BotMessageBubble({ text }: { text: string }) {
                             variant="caption"
                             noWrap
                             sx={{
-                              fontSize: '11.5px',
+                              fontSize: 'var(--fs-caption)',
                               color: 'var(--text-3)',
                               fontWeight: 500,
                               letterSpacing: '0.01em',
@@ -956,7 +956,7 @@ function BotMessageBubble({ text }: { text: string }) {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
                         <Typography
                           sx={{
-                            fontSize: '15px',
+                            fontSize: 'var(--fs-md)',
                             fontWeight: 750,
                             color: 'var(--text)',
                             fontVariantNumeric: 'tabular-nums',
@@ -1720,7 +1720,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                 p: 0,
                 width: 36,
                 height: 36,
-                borderRadius: '9999px',
+                borderRadius: 'var(--radius-full)',
                 bgcolor: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 display: 'grid',
@@ -1751,7 +1751,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             p: 0,
             width: 36,
             height: 36,
-            borderRadius: '9999px',
+            borderRadius: 'var(--radius-full)',
             bgcolor: 'var(--surface2)',
             border: '1px solid var(--border)',
             display: 'grid',
@@ -2111,7 +2111,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                     <Typography
                       variant="caption"
                       sx={{
-                        fontSize: '11px',
+                        fontSize: 'var(--fs-caption)',
                         color: 'var(--text-3)',
                         mt: 0.5,
                         ml: 1,
@@ -2143,14 +2143,14 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                       color: 'var(--text)',
                       whiteSpace: 'pre-line',
                       border: '1px solid var(--border)',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                      boxShadow: 'var(--shadow)',
                     }}
                   >
                     <Typography
                       variant="body2"
                       sx={{
                         lineHeight: 1.55,
-                        fontSize: '14px',
+                        fontSize: 'var(--fs-base)',
                         fontWeight: 550,
                         fontFamily: 'var(--font-sans)',
                         color: 'var(--text)',
@@ -2165,7 +2165,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                     <Typography
                       variant="caption"
                       sx={{
-                        fontSize: '11px',
+                        fontSize: 'var(--fs-caption)',
                         color: 'var(--text-3)',
                         mt: 0.5,
                         mr: 1,
@@ -2185,7 +2185,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
           {loading && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, color: 'var(--text-2)', p: 1, ml: 4 }}>
               <CircularProgress size={15} sx={{ color: 'var(--accent)' }} />
-              <Typography variant="body2" sx={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--text-2)' }}>
+              <Typography variant="body2" sx={{ fontSize: 'var(--fs-xs)', fontWeight: 500, color: 'var(--text-2)' }}>
                 Extracting details...
               </Typography>
             </Box>
@@ -2201,7 +2201,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
           elevation={0}
           sx={{
             p: { xs: 2, sm: 2.25 },
-            borderRadius: '12px',
+            borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border)',
             bgcolor: 'var(--surface2)',
             display: 'flex',
@@ -2212,7 +2212,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
         >
           {/* Header Row */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--text)' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: 'var(--fs-sm)', color: 'var(--text)' }}>
               Extracted Record Details
             </Typography>
             <Chip
@@ -2220,8 +2220,8 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
               size="small"
               sx={{
                 fontWeight: 700,
-                fontSize: '13px',
-                borderRadius: '6px',
+                fontSize: 'var(--fs-sm)',
+                borderRadius: 'var(--radius-xs)',
                 px: 0.5,
                 bgcolor: activeDraft.flow === 'in' ? 'rgba(34, 197, 94, 0.15)' : 'var(--accent-soft)',
                 color: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--accent)',
@@ -2233,7 +2233,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
             {/* Flow: Expense / Income */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-3)', fontSize: '11px' }}>
+              <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-3)', fontSize: 'var(--fs-caption)' }}>
                 Type
               </Typography>
               <ToggleButtonGroup
@@ -2255,14 +2255,14 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                 sx={{
                   bgcolor: 'var(--surface)',
                   p: 0.4,
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border)',
                   '& .MuiToggleButton-root': {
                     flex: 1,
                     borderRadius: '6px !important',
                     textTransform: 'none',
                     fontWeight: 600,
-                    fontSize: '12px',
+                    fontSize: 'var(--fs-xs)',
                     py: 0.6,
                     color: 'var(--text-2)',
                     border: 'none !important',
@@ -2285,7 +2285,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             {/* Payment & Split Mode Dropdown */}
             {activeDraft.flow !== 'in' && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-3)', fontSize: '11px' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: 'var(--text-3)', fontSize: 'var(--fs-caption)' }}>
                   Split & Payment Mode
                 </Typography>
                 <FormControl size="small" fullWidth>
@@ -2328,7 +2328,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                       }
                       setActiveDraft(updated);
                     }}
-                    sx={{ borderRadius: '8px', bgcolor: 'var(--surface)' }}
+                    sx={{ borderRadius: 'var(--radius-sm)', bgcolor: 'var(--surface)' }}
                   >
                     <MenuItem value="just_me">Personal (Just Me)</MenuItem>
                     <MenuItem value="equal_split">Split Equally (I Paid)</MenuItem>
@@ -2347,7 +2347,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
               gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
               gap: 1.5,
               '& .MuiOutlinedInput-root': {
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-sm)',
                 bgcolor: 'var(--surface)',
               },
             }}
@@ -2427,7 +2427,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                       size="small"
                       {...getTagProps({ index })}
                       key={option}
-                      sx={{ borderRadius: '6px', fontSize: '11.5px' }}
+                      sx={{ borderRadius: 'var(--radius-xs)', fontSize: 'var(--fs-caption)' }}
                     />
                   ))
                 }
@@ -2526,7 +2526,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
               size="small"
               color="inherit"
               onClick={() => setActiveDraft(null)}
-              sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, px: 2, color: 'var(--text-3)' }}
+              sx={{ borderRadius: 'var(--radius-sm)', textTransform: 'none', fontWeight: 600, px: 2, color: 'var(--text-3)' }}
             >
               Discard
             </Button>
@@ -2536,15 +2536,15 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
               startIcon={<PlusCircle size={15} />}
               onClick={handleConfirmDraft}
               sx={{
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-sm)',
                 fontWeight: 650,
                 px: 2.5,
                 py: 0.7,
-                fontSize: '13px',
+                fontSize: 'var(--fs-sm)',
                 textTransform: 'none',
                 bgcolor: activeDraft.flow === 'in' ? 'var(--credit)' : 'var(--accent)',
-                color: activeDraft.flow === 'in' ? '#ffffff' : 'var(--accent-contrast, #ffffff)',
-                boxShadow: '0 2px 8px var(--accent-soft)',
+                color: activeDraft.flow === 'in' ? '#ffffff' : 'var(--accent-contrast)',
+                boxShadow: 'var(--shadow)',
               }}
             >
               {activeDraft.flow === 'in'
@@ -2693,7 +2693,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
           py: 0.65,
           minHeight: '48px',
           bgcolor: 'var(--surface2)',
-          borderRadius: '15px',
+          borderRadius: 'var(--radius-lg)',
           border: '1px solid',
           borderColor: isListening ? 'var(--debit)' : 'var(--border)',
           transition: 'border-color 0.15s ease, background-color 0.15s ease',
@@ -2723,7 +2723,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
           }}
           disabled={loading}
           sx={{
-            fontSize: '14px',
+            fontSize: 'var(--fs-base)',
             color: 'var(--text)',
             fontFamily: 'inherit',
             '& input::placeholder': {
@@ -2743,7 +2743,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
               p: 0,
               width: 34,
               height: 34,
-              borderRadius: '9999px',
+              borderRadius: 'var(--radius-full)',
               transition: 'all 0.15s ease',
               '&:hover': {
                 color: 'var(--text)',
@@ -2844,7 +2844,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
               width: dragOffsetY > 0 ? 44 : 36,
               height: 4,
               bgcolor: 'var(--border2)',
-              borderRadius: '9999px',
+              borderRadius: 'var(--radius-full)',
             }}
           />
         </Box>
@@ -2874,7 +2874,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
       }}
       PaperProps={{
         sx: {
-          borderRadius: '20px',
+          borderRadius: 'var(--radius-xl)',
           overflow: 'hidden',
           maxWidth: '520px',
           width: '100%',
@@ -2907,7 +2907,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             width: 36,
             height: 4,
             bgcolor: 'var(--border2)',
-            borderRadius: '9999px',
+            borderRadius: 'var(--radius-full)',
           }}
         />
       </Box>

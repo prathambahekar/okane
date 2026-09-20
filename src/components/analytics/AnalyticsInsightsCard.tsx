@@ -265,8 +265,8 @@ export const AnalyticsInsightsCard: React.FC<AnalyticsInsightsCardProps> = ({
           <div className="analytics-v2-empty-icon" style={{ width: 36, height: 36, marginBottom: 8 }}>
             <Sparkles size={18} strokeWidth={1.8} />
           </div>
-          <div className="analytics-v2-empty-title" style={{ fontSize: 13 }}>No insights yet</div>
-          <div className="analytics-v2-empty-desc" style={{ fontSize: 11.5 }}>
+          <div className="analytics-v2-empty-title" style={{ fontSize: 'var(--fs-sm)' }}>No insights yet</div>
+          <div className="analytics-v2-empty-desc" style={{ fontSize: 'var(--fs-caption)' }}>
             Add transactions to generate smart observations for this {periodLabel}.
           </div>
         </div>

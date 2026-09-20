@@ -354,7 +354,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
           border: '1px solid var(--border)',
           borderRadius: 'var(--radius-xl)',
           overflow: 'hidden',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+          boxShadow: 'var(--shadow-floating)',
           position: 'relative',
         }}
         onClick={e => e.stopPropagation()}
@@ -365,7 +365,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
             width: 38,
             height: 4.5,
             borderRadius: 'var(--radius-full)',
-            background: 'var(--border2, #444)',
+            background: 'var(--border2)',
             margin: '10px auto 4px',
             flexShrink: 0,
             opacity: 0.85,
@@ -472,7 +472,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   background: 'rgba(239, 68, 68, 0.1)',
                   border: '1px solid rgba(239, 68, 68, 0.25)',
                   borderRadius: 'var(--radius-sm)',
-                  color: 'var(--debit, #ef4444)',
+                  color: 'var(--debit)',
                   fontSize: 'var(--fs-xs)',
                   fontWeight: 550
                 }}
@@ -609,7 +609,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 TOTAL AMOUNT SPENT *
               </span>
               <div className="hero-amount-input-wrap">
-                <span className="hero-currency-symbol" style={{ color: 'var(--debit, #ef4444)' }}>
+                <span className="hero-currency-symbol" style={{ color: 'var(--debit)' }}>
                   {currSym}
                 </span>
                 <input
@@ -661,7 +661,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   fontSize: 'var(--fs-base)',
                   fontWeight: 550,
                   padding: '0 14px',
-                  border: error && !title.trim() ? '1.5px solid var(--debit, #ef4444)' : '1px solid var(--border)',
+                  border: error && !title.trim() ? '1.5px solid var(--debit)' : '1px solid var(--border)',
                   background: 'var(--surface2)',
                   color: 'var(--text)',
                   outline: 'none',
@@ -795,7 +795,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   display: 'grid',
                   placeItems: 'center',
                   flexShrink: 0,
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               >
                 <Plus size={14} strokeWidth={2.5} />
@@ -928,7 +928,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 background: 'var(--text)',
                 border: '1px solid var(--text)',
                 color: 'var(--bg)',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                boxShadow: 'var(--shadow)',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -1411,7 +1411,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   gap: 6,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                  boxShadow: 'var(--shadow)',
                 }}
               >
                 <Check size={15} strokeWidth={2.5} />
@@ -1805,7 +1805,7 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                   background: 'var(--text)',
                   border: '1px solid var(--text)',
                   color: 'var(--bg)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                  boxShadow: 'var(--shadow)',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',

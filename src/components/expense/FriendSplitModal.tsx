@@ -44,7 +44,7 @@ function CustomShareInputBox({
         gap: 4,
         background: isFocused ? 'var(--surface)' : 'rgba(255, 255, 255, 0.03)',
         border: isFocused ? '1.5px solid var(--credit)' : '1px solid var(--border)',
-        borderRadius: 8,
+        borderRadius: 'var(--radius-sm)',
         padding: '3px 8px',
         height: 30,
         minWidth: 72,
@@ -57,7 +57,7 @@ function CustomShareInputBox({
     >
       <span
         style={{
-          fontSize: 12,
+          fontSize: 'var(--fs-xs)',
           fontWeight: 700,
           color: isFocused ? 'var(--credit)' : 'var(--text-3)',
           transition: 'color 0.15s ease',
@@ -82,7 +82,7 @@ function CustomShareInputBox({
           width: 48,
           textAlign: 'right',
           padding: 0,
-          fontSize: 13.5,
+          fontSize: 'var(--fs-sm)',
           fontWeight: 700,
           background: 'transparent',
           border: 'none',
@@ -189,7 +189,7 @@ export function FriendSplitModal({
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     display: 'grid',
                     placeItems: 'center',
                     cursor: 'pointer',
@@ -200,10 +200,10 @@ export function FriendSplitModal({
                   <ArrowLeft size={18} />
                 </button>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+                  <h3 style={{ margin: 0, fontSize: 'var(--fs-md)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
                     Split with Friends
                   </h3>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', marginTop: 2 }}>
                     {selectedFriendIds.length === 0
                       ? 'Select friends who share this bill'
                       : `${selectedFriendIds.length} friend${selectedFriendIds.length !== 1 ? 's' : ''} selected`}
@@ -217,7 +217,7 @@ export function FriendSplitModal({
                 style={{
                   width: 32,
                   height: 32,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   display: 'grid',
                   placeItems: 'center',
                   cursor: 'pointer',
@@ -238,7 +238,7 @@ export function FriendSplitModal({
                   position: 'relative',
                   background: pickerSearchFocused ? 'var(--surface)' : 'var(--surface2)',
                   border: pickerSearchFocused ? '1px solid var(--border2)' : '1px solid var(--border)',
-                  borderRadius: 12,
+                  borderRadius: 'var(--radius-md)',
                   padding: '0 12px',
                   height: 38,
                   boxShadow: pickerSearchFocused ? '0 0 0 1px var(--border2)' : 'none',
@@ -261,7 +261,7 @@ export function FriendSplitModal({
                     background: 'transparent',
                     border: 'none',
                     outline: 'none',
-                    fontSize: 13,
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 500,
                     color: 'var(--text)',
                     padding: '4px 0',
@@ -294,11 +294,11 @@ export function FriendSplitModal({
                   <button
                     type="button"
                     style={{
-                      fontSize: 11,
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       padding: '3px 10px',
                       height: 25,
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       whiteSpace: 'nowrap',
                       flexShrink: 0,
                       background: 'var(--text)',
@@ -361,10 +361,10 @@ export function FriendSplitModal({
                           border: isSel ? '1px solid var(--text)' : '1px solid var(--border)',
                           background: isSel ? 'var(--text)' : 'var(--surface2)',
                           color: isSel ? 'var(--bg)' : 'var(--text-3)',
-                          fontSize: 13,
+                          fontSize: 'var(--fs-sm)',
                           fontWeight: isSel ? 700 : 550,
                           padding: '0 14px',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           height: 32,
                           cursor: 'pointer',
                           display: 'inline-flex',
@@ -398,10 +398,10 @@ export function FriendSplitModal({
                     border: '1px solid var(--border)',
                     background: 'var(--surface2)',
                     color: 'var(--text)',
-                    fontSize: 13,
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 650,
                     padding: '0 14px',
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     height: 32,
                     cursor: 'pointer',
                     flexShrink: 0,
@@ -443,7 +443,7 @@ export function FriendSplitModal({
 
                 if (!hasAnyItems) {
                   return (
-                    <div style={{ padding: '36px 8px', textAlign: 'center', fontSize: 12.5, color: 'var(--text-3)' }}>
+                    <div style={{ padding: '36px 8px', textAlign: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
                       No matching friends found
                     </div>
                   );
@@ -490,7 +490,7 @@ export function FriendSplitModal({
                           justifyContent: 'space-between',
                           gap: 6,
                           padding: '8px 10px',
-                          borderRadius: 12,
+                          borderRadius: 'var(--radius-md)',
                           background: isYouSelected ? 'var(--surface3)' : 'var(--surface2)',
                           border: '1px solid var(--border)',
                           boxShadow: 'none',
@@ -505,7 +505,7 @@ export function FriendSplitModal({
                               height: 28,
                               borderRadius: '50%',
                               ...getAvatarStyle('#3b82f6'),
-                              fontSize: 11,
+                              fontSize: 'var(--fs-caption)',
                               fontWeight: 750,
                               display: 'grid',
                               placeItems: 'center',
@@ -517,7 +517,7 @@ export function FriendSplitModal({
                           </div>
                           <span
                             style={{
-                              fontSize: 12,
+                              fontSize: 'var(--fs-xs)',
                               fontWeight: isYouSelected ? 700 : 550,
                               color: isYouSelected ? 'var(--text)' : 'var(--text-2)',
                               whiteSpace: 'nowrap',
@@ -574,7 +574,7 @@ export function FriendSplitModal({
                             justifyContent: 'space-between',
                             gap: 6,
                             padding: '8px 10px',
-                            borderRadius: 12,
+                            borderRadius: 'var(--radius-md)',
                             background: isSel ? 'var(--surface3)' : 'var(--surface2)',
                             border: '1px solid var(--border)',
                             boxShadow: 'none',
@@ -602,7 +602,7 @@ export function FriendSplitModal({
                             </div>
                             <span
                               style={{
-                                fontSize: 12,
+                                fontSize: 'var(--fs-xs)',
                                 fontWeight: isSel ? 700 : 550,
                                 color: isSel ? 'var(--text)' : 'var(--text-2)',
                                 whiteSpace: 'nowrap',
@@ -665,9 +665,9 @@ export function FriendSplitModal({
                   style={{
                     flex: 1,
                     height: 42,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     fontWeight: 700,
-                    fontSize: 13,
+                    fontSize: 'var(--fs-sm)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
@@ -675,7 +675,7 @@ export function FriendSplitModal({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 6,
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                    boxShadow: 'var(--shadow-sm)',
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
                     transition: 'all 0.15s ease',
@@ -698,9 +698,9 @@ export function FriendSplitModal({
                   style={{
                     flex: 1.35,
                     height: 42,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     fontWeight: 700,
-                    fontSize: 13,
+                    fontSize: 'var(--fs-sm)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -711,7 +711,7 @@ export function FriendSplitModal({
                     background: 'var(--text)',
                     border: '1px solid var(--text)',
                     color: 'var(--bg)',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                    boxShadow: 'var(--shadow)',
                   }}
                 >
                   {selectedFriendIds.length > 0 ? (
@@ -755,7 +755,7 @@ export function FriendSplitModal({
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     display: 'grid',
                     placeItems: 'center',
                     cursor: 'pointer',
@@ -766,10 +766,10 @@ export function FriendSplitModal({
                   <ArrowLeft size={18} />
                 </button>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+                  <h3 style={{ margin: 0, fontSize: 'var(--fs-md)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
                     Split Breakdown
                   </h3>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', marginTop: 2 }}>
                     {selectedFriendIds.length + (isYouSelected ? 1 : 0)} participant{selectedFriendIds.length + (isYouSelected ? 1 : 0) !== 1 ? 's' : ''}
                   </div>
                 </div>
@@ -777,10 +777,10 @@ export function FriendSplitModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span
                   style={{
-                    fontSize: 12,
+                    fontSize: 'var(--fs-xs)',
                     fontWeight: 700,
                     padding: '4px 10px',
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
@@ -795,7 +795,7 @@ export function FriendSplitModal({
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     display: 'grid',
                     placeItems: 'center',
                     cursor: 'pointer',
@@ -833,7 +833,7 @@ export function FriendSplitModal({
                   padding: '8px 12px',
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 14,
+                  borderRadius: 'var(--radius-md)',
                   overflowX: 'auto',
                   scrollbarWidth: 'none',
                   msOverflowStyle: 'none',
@@ -843,12 +843,12 @@ export function FriendSplitModal({
                   {isYouSelected && (
                     <span
                       style={{
-                        fontSize: 11.5,
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: 650,
                         padding: '4px 10px 4px 5px',
                         background: 'rgba(59, 130, 246, 0.12)',
-                        borderRadius: 9999,
-                        color: '#3b82f6',
+                        borderRadius: 'var(--radius-full)',
+                        color: 'var(--accent)',
                         border: '1px solid rgba(59, 130, 246, 0.25)',
                         whiteSpace: 'nowrap',
                         display: 'inline-flex',
@@ -862,7 +862,7 @@ export function FriendSplitModal({
                           height: 18,
                           borderRadius: '50%',
                           ...getAvatarStyle('#3b82f6'),
-                          fontSize: 10,
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: 800,
                           display: 'grid',
                           placeItems: 'center',
@@ -884,11 +884,11 @@ export function FriendSplitModal({
                       <span
                         key={fId}
                         style={{
-                          fontSize: 11.5,
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: 600,
                           padding: '4px 10px 4px 5px',
                           background: `${color}18`,
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           color: 'var(--text)',
                           border: `1px solid ${color}35`,
                           whiteSpace: 'nowrap',
@@ -903,7 +903,7 @@ export function FriendSplitModal({
                             height: 18,
                             borderRadius: '50%',
                             ...avStyle,
-                            fontSize: 10,
+                            fontSize: 'var(--fs-caption)',
                             fontWeight: 800,
                             display: 'grid',
                             placeItems: 'center',
@@ -926,7 +926,7 @@ export function FriendSplitModal({
                     alignItems: 'center',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: 14,
+                    borderRadius: 'var(--radius-md)',
                     padding: 4,
                     gap: 4,
                   }}
@@ -949,10 +949,10 @@ export function FriendSplitModal({
                           border: isSel ? '1px solid var(--text)' : '1px solid transparent',
                           background: isSel ? 'var(--text)' : 'transparent',
                           color: isSel ? 'var(--bg)' : 'var(--text-3)',
-                          fontSize: 12.5,
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: isSel ? 700 : 550,
                           padding: '8px 8px',
-                          borderRadius: 10,
+                          borderRadius: 'var(--radius-md)',
                           minHeight: 38,
                           cursor: 'pointer',
                           display: 'inline-flex',
@@ -989,7 +989,7 @@ export function FriendSplitModal({
                     padding: '11px 15px',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    borderRadius: 14,
+                    borderRadius: 'var(--radius-md)',
                     opacity: isYouSelected ? 1 : 0.75,
                     transition: 'all 0.15s ease',
                   }}
@@ -1001,7 +1001,7 @@ export function FriendSplitModal({
                         height: 34,
                         borderRadius: '50%',
                         ...getAvatarStyle('#3b82f6'),
-                        fontSize: 12.5,
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: 750,
                         display: 'grid',
                         placeItems: 'center',
@@ -1011,10 +1011,10 @@ export function FriendSplitModal({
                       M
                     </div>
                     <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--text)' }}>
+                      <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 650, color: 'var(--text)' }}>
                         Me
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
+                      <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', marginTop: 1 }}>
                         {isYouSelected
                           ? splitCalcMode === 'custom'
                             ? 'Remaining share'
@@ -1027,7 +1027,7 @@ export function FriendSplitModal({
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div
                       style={{
-                        fontSize: 14,
+                        fontSize: 'var(--fs-base)',
                         color: isYouSelected ? 'var(--text)' : 'var(--text-3)',
                         fontWeight: 700,
                         fontVariantNumeric: 'tabular-nums',
@@ -1058,7 +1058,7 @@ export function FriendSplitModal({
                         padding: '11px 15px',
                         background: 'var(--surface2)',
                         border: '1px solid var(--border)',
-                        borderRadius: 14,
+                        borderRadius: 'var(--radius-md)',
                         transition: 'all 0.15s ease',
                       }}
                     >
@@ -1083,7 +1083,7 @@ export function FriendSplitModal({
                         <div style={{ minWidth: 0 }}>
                           <div
                             style={{
-                              fontSize: 13.5,
+                              fontSize: 'var(--fs-sm)',
                               fontWeight: 650,
                               color: 'var(--text)',
                               whiteSpace: 'nowrap',
@@ -1093,7 +1093,7 @@ export function FriendSplitModal({
                           >
                             {friendObj?.name || 'Friend'}
                           </div>
-                          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>
+                          <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', marginTop: 1 }}>
                             {splitCalcMode === 'custom'
                               ? 'Custom share'
                               : (friendObj?.type === 'vendor' ? 'Store' : 'Friend')}
@@ -1116,7 +1116,7 @@ export function FriendSplitModal({
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <div
                             style={{
-                              fontSize: 14,
+                              fontSize: 'var(--fs-base)',
                               color: 'var(--credit)',
                               fontWeight: 700,
                               fontVariantNumeric: 'tabular-nums',
@@ -1160,9 +1160,9 @@ export function FriendSplitModal({
                   style={{
                     flex: 1,
                     height: 42,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     fontWeight: 700,
-                    fontSize: 13,
+                    fontSize: 'var(--fs-sm)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
@@ -1170,7 +1170,7 @@ export function FriendSplitModal({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 6,
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                    boxShadow: 'var(--shadow-sm)',
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
                     transition: 'all 0.15s ease',
@@ -1187,9 +1187,9 @@ export function FriendSplitModal({
                   style={{
                     flex: 1.35,
                     height: 42,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     fontWeight: 700,
-                    fontSize: 13,
+                    fontSize: 'var(--fs-sm)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1200,7 +1200,7 @@ export function FriendSplitModal({
                     background: 'var(--text)',
                     border: '1px solid var(--text)',
                     color: 'var(--bg)',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                    boxShadow: 'var(--shadow)',
                   }}
                 >
                   <Check size={15} strokeWidth={2.5} style={{ color: 'inherit' }} />

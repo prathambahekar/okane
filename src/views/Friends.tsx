@@ -538,7 +538,7 @@ export default function Friends({ onNavigate }: Props) {
             <div className="empty-state-icon-badge" style={{ marginBottom: 14 }}>
               <Filter size={22} strokeWidth={1.8} />
             </div>
-            <div className="empty-state-title" style={{ fontSize: '15px' }}>
+            <div className="empty-state-title" style={{ fontSize: 'var(--fs-md)' }}>
               No matching {typeFilter === 'friend' ? 'friends' : 'vendors'}
             </div>
             <p className="empty-state-desc" style={{ marginBottom: 16 }}>
@@ -851,7 +851,7 @@ export default function Friends({ onNavigate }: Props) {
             bgcolor: 'var(--surface)',
             color: 'var(--text)',
             border: '1px solid var(--border)',
-            boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--border)',
+            boxShadow: 'var(--shadow-lg)',
             '& .MuiList-root': {
               padding: '2px 0',
             },
@@ -874,13 +874,13 @@ export default function Friends({ onNavigate }: Props) {
                 color: 'var(--text-2)',
               },
               '&.danger-item': {
-                color: 'var(--debit, #ef4444)',
+                color: 'var(--debit)',
                 '&:hover': {
                   bgcolor: 'rgba(239, 68, 68, 0.12)',
-                  color: 'var(--debit, #ef4444)',
+                  color: 'var(--debit)',
                 },
                 '& .MuiListItemIcon-root': {
-                  color: 'var(--debit, #ef4444)',
+                  color: 'var(--debit)',
                 },
               },
             },

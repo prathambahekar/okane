@@ -464,7 +464,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
           <div style={{
             width: 36,
             height: 36,
-            borderRadius: 10,
+            borderRadius: 'var(--radius-md)',
             background: 'var(--accent-soft)',
             color: 'var(--accent)',
             display: 'grid',
@@ -475,14 +475,14 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.2px' }}>Monthly Spending Trend</h2>
+              <h2 style={{ fontSize: 'var(--fs-md)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.2px' }}>Monthly Spending Trend</h2>
               {isCurrentMonth && (
-                <span className="badge" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9.5, fontWeight: 700, padding: '2px 6px', borderRadius: 12 }}>
+                <span className="badge" style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 9.5, fontWeight: 700, padding: '2px 6px', borderRadius: 'var(--radius-md)' }}>
                   Live
                 </span>
               )}
             </div>
-            <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '1px 0 0 0' }}>
+            <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', margin: '1px 0 0 0' }}>
               <strong style={{ color: 'var(--accent)' }}>{selShortMonthName}</strong> vs{' '}
               <strong style={{ color: '#a855f7' }}>{baseShortMonthName}</strong>
             </p>
@@ -490,17 +490,17 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
         </div>
 
         {/* Chart View Mode Buttons */}
-        <div style={{ display: 'flex', background: 'var(--surface2)', padding: 3, borderRadius: 10, border: '1px solid var(--border)', alignSelf: 'flex-start' }}>
+        <div style={{ display: 'flex', background: 'var(--surface2)', padding: 3, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', alignSelf: 'flex-start' }}>
           <button
             type="button"
             className="btn btn-xs"
             onClick={() => setChartType('cumulative')}
             title="Day-by-day cumulative pace curve"
             style={{
-              fontSize: 11,
+              fontSize: 'var(--fs-caption)',
               fontWeight: 600,
               padding: '4px 10px',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-sm)',
               background: chartType === 'cumulative' ? 'var(--surface)' : 'transparent',
               color: chartType === 'cumulative' ? 'var(--accent)' : 'var(--text-3)',
               boxShadow: chartType === 'cumulative' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
@@ -515,10 +515,10 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
             onClick={() => setChartType('daily')}
             title="Daily expenditure comparison"
             style={{
-              fontSize: 11,
+              fontSize: 'var(--fs-caption)',
               fontWeight: 600,
               padding: '4px 10px',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-sm)',
               background: chartType === 'daily' ? 'var(--surface)' : 'transparent',
               color: chartType === 'daily' ? 'var(--accent)' : 'var(--text-3)',
               boxShadow: chartType === 'daily' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
@@ -533,10 +533,10 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
             onClick={() => setChartType('history')}
             title="6-Month historical spending trend"
             style={{
-              fontSize: 11,
+              fontSize: 'var(--fs-caption)',
               fontWeight: 600,
               padding: '4px 10px',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-sm)',
               background: chartType === 'history' ? 'var(--surface)' : 'transparent',
               color: chartType === 'history' ? 'var(--accent)' : 'var(--text-3)',
               boxShadow: chartType === 'history' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
@@ -608,7 +608,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
           <button
             className="btn-ghost btn-xs btn"
             onClick={() => onNavigate('analytics')}
-            style={{ fontSize: 11, padding: '4px 8px', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: 'auto' }}
+            style={{ fontSize: 'var(--fs-caption)', padding: '4px 8px', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: 'auto' }}
           >
             Statistics →
           </button>
@@ -722,7 +722,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '4px 0 10px 0', flexWrap: 'wrap' }}>
               {/* Quick Preset Range Pills */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, fontWeight: 650, color: 'var(--text-3)', marginRight: 2 }}>
+                <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 650, color: 'var(--text-3)', marginRight: 2 }}>
                   Zoom Range:
                 </span>
                 <button
@@ -730,8 +730,8 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                   onClick={() => handleResetZoom()}
                   style={{
                     padding: '2px 8px',
-                    borderRadius: 6,
-                    fontSize: 10.5,
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 650,
                     border: '1px solid var(--border)',
                     background: !isZoomed ? 'var(--accent)' : 'var(--surface)',
@@ -746,8 +746,8 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                   onClick={() => handlePresetZoom(1, 10)}
                   style={{
                     padding: '2px 8px',
-                    borderRadius: 6,
-                    fontSize: 10.5,
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 650,
                     border: '1px solid var(--border)',
                     background: zoomStart === 1 && zoomEnd === 10 ? 'var(--accent)' : 'var(--surface)',
@@ -762,8 +762,8 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                   onClick={() => handlePresetZoom(11, 20)}
                   style={{
                     padding: '2px 8px',
-                    borderRadius: 6,
-                    fontSize: 10.5,
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 650,
                     border: '1px solid var(--border)',
                     background: zoomStart === 11 && zoomEnd === 20 ? 'var(--accent)' : 'var(--surface)',
@@ -778,8 +778,8 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                   onClick={() => handlePresetZoom(21, maxDays)}
                   style={{
                     padding: '2px 8px',
-                    borderRadius: 6,
-                    fontSize: 10.5,
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 650,
                     border: '1px solid var(--border)',
                     background: zoomStart === 21 && zoomEnd === maxDays ? 'var(--accent)' : 'var(--surface)',
@@ -794,11 +794,11 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
               {/* Zoom Action Buttons & Badge */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {isZoomed && (
-                  <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 7px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 7px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Move size={11} /> Day {zoomStart}–{zoomEnd} ({zoomFactor}x)
                   </span>
                 )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'var(--surface2)', padding: 2, borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'var(--surface2)', padding: 2, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                   <button
                     type="button"
                     onClick={handleZoomIn}
@@ -813,7 +813,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                       background: 'transparent',
                       color: zoomSpan <= 2 ? 'var(--text-3)' : 'var(--text)',
                       cursor: zoomSpan <= 2 ? 'default' : 'pointer',
-                      borderRadius: 6,
+                      borderRadius: 'var(--radius-xs)',
                       opacity: zoomSpan <= 2 ? 0.4 : 1,
                     }}
                   >
@@ -833,7 +833,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                       background: 'transparent',
                       color: !isZoomed ? 'var(--text-3)' : 'var(--text)',
                       cursor: !isZoomed ? 'default' : 'pointer',
-                      borderRadius: 6,
+                      borderRadius: 'var(--radius-xs)',
                       opacity: !isZoomed ? 0.4 : 1,
                     }}
                   >
@@ -853,7 +853,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                         background: 'transparent',
                         color: 'var(--accent)',
                         cursor: 'pointer',
-                        borderRadius: 6,
+                        borderRadius: 'var(--radius-xs)',
                       }}
                     >
                       <RotateCcw size={12} />
@@ -1258,7 +1258,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                   width: '100%',
                   height: 10,
                   background: 'var(--surface3)',
-                  borderRadius: 5,
+                  borderRadius: 'var(--radius-xs)',
                   overflow: 'hidden',
                   cursor: 'pointer',
                   border: '1px solid var(--border)',
@@ -1285,13 +1285,13 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
                     height: '100%',
                     background: 'var(--accent)',
                     opacity: 0.85,
-                    borderRadius: 4,
+                    borderRadius: 'var(--radius-xs)',
                     boxShadow: '0 0 4px rgba(0,0,0,0.2)',
                     transition: isDragging ? 'none' : 'all 0.15s ease',
                   }}
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-3)', fontWeight: 600 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 600 }}>
                 <span>Day 1</span>
                 {isZoomed ? (
                   <span style={{ color: 'var(--accent)', fontWeight: 700 }}>
@@ -1311,13 +1311,13 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
               marginTop: 6,
               padding: '10px 14px',
               background: 'var(--surface2)',
-              borderRadius: 12,
+              borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 8,
-              fontSize: 12,
+              fontSize: 'var(--fs-xs)',
               flexWrap: 'wrap'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: 'var(--text)' }}>
@@ -1356,7 +1356,7 @@ export default function MonthlySpendingTrend({ expenses, currency, onNavigate, o
       )}
 
       {/* Footer Legend & Insights */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 11.5, color: 'var(--text-3)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 'var(--fs-caption)', color: 'var(--text-3)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: 12, height: 3, borderRadius: 2, background: 'var(--accent)' }} />

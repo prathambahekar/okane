@@ -8,7 +8,7 @@
 .wallet-item-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 20px;
   position: relative;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -16,7 +16,7 @@
 
 .wallet-item-card:hover {
   border-color: var(--border2);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 /* Wallet pill badges */
@@ -25,8 +25,8 @@
   align-items: center;
   gap: 4px;
   padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 11px;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-caption);
   font-weight: 650;
   letter-spacing: 0.2px;
   line-height: 1.2;
@@ -37,13 +37,13 @@
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border2);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 [data-theme="dark"] .wallet-badge-default,
 [data-color-scheme="dark"] .wallet-badge-default {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background-color: var(--accent-soft);
+  border: 1px solid var(--border);
   color: #ffffff;
   box-shadow: none;
 }
@@ -58,7 +58,7 @@
 
 [data-theme="dark"] .wallet-badge-spend-zero,
 [data-color-scheme="dark"] .wallet-badge-spend-zero {
-  background: rgba(255, 255, 255, 0.03);
+  background-color: var(--accent-soft);
   border: 1px solid rgba(255, 255, 255, 0.06);
   color: var(--text-3);
 }
@@ -73,13 +73,13 @@
 
 [data-theme="dark"] .wallet-badge-spend-active,
 [data-color-scheme="dark"] .wallet-badge-spend-active {
-  background: rgba(248, 113, 113, 0.14);
-  border: 1px solid rgba(248, 113, 113, 0.28);
+  background: var(--debit-bg);
+  border: 1px solid var(--debit-border);
   color: var(--debit);
 }
 
 .wallet-badge-spend-active .spend-icon {
-  color: var(--debit, #f87171);
+  color: var(--debit);
   flex-shrink: 0;
 }
 
@@ -91,8 +91,8 @@
 
 [data-theme="dark"] .wallet-badge-hidden,
 [data-color-scheme="dark"] .wallet-badge-hidden {
-  background: rgba(248, 113, 113, 0.14);
-  border: 1px solid rgba(248, 113, 113, 0.28);
+  background: var(--debit-bg);
+  border: 1px solid var(--debit-border);
   color: var(--debit);
 }
 
@@ -108,7 +108,7 @@
 .wallet-more-btn {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   color: var(--text-3);
@@ -174,9 +174,9 @@
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   font-weight: 650;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   padding: 9px 16px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -247,10 +247,10 @@
     text-align: center !important;
     white-space: nowrap !important;
     padding: 10px 14px !important;
-    font-size: 13.5px !important;
+    font-size: var(--fs-sm) !important;
     font-weight: 650 !important;
     height: 42px !important;
-    border-radius: 9999px !important;
+    border-radius: var(--radius-full) !important;
     box-sizing: border-box !important;
     flex-shrink: 1 !important;
   }
@@ -264,13 +264,13 @@
 /* Sections: Accounts & Transactions */
 .day-sheet-section-card {
   background: var(--surface2);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 14px 12px;
   border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .day-sheet-sec-header {
@@ -284,7 +284,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--fs-base);
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.01em;
@@ -304,15 +304,15 @@
 }
 
 .day-sheet-sec-badge {
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--text-3);
   font-weight: 600;
   background: var(--surface);
   padding: 2px 8px;
-  border-radius: 99px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border);
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-sm);
 }
 
 .day-sheet-accounts-list {
@@ -336,7 +336,7 @@
   background: transparent;
   border: 1px solid transparent;
   box-shadow: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 8px 10px;
   display: flex;
   flex-direction: row;
@@ -352,7 +352,7 @@
 }
 
 .day-account-item-card:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
+  background-color: var(--accent-soft) !important;
   border-color: transparent !important;
   box-shadow: none !important;
   transform: none;
@@ -365,7 +365,7 @@
 }
 
 .day-account-item-card:active {
-  background-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: var(--accent-soft) !important;
   transform: scale(0.995);
 }
 
@@ -387,7 +387,7 @@
   padding: 8px 10px;
   gap: 12px;
   min-height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: transparent !important;
   border: 1px solid transparent !important;
   box-shadow: none !important;
@@ -404,11 +404,11 @@
 .day-account-single-left .day-account-icon-wrap {
   width: 32px;
   height: 32px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 .day-account-single-left .day-account-name {
-  font-size: 14px;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
@@ -425,7 +425,7 @@
 }
 
 .day-account-single-right .day-account-bal {
-  font-size: 15px;
+  font-size: var(--fs-md);
   font-weight: 750;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -434,11 +434,11 @@
 }
 
 .day-account-single-right .day-account-bal.amount-negative {
-  color: #ef4444;
+  color: var(--debit);
 }
 
 [data-color-scheme="light"] .day-account-single-right .day-account-bal.amount-negative {
-  color: #dc2626;
+  color: var(--debit);
 }
 
 [data-color-scheme="dark"] .day-account-item-card,
@@ -450,7 +450,7 @@
 
 [data-color-scheme="dark"] .day-account-item-card:hover,
 [data-theme="dark"] .day-account-item-card:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
+  background-color: var(--accent-soft) !important;
   border-color: transparent !important;
   box-shadow: none !important;
 }
@@ -458,7 +458,7 @@
 .day-account-icon-wrap {
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -473,7 +473,7 @@
 }
 
 .day-account-name {
-  font-size: 11.5px;
+  font-size: var(--fs-caption);
   font-weight: 600;
   color: var(--text-2);
   white-space: nowrap;
@@ -483,7 +483,7 @@
 }
 
 .day-account-bal {
-  font-size: 13.5px;
+  font-size: var(--fs-sm);
   font-weight: 750;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -495,11 +495,11 @@
 }
 
 .day-account-bal.amount-negative {
-  color: #f87171;
+  color: var(--debit);
 }
 
 [data-color-scheme="light"] .day-account-bal.amount-negative {
-  color: #dc2626;
+  color: var(--debit);
 }
 
 .day-account-chevron {
@@ -526,7 +526,7 @@
     height: 26px;
   }
   .day-account-bal {
-    font-size: 13px;
+    font-size: var(--fs-sm);
   }
 }
 
@@ -540,7 +540,7 @@
   background: transparent;
   border: none;
   box-shadow: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 10px 10px;
   display: flex;
   align-items: center;
@@ -554,7 +554,7 @@
 
 .day-tx-item-card:hover {
   background-color: var(--surface) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .day-tx-item-card:active {
@@ -577,7 +577,7 @@
 [data-color-scheme="dark"] .day-tx-item-card:hover,
 [data-theme="dark"] .day-tx-item-card:hover {
   background-color: var(--surface3) !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 [data-color-scheme="dark"] .day-tx-item-card:active,
@@ -611,7 +611,7 @@
 }
 
 .day-tx-title {
-  font-size: 14.5px;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
@@ -622,7 +622,7 @@
 }
 
 .day-tx-subtitle {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--text-3);
   display: flex;
   align-items: center;
@@ -636,7 +636,7 @@
 .day-tx-cat-tag {
   color: var(--text-3);
   font-weight: 500;
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 
 .day-tx-bullet {
@@ -651,7 +651,7 @@
   gap: 4px;
   font-weight: 500;
   color: var(--text-3);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   min-width: 0;
 }
 
@@ -678,7 +678,7 @@
 }
 
 .day-tx-amount {
-  font-size: 15px;
+  font-size: var(--fs-md);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -686,19 +686,19 @@
 }
 
 .day-tx-amount.tx-debit {
-  color: #f87171;
+  color: var(--debit);
 }
 
 [data-color-scheme="light"] .day-tx-amount.tx-debit {
-  color: #dc2626;
+  color: var(--debit);
 }
 
 .day-tx-amount.tx-credit {
-  color: #10b981;
+  color: var(--credit);
 }
 
 [data-color-scheme="light"] .day-tx-amount.tx-credit {
-  color: #059669;
+  color: var(--credit);
 }
 
 .day-tx-chevron {
@@ -720,7 +720,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   border: 1px dashed var(--border);
   text-align: center;
@@ -734,7 +734,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface3);
   border: 1px dashed var(--border);
   text-align: center;
@@ -742,13 +742,13 @@
 }
 
 .day-sheet-empty-tx-title {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 650;
   color: var(--text-2);
 }
 
 .day-sheet-empty-tx-sub {
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--text-3);
 }
 

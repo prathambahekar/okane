@@ -224,13 +224,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
             width: '100%',
             maxWidth: '480px',
             maxHeight: 'min(88vh, 88dvh)',
-            background: 'var(--drawer-bg, #141416)',
+            background: 'var(--drawer-bg)',
             color: 'var(--text)',
             borderRadius: isMobileScreen ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)',
             border: '1px solid var(--border)',
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6)',
+            boxShadow: 'var(--shadow-floating)',
             overflow: 'hidden',
           }}
         >
@@ -267,7 +267,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 size={44}
                 fontSize="var(--fs-lg)"
                 borderRadius="var(--radius-md)"
-                style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}
+                style={{ boxShadow: 'var(--shadow)' }}
               />
 
               <div style={{ minWidth: 0 }}>
@@ -311,7 +311,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 style={{
                   width: 32,
                   height: 32,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   border: '1px solid var(--border)',
                   background: 'var(--surface2)',
                   color: 'var(--text)',
@@ -333,7 +333,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 style={{
                   width: 32,
                   height: 32,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   border: '1px solid var(--border)',
                   background: 'var(--surface2)',
                   color: 'var(--text)',
@@ -483,7 +483,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   background: 'var(--text)',
                   color: 'var(--bg)',
                   border: 'none',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.16)',
+                  boxShadow: 'var(--shadow)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.15s ease',
@@ -512,7 +512,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                    boxShadow: 'var(--shadow-sm)',
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
                     transition: 'all 0.15s ease',
@@ -659,7 +659,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       background: 'transparent',
                       display: 'grid',
                       placeItems: 'center',
-                      color: 'var(--text-2, #a1a1aa)',
+                      color: 'var(--text-2)',
                     }}
                   >
                     <History size={18} />
@@ -714,9 +714,9 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
                     const amountPrefix = isIn ? '+' : (isSettlement && e.flow === 'out' ? '-' : '');
                     const amountColor = isIn
-                      ? 'var(--credit, #10b981)'
+                      ? 'var(--credit)'
                       : (isSettlement && e.flow === 'out') || e.type === 'by_friend'
-                      ? 'var(--debit, #ef4444)'
+                      ? 'var(--debit)'
                       : 'var(--text)';
 
                     return (
@@ -811,13 +811,13 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                 width: '100%',
                 maxWidth: '480px',
                 maxHeight: 'min(88vh, 88dvh)',
-                background: 'var(--drawer-bg, #141416)',
+                background: 'var(--drawer-bg)',
                 color: 'var(--text)',
                 borderRadius: isMobileScreen ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)',
                 border: '1px solid var(--border)',
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6)',
+                boxShadow: 'var(--shadow-floating)',
                 overflow: 'hidden',
               }}
             >
@@ -852,7 +852,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                     size={44}
                     fontSize="var(--fs-lg)"
                     borderRadius="var(--radius-md)"
-                    style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}
+                    style={{ boxShadow: 'var(--shadow)' }}
                   />
 
                   <div style={{ minWidth: 0 }}>
@@ -1038,9 +1038,9 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
                       const amountPrefix = isIn ? '+' : (isSettlement && e.flow === 'out' ? '-' : '');
                       const amountColor = isIn
-                        ? 'var(--credit, #10b981)'
+                        ? 'var(--credit)'
                         : (isSettlement && e.flow === 'out') || e.type === 'by_friend'
-                        ? 'var(--debit, #ef4444)'
+                        ? 'var(--debit)'
                         : 'var(--text)';
 
                       return (

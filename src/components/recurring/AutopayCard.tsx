@@ -117,9 +117,9 @@ export const AutopayCard: React.FC<Props> = ({
         flexDirection: 'column',
         gap: 15,
         background: 'var(--surface)',
-        borderRadius: 16,
+        borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border)',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+        boxShadow: 'var(--shadow-sm)',
         opacity: isPaused ? 0.78 : 1,
         transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
         position: 'relative',
@@ -134,7 +134,7 @@ export const AutopayCard: React.FC<Props> = ({
             style={{
               width: 42,
               height: 42,
-              borderRadius: 13,
+              borderRadius: 'var(--radius-md)',
               backgroundColor: catColorBg,
               display: 'flex',
               alignItems: 'center',
@@ -154,7 +154,7 @@ export const AutopayCard: React.FC<Props> = ({
               <span
                 style={{
                   fontWeight: 700,
-                  fontSize: 15.5,
+                  fontSize: 'var(--fs-md)',
                   color: 'var(--text)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -168,10 +168,10 @@ export const AutopayCard: React.FC<Props> = ({
               {/* Frequency Badge next to title */}
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 600,
                   padding: '2px 7.5px',
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--surface2)',
                   color: 'var(--text-2)',
                   border: '1px solid var(--border)',
@@ -186,12 +186,12 @@ export const AutopayCard: React.FC<Props> = ({
               {isPaused && (
                 <span
                   style={{
-                    fontSize: 10.5,
+                    fontSize: 'var(--fs-caption)',
                     color: 'var(--text-3)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     padding: '2px 7px',
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     fontWeight: 650,
                     flexShrink: 0,
                     letterSpacing: '0.01em',
@@ -206,7 +206,7 @@ export const AutopayCard: React.FC<Props> = ({
             {(linkedFriend || wallet) && (
               <div
                 style={{
-                  fontSize: 12.5,
+                  fontSize: 'var(--fs-xs)',
                   color: 'var(--text-3)',
                   display: 'flex',
                   alignItems: 'center',
@@ -225,7 +225,7 @@ export const AutopayCard: React.FC<Props> = ({
                       border: 'none',
                       padding: 0,
                       color: 'var(--text-2)',
-                      fontSize: 12.5,
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: 500,
                       cursor: onNavigate ? 'pointer' : 'default',
                       display: 'inline-flex',
@@ -303,7 +303,7 @@ export const AutopayCard: React.FC<Props> = ({
             style={{
               width: 32,
               height: 32,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               background: menuOpen ? 'var(--surface2)' : 'transparent',
               border: `1px solid ${menuOpen ? 'var(--border)' : 'transparent'}`,
               color: 'var(--text-2)',
@@ -326,8 +326,8 @@ export const AutopayCard: React.FC<Props> = ({
                 right: 0,
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
-                borderRadius: 14,
-                boxShadow: '0 10px 28px -4px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-lg)',
                 padding: 5,
                 minWidth: 145,
                 zIndex: 50,
@@ -354,7 +354,7 @@ export const AutopayCard: React.FC<Props> = ({
                   background: hoveredAction === 'hold' ? 'var(--surface2)' : 'transparent',
                   border: 'none',
                   color: 'var(--text)',
-                  fontSize: 13,
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 550,
                   cursor: 'pointer',
                   textAlign: 'left',
@@ -384,7 +384,7 @@ export const AutopayCard: React.FC<Props> = ({
                   background: hoveredAction === 'edit' ? 'var(--surface2)' : 'transparent',
                   border: 'none',
                   color: 'var(--text)',
-                  fontSize: 13,
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 550,
                   cursor: 'pointer',
                   textAlign: 'left',

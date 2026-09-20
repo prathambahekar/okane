@@ -311,8 +311,8 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     width: 20,
                     height: 20,
                     borderRadius: 'var(--radius-sm)',
-                    background: 'var(--debit-bg, rgba(239, 68, 68, 0.12))',
-                    border: '1px solid var(--debit-border, rgba(239, 68, 68, 0.25))',
+                    background: 'var(--debit-bg)',
+                    border: '1px solid var(--debit-border)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -338,8 +338,8 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     width: 20,
                     height: 20,
                     borderRadius: 'var(--radius-sm)',
-                    background: 'var(--credit-bg, rgba(34, 197, 94, 0.12))',
-                    border: '1px solid var(--credit-border, rgba(34, 197, 94, 0.25))',
+                    background: 'var(--credit-bg)',
+                    border: '1px solid var(--credit-border)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -366,11 +366,11 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     height: 20,
                     borderRadius: 'var(--radius-sm)',
                     background: netFriends > 0
-                      ? 'var(--credit-bg, rgba(34, 197, 94, 0.12))'
+                      ? 'var(--credit-bg)'
                       : netFriends < 0
-                      ? 'var(--debit-bg, rgba(239, 68, 68, 0.12))'
+                      ? 'var(--debit-bg)'
                       : 'var(--surface3)',
-                    border: `1px solid ${netFriends > 0 ? 'var(--credit-border, rgba(46, 125, 50, 0.22))' : netFriends < 0 ? 'var(--debit-border, rgba(211, 47, 47, 0.22))' : 'var(--border)'}`,
+                    border: `1px solid ${netFriends > 0 ? 'var(--credit-border)' : netFriends < 0 ? 'var(--debit-border)' : 'var(--border)'}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -402,12 +402,12 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     width: 20,
                     height: 20,
                     borderRadius: 'var(--radius-sm)',
-                    background: 'var(--amber-bg, rgba(245, 158, 11, 0.12))',
-                    border: '1px solid var(--amber-border, rgba(245, 158, 11, 0.25))',
+                    background: 'var(--amber-bg)',
+                    border: '1px solid var(--amber-border)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'var(--amber, #f59e0b)',
+                    color: 'var(--amber)',
                     flexShrink: 0
                   }}>
                     <Flame size={12} />
@@ -416,7 +416,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     Highest Exp
                   </span>
                 </div>
-                <div className="dashboard-mini-stat-val" style={{ color: 'var(--amber, #f59e0b)' }}>
+                <div className="dashboard-mini-stat-val" style={{ color: 'var(--amber)' }}>
                   {highestExpenseObj ? fmtMoney(highestExpenseObj.amount, currency) : fmtMoney(0, currency)}
                 </div>
               </div>
@@ -592,9 +592,9 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     style={{
                       fontSize: 'var(--fs-caption)',
                       padding: '1.5px 7.5px',
-                      background: netFriends >= 0 ? 'var(--credit-bg, rgba(34, 197, 94, 0.12))' : 'var(--debit-bg, rgba(239, 68, 68, 0.12))',
+                      background: netFriends >= 0 ? 'var(--credit-bg)' : 'var(--debit-bg)',
                       color: netFriends >= 0 ? 'var(--credit)' : 'var(--debit)',
-                      border: `1px solid ${netFriends >= 0 ? 'var(--credit-border, rgba(46, 125, 50, 0.22))' : 'var(--debit-border, rgba(211, 47, 47, 0.22))'}`,
+                      border: `1px solid ${netFriends >= 0 ? 'var(--credit-border)' : 'var(--debit-border)'}`,
                       letterSpacing: '-0.2px',
                       whiteSpace: 'nowrap',
                       flexShrink: 0
@@ -692,7 +692,7 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                           alignItems: 'center',
                           justifyContent: 'center',
                           border: '1px solid rgba(255, 255, 255, 0.08)',
-                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.12)'
+                          boxShadow: 'var(--shadow-sm)'
                         }}
                       >
                         {friendInitial(friend.name, friend.avatarNumber)}

@@ -301,7 +301,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                 height: 34,
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor: 'rgba(139, 92, 246, 0.15)',
-                color: 'var(--accent, #8b5cf6)',
+                color: 'var(--accent)',
                 display: 'grid',
                 placeItems: 'center',
                 flexShrink: 0,
@@ -381,7 +381,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                       borderRadius: 'var(--radius-sm)',
                       border: 'none',
                       background: isActive ? 'var(--accent)' : 'transparent',
-                      color: isActive ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
+                      color: isActive ? 'var(--accent-contrast)' : 'var(--text-2)',
                       fontSize: 'var(--fs-xs)',
                       fontWeight: isActive ? 700 : 500,
                       cursor: 'pointer',
@@ -485,11 +485,11 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                       onClick={() => setViewYear(yr)}
                       style={{
                         padding: '12px 6px',
-                        borderRadius: 12,
+                        borderRadius: 'var(--radius-md)',
                         border: isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
                         background: isSelected ? 'var(--accent)' : 'var(--surface2)',
-                        color: isSelected ? 'var(--accent-contrast, #ffffff)' : 'var(--text)',
-                        fontSize: 14,
+                        color: isSelected ? 'var(--accent-contrast)' : 'var(--text)',
+                        fontSize: 'var(--fs-base)',
                         fontWeight: isSelected ? 750 : 600,
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
@@ -510,18 +510,18 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                   type="button"
                   onClick={() => setViewYear(prev => prev - 1)}
                   className="btn-icon"
-                  style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)' }}
+                  style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface2)' }}
                 >
                   <ChevronLeft size={16} />
                 </button>
-                <span style={{ fontSize: 15, fontWeight: 750, color: 'var(--text)' }}>
+                <span style={{ fontSize: 'var(--fs-md)', fontWeight: 750, color: 'var(--text)' }}>
                   {viewYear}
                 </span>
                 <button
                   type="button"
                   onClick={() => setViewYear(prev => prev + 1)}
                   className="btn-icon"
-                  style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)' }}
+                  style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface2)' }}
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -538,11 +538,11 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                       onClick={() => setViewMonth(idx)}
                       style={{
                         padding: '12px 6px',
-                        borderRadius: 12,
+                        borderRadius: 'var(--radius-md)',
                         border: isSelected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
                         background: isSelected ? 'var(--accent)' : 'var(--surface2)',
-                        color: isSelected ? 'var(--accent-contrast, #ffffff)' : 'var(--text)',
-                        fontSize: 13,
+                        color: isSelected ? 'var(--accent-contrast)' : 'var(--text)',
+                        fontSize: 'var(--fs-sm)',
                         fontWeight: isSelected ? 750 : 600,
                         cursor: 'pointer',
                         position: 'relative',
@@ -587,7 +587,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                   style={{
                     width: 30,
                     height: 30,
-                    borderRadius: 8,
+                    borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border)',
                     background: 'var(--surface2)',
                     display: 'grid',
@@ -608,8 +608,8 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                       color: showMonthPicker ? 'var(--accent-contrast)' : 'var(--text)',
                       border: '1px solid var(--border)',
                       padding: '4px 10px',
-                      borderRadius: 8,
-                      fontSize: 13,
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 'var(--fs-sm)',
                       fontWeight: 700,
                       cursor: 'pointer',
                     }}
@@ -625,8 +625,8 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                       color: showYearPicker ? 'var(--accent-contrast)' : 'var(--text)',
                       border: '1px solid var(--border)',
                       padding: '4px 10px',
-                      borderRadius: 8,
-                      fontSize: 13,
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 'var(--fs-sm)',
                       fontWeight: 700,
                       cursor: 'pointer',
                     }}
@@ -642,7 +642,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                   style={{
                     width: 30,
                     height: 30,
-                    borderRadius: 8,
+                    borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border)',
                     background: 'var(--surface2)',
                     display: 'grid',
@@ -663,7 +663,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                     gridTemplateColumns: 'repeat(4, 1fr)',
                     gap: 6,
                     padding: 8,
-                    borderRadius: 12,
+                    borderRadius: 'var(--radius-md)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                   }}
@@ -678,11 +678,11 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                       }}
                       style={{
                         padding: '6px 2px',
-                        borderRadius: 6,
+                        borderRadius: 'var(--radius-xs)',
                         border: 'none',
                         background: viewMonth === idx ? 'var(--accent)' : 'transparent',
                         color: viewMonth === idx ? 'var(--accent-contrast)' : 'var(--text)',
-                        fontSize: 12,
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: viewMonth === idx ? 750 : 550,
                         cursor: 'pointer',
                       }}
@@ -701,7 +701,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                     gridTemplateColumns: 'repeat(3, 1fr)',
                     gap: 6,
                     padding: 8,
-                    borderRadius: 12,
+                    borderRadius: 'var(--radius-md)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                   }}
@@ -716,11 +716,11 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                       }}
                       style={{
                         padding: '6px 2px',
-                        borderRadius: 6,
+                        borderRadius: 'var(--radius-xs)',
                         border: 'none',
                         background: viewYear === yr ? 'var(--accent)' : 'transparent',
                         color: viewYear === yr ? 'var(--accent-contrast)' : 'var(--text)',
-                        fontSize: 12,
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: viewYear === yr ? 750 : 550,
                         cursor: 'pointer',
                       }}
@@ -744,7 +744,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                   <div
                     key={wd}
                     style={{
-                      fontSize: 11,
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       color: 'var(--text-3)',
                       padding: '4px 0',
@@ -796,7 +796,7 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                         border: isDaySelected
                           ? '1.5px solid var(--accent)'
                           : isTodayDate
-                          ? '1px solid var(--accent-border-soft, rgba(139, 92, 246, 0.4))'
+                          ? '1px solid var(--accent-border-soft)'
                           : '1px solid transparent',
                         background: isDaySelected
                           ? 'var(--accent)'
@@ -804,11 +804,11 @@ export const AnalyticsCalendarModal: React.FC<AnalyticsCalendarModalProps> = ({
                           ? 'rgba(139, 92, 246, 0.18)'
                           : 'transparent',
                         color: isDaySelected
-                          ? 'var(--accent-contrast, #ffffff)'
+                          ? 'var(--accent-contrast)'
                           : isWeekSelected
                           ? 'var(--accent)'
                           : 'var(--text)',
-                        fontSize: 12.5,
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: isDaySelected || isWeekSelected ? 750 : isTodayDate ? 700 : 550,
                         display: 'flex',
                         flexDirection: 'column',

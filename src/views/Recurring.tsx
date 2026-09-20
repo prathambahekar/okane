@@ -269,7 +269,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
               width: 40,
               height: 40,
               padding: 0,
-              borderRadius: '9999px',
+              borderRadius: 'var(--radius-full)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -289,10 +289,10 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
                   right: -2,
                   minWidth: 16,
                   height: 16,
-                  borderRadius: 999,
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--text)',
                   color: 'var(--surface)',
-                  fontSize: 10,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 750,
                   display: 'flex',
                   alignItems: 'center',
@@ -438,7 +438,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
             background: 'var(--surface)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-xl)',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+            boxShadow: 'var(--shadow-sm)',
             display: 'flex',
             flexDirection: 'column',
             gap: 10,
@@ -524,7 +524,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
                         style={{
                           fontSize: 'var(--fs-caption)',
                           fontWeight: 600,
-                          color: isAllDone ? 'var(--credit, #10b981)' : 'var(--text-2)',
+                          color: isAllDone ? 'var(--credit)' : 'var(--text-2)',
                           background: isAllDone ? 'rgba(16, 185, 129, 0.08)' : 'var(--surface2)',
                           padding: '2.5px 8.5px',
                           borderRadius: 'var(--radius-full)',
@@ -556,11 +556,11 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
                         }}
                       >
                         <span>{loggedTodayCount}</span>
-                        <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-3)' }}>
+                        <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 500, color: 'var(--text-3)' }}>
                           / {totalActive}
                         </span>
                       </div>
-                      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-3)' }}>logged today</span>
+                      <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 500, color: 'var(--text-3)' }}>logged today</span>
                     </div>
 
                     {totalActive > 0 && (
@@ -568,7 +568,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
                         style={{
                           width: '100%',
                           height: 4,
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           background: 'var(--surface2)',
                           overflow: 'hidden',
                           marginTop: 1,
@@ -578,8 +578,8 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
                           style={{
                             width: `${Math.round((loggedTodayCount / totalActive) * 100)}%`,
                             height: '100%',
-                            borderRadius: 9999,
-                            background: isAllDone ? 'var(--credit, #10b981)' : 'var(--accent)',
+                            borderRadius: 'var(--radius-full)',
+                            background: isAllDone ? 'var(--credit)' : 'var(--accent)',
                             transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                           }}
                         />
@@ -621,7 +621,7 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
                 : 'Add subscriptions or fixed recurring bills to track automatic deductions.'}
             </p>
             {activeFilterCount > 0 ? (
-              <button className="btn btn-secondary btn-sm" onClick={handleClearAll} style={{ borderRadius: '9999px', padding: '0 20px', height: 38 }}>
+              <button className="btn btn-secondary btn-sm" onClick={handleClearAll} style={{ borderRadius: 'var(--radius-full)', padding: '0 20px', height: 38 }}>
                 Clear Filters
               </button>
             ) : (

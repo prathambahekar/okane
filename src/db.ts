@@ -536,22 +536,22 @@ export function defaultSampleRecurringRules(walletId: string, isINR: boolean = t
 
 export const DEFAULT_CATEGORIES = [
   { name: 'Food', color: '#F97316', icon: 'food' },
-  { name: 'Groceries', color: '#4ADE80', icon: 'groceries' },
-  { name: 'Transport', color: '#38BDF8', icon: 'transport' },
-  { name: 'Rent', color: '#FBBF24', icon: 'rent' },
-  { name: 'Utilities', color: '#A78BFA', icon: 'utilities' },
+  { name: 'Groceries', color: 'var(--credit)', icon: 'groceries' },
+  { name: 'Transport', color: 'var(--accent)', icon: 'transport' },
+  { name: 'Rent', color: 'var(--amber)', icon: 'rent' },
+  { name: 'Utilities', color: 'var(--accent)', icon: 'utilities' },
   { name: 'Entertainment', color: '#F472B6', icon: 'entertainment' },
-  { name: 'Shopping', color: '#FB7185', icon: 'shopping' },
+  { name: 'Shopping', color: 'var(--debit)', icon: 'shopping' },
   { name: 'Travel', color: '#22D3EE', icon: 'travel' },
-  { name: 'Health', color: '#F87171', icon: 'health' },
-  { name: 'Income', color: '#34D399', icon: 'income' },
+  { name: 'Health', color: 'var(--debit)', icon: 'health' },
+  { name: 'Income', color: 'var(--credit)', icon: 'income' },
   { name: 'Refund', color: '#2DD4BF', icon: 'refund' },
-  { name: 'Other', color: '#94A3B8', icon: 'other' },
+  { name: 'Other', color: 'var(--text-3)', icon: 'other' },
 ];
 
 export const DEFAULT_WALLETS: Wallet[] = [
-  { id: 'wal_cash', name: 'Cash', openingBalance: 0, color: '#FBBF24', icon: 'cash' },
-  { id: 'wal_upi', name: 'UPI', openingBalance: 0, color: '#34D399', icon: 'card' },
+  { id: 'wal_cash', name: 'Cash', openingBalance: 0, color: 'var(--amber)', icon: 'cash' },
+  { id: 'wal_upi', name: 'UPI', openingBalance: 0, color: 'var(--credit)', icon: 'card' },
 ];
 
 export const FRIEND_PALETTE = [
@@ -726,7 +726,7 @@ export function sanitizeLoadedDB(rawDB: unknown): AppDB {
     : [];
   const friends = rawFriends.map(f => {
     if (f.type === 'vendor' && (f.color === '#6366f1' || !f.color)) {
-      return { ...f, color: '#f59e0b' };
+      return { ...f, color: 'var(--amber)' };
     }
     return f;
   });
@@ -2519,7 +2519,7 @@ export function deleteSettlement(db: AppDB, id: string): AppDB {
       id: targetFriendId,
       name: target?.note ? target.note.split(' ')[0] : 'Contact',
       notes: 'Restored from settlement',
-      color: '#6366f1',
+      color: 'var(--accent)',
       createdAt: Date.now(),
       type: 'friend',
     };
@@ -2681,7 +2681,7 @@ export function seedSampleData(db: AppDB): AppDB {
   // Check or add friend 1 (Hrishi / Alex)
   let alex = current.friends.find(f => f.name === 'Hrishi' || f.name === 'Alex Rivera');
   if (!alex) {
-    const res = addFriend(current, { name: isINR ? 'Hrishi' : 'Alex Rivera', color: '#10b981' });
+    const res = addFriend(current, { name: isINR ? 'Hrishi' : 'Alex Rivera', color: 'var(--credit)' });
     current = res.db;
     alex = res.friend;
   }
@@ -2689,7 +2689,7 @@ export function seedSampleData(db: AppDB): AppDB {
   // Check or add friend 2 (Anushka / Priya)
   let priya = current.friends.find(f => f.name === 'Anushka' || f.name === 'Priya Shah');
   if (!priya) {
-    const res = addFriend(current, { name: isINR ? 'Anushka' : 'Priya Shah', color: '#f43f5e' });
+    const res = addFriend(current, { name: isINR ? 'Anushka' : 'Priya Shah', color: 'var(--debit)' });
     current = res.db;
     priya = res.friend;
   }
@@ -2697,7 +2697,7 @@ export function seedSampleData(db: AppDB): AppDB {
   // Check or add friend 3 (Shriyansh / Sam)
   let sam = current.friends.find(f => f.name === 'Shriyansh' || f.name === 'Sam Okafor');
   if (!sam) {
-    const res = addFriend(current, { name: isINR ? 'Shriyansh' : 'Sam Okafor', color: '#f59e0b' });
+    const res = addFriend(current, { name: isINR ? 'Shriyansh' : 'Sam Okafor', color: 'var(--amber)' });
     current = res.db;
     sam = res.friend;
   }
@@ -2710,7 +2710,7 @@ export function seedSampleData(db: AppDB): AppDB {
       type: 'vendor',
       category: 'Food',
       notes: 'Daily home-style tiffin & grocery meals',
-      color: '#f59e0b',
+      color: 'var(--amber)',
     });
     current = res.db;
     vendor = res.friend;

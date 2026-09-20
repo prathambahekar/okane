@@ -128,7 +128,7 @@ const SkeletonSettlements: React.FC = () => (
       style={{
         marginBottom: 20,
         padding: '14px 16px',
-        borderRadius: 12,
+        borderRadius: 'var(--radius-md)',
         background: 'var(--surface)',
       }}
     >
@@ -152,7 +152,7 @@ const SkeletonSettlements: React.FC = () => (
               gap: 8,
               padding: '10px 12px',
               background: 'var(--surface2)',
-              borderRadius: 10,
+              borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border)',
             }}
           >
@@ -255,15 +255,15 @@ const SkeletonSplitTrips: React.FC = () => (
 
       {/* Stats row inside trip banner */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, marginBottom: 14 }}>
-        <div style={{ background: 'var(--surface2)', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)' }}>
+        <div style={{ background: 'var(--surface2)', padding: '10px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
           <Shimmer width={60} height={10} borderRadius={3} style={{ marginBottom: 4 }} />
           <Shimmer width={80} height={18} borderRadius={4} />
         </div>
-        <div style={{ background: 'var(--surface2)', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)' }}>
+        <div style={{ background: 'var(--surface2)', padding: '10px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
           <Shimmer width={75} height={10} borderRadius={3} style={{ marginBottom: 4 }} />
           <Shimmer width={80} height={18} borderRadius={4} />
         </div>
-        <div style={{ background: 'var(--surface2)', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)' }}>
+        <div style={{ background: 'var(--surface2)', padding: '10px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
           <Shimmer width={50} height={10} borderRadius={3} style={{ marginBottom: 4 }} />
           <Shimmer width={60} height={18} borderRadius={4} />
         </div>
@@ -388,7 +388,7 @@ const SkeletonAnalytics: React.FC = () => (
               key={idx}
               style={{
                 padding: '10px 12px',
-                borderRadius: 8,
+                borderRadius: 'var(--radius-sm)',
                 background: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 display: 'flex',
@@ -477,7 +477,7 @@ const SkeletonSettings: React.FC = () => (
           style={{
             background: 'var(--surface)',
             padding: '14px 16px',
-            borderRadius: 12,
+            borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
@@ -649,7 +649,7 @@ const SkeletonCards: React.FC = () => (
           style={{
             padding: '16px',
             background: 'var(--surface)',
-            borderRadius: 14,
+            borderRadius: 'var(--radius-md)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',

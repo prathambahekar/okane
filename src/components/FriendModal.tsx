@@ -506,7 +506,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                     fontWeight: 500,
                     textAlign: 'left',
                     padding: '0 12px',
-                    border: error ? '1.5px solid var(--debit, #ef4444)' : '1px solid var(--border)',
+                    border: error ? '1.5px solid var(--debit)' : '1px solid var(--border)',
                     background: 'var(--surface2)',
                     color: 'var(--text)',
                     outline: 'none',
@@ -793,7 +793,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                       fontSize: avatarNumber && avatarNumber.length > 2 ? 9 : 11,
                       fontWeight: 700,
                       flexShrink: 0,
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                      boxShadow: 'var(--shadow-sm)',
                     }}
                   >
                     {type === 'vendor'
@@ -1051,7 +1051,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                     background: 'var(--text)',
                     border: '1px solid var(--text)',
                     color: 'var(--bg)',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                    boxShadow: 'var(--shadow)',
                     cursor: 'pointer',
                     padding: '0 18px',
                     display: 'inline-flex',
@@ -1456,7 +1456,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                     background: 'var(--text)',
                     color: 'var(--bg)',
                     border: 'none',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    boxShadow: 'var(--shadow)',
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',

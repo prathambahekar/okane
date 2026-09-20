@@ -73,7 +73,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Delete',
             style={{
               width: 38,
               height: 4.5,
-              borderRadius: 99,
+              borderRadius: 'var(--radius-full)',
               background: 'var(--border2)',
               margin: '10px auto 4px',
               flexShrink: 0,

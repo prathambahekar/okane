@@ -756,7 +756,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
             style={{
               width: 32,
               height: 32,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               display: 'grid',
               placeItems: 'center',
               cursor: 'pointer',
@@ -865,12 +865,12 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                                     borderRadius: '50%',
                                     display: 'grid',
                                     placeItems: 'center',
-                                    fontSize: 12,
+                                    fontSize: 'var(--fs-xs)',
                                     fontWeight: 700,
                                     marginLeft: idx > 0 ? -10 : 0,
                                     zIndex: 2 - idx,
                                     textTransform: 'uppercase',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                                    boxShadow: 'var(--shadow-sm)',
                                     flexShrink: 0,
                                   }}
                                 >
@@ -888,7 +888,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                                     border: '1.5px solid var(--border)',
                                     display: 'grid',
                                     placeItems: 'center',
-                                    fontSize: 10,
+                                    fontSize: 'var(--fs-caption)',
                                     fontWeight: 700,
                                     marginLeft: -10,
                                     zIndex: 0,
@@ -903,14 +903,14 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                             {/* Names & Split Badges */}
                             <div style={{ minWidth: 0, flex: 1 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
-                                <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 650, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {selectedFriends.length === 1
                                     ? selectedFriends[0].name
                                     : selectedFriends.length === 2
                                     ? `${selectedFriends[0].name} & ${selectedFriends[1].name}`
                                     : `${selectedFriends[0]?.name || 'Friend'} +${selectedFriends.length - 1}`}
                                 </span>
-                                <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500, flexShrink: 0 }}>
+                                <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500, flexShrink: 0 }}>
                                   • Split
                                 </span>
                               </div>
@@ -921,7 +921,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                                   style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    fontSize: 11,
+                                    fontSize: 'var(--fs-caption)',
                                     fontWeight: 700,
                                     color: 'var(--credit)',
                                     background: 'var(--credit-bg)',
@@ -939,7 +939,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                                     style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      fontSize: 11,
+                                      fontSize: 'var(--fs-caption)',
                                       fontWeight: 600,
                                       color: 'var(--text-2)',
                                       background: 'var(--surface3)',
@@ -965,11 +965,11 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                               title="Edit split details"
                               style={{
                                 padding: '4px 10px',
-                                borderRadius: '9999px',
+                                borderRadius: 'var(--radius-full)',
                                 background: 'var(--surface3)',
                                 border: 'none',
                                 color: 'var(--text)',
-                                fontSize: 11.5,
+                                fontSize: 'var(--fs-caption)',
                                 fontWeight: 600,
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -1047,10 +1047,10 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                               <Users size={13} strokeWidth={2.2} />
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.1px', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.1px', whiteSpace: 'nowrap' }}>
                                 Split with friends
                               </span>
-                              <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 450, whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 450, whiteSpace: 'nowrap' }}>
                                 • Optional
                               </span>
                             </div>
@@ -1134,7 +1134,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                       >
                         <span
                           style={{
-                            fontSize: 11,
+                            fontSize: 'var(--fs-caption)',
                             fontWeight: 700,
                             color: 'var(--text-3)',
                             display: 'inline-flex',
@@ -1214,7 +1214,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                         {autoDetectedCategory && autoDetectedCategory === category && (
                           <span
                             style={{
-                              fontSize: 10.5,
+                              fontSize: 'var(--fs-caption)',
                               fontWeight: 700,
                               color: 'var(--accent)',
                               display: 'inline-flex',
@@ -1281,11 +1281,11 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                                 padding: '1px 8px',
                                 borderRadius: 'var(--radius-full)',
                                 border: 'none',
-                                fontSize: 10.5,
+                                fontSize: 'var(--fs-caption)',
                                 fontWeight: status === 'paid' ? 700 : 500,
                                 cursor: 'pointer',
-                                background: status === 'paid' ? 'var(--credit-bg, rgba(16, 185, 129, 0.14))' : 'transparent',
-                                color: status === 'paid' ? 'var(--credit, #10b981)' : 'var(--text-3)',
+                                background: status === 'paid' ? 'var(--credit-bg)' : 'transparent',
+                                color: status === 'paid' ? 'var(--credit)' : 'var(--text-3)',
                                 boxShadow: status === 'paid' ? '0 1px 2px var(--credit-bg)' : 'none',
                                 transition: 'all 0.15s ease',
                                 height: 18,
@@ -1304,11 +1304,11 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                                 padding: '1px 8px',
                                 borderRadius: 'var(--radius-full)',
                                 border: 'none',
-                                fontSize: 10.5,
+                                fontSize: 'var(--fs-caption)',
                                 fontWeight: status === 'unpaid' ? 700 : 500,
                                 cursor: 'pointer',
-                                background: status === 'unpaid' ? 'var(--debit-bg, rgba(239, 68, 68, 0.15))' : 'transparent',
-                                color: status === 'unpaid' ? 'var(--debit, #ef4444)' : 'var(--text-3)',
+                                background: status === 'unpaid' ? 'var(--debit-bg)' : 'transparent',
+                                color: status === 'unpaid' ? 'var(--debit)' : 'var(--text-3)',
                                 boxShadow: status === 'unpaid' ? '0 1px 2px var(--debit-bg)' : 'none',
                                 transition: 'all 0.15s ease',
                                 height: 18,
@@ -1577,7 +1577,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                boxShadow: 'var(--shadow-sm)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.15s ease',
@@ -1605,7 +1605,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                 background: 'var(--text)',
                 border: '1px solid var(--text)',
                 color: 'var(--bg)',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                boxShadow: 'var(--shadow)',
               }}
             >
               {flow === 'out' ? (

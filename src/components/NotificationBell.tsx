@@ -188,10 +188,10 @@ export default function NotificationBell({ onNavigate }: Props) {
                       <Bell size={22} />
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div className="modal-title" style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.2, color: 'var(--text)' }}>
+                      <div className="modal-title" style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, lineHeight: 1.2, color: 'var(--text)' }}>
                         Notifications
                       </div>
-                      <div style={{ fontSize: 12.5, color: 'var(--text-3)', marginTop: 2 }}>
+                      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 2 }}>
                         {totalCount > 0
                           ? `${totalCount} pending item${totalCount > 1 ? 's' : ''} require attention`
                           : 'All caught up!'}
@@ -209,7 +209,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                       style={{
                         width: 36,
                         height: 36,
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         background: 'var(--surface2)',
                         border: '1px solid var(--border)',
                         color: 'var(--text-2)',
@@ -253,7 +253,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                         style={{
                           width: 48,
                           height: 48,
-                          borderRadius: 14,
+                          borderRadius: 'var(--radius-md)',
                           background: 'var(--surface2)',
                           border: '1px solid var(--border)',
                           color: 'var(--text-2)',
@@ -265,10 +265,10 @@ export default function NotificationBell({ onNavigate }: Props) {
                       >
                         <CheckCircle2 size={24} style={{ color: 'var(--accent)' }} />
                       </div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
+                      <div style={{ fontSize: 'var(--fs-md)', fontWeight: 700, color: 'var(--text)' }}>
                         All Caught Up
                       </div>
-                      <p style={{ fontSize: 12.5, margin: 0, color: 'var(--text-3)', maxWidth: 280, lineHeight: 1.5 }}>
+                      <p style={{ fontSize: 'var(--fs-xs)', margin: 0, color: 'var(--text-3)', maxWidth: 280, lineHeight: 1.5 }}>
                         No pending subscriptions or daily expense logs require your attention right now.
                       </p>
                     </div>
@@ -282,30 +282,30 @@ export default function NotificationBell({ onNavigate }: Props) {
                               style={{
                                 width: 42,
                                 height: 42,
-                                borderRadius: 13,
+                                borderRadius: 'var(--radius-md)',
                                 background: 'rgba(99, 102, 241, 0.15)',
                                 border: '1px solid rgba(99, 102, 241, 0.3)',
-                                color: '#818cf8',
+                                color: 'var(--accent)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexShrink: 0,
                               }}
                             >
-                              <Sparkles size={19} style={{ color: '#818cf8' }} />
+                              <Sparkles size={19} style={{ color: 'var(--accent)' }} />
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 14.5, fontWeight: 650, color: 'var(--text)' }}>
+                              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 650, color: 'var(--text)' }}>
                                 Software Update: v{availableUpdate.version}
                               </div>
-                              <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>
+                              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 1 }}>
                                 Build #{availableUpdate.buildNumber} · {availableUpdate.releaseDate}
                               </div>
                             </div>
                           </div>
 
                           {availableUpdate.releaseNotes && (
-                            <p style={{ fontSize: 12.5, color: 'var(--text-2)', margin: 0, lineHeight: 1.45 }}>
+                            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)', margin: 0, lineHeight: 1.45 }}>
                               {availableUpdate.releaseNotes}
                             </p>
                           )}
@@ -319,14 +319,14 @@ export default function NotificationBell({ onNavigate }: Props) {
                               }}
                               style={{
                                 height: 34,
-                                borderRadius: 9999,
+                                borderRadius: 'var(--radius-full)',
                                 padding: '0 16px',
-                                fontSize: 12.5,
+                                fontSize: 'var(--fs-xs)',
                                 fontWeight: 700,
                                 background: 'var(--text)',
                                 border: 'none',
                                 color: 'var(--bg)',
-                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.18)',
+                                boxShadow: 'var(--shadow)',
                                 cursor: 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -367,7 +367,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                           >
                             <span
                               style={{
-                                fontSize: 11,
+                                fontSize: 'var(--fs-caption)',
                                 fontWeight: 700,
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.6px',
@@ -383,10 +383,10 @@ export default function NotificationBell({ onNavigate }: Props) {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <span
                                 style={{
-                                  fontSize: 11,
+                                  fontSize: 'var(--fs-caption)',
                                   fontWeight: 700,
                                   padding: '1.5px 8px',
-                                  borderRadius: 9999,
+                                  borderRadius: 'var(--radius-full)',
                                   background: 'var(--surface2)',
                                   border: '1px solid var(--border)',
                                   color: 'var(--text-2)',
@@ -430,7 +430,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                                           style={{
                                             width: 42,
                                             height: 42,
-                                            borderRadius: 13,
+                                            borderRadius: 'var(--radius-md)',
                                             background: catMeta.bg,
                                             border: `1px solid ${catMeta.border}`,
                                             color: catMeta.color,
@@ -447,7 +447,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                                             <span
                                               style={{
-                                                fontSize: 14.5,
+                                                fontSize: 'var(--fs-base)',
                                                 fontWeight: 650,
                                                 color: 'var(--text)',
                                                 whiteSpace: 'nowrap',
@@ -464,9 +464,9 @@ export default function NotificationBell({ onNavigate }: Props) {
                                                 textTransform: 'uppercase',
                                                 letterSpacing: '0.04em',
                                                 padding: '2px 6px',
-                                                borderRadius: 4,
+                                                borderRadius: 'var(--radius-xs)',
                                                 background: 'rgba(239, 68, 68, 0.15)',
-                                                color: '#F87171',
+                                                color: 'var(--debit)',
                                                 border: '1px solid rgba(239, 68, 68, 0.3)',
                                                 flexShrink: 0,
                                                 lineHeight: 1.2,
@@ -478,7 +478,7 @@ export default function NotificationBell({ onNavigate }: Props) {
 
                                           <div
                                             style={{
-                                              fontSize: 12,
+                                              fontSize: 'var(--fs-xs)',
                                               color: 'var(--text-3)',
                                               display: 'flex',
                                               alignItems: 'center',
@@ -513,14 +513,14 @@ export default function NotificationBell({ onNavigate }: Props) {
                                         }}
                                         style={{
                                           height: 34,
-                                          borderRadius: 9999,
+                                          borderRadius: 'var(--radius-full)',
                                           padding: '0 16px',
-                                          fontSize: 12.5,
+                                          fontSize: 'var(--fs-xs)',
                                           fontWeight: 700,
                                           background: 'var(--text)',
                                           border: 'none',
                                           color: 'var(--bg)',
-                                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.18)',
+                                          boxShadow: 'var(--shadow)',
                                           cursor: 'pointer',
                                           display: 'inline-flex',
                                           alignItems: 'center',
@@ -568,7 +568,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                           >
                             <span
                               style={{
-                                fontSize: 11,
+                                fontSize: 'var(--fs-caption)',
                                 fontWeight: 700,
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.6px',
@@ -584,10 +584,10 @@ export default function NotificationBell({ onNavigate }: Props) {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <span
                                 style={{
-                                  fontSize: 11,
+                                  fontSize: 'var(--fs-caption)',
                                   fontWeight: 700,
                                   padding: '1.5px 8px',
-                                  borderRadius: 9999,
+                                  borderRadius: 'var(--radius-full)',
                                   background: 'var(--surface2)',
                                   border: '1px solid var(--border)',
                                   color: 'var(--text-2)',
@@ -631,7 +631,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                                           style={{
                                             width: 42,
                                             height: 42,
-                                            borderRadius: 13,
+                                            borderRadius: 'var(--radius-md)',
                                             background: catMeta.bg,
                                             border: `1px solid ${catMeta.border}`,
                                             color: catMeta.color,
@@ -647,7 +647,7 @@ export default function NotificationBell({ onNavigate }: Props) {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
                                           <div
                                             style={{
-                                              fontSize: 14.5,
+                                              fontSize: 'var(--fs-base)',
                                               fontWeight: 650,
                                               color: 'var(--text)',
                                               whiteSpace: 'nowrap',
@@ -660,7 +660,7 @@ export default function NotificationBell({ onNavigate }: Props) {
 
                                           <div
                                             style={{
-                                              fontSize: 12,
+                                              fontSize: 'var(--fs-xs)',
                                               color: 'var(--text-3)',
                                               display: 'flex',
                                               alignItems: 'center',
@@ -695,14 +695,14 @@ export default function NotificationBell({ onNavigate }: Props) {
                                         }}
                                         style={{
                                           height: 34,
-                                          borderRadius: 9999,
+                                          borderRadius: 'var(--radius-full)',
                                           padding: '0 16px',
-                                          fontSize: 12.5,
+                                          fontSize: 'var(--fs-xs)',
                                           fontWeight: 700,
                                           background: 'var(--text)',
                                           border: 'none',
                                           color: 'var(--bg)',
-                                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.18)',
+                                          boxShadow: 'var(--shadow)',
                                           cursor: 'pointer',
                                           display: 'inline-flex',
                                           alignItems: 'center',
@@ -747,8 +747,8 @@ export default function NotificationBell({ onNavigate }: Props) {
                       style={{
                         flex: 1,
                         height: 44,
-                        borderRadius: 9999,
-                        fontSize: 13.5,
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: 'var(--fs-sm)',
                         fontWeight: 650,
                         border: '1px solid var(--border)',
                         background: 'var(--surface2)',
@@ -774,8 +774,8 @@ export default function NotificationBell({ onNavigate }: Props) {
                         style={{
                           flex: 1.4,
                           height: 44,
-                          borderRadius: 9999,
-                          fontSize: 13.5,
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: 'var(--fs-sm)',
                           fontWeight: 700,
                           background: 'var(--text)',
                           border: 'none',

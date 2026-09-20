@@ -298,9 +298,9 @@ export const DailyExpenditureCard: React.FC<DailyExpenditureCardProps> = ({
                   alignItems: 'center',
                   gap: 6,
                   padding: '5px 12px',
-                  fontSize: 12,
+                  fontSize: 'var(--fs-xs)',
                   fontWeight: 650,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   border: '1px solid var(--border)',
                   background: 'var(--surface2)',
                   color: 'var(--accent)',
@@ -387,7 +387,7 @@ export const DailyExpenditureCard: React.FC<DailyExpenditureCardProps> = ({
                             className="analytics-v2-day-tag"
                             style={{
                               background: 'rgba(59, 130, 246, 0.12)',
-                              color: '#3b82f6',
+                              color: 'var(--accent)',
                             }}
                           >
                             Split

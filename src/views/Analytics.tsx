@@ -761,11 +761,11 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                 <div>
                   <h3
                     id="analytics-filter-title"
-                    style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)', lineHeight: 1.2 }}
+                    style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', lineHeight: 1.2 }}
                   >
                     Filter Statistics
                   </h3>
-                  <div style={{ fontSize: '11.5px', color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', color: activeFilterCount > 0 ? 'var(--accent)' : 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
                     {activeFilterCount > 0
                       ? `${activeFilterCount} active filter${activeFilterCount === 1 ? '' : 's'}`
                       : 'Filter by category and wallet'}
@@ -780,7 +780,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                 style={{
                   width: 32,
                   height: 32,
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   border: '1px solid var(--border)',
                   background: 'var(--surface2)',
                   color: 'var(--text)',
@@ -808,10 +808,10 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       Category
                     </label>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', background: 'var(--surface2)', padding: '2px 7px', borderRadius: 9999 }}>
+                    <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-3)', background: 'var(--surface2)', padding: '2px 7px', borderRadius: 'var(--radius-full)' }}>
                       {isAllCategoriesSelected ? 'All selected' : `${effectiveSelectedCount} of ${allCategoryNames.length}`}
                     </span>
                   </div>
@@ -819,7 +819,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                     <button
                       type="button"
                       onClick={() => setSelectedCategories([])}
-                      style={{ fontSize: 11, color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                      style={{ fontSize: 'var(--fs-caption)', color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                     >
                       Select All
                     </button>
@@ -827,7 +827,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                     <button
                       type="button"
                       onClick={() => setSelectedCategories(['__NONE__'])}
-                      style={{ fontSize: 11, color: 'var(--text-3)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                      style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                     >
                       Clear All
                     </button>
@@ -840,11 +840,11 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                     onClick={() => isAllCategoriesSelected ? setSelectedCategories(['__NONE__']) : setSelectedCategories([])}
                     style={{
                       padding: '7px 13px',
-                      borderRadius: 9999,
+                      borderRadius: 'var(--radius-full)',
                       border: isAllCategoriesSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
                       background: isAllCategoriesSelected ? 'var(--accent)' : 'var(--surface2)',
                       color: isAllCategoriesSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
-                      fontSize: 12,
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: isAllCategoriesSelected ? 650 : 500,
                       cursor: 'pointer',
                       display: 'inline-flex',

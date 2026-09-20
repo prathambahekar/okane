@@ -202,7 +202,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+                boxShadow: 'var(--shadow)',
               }}
             >
               {friendInitial(friend.name, friend.avatarNumber)}
@@ -237,7 +237,7 @@ export default function SettleModal({ friend, onClose }: Props) {
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -260,7 +260,7 @@ export default function SettleModal({ friend, onClose }: Props) {
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 9999,
+                borderRadius: 'var(--radius-full)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -570,7 +570,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                       style={{
                         fontSize: 'var(--fs-lg)',
                         fontWeight: 700,
-                        color: actionType === 'forgive' ? 'var(--amber)' : 'var(--accent, #10b981)',
+                        color: actionType === 'forgive' ? 'var(--amber)' : 'var(--accent)',
                         userSelect: 'none',
                         lineHeight: 1,
                       }}
@@ -614,7 +614,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          borderRadius: 9999,
+                          borderRadius: 'var(--radius-full)',
                           padding: 0,
                           flexShrink: 0,
                         }}

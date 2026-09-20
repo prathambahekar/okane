@@ -33,7 +33,7 @@ export function VendorQuickAdd({
         >
           <Store size={12} style={{ color: 'var(--text-3)' }} />
           <span>Vendor</span>
-          <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.7, letterSpacing: '0.2px', textTransform: 'lowercase' }}>
+          <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 500, opacity: 0.7, letterSpacing: '0.2px', textTransform: 'lowercase' }}>
             (optional)
           </span>
         </label>

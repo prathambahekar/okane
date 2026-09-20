@@ -259,9 +259,9 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
                 style={{
                   width: 15,
                   height: 15,
-                  borderRadius: 4,
+                  borderRadius: 'var(--radius-xs)',
                   border: isChecked ? 'none' : '1.5px solid var(--border2)',
-                  background: isChecked ? 'var(--credit, #10b981)' : 'var(--surface2)',
+                  background: isChecked ? 'var(--credit)' : 'var(--surface2)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -285,7 +285,7 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
                   textDecoration: isChecked ? 'line-through' : 'none',
                   opacity: isChecked ? 0.6 : 1,
                   color: isChecked ? 'var(--text-3)' : 'var(--text)',
-                  fontSize: '13px',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 500,
                   wordBreak: 'break-word',
                   overflowWrap: 'break-word',
@@ -325,7 +325,7 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
               <span
                 style={{
                   color: 'var(--text)',
-                  fontSize: '13px',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 500,
                   wordBreak: 'break-word',
                   overflowWrap: 'break-word',
@@ -366,7 +366,7 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
               <span
                 style={{
                   color: 'var(--text)',
-                  fontSize: '13px',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 500,
                   wordBreak: 'break-word',
                   overflowWrap: 'break-word',
@@ -392,7 +392,7 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
                 margin: '3px 0',
                 color: 'var(--text-2)',
                 fontStyle: 'italic',
-                fontSize: '13px',
+                fontSize: 'var(--fs-sm)',
               }}
             >
               {parseInlineMarkdown(trimmed.substring(2))}
@@ -415,7 +415,7 @@ export function MarkdownNote({ content, className = '', style = {}, inline = fal
             <span
               style={{
                 color: 'var(--text)',
-                fontSize: '13px',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 500,
                 wordBreak: 'break-word',
                 overflowWrap: 'break-word',

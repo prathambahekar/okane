@@ -240,13 +240,13 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
 
   const renderCellValue = (val: unknown, colName: string) => {
     if (val === null || val === undefined) {
-      return <span style={{ color: 'var(--text-3)', fontStyle: 'italic', fontSize: 11 }}>null</span>;
+      return <span style={{ color: 'var(--text-3)', fontStyle: 'italic', fontSize: 'var(--fs-caption)' }}>null</span>;
     }
 
     if (typeof val === 'boolean') {
       return (
         <span style={{
-          fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+          fontSize: 'var(--fs-caption)', fontWeight: 700, padding: '2px 6px', borderRadius: 'var(--radius-xs)',
           background: val ? 'rgba(34, 197, 94, 0.15)' : 'var(--surface3)',
           color: val ? '#22c55e' : 'var(--text-3)'
         }}>
@@ -260,7 +260,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
     }
 
     if (typeof val === 'object') {
-      return <span style={{ color: 'var(--accent)', fontSize: 11 }}>{JSON.stringify(val)}</span>;
+      return <span style={{ color: 'var(--accent)', fontSize: 'var(--fs-caption)' }}>{JSON.stringify(val)}</span>;
     }
 
     const strVal = String(val);
@@ -271,20 +271,20 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
           <span style={{
             fontWeight: 600, color: 'var(--text)',
-            background: 'var(--accent-soft)', padding: '1px 6px', borderRadius: 4,
-            fontSize: 11, border: '1px solid var(--border)',
+            background: 'var(--accent-soft)', padding: '1px 6px', borderRadius: 'var(--radius-xs)',
+            fontSize: 'var(--fs-caption)', border: '1px solid var(--border)',
             display: 'inline-flex', alignItems: 'center', gap: 3
           }}>
             <User size={10} style={{ color: 'var(--accent)' }} /> {friendName}
           </span>
-          <span style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'monospace' }}>({strVal})</span>
+          <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontFamily: 'monospace' }}>({strVal})</span>
         </span>
       );
     }
 
     if ((colName.toLowerCase().includes('friend') || colName.toLowerCase().includes('contact')) && !friendName) {
       return (
-        <span style={{ color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 11 }}>
+        <span style={{ color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 'var(--fs-caption)' }}>
           {strVal || <span style={{ fontStyle: 'italic' }}>none</span>}
         </span>
       );
@@ -317,7 +317,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
               onClick={() => onNavigate('settings')}
               style={{
                 padding: '6px 10px',
-                borderRadius: 8,
+                borderRadius: 'var(--radius-sm)',
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
@@ -331,14 +331,14 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
           <div style={{
             width: 36,
             height: 36,
-            borderRadius: 10,
+            borderRadius: 'var(--radius-md)',
             background: 'var(--accent-gradient)',
             color: 'var(--accent-contrast)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            boxShadow: '0 2px 8px rgba(30, 136, 229, 0.25)'
+            boxShadow: 'var(--shadow)'
           }}>
             <Database size={18} />
           </div>
@@ -346,7 +346,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <h1 style={{
-                fontSize: 16,
+                fontSize: 'var(--fs-lg)',
                 fontWeight: 700,
                 margin: 0,
                 background: 'var(--accent-gradient)',
@@ -360,7 +360,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
                 fontSize: 9.5,
                 fontWeight: 800,
                 padding: '2px 6px',
-                borderRadius: 10,
+                borderRadius: 'var(--radius-md)',
                 background: 'var(--accent-gradient)',
                 color: 'var(--accent-contrast)',
                 letterSpacing: '0.5px',
@@ -369,7 +369,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
                 DEV
               </span>
             </div>
-            <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <p style={{ margin: 0, fontSize: 'var(--fs-caption)', color: 'var(--text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               AlaSQL · {totalRecords} records
             </p>
           </div>
@@ -385,11 +385,11 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
             className="btn btn-sm"
             onClick={handleExportSQL}
             style={{
-              fontSize: 12,
+              fontSize: 'var(--fs-xs)',
               fontWeight: 600,
               gap: 6,
               padding: '6px 12px',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-sm)',
               background: 'var(--surface)',
               border: '1px solid var(--border)',
               color: 'var(--text)',
@@ -403,11 +403,11 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
           <label
             className="btn btn-sm"
             style={{
-              fontSize: 12,
+              fontSize: 'var(--fs-xs)',
               fontWeight: 600,
               gap: 6,
               padding: '6px 12px',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-sm)',
               background: 'var(--surface)',
               border: '1px solid var(--border)',
               color: 'var(--text)',
@@ -425,10 +425,10 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
       {/* Database Tables Section */}
       <div className="card" style={{ padding: '14px 16px', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)' }}>
             <TableIcon size={15} style={{ color: 'var(--accent)' }} /> Database Tables
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={refreshTableCounts} style={{ fontSize: 11, gap: 4, padding: '3px 8px' }}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={refreshTableCounts} style={{ fontSize: 'var(--fs-caption)', gap: 4, padding: '3px 8px' }}>
             <RefreshCw size={12} /> Refresh
           </button>
         </div>
@@ -456,8 +456,8 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
                   alignItems: 'center',
                   gap: 6,
                   padding: '6px 12px',
-                  borderRadius: 20,
-                  fontSize: 12,
+                  borderRadius: 'var(--radius-xl)',
+                  fontSize: 'var(--fs-xs)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
@@ -471,10 +471,10 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
               >
                 <span>{label}</span>
                 <span style={{
-                  fontSize: 10.5,
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 600,
                   padding: '1px 6px',
-                  borderRadius: 10,
+                  borderRadius: 'var(--radius-md)',
                   background: isActive ? 'var(--surface2)' : 'var(--border)',
                   color: isActive ? 'var(--text)' : 'var(--text-3)',
                 }}>
@@ -489,12 +489,12 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
       {/* SQL Query Editor Card */}
       <div className="card" style={{ padding: '16px', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-sm)', fontWeight: 700 }}>
             <Terminal size={15} style={{ color: 'var(--accent)' }} /> SQL Query Console
           </div>
 
-          <div style={{ fontSize: 11, color: 'var(--text-3)', display: 'none', minWidth: 0 }} className="desktop-shortcut">
-            Shortcut: <kbd style={{ background: 'var(--surface2)', border: '1px solid var(--border)', padding: '1px 5px', borderRadius: 4, fontFamily: 'monospace' }}>Ctrl + Enter</kbd>
+          <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', display: 'none', minWidth: 0 }} className="desktop-shortcut">
+            Shortcut: <kbd style={{ background: 'var(--surface2)', border: '1px solid var(--border)', padding: '1px 5px', borderRadius: 'var(--radius-xs)', fontFamily: 'monospace' }}>Ctrl + Enter</kbd>
           </div>
         </div>
 
@@ -508,7 +508,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none'
         }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', alignSelf: 'center', whiteSpace: 'nowrap', marginRight: 2, flexShrink: 0 }}>
+          <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-3)', alignSelf: 'center', whiteSpace: 'nowrap', marginRight: 2, flexShrink: 0 }}>
             Presets:
           </span>
           {presets.map((p, i) => (
@@ -516,7 +516,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
               key={i}
               type="button"
               className="btn btn-ghost btn-sm"
-              style={{ fontSize: 11, whiteSpace: 'nowrap', padding: '4px 10px', borderRadius: 16, background: 'var(--surface-hover)', border: '1px solid var(--border)', flexShrink: 0 }}
+              style={{ fontSize: 'var(--fs-caption)', whiteSpace: 'nowrap', padding: '4px 10px', borderRadius: 'var(--radius-lg)', background: 'var(--surface-hover)', border: '1px solid var(--border)', flexShrink: 0 }}
               onClick={() => {
                 setQuery(p.query);
                 runQuery(p.query);
@@ -535,10 +535,10 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
               width: '100%',
               height: 90,
               fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-              fontSize: 13,
+              fontSize: 'var(--fs-sm)',
               lineHeight: 1.45,
               padding: '10px 12px',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-sm)',
               resize: 'vertical',
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
@@ -557,7 +557,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
             type="button"
             className="btn btn-ghost btn-sm"
             onClick={() => setQuery('')}
-            style={{ fontSize: 12, color: 'var(--text-3)' }}
+            style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}
           >
             Clear Editor
           </button>
@@ -566,7 +566,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
             type="button"
             className="btn btn-primary"
             onClick={() => runQuery()}
-            style={{ padding: '8px 18px', gap: 6, fontSize: 13, fontWeight: 600, width: '100%', maxWidth: '200px', justifyContent: 'center' }}
+            style={{ padding: '8px 18px', gap: 6, fontSize: 'var(--fs-sm)', fontWeight: 600, width: '100%', maxWidth: '200px', justifyContent: 'center' }}
           >
             <Play size={14} /> Execute Query
           </button>
@@ -576,10 +576,10 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
       {/* Query Errors Alert */}
       {error && (
         <div className="card" style={{ padding: '12px 14px', marginBottom: 16, borderLeft: '4px solid var(--debit)', background: 'var(--debit-bg)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--debit)', fontWeight: 600, fontSize: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--debit)', fontWeight: 600, fontSize: 'var(--fs-sm)' }}>
             <AlertCircle size={16} /> SQL Execution Error
           </div>
-          <div style={{ fontFamily: 'monospace', fontSize: 12, marginTop: 4, color: 'var(--debit)', wordBreak: 'break-word' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: 'var(--fs-xs)', marginTop: 4, color: 'var(--debit)', wordBreak: 'break-word' }}>
             {error}
           </div>
         </div>
@@ -590,13 +590,13 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
         <div className="card" style={{ padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 'var(--fs-base)' }}>
                 <Layers size={15} style={{ color: 'var(--accent)' }} /> Query Results
               </div>
               {execTimeMs !== null && (
                 <span style={{
-                  fontSize: 10, fontWeight: 600, color: 'var(--text-2)',
-                  background: 'var(--surface2)', padding: '2px 7px', borderRadius: 10,
+                  fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-2)',
+                  background: 'var(--surface2)', padding: '2px 7px', borderRadius: 'var(--radius-md)',
                   display: 'inline-flex', alignItems: 'center', gap: 3
                 }}>
                   <Zap size={10} style={{ color: 'var(--accent)' }} /> {execTimeMs} ms
@@ -605,20 +605,20 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
+              <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-2)' }}>
                 {results.length} {results.length === 1 ? 'row' : 'rows'}
               </span>
 
               {/* View Toggle Mode */}
-              <div style={{ display: 'inline-flex', background: 'var(--surface2)', padding: 2, borderRadius: 6, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'inline-flex', background: 'var(--surface2)', padding: 2, borderRadius: 'var(--radius-xs)', border: '1px solid var(--border)' }}>
                 <button
                   type="button"
                   onClick={() => setDisplayMode('table')}
                   style={{
-                    padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                    padding: '3px 8px', borderRadius: 'var(--radius-xs)', border: 'none', cursor: 'pointer',
                     background: displayMode === 'table' ? 'var(--surface)' : 'transparent',
                     color: displayMode === 'table' ? 'var(--accent)' : 'var(--text-3)',
-                    display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600
+                    display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-caption)', fontWeight: 600
                   }}
                   title="Table View"
                 >
@@ -628,10 +628,10 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
                   type="button"
                   onClick={() => setDisplayMode('cards')}
                   style={{
-                    padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                    padding: '3px 8px', borderRadius: 'var(--radius-xs)', border: 'none', cursor: 'pointer',
                     background: displayMode === 'cards' ? 'var(--surface)' : 'transparent',
                     color: displayMode === 'cards' ? 'var(--accent)' : 'var(--text-3)',
-                    display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600
+                    display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-caption)', fontWeight: 600
                   }}
                   title="Mobile Card View"
                 >
@@ -644,7 +644,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={copyResultsCSV}
-                  style={{ fontSize: 11, gap: 4, padding: '4px 8px' }}
+                  style={{ fontSize: 'var(--fs-caption)', gap: 4, padding: '4px 8px' }}
                 >
                   {copied ? <Check size={12} style={{ color: 'var(--credit)' }} /> : <Copy size={12} />}
                   {copied ? 'Copied' : 'CSV'}
@@ -654,7 +654,7 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
           </div>
 
           {results.length === 0 ? (
-            <div style={{ padding: '30px 16px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
+            <div style={{ padding: '30px 16px', textAlign: 'center', color: 'var(--text-3)', fontSize: 'var(--fs-sm)' }}>
               Query executed successfully. 0 rows returned.
             </div>
           ) : displayMode === 'cards' ? (
@@ -665,19 +665,19 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
                   key={idx}
                   style={{
                     padding: '12px 14px',
-                    borderRadius: 8,
+                    borderRadius: 'var(--radius-sm)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
-                    fontSize: 12,
+                    fontSize: 'var(--fs-xs)',
                   }}
                 >
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     Row #{idx + 1}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {Object.entries(row).map(([k, v]) => (
                       <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid var(--border)', paddingBottom: 4 }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-2)', fontFamily: 'monospace', fontSize: 11 }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-2)', fontFamily: 'monospace', fontSize: 'var(--fs-caption)' }}>
                           {k}:
                         </span>
                         <span style={{ textAlign: 'right', wordBreak: 'break-all' }}>
@@ -694,12 +694,12 @@ export default function DevSQLConsole({ onNavigate }: DevSQLConsoleProps) {
             <div style={{
               overflowX: 'auto',
               border: '1px solid var(--border)',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-sm)',
               background: 'var(--surface)',
               maxHeight: 450,
               WebkitOverflowScrolling: 'touch'
             }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'monospace' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--fs-xs)', fontFamily: 'monospace' }}>
                 <thead>
                   <tr style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 1 }}>
                     {Object.keys(results[0] || {}).map(col => (

@@ -172,16 +172,16 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
             <div>
               <div
                 id="settlement-filter-title"
-                style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}
+                style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}
               >
                 Filters &amp; Sorting
               </div>
               {activeFilterCount > 0 ? (
-                <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 550, marginTop: 2 }}>
+                <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 550, marginTop: 2 }}>
                   {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}
                 </div>
               ) : (
-                <div style={{ fontSize: '11.5px', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
+                <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500, marginTop: 2 }}>
                   Refine transaction view
                 </div>
               )}
@@ -232,7 +232,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
           <div>
             <div
               style={{
-                fontSize: '11.5px',
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.6px',
@@ -252,7 +252,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                     background: 'none',
                     border: 'none',
                     color: 'var(--text-2)',
-                    fontSize: '11px',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 600,
                     cursor: 'pointer',
                     padding: 0,
@@ -266,8 +266,8 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               {[
                 { id: 'all' as const, label: 'All', icon: Layers },
-                { id: 'received' as const, label: 'Received', icon: ArrowDownLeft, color: 'var(--credit, #22c55e)' },
-                { id: 'paid' as const, label: 'Paid', icon: ArrowUpRight, color: 'var(--debit, #ef4444)' },
+                { id: 'received' as const, label: 'Received', icon: ArrowDownLeft, color: 'var(--credit)' },
+                { id: 'paid' as const, label: 'Paid', icon: ArrowUpRight, color: 'var(--debit)' },
               ].map(f => {
                 const isSelected = typeFilter === f.id;
                 const Icon = f.icon;
@@ -282,8 +282,8 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                       justifyContent: 'center',
                       gap: 6,
                       padding: '10px 8px',
-                      borderRadius: 12,
-                      fontSize: '12.5px',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: isSelected ? 700 : 550,
                       backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                       color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -308,7 +308,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
           <div>
             <div
               style={{
-                fontSize: '11.5px',
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.6px',
@@ -328,7 +328,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                     background: 'none',
                     border: 'none',
                     color: 'var(--text-2)',
-                    fontSize: '11px',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 600,
                     cursor: 'pointer',
                     padding: 0,
@@ -352,8 +352,8 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                       alignItems: 'center',
                       gap: 6,
                       padding: '7px 14px',
-                      borderRadius: 9999,
-                      fontSize: '12.5px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: isSelected ? 700 : 550,
                       backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                       color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -375,7 +375,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
           <div>
             <div
               style={{
-                fontSize: '11.5px',
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.6px',
@@ -395,7 +395,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                     background: 'none',
                     border: 'none',
                     color: 'var(--text-2)',
-                    fontSize: '11px',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 600,
                     cursor: 'pointer',
                     padding: 0,
@@ -414,7 +414,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                   alignItems: 'center',
                   backgroundColor: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   padding: '0 14px',
                   height: 38,
                   marginBottom: 10,
@@ -432,7 +432,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                     background: 'transparent',
                     border: 'none',
                     outline: 'none',
-                    fontSize: '12.5px',
+                    fontSize: 'var(--fs-xs)',
                     color: 'var(--text)',
                   }}
                 />
@@ -466,8 +466,8 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                   alignItems: 'center',
                   gap: 6,
                   padding: '7px 14px',
-                  borderRadius: 9999,
-                  fontSize: '12.5px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--fs-xs)',
                   fontWeight: friendFilter === 'all' ? 700 : 550,
                   backgroundColor: friendFilter === 'all' ? 'var(--accent)' : 'var(--surface2)',
                   color: friendFilter === 'all' ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -484,7 +484,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                     fontSize: '10.5px',
                     fontWeight: 700,
                     padding: '1px 6px',
-                    borderRadius: 99,
+                    borderRadius: 'var(--radius-full)',
                     backgroundColor: friendFilter === 'all' ? 'rgba(255, 255, 255, 0.2)' : 'var(--surface3)',
                     color: friendFilter === 'all' ? 'var(--accent-contrast)' : 'var(--text-3)',
                   }}
@@ -507,8 +507,8 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                       alignItems: 'center',
                       gap: 6,
                       padding: '6px 12px',
-                      borderRadius: 9999,
-                      fontSize: '12.5px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: 'var(--fs-xs)',
                       fontWeight: isSelected ? 700 : 550,
                       backgroundColor: isSelected ? 'var(--accent)' : 'var(--surface2)',
                       color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
@@ -522,7 +522,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                       style={{
                         width: 18,
                         height: 18,
-                        borderRadius: 5,
+                        borderRadius: 'var(--radius-xs)',
                         background: isSelected ? 'rgba(255,255,255,0.25)' : avatar.background,
                         color: isSelected ? '#fff' : avatar.color,
                         fontSize: '9.5px',
@@ -541,7 +541,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
                         fontSize: '10.5px',
                         fontWeight: 700,
                         padding: '1px 6px',
-                        borderRadius: 99,
+                        borderRadius: 'var(--radius-full)',
                         backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.2)' : 'var(--surface3)',
                         color: isSelected ? 'var(--accent-contrast)' : 'var(--text-3)',
                       }}
@@ -553,7 +553,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
               })}
 
               {filteredFriendList.length === 0 && (
-                <div style={{ fontSize: '12px', color: 'var(--text-3)', padding: '6px 2px' }}>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', padding: '6px 2px' }}>
                   No friends matched &ldquo;{friendSearch}&rdquo;
                 </div>
               )}
@@ -581,8 +581,8 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
             style={{
               flex: 1,
               height: 44,
-              borderRadius: 9999,
-              fontSize: '13.5px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: 'var(--fs-sm)',
               fontWeight: 650,
               backgroundColor: 'var(--surface2)',
               border: '1px solid var(--border)',
@@ -606,8 +606,8 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
             style={{
               flex: 1.6,
               height: 44,
-              borderRadius: 9999,
-              fontSize: '13.5px',
+              borderRadius: 'var(--radius-full)',
+              fontSize: 'var(--fs-sm)',
               fontWeight: 700,
               backgroundColor: 'var(--accent)',
               color: 'var(--accent-contrast)',
@@ -623,7 +623,7 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
           >
             <span>Apply</span>
             {filteredCount !== undefined && (
-              <span style={{ fontSize: '12px', opacity: 0.85, fontWeight: 600 }}>({filteredCount})</span>
+              <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.85, fontWeight: 600 }}>({filteredCount})</span>
             )}
           </button>
         </div>

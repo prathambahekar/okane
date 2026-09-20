@@ -67,7 +67,7 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
     if (!categoryName) {
       return {
         name: 'Other',
-        color: '#8B5CF6',
+        color: 'var(--accent)',
         icon: 'tag',
         bg: 'rgba(139, 92, 246, 0.12)',
         border: 'rgba(139, 92, 246, 0.25)',
@@ -216,10 +216,10 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
               <CategoryIcon category={categoryName} icon={catMeta.icon} size={20} style={{ color: catMeta.color }} />
             </div>
             <div>
-              <h3 id="category-drawer-title" className="drawer-title" style={{ fontSize: '18px', fontWeight: 700 }}>
+              <h3 id="category-drawer-title" className="drawer-title" style={{ fontSize: 'var(--fs-xl)', fontWeight: 700 }}>
                 {categoryName}
               </h3>
-              <p className="drawer-subtitle" style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+              <p className="drawer-subtitle" style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
                 {period === 'week' ? 'Weekly' : 'Monthly'} Category Breakdown • {activeMonthStr ? new Date(activeMonthStr + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Overview'}
               </p>
             </div>
@@ -249,7 +249,7 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Total Category Outflow
               </span>
               <span className="analytics-v2-pill-badge" style={{ margin: 0 }}>
@@ -257,7 +257,7 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
               </span>
             </div>
 
-            <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: '12px' }}>
+            <div style={{ fontSize: 'var(--fs-hero)', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: '12px' }}>
               {fmtMoney(totalSpent, currency)}
             </div>
 
@@ -317,8 +317,8 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
                 {topWallet ? renderWalletIcon(topWallet.icon || 'Wallet', 18) : <CreditCard size={18} />}
               </div>
               <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 500 }}>Primary Wallet</div>
-                <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 700, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500 }}>Primary Wallet</div>
+                <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text)', fontWeight: 700, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                   {topWallet ? topWallet.name : 'N/A'}
                 </div>
               </div>
@@ -351,8 +351,8 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
                 <ShoppingBag size={18} strokeWidth={2.2} />
               </div>
               <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 500 }}>Largest Charge</div>
-                <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 700 }}>
+                <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500 }}>Largest Charge</div>
+                <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text)', fontWeight: 700 }}>
                   {maxExpense ? fmtMoney(Math.abs(maxExpense.amount), currency) : 'N/A'}
                 </div>
               </div>
@@ -362,7 +362,7 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
           {/* Search & Filter Header */}
           <div style={{ marginBottom: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+              <h4 style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)' }}>
                 Transactions ({filteredList.length})
               </h4>
 
@@ -372,7 +372,7 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
                   value={selectedWalletFilter}
                   onChange={(e) => setSelectedWalletFilter(e.target.value)}
                   style={{
-                    fontSize: '12px',
+                    fontSize: 'var(--fs-xs)',
                     padding: '4px 10px',
                     borderRadius: 'var(--radius-full)',
                     border: '1px solid var(--border)',
@@ -406,7 +406,7 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  fontSize: '13px',
+                  fontSize: 'var(--fs-sm)',
                   color: 'var(--text)',
                 }}
               />
@@ -434,10 +434,10 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
               }}
             >
               <Layers size={24} style={{ color: 'var(--text-3)', marginBottom: 8 }} />
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-2)' }}>
+              <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--text-2)' }}>
                 {searchQuery ? 'No matching expenses found' : 'No transactions in this category'}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: 4 }}>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 4 }}>
                 {searchQuery ? 'Try searching for a different keyword or amount.' : 'Expenses in this category will show up here.'}
               </div>
             </div>
@@ -479,10 +479,10 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
                       </div>
 
                       <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                        <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                           {ge.description || categoryName}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--fs-caption)', color: 'var(--text-3)', marginTop: '2px' }}>
                           <span>{ge.date}</span>
                           {w && (
                             <>
@@ -495,7 +495,7 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+                      <span style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)' }}>
                         {fmtMoney(Math.abs(getGroupedExpenseAmount(ge)), currency)}
                       </span>
                       <ChevronRight size={16} style={{ color: 'var(--text-3)' }} />

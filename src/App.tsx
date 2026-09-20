@@ -471,7 +471,7 @@ function AppInner() {
       items: [
         { id: 'dashboard' as ViewName, label: 'Dashboard', icon: <Home size={19} /> },
         { id: 'expenses' as ViewName, label: 'Expenses', icon: <ReceiptText size={18} /> },
-        ...(enableAutopay ? [{ id: 'recurring' as ViewName, label: 'Subscriptions', icon: <RefreshCw size={18} />, badge: dueAutopaysCount, badgeColor: '#d32f2f', badgeBg: 'rgba(239, 83, 80, 0.15)' }] : []),
+        ...(enableAutopay ? [{ id: 'recurring' as ViewName, label: 'Subscriptions', icon: <RefreshCw size={18} />, badge: dueAutopaysCount, badgeColor: 'var(--debit)', badgeBg: 'var(--debit-bg)' }] : []),
         { id: 'wallets' as ViewName, label: 'Wallets', icon: <Wallet size={18} /> },
       ]
     },
@@ -567,7 +567,7 @@ function AppInner() {
                 <span
                   className="sidebar-logo-text"
                   style={{
-                    fontSize: 26,
+                    fontSize: 'var(--fs-hero-sm)',
                     fontWeight: 800,
                     letterSpacing: '-0.04em',
                     lineHeight: 1.1,
@@ -587,15 +587,15 @@ function AppInner() {
                 sx={{ 
                   width: 44,
                   height: 44,
-                  borderRadius: '16px',
-                  background: 'rgba(255, 255, 255, 0.08)',
+                  borderRadius: 'var(--radius-lg)',
+                  background: 'var(--accent-soft)',
                   border: 'none',
                   color: 'text.primary',
                   margin: '0 auto',
                   transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease',
                   '&:hover': {
                     transform: 'scale(1.04)',
-                    bgcolor: 'rgba(255, 255, 255, 0.12)',
+                    bgcolor: 'var(--surface-hover)',
                   },
                   '&:active': {
                     transform: 'scale(0.95)',
@@ -614,14 +614,14 @@ function AppInner() {
                   p: 0,
                   width: 32,
                   height: 32,
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-sm)',
                   border: 'none',
                   bgcolor: 'transparent',
                   boxShadow: 'none',
                   transition: 'all 0.15s ease',
                   '&:hover': {
                     color: 'var(--text)',
-                    bgcolor: 'rgba(255, 255, 255, 0.05)',
+                    bgcolor: 'var(--accent-soft)',
                   },
                   '&:active': {
                     transform: 'scale(0.95)',
@@ -653,8 +653,8 @@ function AppInner() {
                         <span>{section.title}</span>
                         {isSectionCollapsed && sectionTotalBadges > 0 && (
                           <span className="nav-badge" style={{
-                            fontSize: 9.5, fontWeight: 700, padding: '1px 5px',
-                            background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 99,
+                            fontSize: 'var(--fs-caption)', fontWeight: 700, padding: '1px 5px',
+                            background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 'var(--radius-full)',
                           }}>
                             {sectionTotalBadges}
                           </span>
@@ -679,12 +679,12 @@ function AppInner() {
                           {item.badge && item.badge > 0 ? (
                             <span className="nav-badge" style={{
                               marginLeft: 'auto',
-                              fontSize: 10,
+                              fontSize: 'var(--fs-caption)',
                               fontWeight: 700,
                               padding: sidebarCollapsed ? '2px 5px' : '1px 6px',
                               background: item.badgeBg || 'var(--accent-soft)',
                               color: item.badgeColor || 'var(--accent)',
-                              borderRadius: 99,
+                              borderRadius: 'var(--radius-full)',
                             }}>
                               {item.badge}
                             </span>
@@ -704,14 +704,14 @@ function AppInner() {
                 width: sidebarCollapsed ? 44 : 'calc(100% - 20px)',
                 height: sidebarCollapsed ? 44 : 35,
                 padding: sidebarCollapsed ? 0 : '0 14px',
-                borderRadius: sidebarCollapsed ? 16 : 10,
-                background: mode === 'dark' ? '#ffffff' : '#111111',
-                color: mode === 'dark' ? '#000000' : '#ffffff',
+                borderRadius: sidebarCollapsed ? 'var(--radius-lg)' : 'var(--radius-md)',
+                background: 'var(--accent)',
+                color: 'var(--accent-contrast)',
                 border: 'none',
                 fontWeight: 650,
-                fontSize: sidebarCollapsed ? 14 : 13.5,
+                fontSize: sidebarCollapsed ? 'var(--fs-base)' : 'var(--fs-sm)',
                 letterSpacing: '-0.2px',
-                boxShadow: mode === 'dark' ? '0 4px 14px rgba(0, 0, 0, 0.35)' : '0 2px 8px rgba(0, 0, 0, 0.12)',
+                boxShadow: 'var(--shadow-md)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -723,7 +723,7 @@ function AppInner() {
               onClick={() => setShowAddExpense(true)}
               title={sidebarCollapsed ? "Add Expense" : undefined}
             >
-              <Plus size={sidebarCollapsed ? 22 : 17} strokeWidth={2.4} style={{ color: mode === 'dark' ? '#000000' : '#ffffff' }} />
+              <Plus size={sidebarCollapsed ? 22 : 17} strokeWidth={2.4} style={{ color: 'var(--accent-contrast)' }} />
               {!sidebarCollapsed && <span style={{ fontWeight: 650 }}>Add</span>}
             </button>
           </div>
@@ -731,7 +731,7 @@ function AppInner() {
           <div className="sidebar-footer" style={{ padding: sidebarCollapsed ? '0 0 14px 0' : '10px 14px 14px', borderTop: 'none', background: 'transparent' }}>
             {!sidebarCollapsed ? (
               <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                   Theme: <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{mode === 'dark' ? 'Dark Mode' : 'Light Mode'}</strong>
                 </span>
                 <button
@@ -742,7 +742,7 @@ function AppInner() {
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 8,
+                    borderRadius: 'var(--radius-sm)',
                     background: 'transparent',
                     color: 'var(--text-2)',
                     border: 'none',
@@ -767,7 +767,7 @@ function AppInner() {
                   style={{
                     width: 44,
                     height: 44,
-                    borderRadius: 16,
+                    borderRadius: 'var(--radius-lg)',
                     background: 'rgba(255, 255, 255, 0.08)',
                     color: 'var(--text)',
                     border: 'none',
@@ -822,9 +822,9 @@ function AppInner() {
                   onClick={handleGoBack}
                   sx={{
                     color: 'text.primary',
-                    bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                    bgcolor: 'var(--surface2)',
                     p: 0.8,
-                    borderRadius: '10px',
+                    borderRadius: 'var(--radius-md)',
                     mr: 0.5,
                     '&:active': { transform: 'scale(0.92)' }
                   }}
@@ -886,9 +886,9 @@ function AppInner() {
                     title={`-${fmtMoney(expOut, currency)}`}
                     sx={{
                       display: 'inline-flex', alignItems: 'center',
-                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
-                      bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
-                      color: 'error.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
+                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 'var(--radius-full)',
+                      bgcolor: 'var(--debit-bg)',
+                      color: 'var(--debit)', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
                     }}
@@ -899,9 +899,9 @@ function AppInner() {
                     title={`+${fmtMoney(expIn, currency)}`}
                     sx={{
                       display: 'inline-flex', alignItems: 'center',
-                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
-                      bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
-                      color: 'success.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
+                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 'var(--radius-full)',
+                      bgcolor: 'var(--credit-bg)',
+                      color: 'var(--credit)', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
                     }}
@@ -926,9 +926,9 @@ function AppInner() {
                     title={`+${fmtMoney(friendCredit, currency)}`}
                     sx={{
                       display: 'inline-flex', alignItems: 'center',
-                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
-                      bgcolor: mode === 'dark' ? 'rgba(102, 187, 106, 0.15)' : 'rgba(46, 125, 50, 0.08)',
-                      color: 'success.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
+                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 'var(--radius-full)',
+                      bgcolor: 'var(--credit-bg)',
+                      color: 'var(--credit)', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
                     }}
@@ -939,9 +939,9 @@ function AppInner() {
                     title={`-${fmtMoney(friendDebt, currency)}`}
                     sx={{
                       display: 'inline-flex', alignItems: 'center',
-                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 99,
-                      bgcolor: mode === 'dark' ? 'rgba(239, 83, 80, 0.15)' : 'rgba(211, 47, 47, 0.08)',
-                      color: 'error.main', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
+                      px: { xs: 0.9, sm: 1.25 }, py: { xs: 0.35, sm: 0.45 }, borderRadius: 'var(--radius-full)',
+                      bgcolor: 'var(--debit-bg)',
+                      color: 'var(--debit)', fontSize: { xs: '0.74rem', sm: '0.82rem' }, fontWeight: 650,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       maxWidth: { xs: '110px', sm: '160px', md: '220px' }, flexShrink: 1
                     }}
@@ -1049,10 +1049,10 @@ function AppInner() {
                         right: -3,
                         minWidth: 16,
                         height: 16,
-                        borderRadius: 999,
+                        borderRadius: 'var(--radius-full)',
                         background: 'var(--text)',
                         color: 'var(--surface)',
-                        fontSize: 10,
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: 700,
                         display: 'flex',
                         alignItems: 'center',
@@ -1256,7 +1256,7 @@ function AppInner() {
                     justifyContent: 'center',
                     width: 50,
                     height: 28,
-                    borderRadius: '999px',
+                    borderRadius: 'var(--radius-full)',
                   }}
                 >
                   {bottomNavValue === 'dashboard' && (
@@ -1266,8 +1266,8 @@ function AppInner() {
                       style={{
                         position: 'absolute',
                         inset: 0,
-                        borderRadius: 9999,
-                        backgroundColor: mode === 'dark' ? '#27272a' : '#e4e4e7',
+                        borderRadius: 'var(--radius-full)',
+                        backgroundColor: 'var(--surface2)',
                       }}
                       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                     />
@@ -1279,7 +1279,7 @@ function AppInner() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: bottomNavValue === 'dashboard' ? (mode === 'dark' ? '#ffffff' : '#111111') : (mode === 'dark' ? '#71717a' : '#8e8e93'),
+                      color: bottomNavValue === 'dashboard' ? 'var(--text)' : 'var(--text-3)',
                     }}
                   >
                     <LayoutDashboard size={19} />
@@ -1300,7 +1300,7 @@ function AppInner() {
                     justifyContent: 'center',
                     width: 50,
                     height: 28,
-                    borderRadius: '999px',
+                    borderRadius: 'var(--radius-full)',
                   }}
                 >
                   {bottomNavValue === 'expenses' && (
@@ -1310,8 +1310,8 @@ function AppInner() {
                       style={{
                         position: 'absolute',
                         inset: 0,
-                        borderRadius: 9999,
-                        backgroundColor: mode === 'dark' ? '#27272a' : '#e4e4e7',
+                        borderRadius: 'var(--radius-full)',
+                        backgroundColor: 'var(--surface2)',
                       }}
                       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                     />
@@ -1323,7 +1323,7 @@ function AppInner() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: bottomNavValue === 'expenses' ? (mode === 'dark' ? '#ffffff' : '#111111') : (mode === 'dark' ? '#71717a' : '#8e8e93'),
+                      color: bottomNavValue === 'expenses' ? 'var(--text)' : 'var(--text-3)',
                     }}
                   >
                     <ReceiptText size={19} />
@@ -1339,13 +1339,13 @@ function AppInner() {
                   sx={{
                     width: 44,
                     height: 44,
-                    borderRadius: '50%',
-                    bgcolor: mode === 'dark' ? '#ffffff' : '#111111',
-                    color: mode === 'dark' ? '#000000' : '#ffffff',
+                    borderRadius: 'var(--radius-full)',
+                    bgcolor: 'var(--accent)',
+                    color: 'var(--accent-contrast)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: mode === 'dark' ? '0 4px 14px rgba(255, 255, 255, 0.16)' : '0 4px 12px rgba(0, 0, 0, 0.14)',
+                    boxShadow: 'var(--shadow-md)',
                     transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease',
                     '&:hover': {
                       transform: 'scale(1.05)',
@@ -1377,7 +1377,7 @@ function AppInner() {
                     justifyContent: 'center',
                     width: 50,
                     height: 28,
-                    borderRadius: '999px',
+                    borderRadius: 'var(--radius-full)',
                   }}
                 >
                   {bottomNavValue === 'friends' && (
@@ -1387,8 +1387,8 @@ function AppInner() {
                       style={{
                         position: 'absolute',
                         inset: 0,
-                        borderRadius: 9999,
-                        backgroundColor: mode === 'dark' ? '#27272a' : '#e4e4e7',
+                        borderRadius: 'var(--radius-full)',
+                        backgroundColor: 'var(--surface2)',
                       }}
                       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                     />
@@ -1400,7 +1400,7 @@ function AppInner() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: bottomNavValue === 'friends' ? (mode === 'dark' ? '#ffffff' : '#111111') : (mode === 'dark' ? '#71717a' : '#8e8e93'),
+                      color: bottomNavValue === 'friends' ? 'var(--text)' : 'var(--text-3)',
                     }}
                   >
                     <Users size={19} />
@@ -1421,7 +1421,7 @@ function AppInner() {
                     justifyContent: 'center',
                     width: 50,
                     height: 28,
-                    borderRadius: '999px',
+                    borderRadius: 'var(--radius-full)',
                   }}
                 >
                   {bottomNavValue === 'more' && (
@@ -1431,8 +1431,8 @@ function AppInner() {
                       style={{
                         position: 'absolute',
                         inset: 0,
-                        borderRadius: 9999,
-                        backgroundColor: mode === 'dark' ? '#27272a' : '#e4e4e7',
+                        borderRadius: 'var(--radius-full)',
+                        backgroundColor: 'var(--surface2)',
                       }}
                       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                     />
@@ -1444,7 +1444,7 @@ function AppInner() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: bottomNavValue === 'more' ? (mode === 'dark' ? '#ffffff' : '#111111') : (mode === 'dark' ? '#71717a' : '#8e8e93'),
+                      color: bottomNavValue === 'more' ? 'var(--text)' : 'var(--text-3)',
                     }}
                   >
                     <MoreHorizontal size={19} />
@@ -1474,20 +1474,20 @@ function AppInner() {
         }}
         PaperProps={{
           sx: {
-            borderTopLeftRadius: 30,
-            borderTopRightRadius: 30,
-            bgcolor: mode === 'dark' ? '#121212' : '#ffffff',
+            borderTopLeftRadius: 'var(--radius-2xl)',
+            borderTopRightRadius: 'var(--radius-2xl)',
+            bgcolor: 'var(--drawer-bg)',
             backgroundImage: 'none',
             p: { xs: 3, sm: 3.5 },
             pb: 'calc(28px + env(safe-area-inset-bottom, 0px))',
             height: 'auto',
             maxHeight: '92vh',
-            borderTop: mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #e5e7eb',
-            boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.8)',
+            borderTop: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-floating)',
           }
         }}
       >
-        <Box sx={{ width: 38, height: 4, bgcolor: '#323540', borderRadius: '9999px', mx: 'auto', mb: 2.5 }} />
+        <Box sx={{ width: 38, height: 4, bgcolor: 'var(--border2)', borderRadius: 'var(--radius-full)', mx: 'auto', mb: 2.5 }} />
 
         {/* Header close button: hidden on mobile drawer, shown on desktop */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
@@ -1504,7 +1504,7 @@ function AppInner() {
             sx={{
               p: 1.5,
               mb: 2,
-              borderRadius: '16px',
+              borderRadius: 'var(--radius-lg)',
               bgcolor: 'var(--surface2)',
               border: 'none',
               display: 'flex',
@@ -1519,8 +1519,8 @@ function AppInner() {
               <Box sx={{
                 width: 42,
                 height: 42,
-                borderRadius: '12px',
-                bgcolor: mode === 'dark' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)',
+                borderRadius: 'var(--radius-md)',
+                bgcolor: 'var(--accent-soft)',
                 color: 'text.primary',
                 display: 'flex',
                 alignItems: 'center',
@@ -1530,10 +1530,10 @@ function AppInner() {
                 <Sparkles size={20} />
               </Box>
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.88rem', lineHeight: 1.3 }}>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: 'var(--fs-sm)', lineHeight: 1.3 }}>
                   Ask Max AI Assistant
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.74rem', lineHeight: 1.2, mt: 0.2 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: 'var(--fs-caption)', lineHeight: 1.2, mt: 0.2 }}>
                   Smart expense logging & insights
                 </Typography>
               </Box>
@@ -1541,8 +1541,8 @@ function AppInner() {
             <Box sx={{
               width: 32,
               height: 32,
-              borderRadius: '10px',
-              bgcolor: mode === 'dark' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)',
+              borderRadius: 'var(--radius-md)',
+              bgcolor: 'var(--surface3)',
               color: 'text.secondary',
               display: 'flex',
               alignItems: 'center',
@@ -1555,7 +1555,7 @@ function AppInner() {
         )}
 
         {/* Category Sections Grid */}
-        <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 700, color: 'text.secondary', mb: 1, display: 'block', px: 0.5, fontSize: '0.72rem' }}>
+        <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 700, color: 'text.secondary', mb: 1, display: 'block', px: 0.5, fontSize: 'var(--fs-caption)' }}>
           Features & Modules
         </Typography>
 
@@ -1571,10 +1571,10 @@ function AppInner() {
                 sx={{
                   py: 2,
                   px: 1,
-                  borderRadius: '16px',
+                  borderRadius: 'var(--radius-lg)',
                   bgcolor: isSelected ? 'var(--surface3)' : 'var(--surface2)',
                   border: isSelected
-                    ? (mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(0, 0, 0, 0.08)')
+                    ? '1px solid var(--border)'
                     : 'none',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1596,7 +1596,7 @@ function AppInner() {
                   sx={{
                     fontWeight: isSelected ? 750 : 500,
                     color: isSelected ? 'text.primary' : 'text.secondary',
-                    fontSize: '0.78rem',
+                    fontSize: 'var(--fs-caption)',
                     lineHeight: 1.2,
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
@@ -1610,11 +1610,11 @@ function AppInner() {
                 {item.id === 'settlements' && pendingSettlements > 0 && (
                   <Box sx={{
                     position: 'absolute', top: 6, right: 6,
-                    fontSize: 10, fontWeight: 700, px: 0.8, py: 0.2,
-                    bgcolor: mode === 'dark' ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.12)',
+                    fontSize: 'var(--fs-caption)', fontWeight: 700, px: 0.8, py: 0.2,
+                    bgcolor: 'var(--accent-soft)',
                     color: 'text.primary',
                     border: 'none',
-                    borderRadius: '9999px',
+                    borderRadius: 'var(--radius-full)',
                     lineHeight: 1,
                   }}>
                     {pendingSettlements}
@@ -1624,11 +1624,11 @@ function AppInner() {
                 {item.id === 'recurring' && dueAutopaysCount > 0 && (
                   <Box sx={{
                     position: 'absolute', top: 6, right: 6,
-                    fontSize: 10, fontWeight: 700, px: 0.8, py: 0.2,
-                    bgcolor: 'var(--debit-bg, rgba(248, 113, 113, 0.15))',
-                    color: 'var(--debit, #ef4444)',
+                    fontSize: 'var(--fs-caption)', fontWeight: 700, px: 0.8, py: 0.2,
+                    bgcolor: 'var(--debit-bg)',
+                    color: 'var(--debit)',
                     border: 'none',
-                    borderRadius: '9999px',
+                    borderRadius: 'var(--radius-full)',
                     lineHeight: 1,
                   }}>
                     {dueAutopaysCount}
@@ -1647,12 +1647,12 @@ function AppInner() {
             alignItems: 'center',
             justifyContent: 'space-between',
             p: '12px 16px',
-            borderRadius: '16px',
+            borderRadius: 'var(--radius-lg)',
             bgcolor: 'var(--surface2)',
             border: 'none',
           }}
         >
-          <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600, fontSize: '0.88rem' }}>
+          <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600, fontSize: 'var(--fs-sm)' }}>
             Theme: <span style={{ fontWeight: 700 }}>{mode === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
           </Typography>
           <IconButton
@@ -1661,11 +1661,11 @@ function AppInner() {
             sx={{
               width: 36,
               height: 36,
-              borderRadius: '10px',
-              bgcolor: mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+              borderRadius: 'var(--radius-md)',
+              bgcolor: 'var(--surface3)',
               border: 'none',
               color: 'text.primary',
-              '&:hover': { bgcolor: mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }
+              '&:hover': { bgcolor: 'var(--surface-hover)' }
             }}
           >
             {mode === 'dark' ? <Sun size={18} /> : <Moon size={18} />}

@@ -412,7 +412,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
         style={{
           maxWidth: 520,
           background: 'var(--surface)',
-          borderRadius: 24,
+          borderRadius: 'var(--radius-2xl)',
           boxShadow: '0 24px 64px rgba(0, 0, 0, 0.55)',
           overflow: 'hidden',
           display: 'flex',
@@ -454,15 +454,15 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                 placeItems: 'center',
                 backgroundColor:
                   pacingStats.trajectory === 'faster'
-                    ? 'rgba(239, 68, 68, 0.12)'
+                    ? 'var(--debit-bg)'
                     : pacingStats.trajectory === 'slower'
-                    ? 'rgba(16, 185, 129, 0.12)'
+                    ? 'var(--credit-bg)'
                     : 'var(--surface2)',
                 color:
                   pacingStats.trajectory === 'faster'
-                    ? '#ef4444'
+                    ? 'var(--debit)'
                     : pacingStats.trajectory === 'slower'
-                    ? '#10b981'
+                    ? 'var(--credit)'
                     : 'var(--accent)',
                 flexShrink: 0,
               }}
@@ -480,7 +480,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
               <h3
                 id="pacing-drawer-title"
                 style={{
-                  fontSize: 16,
+                  fontSize: 'var(--fs-lg)',
                   fontWeight: 700,
                   margin: 0,
                   color: 'var(--text)',
@@ -491,7 +491,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
               </h3>
               <div
                 style={{
-                  fontSize: '12px',
+                  fontSize: 'var(--fs-xs)',
                   color: 'var(--text-3)',
                   fontWeight: 500,
                   marginTop: 2,
@@ -508,7 +508,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
             style={{
               width: 32,
               height: 32,
-              borderRadius: 9999,
+              borderRadius: 'var(--radius-full)',
               border: '1px solid var(--border)',
               background: 'var(--surface2)',
               color: 'var(--text)',
@@ -554,7 +554,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Calendar size={15} style={{ color: '#f97316' }} />
-                <span style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text)' }}>
+                <span style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text)' }}>
                   {period === 'week' ? 'Weekly Pace' : 'Monthly Pace'}
                 </span>
               </div>
@@ -567,7 +567,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                   gap: 2,
                   background: 'var(--surface2)',
                   padding: '2px',
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   border: '1px solid var(--border)',
                 }}
               >
@@ -581,8 +581,8 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                     alignItems: 'center',
                     gap: 4,
                     padding: '3px 9px',
-                    borderRadius: 9999,
-                    fontSize: '11px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 650,
                     border: 'none',
                     background: chartMode === 'cumulative' ? 'var(--accent)' : 'transparent',
@@ -605,8 +605,8 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                     alignItems: 'center',
                     gap: 4,
                     padding: '3px 9px',
-                    borderRadius: 9999,
-                    fontSize: '11px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 650,
                     border: 'none',
                     background: chartMode === 'daily' ? 'var(--accent)' : 'transparent',
@@ -644,7 +644,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                       display: 'inline-block',
                     }}
                   />
-                  <span style={{ fontSize: '11.5px', color: 'var(--text)', fontWeight: 650 }}>
+                  <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text)', fontWeight: 650 }}>
                     {currentPeriodLabel}
                   </span>
                 </div>
@@ -659,7 +659,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                       display: 'inline-block',
                     }}
                   />
-                  <span style={{ fontSize: '11.5px', color: 'var(--text-2)', fontWeight: 550 }}>
+                  <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-2)', fontWeight: 550 }}>
                     {prevPeriodLabel}
                   </span>
                 </div>
@@ -673,9 +673,9 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                     gap: 6,
                     background: 'var(--surface2)',
                     padding: '2px 8px',
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     border: '1px solid var(--border)',
-                    fontSize: '11px',
+                    fontSize: 'var(--fs-caption)',
                     color: 'var(--text)',
                     fontWeight: 650,
                   }}
@@ -689,8 +689,8 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                       currency
                     )}
                   </span>
-                  <span style={{ color: 'var(--text-3)', fontSize: '10px' }}>vs</span>
-                  <span style={{ color: '#0284c7' }}>
+                  <span style={{ color: 'var(--text-3)', fontSize: 'var(--fs-caption)' }}>vs</span>
+                  <span style={{ color: 'var(--accent)' }}>
                     {fmtMoneyCompact(
                       chartMode === 'cumulative' ? activeInspectedDay.prevCumulative : activeInspectedDay.prevSpend,
                       currency
@@ -1087,7 +1087,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
               <div
                 style={{
                   padding: '11px 13px',
-                  borderRadius: 16,
+                  borderRadius: 'var(--radius-lg)',
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
                   display: 'flex',
@@ -1107,10 +1107,10 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                   }}
                 >
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: '13.5px', fontWeight: 750, color: 'var(--text)', lineHeight: 1.2 }}>
+                    <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 750, color: 'var(--text)', lineHeight: 1.2 }}>
                       {projTitle}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 500, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontWeight: 500, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       Based on avg {fmtMoney(pacingStats.curDailyAvg, currency)}/day
                     </div>
                   </div>
@@ -1122,20 +1122,20 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                       alignItems: 'center',
                       gap: 4,
                       padding: '4px 10px',
-                      borderRadius: 9999,
-                      fontSize: '11.5px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       backgroundColor: isLower
-                        ? 'rgba(16, 185, 129, 0.12)'
+                        ? 'var(--credit-bg)'
                         : diffVsPrev > 0
-                        ? 'rgba(239, 68, 68, 0.12)'
+                        ? 'var(--debit-bg)'
                         : 'var(--surface)',
-                      color: isLower ? '#10b981' : diffVsPrev > 0 ? '#ef4444' : 'var(--text-2)',
+                      color: isLower ? 'var(--credit)' : diffVsPrev > 0 ? 'var(--debit)' : 'var(--text-2)',
                       border: `1px solid ${
                         isLower
-                          ? 'rgba(16, 185, 129, 0.25)'
+                          ? 'var(--credit-border)'
                           : diffVsPrev > 0
-                          ? 'rgba(239, 68, 68, 0.25)'
+                          ? 'var(--debit-border)'
                           : 'var(--border)'
                       }`,
                       flexShrink: 0,
@@ -1162,7 +1162,7 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                     gap: 8,
                     background: 'var(--surface)',
                     padding: '8px 10px',
-                    borderRadius: 12,
+                    borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border)',
                   }}
                 >
@@ -1171,10 +1171,10 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                     <div style={{ fontSize: '10.5px', color: 'var(--text-3)', fontWeight: 600 }}>
                       Current Spent
                     </div>
-                    <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)', marginTop: 1 }}>
+                    <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 800, color: 'var(--text)', marginTop: 1 }}>
                       {fmtMoney(totalSpent, currency)}
                     </div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-3)', marginTop: 1 }}>
+                    <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', marginTop: 1 }}>
                       Day {curDaysCount} of {maxDays}
                     </div>
                   </div>
@@ -1184,10 +1184,10 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                     <div style={{ fontSize: '10.5px', color: 'var(--text-3)', fontWeight: 600 }}>
                       Projected Total
                     </div>
-                    <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#f97316', marginTop: 1 }}>
+                    <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 800, color: '#f97316', marginTop: 1 }}>
                       {fmtMoney(projectedTotal, currency)}
                     </div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-3)', marginTop: 1 }}>
+                    <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', marginTop: 1 }}>
                       {isWeekPeriod ? 'By Sun' : 'By End'}
                     </div>
                   </div>
@@ -1197,10 +1197,10 @@ export const PacingComparisonDrawer: React.FC<PacingComparisonDrawerProps> = ({
                     <div style={{ fontSize: '10.5px', color: 'var(--text-3)', fontWeight: 600 }}>
                       {isWeekPeriod ? 'Last Week' : 'Last Month'}
                     </div>
-                    <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-2)', marginTop: 1 }}>
+                    <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text-2)', marginTop: 1 }}>
                       {fmtMoney(prevPeriodSpent, currency)}
                     </div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-3)', marginTop: 1 }}>
+                    <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', marginTop: 1 }}>
                       Full Actual
                     </div>
                   </div>

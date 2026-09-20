@@ -84,7 +84,7 @@ export function DebtSettlementWidget({
           >
             {friendInitial(friend.name, friend.avatarNumber)}
           </div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+          <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--text)' }}>
             {friend.name}
           </span>
         </div>
@@ -93,9 +93,9 @@ export function DebtSettlementWidget({
           {friendBal.owedToMe > 0 ? (
             <span
               style={{
-                fontSize: 11.5,
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 700,
-                color: '#2e7d32',
+                color: 'var(--credit)',
                 background: 'rgba(46, 125, 50, 0.15)',
                 padding: '3px 8px',
                 borderRadius: 'var(--radius-lg)',
@@ -106,9 +106,9 @@ export function DebtSettlementWidget({
           ) : friendBal.owedByMe > 0 ? (
             <span
               style={{
-                fontSize: 11.5,
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 600,
-                color: '#d97706',
+                color: 'var(--amber)',
                 background: 'rgba(217, 119, 6, 0.15)',
                 padding: '3px 8px',
                 borderRadius: 'var(--radius-lg)',
@@ -119,7 +119,7 @@ export function DebtSettlementWidget({
           ) : (
             <span
               style={{
-                fontSize: 11.5,
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 500,
                 color: 'var(--text-3)',
               }}
@@ -158,25 +158,25 @@ export function DebtSettlementWidget({
                   height: 32,
                   borderRadius: '50%',
                   background: 'var(--accent)',
-                  color: 'var(--accent-contrast, #ffffff)',
+                  color: 'var(--accent-contrast)',
                   display: 'grid',
                   placeItems: 'center',
                   fontWeight: 700,
-                  fontSize: 13,
+                  fontSize: 'var(--fs-sm)',
                   flexShrink: 0,
                 }}
               >
                 <ReceiptText size={16} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {selectedExpenseIds.length === 0
                     ? 'Tap to Select Debts'
                     : selectedExpenseIds.length === unsettledList.length
                     ? `All ${unsettledList.length} Debts Selected`
                     : `${selectedExpenseIds.length} of ${unsettledList.length} Debts Selected`}
                 </div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {selectedExpenseIds.length > 0 ? (
                     <>
                       <span>Total: {fmtMoney(selectedExpenseIds.reduce((acc, id) => {
@@ -197,11 +197,11 @@ export function DebtSettlementWidget({
               type="button"
               style={{
                 background: 'var(--accent)',
-                color: 'var(--accent-contrast, #ffffff)',
+                color: 'var(--accent-contrast)',
                 border: 'none',
                 padding: '4px 10px',
-                borderRadius: 99,
-                fontSize: 11,
+                borderRadius: 'var(--radius-full)',
+                fontSize: 'var(--fs-caption)',
                 fontWeight: 600,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
@@ -228,14 +228,14 @@ export function DebtSettlementWidget({
               <div style={{ padding: '12px 14px', background: 'var(--surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                 {/* Segment Toggle for Full vs Partial */}
                 <div style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-2)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                     Payback Amount Type:
                   </div>
                   <div className="segment-control" style={{ display: 'flex', gap: 6 }}>
                     <button
                       type="button"
                       className={`segment-btn ${!isPartial && currentAmt === selectedSum ? 'active' : ''}`}
-                      style={{ flex: 1, textAlign: 'center', justifyContent: 'center', padding: '5px 8px', fontSize: 11.5 }}
+                      style={{ flex: 1, textAlign: 'center', justifyContent: 'center', padding: '5px 8px', fontSize: 'var(--fs-caption)' }}
                       onClick={() => setAmount(String(selectedSum))}
                     >
                       Full Payback ({fmtMoney(selectedSum, s.currency)})
@@ -243,7 +243,7 @@ export function DebtSettlementWidget({
                     <button
                       type="button"
                       className={`segment-btn ${isPartial ? 'active' : ''}`}
-                      style={{ flex: 1, textAlign: 'center', justifyContent: 'center', padding: '5px 8px', fontSize: 11.5 }}
+                      style={{ flex: 1, textAlign: 'center', justifyContent: 'center', padding: '5px 8px', fontSize: 'var(--fs-caption)' }}
                       onClick={() => {
                         if (!isPartial) setAmount(String(Math.round((selectedSum / 2) * 100) / 100));
                       }}
@@ -256,10 +256,10 @@ export function DebtSettlementWidget({
                 {/* Inline Custom Amount Input */}
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-2)' }}>
+                    <label style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-2)' }}>
                       Amount Paid Back ({s.currency})
                     </label>
-                    <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                    <span style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)' }}>
                       Full Owed: {fmtMoney(selectedSum, s.currency)}
                     </span>
                   </div>
@@ -270,13 +270,13 @@ export function DebtSettlementWidget({
                     placeholder={`e.g. 20 (Full is ${selectedSum})`}
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
-                    style={{ fontWeight: 700, fontSize: 15, color: 'var(--accent)' }}
+                    style={{ fontWeight: 700, fontSize: 'var(--fs-md)', color: 'var(--accent)' }}
                   />
                 </div>
 
                 {/* Partial Payback Feedback Box */}
                 {isPartial ? (
-                  <div style={{ fontSize: 11.5, color: '#d97706', background: 'rgba(217, 119, 6, 0.12)', border: '1px solid rgba(217, 119, 6, 0.25)', padding: '8px 10px', borderRadius: 6, marginBottom: 10 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--amber)', background: 'rgba(217, 119, 6, 0.12)', border: '1px solid rgba(217, 119, 6, 0.25)', padding: '8px 10px', borderRadius: 'var(--radius-xs)', marginBottom: 10 }}>
                     <div style={{ fontWeight: 700, marginBottom: 2 }}>⚡ Custom Partial Payback Active</div>
                     <div>
                       {mode === 'receive_from_friend' ? 'Receiving' : 'Paying'}{' '}
@@ -285,12 +285,12 @@ export function DebtSettlementWidget({
                     </div>
                   </div>
                 ) : currentAmt >= selectedSum && selectedSum > 0 ? (
-                  <div style={{ fontSize: 11.5, color: '#2e7d32', background: 'rgba(46, 125, 50, 0.12)', border: '1px solid rgba(46, 125, 50, 0.25)', padding: '6px 10px', borderRadius: 6, marginBottom: 10 }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--credit)', background: 'rgba(46, 125, 50, 0.12)', border: '1px solid rgba(46, 125, 50, 0.25)', padding: '6px 10px', borderRadius: 'var(--radius-xs)', marginBottom: 10 }}>
                     ✓ Full payback of {fmtMoney(selectedSum, s.currency)} will completely clear this debt!
                   </div>
                 ) : null}
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text-2)', cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-caption)', color: 'var(--text-2)', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={autoSettle}
@@ -320,7 +320,7 @@ export function DebtSettlementWidget({
           )}
         </div>
       ) : (
-        <div style={{ fontSize: 11.5, color: 'var(--text-3)', fontStyle: 'italic', marginTop: 4 }}>
+        <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', fontStyle: 'italic', marginTop: 4 }}>
           No active unsettled bills/debts for this friend.
         </div>
       )}

@@ -176,7 +176,7 @@ export const SmartExpenseMeta: React.FC<SmartExpenseMetaProps> = React.memo(({
         display: 'flex',
         alignItems: 'center',
         gap: 4,
-        fontSize: 11.5,
+        fontSize: 'var(--fs-caption)',
         color: 'var(--text-3)',
         minWidth: 0,
         width: '100%',

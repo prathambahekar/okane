@@ -99,12 +99,12 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
             minWidth: 28,
             minHeight: 28,
             borderRadius: '50%',
-            background: isCustom ? color : 'var(--surface2, #2a2a32)',
+            background: isCustom ? color : 'var(--surface2)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            border: isCustom ? 'none' : '1.5px solid var(--border2, rgba(255,255,255,0.35))',
+            border: isCustom ? 'none' : '1.5px solid var(--border2)',
             touchAction: 'manipulation',
             WebkitTapHighlightColor: 'transparent',
             flexShrink: 0,
@@ -215,13 +215,13 @@ function FormattedReleaseNotes({ notes }: { notes: string }) {
               rel="noopener noreferrer"
               style={{
                 display: 'block',
-                borderRadius: '12px',
+                borderRadius: 'var(--radius-md)',
                 overflow: 'hidden',
                 border: '1px solid var(--border)',
                 background: 'var(--surface)',
                 marginTop: '4px',
                 marginBottom: '4px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+                boxShadow: 'var(--shadow)'
               }}
             >
               <img
@@ -246,9 +246,9 @@ function FormattedReleaseNotes({ notes }: { notes: string }) {
 
         if (item.type === 'numbered') {
           return (
-            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text)', lineHeight: 1.5 }}>
+            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: 'var(--fs-sm)', color: 'var(--text)', lineHeight: 1.5 }}>
               <span style={{
-                fontSize: '12px',
+                fontSize: 'var(--fs-xs)',
                 fontWeight: 650,
                 color: 'var(--text-3)',
                 minWidth: '18px',
@@ -264,7 +264,7 @@ function FormattedReleaseNotes({ notes }: { notes: string }) {
 
         if (item.type === 'bullet') {
           return (
-            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.5 }}>
+            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: 'var(--fs-sm)', color: 'var(--text-2)', lineHeight: 1.5 }}>
               <span style={{
                 width: 5,
                 height: 5,
@@ -279,7 +279,7 @@ function FormattedReleaseNotes({ notes }: { notes: string }) {
         }
 
         return (
-          <p key={idx} style={{ fontSize: '13px', color: 'var(--text-2)', margin: 0, lineHeight: 1.5 }}>
+          <p key={idx} style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)', margin: 0, lineHeight: 1.5 }}>
             {item.text}
           </p>
         );
@@ -1613,7 +1613,7 @@ export default function Settings({
                           borderRadius: 'var(--radius-sm)',
                           border: 'none',
                           background: (settings.searchLocation ?? 'topbar') === 'floating' ? 'var(--accent)' : 'transparent',
-                          color: (settings.searchLocation ?? 'topbar') === 'floating' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
+                          color: (settings.searchLocation ?? 'topbar') === 'floating' ? 'var(--accent-contrast)' : 'var(--text-2)',
                           fontSize: 'var(--fs-xs)',
                           fontWeight: (settings.searchLocation ?? 'topbar') === 'floating' ? 700 : 500,
                           cursor: 'pointer',
@@ -1634,7 +1634,7 @@ export default function Settings({
                           borderRadius: 'var(--radius-sm)',
                           border: 'none',
                           background: (settings.searchLocation ?? 'topbar') === 'topbar' ? 'var(--accent)' : 'transparent',
-                          color: (settings.searchLocation ?? 'topbar') === 'topbar' ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
+                          color: (settings.searchLocation ?? 'topbar') === 'topbar' ? 'var(--accent-contrast)' : 'var(--text-2)',
                           fontSize: 'var(--fs-xs)',
                           fontWeight: (settings.searchLocation ?? 'topbar') === 'topbar' ? 700 : 500,
                           cursor: 'pointer',
@@ -2424,7 +2424,7 @@ export default function Settings({
                                 <Icon size={22} style={{ color: isSelected ? currentColor : 'var(--text)' }} />
                                 <span
                                   style={{
-                                    fontSize: 10.5,
+                                    fontSize: 'var(--fs-caption)',
                                     fontWeight: isSelected ? 700 : 500,
                                     color: isSelected ? currentColor : 'var(--text-3)',
                                     whiteSpace: 'nowrap',
@@ -2785,7 +2785,7 @@ export default function Settings({
                             fontWeight: isSelected ? 700 : 500,
                             background: isSelected ? 'var(--accent)' : 'var(--surface2)',
                             border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
-                            color: isSelected ? 'var(--accent-contrast, #ffffff)' : 'var(--text-2)',
+                            color: isSelected ? 'var(--accent-contrast)' : 'var(--text-2)',
                             cursor: 'pointer',
                             boxShadow: isSelected ? '0 2px 6px rgba(0, 0, 0, 0.15)' : 'none',
                             transition: 'all 0.15s ease'
@@ -2837,7 +2837,7 @@ export default function Settings({
                             className="drawer-card-icon"
                             style={{
                               background: isSelected ? 'var(--accent)' : undefined,
-                              color: isSelected ? 'var(--accent-contrast, #fff)' : 'var(--accent)',
+                              color: isSelected ? 'var(--accent-contrast)' : 'var(--accent)',
                               border: isSelected ? 'none' : undefined,
                               fontSize: 'var(--fs-md)',
                               fontWeight: 750,
@@ -2867,7 +2867,7 @@ export default function Settings({
                               height: 24,
                               borderRadius: 'var(--radius-full)',
                               background: 'var(--accent)',
-                              color: 'var(--accent-contrast, #fff)',
+                              color: 'var(--accent-contrast)',
                               display: 'grid',
                               placeItems: 'center'
                             }}>
@@ -2943,7 +2943,7 @@ export default function Settings({
                     <Database size={20} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                    <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                       Data
                     </h3>
                     <p className="drawer-header-sub">
@@ -3027,10 +3027,10 @@ export default function Settings({
                     <MessageSquarePlus size={22} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 17, fontWeight: 750, margin: 0, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+                    <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 750, margin: 0, color: 'var(--text)', letterSpacing: '-0.02em' }}>
                       Report Bug / Feature Request
                     </h3>
-                    <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-3)', fontWeight: 500 }}>
+                    <p style={{ margin: '2px 0 0', fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontWeight: 500 }}>
                       Create an issue on prathambahekar/okane
                     </p>
                   </div>
@@ -3044,7 +3044,7 @@ export default function Settings({
                   style={{
                     width: 34,
                     height: 34,
-                    borderRadius: 9999,
+                    borderRadius: 'var(--radius-full)',
                     background: 'var(--surface2)',
                     border: '1px solid var(--border)',
                     display: 'grid',
@@ -3060,7 +3060,7 @@ export default function Settings({
               <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Type Selection */}
                 <div>
-                  <label style={{ marginBottom: 6, display: 'block', fontSize: 12, fontWeight: 650, color: 'var(--text-2)' }}>
+                  <label style={{ marginBottom: 6, display: 'block', fontSize: 'var(--fs-xs)', fontWeight: 650, color: 'var(--text-2)' }}>
                     Feedback Type
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -3069,12 +3069,12 @@ export default function Settings({
                       onClick={() => setFeedbackType('bug')}
                       style={{
                         padding: '10px 14px',
-                        borderRadius: 14,
+                        borderRadius: 'var(--radius-md)',
                         border: feedbackType === 'bug' ? '1px solid var(--text)' : '1px solid var(--border)',
                         background: feedbackType === 'bug' ? 'var(--text)' : 'var(--surface2)',
                         color: feedbackType === 'bug' ? 'var(--bg)' : 'var(--text-2)',
                         fontWeight: feedbackType === 'bug' ? 700 : 500,
-                        fontSize: 13,
+                        fontSize: 'var(--fs-sm)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -3092,12 +3092,12 @@ export default function Settings({
                       onClick={() => setFeedbackType('feature')}
                       style={{
                         padding: '10px 14px',
-                        borderRadius: 14,
+                        borderRadius: 'var(--radius-md)',
                         border: feedbackType === 'feature' ? '1px solid var(--text)' : '1px solid var(--border)',
                         background: feedbackType === 'feature' ? 'var(--text)' : 'var(--surface2)',
                         color: feedbackType === 'feature' ? 'var(--bg)' : 'var(--text-2)',
                         fontWeight: feedbackType === 'feature' ? 700 : 500,
-                        fontSize: 13,
+                        fontSize: 'var(--fs-sm)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -3190,7 +3190,7 @@ export default function Settings({
 
                 {/* Error Notification */}
                 {feedbackStatus === 'error' && errorMessage && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 'var(--radius-lg)', color: '#ef4444', fontSize: 'var(--fs-sm)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 'var(--radius-lg)', color: 'var(--debit)', fontSize: 'var(--fs-sm)' }}>
                     <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <X size={16} />
                       <span>Unable to create GitHub issue automatically</span>
@@ -3469,7 +3469,7 @@ export default function Settings({
                         className="settings-card-icon"
                         style={{
                           background: isDevMode ? 'var(--accent)' : undefined,
-                          color: isDevMode ? 'var(--accent-contrast, #fff)' : undefined,
+                          color: isDevMode ? 'var(--accent-contrast)' : undefined,
                         }}
                       >
                         <FlaskConical size={19} />
@@ -3571,7 +3571,7 @@ export default function Settings({
                     <FlaskConical size={20} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                    <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                       Experimental Features
                     </h3>
                     <p className="drawer-header-sub">
@@ -3595,7 +3595,7 @@ export default function Settings({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                   <div className="drawer-card-icon" style={{
                     background: isDevMode ? 'var(--accent)' : undefined,
-                    color: isDevMode ? 'var(--accent-contrast, #fff)' : 'var(--accent)'
+                    color: isDevMode ? 'var(--accent-contrast)' : 'var(--accent)'
                   }}>
                     <FlaskConical size={18} />
                   </div>
@@ -3803,14 +3803,14 @@ export default function Settings({
                         borderRadius: 'var(--radius-md)',
                         background: 'rgba(59, 130, 246, 0.12)',
                         border: '1px solid rgba(59, 130, 246, 0.25)',
-                        color: '#3b82f6'
+                        color: 'var(--accent)'
                       }}>
                         <ArrowUpCircle size={20} />
                       </div>
                       <div className="drawer-card-info">
                         <div className="drawer-card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span>v{availableUpdate.version} Available</span>
-                          <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', fontWeight: 700 }}>
+                          <span style={{ fontSize: 'var(--fs-caption)', padding: '2px 7px', borderRadius: 'var(--radius-full)', background: 'rgba(59, 130, 246, 0.15)', color: 'var(--accent)', fontWeight: 700 }}>
                             NEW
                           </span>
                         </div>
@@ -3834,12 +3834,12 @@ export default function Settings({
                   </div>
                   {isUpdating && (
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 600, marginBottom: 5, color: 'var(--text-2)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-caption)', fontWeight: 600, marginBottom: 5, color: 'var(--text-2)' }}>
                         <span>{updateStatusMessage}</span>
                         <span>{updateProgress}%</span>
                       </div>
-                      <div style={{ height: 6, background: 'var(--surface3)', borderRadius: 99, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${updateProgress}%`, background: 'var(--accent)', borderRadius: 99, transition: 'width 0.2s ease' }} />
+                      <div style={{ height: 6, background: 'var(--surface3)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${updateProgress}%`, background: 'var(--accent)', borderRadius: 'var(--radius-full)', transition: 'width 0.2s ease' }} />
                       </div>
                     </div>
                   )}
@@ -3850,7 +3850,7 @@ export default function Settings({
                     <div className="drawer-card-icon" style={{
                       width: 38,
                       height: 38,
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-md)',
                       background: 'rgba(34, 197, 94, 0.12)',
                       border: '1px solid rgba(34, 197, 94, 0.25)',
                       color: '#22c55e'
@@ -3858,10 +3858,10 @@ export default function Settings({
                       <CheckCircle2 size={20} />
                     </div>
                     <div className="drawer-card-info">
-                      <div className="drawer-card-title" style={{ fontSize: 14, fontWeight: 700 }}>
+                      <div className="drawer-card-title" style={{ fontSize: 'var(--fs-base)', fontWeight: 700 }}>
                         App is up to date
                       </div>
-                      <div className="drawer-card-sub" style={{ fontSize: 12, marginTop: 2 }}>
+                      <div className="drawer-card-sub" style={{ fontSize: 'var(--fs-xs)', marginTop: 2 }}>
                         Checked {settings.lastUpdateCheck || String(jsonSettings.lastUpdated || 'Today')}
                       </div>
                     </div>
@@ -3874,9 +3874,9 @@ export default function Settings({
                     title="Check for software updates"
                     style={{
                       gap: 6,
-                      fontSize: 12,
+                      fontSize: 'var(--fs-xs)',
                       padding: '8px 14px',
-                      borderRadius: 10,
+                      borderRadius: 'var(--radius-md)',
                       fontWeight: 650,
                       flexShrink: 0,
                       background: 'var(--surface3)',
@@ -3956,10 +3956,10 @@ export default function Settings({
                   <span>Version History</span>
                   {displayReleaseHistory.length > 0 && (
                     <span style={{
-                      fontSize: 10,
+                      fontSize: 'var(--fs-caption)',
                       fontWeight: 700,
                       padding: '1px 6px',
-                      borderRadius: 99,
+                      borderRadius: 'var(--radius-full)',
                       background: 'var(--accent-soft)',
                       color: 'var(--accent)',
                       border: '1px solid var(--accent-border-soft)'
@@ -3974,17 +3974,17 @@ export default function Settings({
               {isDevMode && showJsonView && (
                 <div style={{ marginTop: 12, marginBottom: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, fontWeight: 650, color: 'var(--text-3)' }}>public/settings.json</span>
-                    <a href="/settings.json" target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+                    <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 650, color: 'var(--text-3)' }}>public/settings.json</span>
+                    <a href="/settings.json" target="_blank" rel="noreferrer" style={{ fontSize: 'var(--fs-caption)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
                       Open Raw File ↗
                     </a>
                   </div>
                   <pre style={{
-                    fontSize: 11,
+                    fontSize: 'var(--fs-caption)',
                     fontFamily: 'monospace',
                     background: 'var(--surface2)',
                     padding: 12,
-                    borderRadius: 12,
+                    borderRadius: 'var(--radius-md)',
                     overflowX: 'auto',
                     color: 'var(--text)',
                     border: '1px solid var(--border)',
@@ -4028,7 +4028,7 @@ export default function Settings({
               flexDirection: 'column',
               gap: '16px',
               background: 'var(--surface)',
-              borderRadius: 16,
+              borderRadius: 'var(--radius-lg)',
               border: '1px solid var(--border)',
             }}
           >
@@ -4038,7 +4038,7 @@ export default function Settings({
                   style={{
                     width: 38,
                     height: 38,
-                    borderRadius: 10,
+                    borderRadius: 'var(--radius-md)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -4051,10 +4051,10 @@ export default function Settings({
                   <Sparkles size={20} />
                 </div>
                 <div>
-                  <span className="modal-title" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+                  <span className="modal-title" style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, color: 'var(--text)' }}>
                     Add Dummy Data
                   </span>
-                  <p style={{ fontSize: 11.5, color: 'var(--text-3)', margin: '2px 0 0 0' }}>
+                  <p style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)', margin: '2px 0 0 0' }}>
                     Populate sample data for testing & preview
                   </p>
                 </div>
@@ -4063,16 +4063,16 @@ export default function Settings({
                 type="button"
                 className="btn-icon"
                 onClick={() => setShowDummyModal(false)}
-                style={{ borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ borderRadius: 'var(--radius-sm)', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Close"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.55 }}>
+            <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2)', lineHeight: 1.55 }}>
               This will add realistic sample records to your app:
-              <ul style={{ margin: '8px 0 0 18px', padding: 0, fontSize: 12.5, color: 'var(--text-2)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <ul style={{ margin: '8px 0 0 18px', padding: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-2)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <li>14+ categorized expenses across multiple wallets & dates</li>
                 <li>Friends with split obligations (&apos;Owes You&apos; &amp; &apos;You Owe&apos;)</li>
                 <li>Vendor contact (Tiffin service) with dedicated vendor badge</li>
@@ -4089,7 +4089,7 @@ export default function Settings({
                   width: '100%',
                   padding: '11px 16px',
                   fontWeight: 650,
-                  borderRadius: 10,
+                  borderRadius: 'var(--radius-md)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -4108,7 +4108,7 @@ export default function Settings({
                   width: '100%',
                   padding: '10px 16px',
                   fontWeight: 600,
-                  borderRadius: 10,
+                  borderRadius: 'var(--radius-md)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -4128,8 +4128,8 @@ export default function Settings({
                   width: '100%',
                   padding: '8px 16px',
                   fontWeight: 500,
-                  borderRadius: 10,
-                  fontSize: 13,
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: 'var(--fs-sm)',
                   color: 'var(--text-3)',
                 }}
               >
@@ -4161,7 +4161,7 @@ export default function Settings({
                   <Download size={20} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: 16.5, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                  <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                     Export Backup
                   </h3>
                   <p className="drawer-header-sub">
@@ -4254,7 +4254,7 @@ export default function Settings({
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              borderRadius: '24px',
+              borderRadius: 'var(--radius-2xl)',
               border: '1px solid var(--border)',
               background: 'var(--surface)',
               boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
@@ -4285,10 +4285,10 @@ export default function Settings({
                     </h3>
                     {displayReleaseHistory.length > 0 && (
                       <span style={{
-                        fontSize: '11px',
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: 700,
                         padding: '2px 8px',
-                        borderRadius: 9999,
+                        borderRadius: 'var(--radius-full)',
                         background: 'var(--accent-soft)',
                         color: 'var(--accent)',
                         border: '1px solid var(--accent-border-soft)'
@@ -4297,7 +4297,7 @@ export default function Settings({
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '12.5px', color: 'var(--text-3)', marginTop: 2, fontWeight: 500 }}>
+                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 2, fontWeight: 500 }}>
                     prathambahekar/okane
                   </div>
                 </div>
@@ -4309,7 +4309,7 @@ export default function Settings({
                 style={{
                   background: 'var(--surface2)',
                   border: '1px solid var(--border)',
-                  borderRadius: 9999,
+                  borderRadius: 'var(--radius-full)',
                   width: '32px',
                   height: '32px',
                   display: 'grid',
@@ -4337,9 +4337,9 @@ export default function Settings({
                   padding: '32px 16px',
                   textAlign: 'center',
                   color: 'var(--text-3)',
-                  fontSize: '13px',
+                  fontSize: 'var(--fs-sm)',
                   background: 'var(--surface2)',
-                  borderRadius: '16px',
+                  borderRadius: 'var(--radius-lg)',
                   border: '1px dashed var(--border)'
                 }}>
                   No release history loaded yet. Tap "Check Updates" in settings to fetch releases.
@@ -4356,7 +4356,7 @@ export default function Settings({
                       key={item.version + '_' + idx}
                       style={{
                         padding: '16px 18px',
-                        borderRadius: '18px',
+                        borderRadius: 'var(--radius-xl)',
                         background: 'var(--surface2)',
                         border: isCurrent ? '1.5px solid var(--accent)' : '1px solid var(--border)',
                         boxShadow: isCurrent ? '0 4px 16px var(--accent-soft)' : 'none',
@@ -4367,15 +4367,15 @@ export default function Settings({
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 15, fontWeight: 750, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                          <span style={{ fontSize: 'var(--fs-md)', fontWeight: 750, color: 'var(--text)', letterSpacing: '-0.01em' }}>
                             {item.name || `v${item.version}`}
                           </span>
                           {isCurrent && (
                             <span style={{
-                              fontSize: 10.5,
+                              fontSize: 'var(--fs-caption)',
                               fontWeight: 700,
                               padding: '2px 8px',
-                              borderRadius: 9999,
+                              borderRadius: 'var(--radius-full)',
                               background: 'rgba(34, 197, 94, 0.12)',
                               color: '#22c55e',
                               border: '1px solid rgba(34, 197, 94, 0.3)',
@@ -4389,12 +4389,12 @@ export default function Settings({
                           )}
                           {item.isPrerelease && (
                             <span style={{
-                              fontSize: 10.5,
+                              fontSize: 'var(--fs-caption)',
                               fontWeight: 700,
                               padding: '2px 8px',
-                              borderRadius: 9999,
+                              borderRadius: 'var(--radius-full)',
                               background: 'rgba(245, 158, 11, 0.12)',
-                              color: '#f59e0b',
+                              color: 'var(--amber)',
                               border: '1px solid rgba(245, 158, 11, 0.25)',
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -4405,7 +4405,7 @@ export default function Settings({
                             </span>
                           )}
                         </div>
-                        <span style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', whiteSpace: 'nowrap', fontWeight: 500 }}>
                           {item.releaseDate}
                         </span>
                       </div>
@@ -4418,7 +4418,7 @@ export default function Settings({
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
-                            fontSize: 12,
+                            fontSize: 'var(--fs-xs)',
                             color: 'var(--accent)',
                             fontWeight: 650,
                             textDecoration: 'none',
@@ -4426,7 +4426,7 @@ export default function Settings({
                             alignItems: 'center',
                             gap: 5,
                             padding: '4px 10px',
-                            borderRadius: 9999,
+                            borderRadius: 'var(--radius-full)',
                             background: 'var(--accent-soft)',
                             border: '1px solid var(--accent-border-soft)'
                           }}
@@ -4440,7 +4440,7 @@ export default function Settings({
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
-                              fontSize: 12,
+                              fontSize: 'var(--fs-xs)',
                               color: 'var(--text)',
                               fontWeight: 600,
                               textDecoration: 'none',
@@ -4448,7 +4448,7 @@ export default function Settings({
                               alignItems: 'center',
                               gap: 5,
                               padding: '4px 12px',
-                              borderRadius: 9999,
+                              borderRadius: 'var(--radius-full)',
                               background: 'var(--surface3)',
                               border: '1px solid var(--border)',
                               marginLeft: 'auto'

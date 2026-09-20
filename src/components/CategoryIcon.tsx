@@ -571,7 +571,7 @@ export function CategoryBadge({ category = '', color, icon = '', size = 14, show
         display: 'inline-flex',
         alignItems: 'center',
         gap: 6,
-        fontSize: 12,
+        fontSize: 'var(--fs-xs)',
         fontWeight: 500,
       }}
     >
@@ -582,7 +582,7 @@ export function CategoryBadge({ category = '', color, icon = '', size = 14, show
           justifyContent: 'center',
           width: size + 8,
           height: size + 8,
-          borderRadius: 6,
+          borderRadius: 'var(--radius-xs)',
           background: bgStyle,
           color: iconColor,
           flexShrink: 0,

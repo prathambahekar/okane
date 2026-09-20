@@ -76,8 +76,8 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
   // Available wallets in DB
   const availableWallets = useMemo(() => {
     return db.wallets && db.wallets.length > 0 ? db.wallets : [
-      { id: 'wal_cash', name: 'Cash', openingBalance: 0, color: '#FBBF24', icon: 'cash' },
-      { id: 'wal_upi', name: 'UPI', openingBalance: 0, color: '#34D399', icon: 'card' },
+      { id: 'wal_cash', name: 'Cash', openingBalance: 0, color: 'var(--amber)', icon: 'cash' },
+      { id: 'wal_upi', name: 'UPI', openingBalance: 0, color: 'var(--credit)', icon: 'card' },
     ];
   }, [db.wallets]);
 
@@ -326,7 +326,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
       title: 'Currency',
       subtitle: 'Primary ledger unit',
       icon: (
-        <span style={{ fontSize: '12px', fontWeight: 800 }}>
+        <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 800 }}>
           {selectedCurrency ? sym : '$'}
         </span>
       ),
@@ -420,9 +420,9 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                     style={{
                       padding: isDesktop ? '16px 18px' : '12px 10px',
                       borderRadius: isDesktop ? 'var(--radius-xl, 20px)' : 'var(--radius-lg, 16px)',
-                      background: isSelected ? 'var(--text, #ffffff)' : 'var(--surface, #141416)',
-                      color: isSelected ? 'var(--bg, #0a0a0c)' : 'var(--text, #ffffff)',
-                      border: isSelected ? '2px solid var(--text, #ffffff)' : '1px solid var(--border)',
+                      background: isSelected ? 'var(--text)' : 'var(--surface)',
+                      color: isSelected ? 'var(--bg)' : 'var(--text)',
+                      border: isSelected ? '2px solid var(--text)' : '1px solid var(--border)',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
@@ -454,9 +454,9 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                           right: isDesktop ? 12 : 8,
                           width: 20,
                           height: 20,
-                          borderRadius: 10,
-                          background: 'var(--bg, #0a0a0c)',
-                          color: 'var(--text, #ffffff)',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'var(--bg)',
+                          color: 'var(--text)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -469,10 +469,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                       {c.symbol}
                     </span>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: isDesktop ? 'flex-start' : 'center' }}>
-                      <span style={{ fontSize: '13.5px', fontWeight: 800 }}>
+                      <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 800 }}>
                         {c.code}
                       </span>
-                      <span style={{ fontSize: '11px', fontWeight: 600, opacity: isSelected ? 0.85 : 0.6 }}>
+                      <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, opacity: isSelected ? 0.85 : 0.6 }}>
                         {c.name}
                       </span>
                     </div>
@@ -491,10 +491,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
               style={{
                 padding: '14px 20px',
                 borderRadius: 'var(--radius-xl, 20px)',
-                background: 'var(--surface, #141416)',
+                background: 'var(--surface)',
                 border: '1px solid var(--border)',
                 color: 'var(--text-2)',
-                fontSize: '13.5px',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 700,
                 cursor: 'pointer',
                 display: 'flex',
@@ -558,7 +558,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
             {/* Wallet Selection & Balance Box */}
             <div
               style={{
-                background: 'var(--surface, #141416)',
+                background: 'var(--surface)',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-xl, 24px)',
                 padding: isDesktop ? '32px 28px 28px' : '24px 18px 20px',
@@ -641,10 +641,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                       style={{
                         padding: '10px 18px',
                         borderRadius: 'var(--radius-full, 9999px)',
-                        background: isSelected ? 'var(--text, #ffffff)' : 'var(--surface2, rgba(255,255,255,0.06))',
-                        color: isSelected ? 'var(--bg, #0a0a0c)' : 'var(--text)',
+                        background: isSelected ? 'var(--text)' : 'var(--surface2)',
+                        color: isSelected ? 'var(--bg)' : 'var(--text)',
                         border: isSelected ? '1px solid transparent' : '1px solid var(--border)',
-                        fontSize: '13px',
+                        fontSize: 'var(--fs-sm)',
                         fontWeight: 750,
                         cursor: 'pointer',
                         display: 'flex',
@@ -668,7 +668,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                       {val > 0 && (
                         <span
                           style={{
-                            fontSize: '12px',
+                            fontSize: 'var(--fs-xs)',
                             fontWeight: 800,
                             opacity: isSelected ? 0.9 : 0.7,
                             marginLeft: 2,
@@ -698,10 +698,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   style={{
                     padding: '10px 16px',
                     borderRadius: 'var(--radius-full, 9999px)',
-                    background: 'var(--surface, #141416)',
+                    background: 'var(--surface)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
-                    fontSize: '13px',
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
@@ -783,7 +783,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Moon size={22} strokeWidth={2.4} color="#ffffff" />
                   </div>
                   {mode === 'dark' && (
@@ -804,8 +804,8 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   )}
                 </div>
                 <div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>Dark Atmosphere</div>
-                  <div style={{ fontSize: '12px', color: '#a1a1aa', marginTop: 2 }}>High-contrast dark canvas</div>
+                  <div style={{ fontSize: 'var(--fs-md)', fontWeight: 800, color: '#ffffff' }}>Dark Atmosphere</div>
+                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 2 }}>High-contrast dark canvas</div>
                 </div>
               </button>
 
@@ -830,7 +830,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f4f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: '#f4f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Sun size={22} strokeWidth={2.4} color="#171717" />
                   </div>
                   {mode === 'light' && (
@@ -851,8 +851,8 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   )}
                 </div>
                 <div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#171717' }}>Light Atmosphere</div>
-                  <div style={{ fontSize: '12px', color: '#71717a', marginTop: 2 }}>Clean high-contrast light layout</div>
+                  <div style={{ fontSize: 'var(--fs-md)', fontWeight: 800, color: '#171717' }}>Light Atmosphere</div>
+                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', marginTop: 2 }}>Clean high-contrast light layout</div>
                 </div>
               </button>
             </div>
@@ -866,7 +866,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 style={{
                   padding: '16px 18px',
                   borderRadius: 'var(--radius-xl, 20px)',
-                  background: 'var(--surface, #141416)',
+                  background: 'var(--surface)',
                   border: '1px solid var(--border)',
                   color: 'var(--text)',
                   cursor: 'pointer',
@@ -883,7 +883,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                       width: 40,
                       height: 40,
                       borderRadius: 'var(--radius-md, 12px)',
-                      background: 'var(--surface2, rgba(255,255,255,0.06))',
+                      background: 'var(--surface2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -894,10 +894,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                     {privacyMask ? <EyeOff size={18} /> : <Eye size={18} />}
                   </div>
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: 750, color: 'var(--text)' }}>
+                    <div style={{ fontSize: 'var(--fs-base)', fontWeight: 750, color: 'var(--text)' }}>
                       Mask Amounts
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
                       {privacyMask ? 'Balances hidden by default' : 'Balances visible openly'}
                     </div>
                   </div>
@@ -907,8 +907,8 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   style={{
                     width: 42,
                     height: 25,
-                    borderRadius: 13,
-                    background: privacyMask ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
+                    borderRadius: 'var(--radius-md)',
+                    background: privacyMask ? 'var(--text)' : 'var(--surface2)',
                     padding: 2,
                     boxSizing: 'border-box',
                     display: 'flex',
@@ -934,7 +934,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 style={{
                   padding: '16px 18px',
                   borderRadius: 'var(--radius-xl, 20px)',
-                  background: 'var(--surface, #141416)',
+                  background: 'var(--surface)',
                   border: '1px solid var(--border)',
                   color: 'var(--text)',
                   display: 'flex',
@@ -950,7 +950,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                         width: 40,
                         height: 40,
                         borderRadius: 'var(--radius-md, 12px)',
-                        background: 'var(--surface2, rgba(255,255,255,0.06))',
+                        background: 'var(--surface2)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -961,10 +961,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                       <Lock size={18} />
                     </div>
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 750, color: 'var(--text)' }}>
+                      <div style={{ fontSize: 'var(--fs-base)', fontWeight: 750, color: 'var(--text)' }}>
                         App Passcode Lock
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
                         {enablePasscode && passcodePin.length === 4
                           ? 'Protected with 4-digit PIN'
                           : 'Require 4-digit PIN code'}
@@ -978,8 +978,8 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                     style={{
                       width: 42,
                       height: 25,
-                      borderRadius: 13,
-                      background: enablePasscode && passcodePin.length === 4 ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
+                      borderRadius: 'var(--radius-md)',
+                      background: enablePasscode && passcodePin.length === 4 ? 'var(--text)' : 'var(--surface2)',
                       padding: 2,
                       border: 'none',
                       cursor: 'pointer',
@@ -1012,9 +1012,9 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                       borderTop: '1px solid var(--border)',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--credit, #34d399)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--credit)' }}>
                       <Check size={15} strokeWidth={2.5} />
-                      <span style={{ fontSize: '12px', fontWeight: 700 }}>Passcode Active</span>
+                      <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700 }}>Passcode Active</span>
                     </div>
                     <button
                       type="button"
@@ -1023,7 +1023,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                         background: 'var(--surface2)',
                         border: '1px solid var(--border)',
                         color: 'var(--text)',
-                        fontSize: '11.5px',
+                        fontSize: 'var(--fs-caption)',
                         fontWeight: 700,
                         padding: '4px 12px',
                         borderRadius: 'var(--radius-full, 9999px)',
@@ -1081,7 +1081,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 style={{
                   padding: '18px 20px',
                   borderRadius: 'var(--radius-xl, 20px)',
-                  background: 'var(--surface, #141416)',
+                  background: 'var(--surface)',
                   border: '1px solid var(--border)',
                   display: 'flex',
                   alignItems: 'center',
@@ -1094,7 +1094,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                       width: 42,
                       height: 42,
                       borderRadius: 'var(--radius-md, 12px)',
-                      background: 'var(--surface2, rgba(255,255,255,0.06))',
+                      background: 'var(--surface2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1104,10 +1104,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                     <Sparkles size={20} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '14.5px', fontWeight: 750, color: 'var(--text)' }}>
+                    <div style={{ fontSize: 'var(--fs-base)', fontWeight: 750, color: 'var(--text)' }}>
                       AI Assistant (Max)
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
                       Voice & smart trigger
                     </div>
                   </div>
@@ -1124,8 +1124,8 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   style={{
                     width: 42,
                     height: 25,
-                    borderRadius: 13,
-                    background: enableAI ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
+                    borderRadius: 'var(--radius-md)',
+                    background: enableAI ? 'var(--text)' : 'var(--surface2)',
                     padding: 2,
                     border: 'none',
                     cursor: 'pointer',
@@ -1152,7 +1152,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 style={{
                   padding: '18px 20px',
                   borderRadius: 'var(--radius-xl, 20px)',
-                  background: 'var(--surface, #141416)',
+                  background: 'var(--surface)',
                   border: '1px solid var(--border)',
                   display: 'flex',
                   alignItems: 'center',
@@ -1165,7 +1165,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                       width: 42,
                       height: 42,
                       borderRadius: 'var(--radius-md, 12px)',
-                      background: 'var(--surface2, rgba(255,255,255,0.06))',
+                      background: 'var(--surface2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1175,10 +1175,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                     <RefreshCw size={20} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '14.5px', fontWeight: 750, color: 'var(--text)' }}>
+                    <div style={{ fontSize: 'var(--fs-base)', fontWeight: 750, color: 'var(--text)' }}>
                       Subscriptions & Bills
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
                       Recurring bill reminders
                     </div>
                   </div>
@@ -1195,8 +1195,8 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   style={{
                     width: 42,
                     height: 25,
-                    borderRadius: 13,
-                    background: enableSubs ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
+                    borderRadius: 'var(--radius-md)',
+                    background: enableSubs ? 'var(--text)' : 'var(--surface2)',
                     padding: 2,
                     border: 'none',
                     cursor: 'pointer',
@@ -1223,7 +1223,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 style={{
                   padding: '18px 20px',
                   borderRadius: 'var(--radius-xl, 20px)',
-                  background: 'var(--surface, #141416)',
+                  background: 'var(--surface)',
                   border: '1px solid var(--border)',
                   display: 'flex',
                   alignItems: 'center',
@@ -1236,7 +1236,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                       width: 42,
                       height: 42,
                       borderRadius: 'var(--radius-md, 12px)',
-                      background: 'var(--surface2, rgba(255,255,255,0.06))',
+                      background: 'var(--surface2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1246,10 +1246,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                     <Plane size={20} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '14.5px', fontWeight: 750, color: 'var(--text)' }}>
+                    <div style={{ fontSize: 'var(--fs-base)', fontWeight: 750, color: 'var(--text)' }}>
                       Trips & Group Splits
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
                       Travel ledgers & settlements
                     </div>
                   </div>
@@ -1266,8 +1266,8 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   style={{
                     width: 42,
                     height: 25,
-                    borderRadius: 13,
-                    background: enableTrips ? 'var(--text)' : 'var(--surface2, rgba(255,255,255,0.12))',
+                    borderRadius: 'var(--radius-md)',
+                    background: enableTrips ? 'var(--text)' : 'var(--surface2)',
                     padding: 2,
                     border: 'none',
                     cursor: 'pointer',
@@ -1317,7 +1317,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 width: 64,
                 height: 64,
                 borderRadius: 'var(--radius-full, 9999px)',
-                background: 'var(--surface2, rgba(255,255,255,0.08))',
+                background: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 display: 'flex',
                 alignItems: 'center',
@@ -1345,7 +1345,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
 
             <p
               style={{
-                fontSize: '14.5px',
+                fontSize: 'var(--fs-base)',
                 lineHeight: 1.5,
                 color: 'var(--text-2)',
                 margin: '0 0 24px',
@@ -1365,14 +1365,14 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 justifyContent: isDesktop ? 'flex-start' : 'center',
               }}
             >
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: 'var(--radius-full)', fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: 'var(--radius-full)', fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text)' }}>
                 Currency: {selectedCurrency} ({sym})
               </div>
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: 'var(--radius-full)', fontSize: '12.5px', fontWeight: 700, color: 'var(--text)' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: 'var(--radius-full)', fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text)' }}>
                 Theme: {mode === 'dark' ? 'Dark' : 'Light'}
               </div>
               {totalOpeningBalance > 0 && (
-                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: 'var(--radius-full)', fontSize: '12.5px', fontWeight: 700, color: 'var(--credit)' }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '6px 14px', borderRadius: 'var(--radius-full)', fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--credit)' }}>
                   Opening: {sym}{totalOpeningBalance.toLocaleString()}
                 </div>
               )}
@@ -1387,17 +1387,17 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 maxWidth: '320px',
                 padding: '16px 32px',
                 borderRadius: 'var(--radius-full, 9999px)',
-                background: 'var(--text, #ffffff)',
-                color: 'var(--bg, #0a0a0c)',
+                background: 'var(--text)',
+                color: 'var(--bg)',
                 border: 'none',
-                fontSize: '15px',
+                fontSize: 'var(--fs-md)',
                 fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 10,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                boxShadow: 'var(--shadow-lg)',
                 transition: 'all 0.18s ease',
               }}
             >
@@ -1422,9 +1422,9 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
         inset: 0,
         width: '100vw',
         height: '100dvh',
-        background: isDesktop ? 'rgba(0, 0, 0, 0.75)' : 'var(--bg, #0a0a0c)',
+        background: isDesktop ? 'rgba(0, 0, 0, 0.75)' : 'var(--bg)',
         backdropFilter: isDesktop ? 'blur(12px)' : 'none',
-        color: 'var(--text, #ffffff)',
+        color: 'var(--text)',
         zIndex: 99999,
         display: 'flex',
         alignItems: 'center',
@@ -1443,7 +1443,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
             maxWidth: '1040px',
             height: '100%',
             maxHeight: '680px',
-            background: 'var(--bg, #0a0a0c)',
+            background: 'var(--bg)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-2xl, 28px)',
             boxShadow: 'var(--shadow-lg), 0 24px 60px rgba(0,0,0,0.5)',
@@ -1456,7 +1456,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
           {/* Left Desktop Sidebar Timeline */}
           <aside
             style={{
-              background: 'var(--surface, #141416)',
+              background: 'var(--surface)',
               borderRight: '1px solid var(--border)',
               padding: '28px 20px',
               display: 'flex',
@@ -1472,24 +1472,24 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   style={{
                     width: 38,
                     height: 38,
-                    borderRadius: 12,
+                    borderRadius: 'var(--radius-md)',
                     background: 'var(--text)',
                     color: 'var(--bg)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 900,
-                    fontSize: '18px',
+                    fontSize: 'var(--fs-xl)',
                     letterSpacing: '-0.03em',
                   }}
                 >
                   ¥
                 </div>
                 <div>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+                  <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
                     Okane Setup
                   </div>
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Workspace Studio
                   </div>
                 </div>
@@ -1516,11 +1516,11 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                         padding: '10px 12px',
                         borderRadius: 'var(--radius-md, 12px)',
                         background: isActive
-                          ? 'var(--text, #ffffff)'
+                          ? 'var(--text)'
                           : isCompleted
-                          ? 'var(--surface2, rgba(255,255,255,0.04))'
+                          ? 'var(--surface2)'
                           : 'transparent',
-                        color: isActive ? 'var(--bg, #0a0a0c)' : 'var(--text)',
+                        color: isActive ? 'var(--bg)' : 'var(--text)',
                         border: 'none',
                         cursor: 'pointer',
                         textAlign: 'left',
@@ -1532,16 +1532,16 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                           style={{
                             width: 28,
                             height: 28,
-                            borderRadius: 8,
+                            borderRadius: 'var(--radius-sm)',
                             background: isActive
-                              ? 'var(--bg, #0a0a0c)'
+                              ? 'var(--bg)'
                               : isCompleted
-                              ? 'var(--credit-bg, rgba(52,211,153,0.15))'
-                              : 'var(--surface2, rgba(255,255,255,0.06))',
+                              ? 'var(--credit-bg)'
+                              : 'var(--surface2)',
                             color: isActive
-                              ? 'var(--text, #ffffff)'
+                              ? 'var(--text)'
                               : isCompleted
-                              ? 'var(--credit, #34d399)'
+                              ? 'var(--credit)'
                               : 'var(--text-3)',
                             display: 'flex',
                             alignItems: 'center',
@@ -1551,12 +1551,12 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                           {isCompleted ? <Check size={14} strokeWidth={3} /> : s.icon}
                         </div>
                         <div>
-                          <div style={{ fontSize: '13px', fontWeight: isActive ? 800 : 700 }}>
+                          <div style={{ fontSize: 'var(--fs-sm)', fontWeight: isActive ? 800 : 700 }}>
                             {s.title}
                           </div>
                           <div
                             style={{
-                              fontSize: '11px',
+                              fontSize: 'var(--fs-caption)',
                               opacity: isActive ? 0.8 : 0.5,
                               color: isActive ? 'var(--bg)' : 'var(--text-2)',
                             }}
@@ -1568,13 +1568,13 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
 
                       <span
                         style={{
-                          fontSize: '11px',
+                          fontSize: 'var(--fs-caption)',
                           fontWeight: 750,
                           padding: '2px 6px',
                           borderRadius: 'var(--radius-full)',
                           background: isActive
                             ? 'rgba(0,0,0,0.12)'
-                            : 'var(--surface2, rgba(255,255,255,0.08))',
+                            : 'var(--surface2)',
                           opacity: isActive ? 1 : 0.7,
                         }}
                       >
@@ -1589,7 +1589,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
             {/* Desktop Live Config Summary Box */}
             <div
               style={{
-                background: 'var(--surface2, rgba(255,255,255,0.03))',
+                background: 'var(--surface2)',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-lg, 16px)',
                 padding: '14px',
@@ -1598,10 +1598,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 gap: 8,
               }}
             >
-              <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)' }}>
+              <div style={{ fontSize: 'var(--fs-caption)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-3)' }}>
                 Configuration Active
               </div>
-              <div style={{ fontSize: '12px', fontWeight: 650, color: 'var(--text-2)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 650, color: 'var(--text-2)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Base Currency:</span>
                   <span style={{ color: 'var(--text)', fontWeight: 750 }}>{selectedCurrency} ({sym})</span>
@@ -1635,11 +1635,11 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
             {/* Top Desktop Step Bar */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', background: 'var(--surface2)', padding: '4px 10px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', background: 'var(--surface2)', padding: '4px 10px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border)' }}>
                   Step {step + 1} of {totalSteps}
                 </span>
-                <span style={{ fontSize: '12px', color: 'var(--text-3)', fontWeight: 600 }}>
-                  • Press <kbd style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)', fontSize: '11px' }}>→</kbd> to continue
+                <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', fontWeight: 600 }}>
+                  • Press <kbd style={{ background: 'var(--surface2)', padding: '2px 6px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border)', fontSize: 'var(--fs-caption)' }}>→</kbd> to continue
                 </span>
               </div>
 
@@ -1650,7 +1650,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   background: 'transparent',
                   border: 'none',
                   color: 'var(--text-3)',
-                  fontSize: '13px',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 650,
                   cursor: 'pointer',
                   padding: '6px 12px',
@@ -1686,10 +1686,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   style={{
                     padding: '12px 22px',
                     borderRadius: 'var(--radius-full, 9999px)',
-                    background: 'var(--surface, #141416)',
+                    background: 'var(--surface)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
-                    fontSize: '13.5px',
+                    fontSize: 'var(--fs-sm)',
                     fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
@@ -1718,16 +1718,16 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   style={{
                     padding: '14px 28px',
                     borderRadius: 'var(--radius-full, 9999px)',
-                    background: 'var(--text, #ffffff)',
-                    color: 'var(--bg, #0a0a0c)',
+                    background: 'var(--text)',
+                    color: 'var(--bg)',
                     border: 'none',
-                    fontSize: '14.5px',
+                    fontSize: 'var(--fs-base)',
                     fontWeight: 800,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                    boxShadow: 'var(--shadow-lg)',
                   }}
                 >
                   <span>Get Started</span>
@@ -1740,16 +1740,16 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   style={{
                     padding: '14px 28px',
                     borderRadius: 'var(--radius-full, 9999px)',
-                    background: 'var(--text, #ffffff)',
-                    color: 'var(--bg, #0a0a0c)',
+                    background: 'var(--text)',
+                    color: 'var(--bg)',
                     border: 'none',
-                    fontSize: '14.5px',
+                    fontSize: 'var(--fs-base)',
                     fontWeight: 800,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                    boxShadow: 'var(--shadow-md)',
                   }}
                 >
                   <span>Continue</span>
@@ -1785,12 +1785,12 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span
                 style={{
-                  fontSize: '11px',
+                  fontSize: 'var(--fs-caption)',
                   fontWeight: 800,
                   letterSpacing: '0.08em',
-                  color: 'var(--text-3, #71717a)',
+                  color: 'var(--text-3)',
                   textTransform: 'uppercase',
-                  background: 'var(--surface2, rgba(255,255,255,0.06))',
+                  background: 'var(--surface2)',
                   padding: '4px 10px',
                   borderRadius: 'var(--radius-full, 9999px)',
                   border: '1px solid var(--border)',
@@ -1806,8 +1806,8 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: 'var(--text-3, #71717a)',
-                fontSize: '13.5px',
+                color: 'var(--text-3)',
+                fontSize: 'var(--fs-sm)',
                 fontWeight: 650,
                 cursor: 'pointer',
                 padding: '6px 12px',
@@ -1855,10 +1855,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 style={{
                   padding: '12px 20px',
                   borderRadius: 'var(--radius-full, 9999px)',
-                  background: 'var(--surface, #141416)',
+                  background: 'var(--surface)',
                   border: '1px solid var(--border)',
                   color: 'var(--text)',
-                  fontSize: '13.5px',
+                  fontSize: 'var(--fs-sm)',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'flex',
@@ -1892,7 +1892,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                       height: 6,
                       width: isActive ? 20 : 6,
                       borderRadius: 3,
-                      background: isActive ? 'var(--text, #ffffff)' : 'var(--border2, rgba(255,255,255,0.2))',
+                      background: isActive ? 'var(--text)' : 'var(--border2)',
                       border: 'none',
                       padding: 0,
                       cursor: 'pointer',
@@ -1910,17 +1910,17 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 style={{
                   padding: '12px 22px',
                   borderRadius: 'var(--radius-full, 9999px)',
-                  background: 'var(--text, #ffffff)',
-                  color: 'var(--bg, #0a0a0c)',
+                  background: 'var(--text)',
+                  color: 'var(--bg)',
                   border: 'none',
-                  fontSize: '14px',
+                  fontSize: 'var(--fs-base)',
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
                   whiteSpace: 'nowrap',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                  boxShadow: 'var(--shadow-md)',
                 }}
               >
                 <span>Done</span>
@@ -1933,10 +1933,10 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 style={{
                   padding: '12px 22px',
                   borderRadius: 'var(--radius-full, 9999px)',
-                  background: 'var(--text, #ffffff)',
-                  color: 'var(--bg, #0a0a0c)',
+                  background: 'var(--text)',
+                  color: 'var(--bg)',
                   border: 'none',
-                  fontSize: '14px',
+                  fontSize: 'var(--fs-base)',
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
@@ -1977,7 +1977,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
               width: '100%',
               maxWidth: '440px',
               maxHeight: '80vh',
-              background: 'var(--surface, #141416)',
+              background: 'var(--surface)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-xl, 24px)',
               display: 'flex',
@@ -1994,7 +1994,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                 justifyContent: 'space-between',
               }}
             >
-              <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+              <h2 style={{ fontSize: 'var(--fs-lg)', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
                 Select Currency
               </h2>
               <button
@@ -2019,7 +2019,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                   alignItems: 'center',
                   gap: 8,
                   padding: '10px 14px',
-                  background: 'var(--surface2, rgba(255,255,255,0.06))',
+                  background: 'var(--surface2)',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-md, 12px)',
                 }}
@@ -2035,7 +2035,7 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                     border: 'none',
                     outline: 'none',
                     color: 'var(--text)',
-                    fontSize: '13.5px',
+                    fontSize: 'var(--fs-sm)',
                     width: '100%',
                   }}
                   autoFocus
@@ -2075,14 +2075,14 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: '16px', fontWeight: 800, width: 24, textAlign: 'center' }}>
+                      <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 800, width: 24, textAlign: 'center' }}>
                         {c.symbol}
                       </span>
                       <div>
-                        <div style={{ fontSize: '13.5px', fontWeight: 700 }}>
+                        <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700 }}>
                           {c.name} ({c.code})
                         </div>
-                        <div style={{ fontSize: '11.5px', opacity: isSelected ? 0.8 : 0.6 }}>
+                        <div style={{ fontSize: 'var(--fs-caption)', opacity: isSelected ? 0.8 : 0.6 }}>
                           {c.country}
                         </div>
                       </div>

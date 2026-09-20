@@ -926,7 +926,7 @@ export default function DailyWalletBalanceDrawer({
                               }}
                               friends={tx.rawExpense?.friendId ? [db.friends.find(f => f.id === tx.rawExpense!.friendId)].filter(Boolean) as Friend[] : []}
                               vendor={tx.rawExpense?.vendorId ? db.friends.find(f => f.id === tx.rawExpense!.vendorId) : null}
-                              style={{ fontSize: '12px' }}
+                              style={{ fontSize: 'var(--fs-xs)' }}
                             />
                           </div>
                         </div>
@@ -1148,7 +1148,7 @@ export default function DailyWalletBalanceDrawer({
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.color = 'var(--text)';
-                  e.currentTarget.style.background = 'var(--surface3, rgba(255,255,255,0.06))';
+                  e.currentTarget.style.background = 'var(--surface3)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.color = 'var(--text-2)';
@@ -1194,7 +1194,7 @@ export default function DailyWalletBalanceDrawer({
                 onMouseEnter={e => {
                   if (selectedMonth < maxAvailableMonth) {
                     e.currentTarget.style.color = 'var(--text)';
-                    e.currentTarget.style.background = 'var(--surface3, rgba(255,255,255,0.06))';
+                    e.currentTarget.style.background = 'var(--surface3)';
                   }
                 }}
                 onMouseLeave={e => {
@@ -1299,7 +1299,7 @@ export default function DailyWalletBalanceDrawer({
               </span>
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 'var(--fs-caption)',
                   color: 'var(--text-3)',
                   marginTop: 2,
                   opacity: 0.85,
@@ -1382,7 +1382,7 @@ export default function DailyWalletBalanceDrawer({
               </span>
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 'var(--fs-caption)',
                   color: 'var(--text-3)',
                   marginTop: 2,
                   opacity: 0.85,
@@ -1465,8 +1465,8 @@ export default function DailyWalletBalanceDrawer({
                 <span
                   style={{
                     backgroundColor: 'var(--accent)',
-                    color: 'var(--accent-contrast, #ffffff)',
-                    fontSize: 10,
+                    color: 'var(--accent-contrast)',
+                    fontSize: 'var(--fs-caption)',
                     fontWeight: 750,
                     borderRadius: 'var(--radius-full)',
                     padding: '1px 5px',
@@ -1562,7 +1562,7 @@ export default function DailyWalletBalanceDrawer({
                   width: 44,
                   height: 44,
                   borderRadius: 'var(--radius-md)',
-                  background: 'var(--surface3, rgba(255,255,255,0.05))',
+                  background: 'var(--surface3)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1651,7 +1651,7 @@ export default function DailyWalletBalanceDrawer({
                           height: 36,
                           borderRadius: 'var(--radius-sm)',
                           background: dayRow.isToday ? 'var(--accent)' : 'var(--surface)',
-                          color: dayRow.isToday ? 'var(--accent-contrast, #fff)' : 'var(--text)',
+                          color: dayRow.isToday ? 'var(--accent-contrast)' : 'var(--text)',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
@@ -1741,7 +1741,7 @@ export default function DailyWalletBalanceDrawer({
                                   </>
                                 )}
                               </span>
-                              <span style={{ color: 'var(--text-3)', fontSize: 10.5 }}>
+                              <span style={{ color: 'var(--text-3)', fontSize: 'var(--fs-caption)' }}>
                                 · {dayRow.transactions.length} {dayRow.transactions.length === 1 ? 'transaction' : 'transactions'}
                               </span>
                             </div>
@@ -1759,7 +1759,7 @@ export default function DailyWalletBalanceDrawer({
                       <div style={{ textAlign: 'right' }}>
                         <div
                           style={{
-                            fontSize: 13.5,
+                            fontSize: 'var(--fs-sm)',
                             fontWeight: 700,
                             color: 'var(--text)',
                             fontVariantNumeric: 'tabular-nums',
@@ -2130,7 +2130,7 @@ export default function DailyWalletBalanceDrawer({
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                  boxShadow: 'var(--shadow)',
                 }}
               >
                 <Check size={15} style={{ color: 'inherit' }} />
