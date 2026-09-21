@@ -8,6 +8,7 @@ import CategoryIcon from './CategoryIcon';
 import {
   fmtMoney,
   fmtDate,
+  fmtDateNoYear,
   friendInitial,
   getAvatarStyle,
   cleanExpenseDescription,
@@ -884,67 +885,65 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                   gap: 16,
                 }}
               >
-                {/* Wallet Section */}
-                {showWallet && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {walletObj ? (
-                        renderWalletIcon(walletObj.icon || walletObj.name, 36, walletObj.color)
-                      ) : (
-                        <div
+                {/* Wallet / Method Section */}
+                {showWallet && (() => {
+                  const isItemForgiven = Boolean(
+                    ge.isForgiven ||
+                    settlementObj?.isForgiven ||
+                    (effectiveWalletName && /forgiv|waiv|forgotten/i.test(effectiveWalletName)) ||
+                    (primaryItem?.notes && /forgiv|waiv/i.test(primaryItem.notes))
+                  );
+
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {walletObj ? (
+                          renderWalletIcon(walletObj.icon || walletObj.name, 36, walletObj.color)
+                        ) : isItemForgiven ? (
+                          renderWalletIcon('forgiven', 36)
+                        ) : (
+                          renderWalletIcon(effectiveWalletName || 'wallet', 36)
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                        <span
                           style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 'var(--radius-md, 10px)',
-                            background: 'var(--accent-soft)',
-                            border: '1px solid var(--border)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            fontSize: 'var(--fs-caption)',
+                            fontWeight: 700,
+                            color: 'var(--text-3)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
+                            lineHeight: 1,
                           }}
                         >
-                          <WalletIcon size={18} style={{ color: 'var(--text-2)' }} />
-                        </div>
-                      )}
+                          {isItemForgiven ? 'Method' : 'Wallet'}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 'var(--fs-sm, 14px)',
+                            fontWeight: 650,
+                            color: isItemForgiven ? 'var(--amber)' : 'var(--text)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            lineHeight: 1.25,
+                          }}
+                        >
+                          {effectiveWalletName}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                      <span
-                        style={{
-                          fontSize: 'var(--fs-caption)',
-                          fontWeight: 700,
-                          color: 'var(--text-3)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.06em',
-                          lineHeight: 1,
-                        }}
-                      >
-                        Wallet
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 'var(--fs-sm, 14px)',
-                          fontWeight: 650,
-                          color: 'var(--text)',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          lineHeight: 1.25,
-                        }}
-                      >
-                        {effectiveWalletName}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Category Section */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -1276,7 +1275,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       let statusBadge: { label: string; color: string; bg: string; border: string };
                       if (isPartial) {
                         statusBadge = {
-                          label: 'Partially Settled',
+                          label: 'Partial',
                           color: 'var(--amber)',
                           bg: 'var(--amber-bg)',
                           border: 'var(--amber-border)',
@@ -1318,10 +1317,10 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                         };
                       }
 
-                      // Subtitle: Date taken and contact attribution (clean, no vendor repetition)
-                      const itemDate = fmtDate(item.originalDate || item.date);
+                      // Subtitle: Date taken and contact attribution (clean, minimal, no year or verbose text)
+                      const itemDate = fmtDateNoYear(item.originalDate || item.date);
                       const itemSubtitle = isFriendContact && directFriend
-                        ? (item.type === 'by_friend' ? `Paid by ${directFriend.name} • ${itemDate}` : `${directFriend.name} • ${itemDate}`)
+                        ? `${directFriend.name} • ${itemDate}`
                         : isMine && ge.items.length > 1
                         ? `Your share • ${itemDate}`
                         : itemDate;

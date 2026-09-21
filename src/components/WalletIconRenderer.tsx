@@ -74,6 +74,14 @@ export const WALLET_PRESETS: WalletTypePreset[] = [
     bgLight: '#FEF9C3',
     iconKey: 'cash',
   },
+  {
+    id: 'forgiven',
+    name: 'Forgiven / Waived',
+    defaultName: 'Forgiven',
+    color: '#D97706',
+    bgLight: '#FEF3C7',
+    iconKey: 'forgiven',
+  },
 ];
 
 /**
@@ -82,6 +90,15 @@ export const WALLET_PRESETS: WalletTypePreset[] = [
 export function detectWalletPresetFromName(rawName: string): string | null {
   const text = (rawName || '').toLowerCase().trim();
   if (!text) return null;
+
+  // 0. Forgiven / Waived / Forgotten
+  if (
+    /\b(forgiven|forgive|waived|waive|forgotten)\b/i.test(text) ||
+    text.includes('forgiv') ||
+    text.includes('waiv')
+  ) {
+    return 'forgiven';
+  }
 
   // 1. Google Pay
   if (
@@ -399,6 +416,24 @@ export function renderWalletIcon(iconKey?: string, size = 26, customColor?: stri
           <path d="M26 19.5h3.6c1.6 0 2.7.9 2.7 2.3s-1.1 2.3-2.7 2.3H28v3.9H26v-8.5zm2 3.1h1.4c.6 0 1-.3 1-.8s-.4-.8-1-.8H28v1.6z" />
           <path d="M33.8 22.3c1.2 0 1.9.6 1.9 1.7v4h-1.6v-.6c-.3.4-.9.7-1.5.7-1 0-1.7-.6-1.7-1.5 0-1 .8-1.5 2.1-1.5h1.1v-.1c0-.4-.3-.7-.9-.7-.5 0-.9.2-1.3.4l-.5-1.2c.6-.5 1.4-.8 2-.8zm.3 3.1h-.9c-.6 0-.9.2-.9.6s.3.6.8.6.9-.3.9-.9v-.3z" />
           <path d="M36.7 22.5h1.9l1.1 3.4 1.1-3.4h1.9l-2.2 5.5c-.5 1.3-1.2 1.8-2.5 1.8-.3 0-.6 0-.9-.1l.2-1.4c.2 0 .4.1.6.1.6 0 .9-.2 1.1-.9l-2.3-4.5z" />
+        </g>
+      </svg>
+    );
+  }
+
+  // 11. Forgiven / Waived / Forgotten - Elegant Warm Amber Heart-Handshake Squircle
+  if (key === 'forgiven' || key === 'waived' || key === 'forgotten' || key.includes('forgiv') || key.includes('waiv')) {
+    const amberColor = (customColor && customColor !== '#ffffff' && customColor !== '#D97706' && customColor !== '#d97706') ? customColor : 'var(--amber, #d97706)';
+    return (
+      <svg width={size} height={size} viewBox="0 0 48 48" {...svgCommonProps}>
+        <rect width="48" height="48" rx="12" fill="var(--amber-bg, rgba(217, 119, 6, 0.12))" />
+        <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="11.25" stroke="var(--amber-border, rgba(217, 119, 6, 0.28))" strokeWidth="1.5" />
+        <g stroke={amberColor} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" fill="none" transform="translate(12, 12)">
+          {/* Heart Handshake Motif */}
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+          <path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08v0c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.79 0l2.96 2.66" />
+          <path d="m18 15-2-2" />
+          <path d="m15 18-2-2" />
         </g>
       </svg>
     );

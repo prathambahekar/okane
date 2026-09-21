@@ -157,6 +157,7 @@ export interface Settings {
   hideAmounts?: boolean; // Mask financial amounts for privacy in public
   hideNavLabels?: boolean; // Hide text labels under bottom navigation bar (default: true)
   enableDummyData?: boolean; // Toggle dummy/sample data generation options (default: false)
+  enableOkaneSetup?: boolean; // Developer switch: Enable initial onboarding setup flow (default: false)
   hasCompletedOnboarding?: boolean; // First launch introductory carousel status
 }
 

@@ -78,6 +78,15 @@ export function fmtDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+export function fmtDateNoYear(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso.includes('T') ? iso : iso + 'T00:00:00');
+  if (isNaN(d.getTime())) return iso;
+  const day = d.getDate();
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+  return `${day} ${months[d.getMonth()]}`;
+}
+
 export function fmtDateWithDay(iso: string): string {
   if (!iso) return '—';
   const d = new Date(iso + 'T00:00:00');
@@ -157,7 +166,7 @@ export function statusLabel(s: string): string {
   if (s === 'settled') return 'Settled';
   if (s === 'unsettled') return 'Unsettled';
   if (s === 'unpaid') return 'Unpaid';
-  if (s === 'partial') return 'Partially Settled';
+  if (s === 'partial') return 'Partial';
   if (s === 'completed') return 'Completed';
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -703,7 +712,7 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
       if (isFriendAllSettled && isVendorAllSettled) {
         return {
           statusKey: 'settled',
-          statusLabel: 'Completely Settled',
+          statusLabel: 'Settled',
           isAllSettled: true,
           isPartiallySettled: false,
         };
@@ -711,7 +720,7 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
       if ((isFriendSomeSettled || isVendorAllSettled) && !(isFriendAllSettled && isVendorAllSettled)) {
         return {
           statusKey: 'partial',
-          statusLabel: 'Partially Settled',
+          statusLabel: 'Partial',
           isAllSettled: false,
           isPartiallySettled: true,
         };
@@ -726,7 +735,7 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
       if (isFriendAllSettled) {
         return {
           statusKey: 'settled',
-          statusLabel: 'Completely Settled',
+          statusLabel: 'Settled',
           isAllSettled: true,
           isPartiallySettled: false,
         };
@@ -734,7 +743,7 @@ export function getGroupSettlementStatus(ge: GroupedExpense): {
       if (isFriendSomeSettled) {
         return {
           statusKey: 'partial',
-          statusLabel: 'Partially Settled',
+          statusLabel: 'Partial',
           isAllSettled: false,
           isPartiallySettled: true,
         };

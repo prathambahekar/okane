@@ -84,11 +84,15 @@ function AppInner() {
   const [settingsSearchQuery, setSettingsSearchQuery] = useState('');
   const [mobileSettingsSearchOpen, setMobileSettingsSearchOpen] = useState(false);
   const [showIntroCarousel, setShowIntroCarousel] = useState(() => {
-    if (typeof localStorage !== 'undefined') {
-      const hasCompleted = localStorage.getItem('okane_onboarding_completed') === 'true';
-      if (hasCompleted) return false;
+    // Turned off by default for now. Can be enabled via Dev Mode switch (enableOkaneSetup)
+    if (db.settings?.enableOkaneSetup) {
+      if (typeof localStorage !== 'undefined') {
+        const hasCompleted = localStorage.getItem('okane_onboarding_completed') === 'true';
+        if (hasCompleted) return false;
+      }
+      return !db.settings?.hasCompletedOnboarding;
     }
-    return !db.settings?.hasCompletedOnboarding;
+    return false;
   });
 
   useEffect(() => {

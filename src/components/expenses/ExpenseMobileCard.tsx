@@ -92,15 +92,14 @@ export const ExpenseMobileCard: React.FC<Props> = React.memo(({
               <span
                 className="mobile-expense-title"
                 style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
-                  wordBreak: 'break-word',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                   lineHeight: 1.3,
                   fontWeight: 600,
                   fontSize: 'var(--fs-base)',
                   minWidth: 0,
+                  flex: '0 1 auto',
                 }}
               >
                 {cleanSettlementDescription(ge.description)}

@@ -5,7 +5,7 @@ import { X, Handshake, ArrowDownLeft, ArrowUpRight, RotateCcw, Calendar, Wallet 
 import { MarkdownNote } from './common/MarkdownNote';
 import { useStore } from '../store';
 import type { Settlement, Expense } from '../types';
-import { fmtMoney, fmtDate, friendInitial, getAvatarStyle, cleanExpenseDescription, resolveCategoryMeta } from '../utils';
+import { fmtMoney, fmtDate, fmtDateNoYear, friendInitial, getAvatarStyle, cleanExpenseDescription, resolveCategoryMeta } from '../utils';
 import CategoryIcon from './CategoryIcon';
 import { renderWalletIcon } from './WalletIconRenderer';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
@@ -585,7 +585,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                             })()}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', fontWeight: 500, color: 'var(--text-2)', marginTop: 3, flexWrap: 'wrap' }}>
-                            <span>{fmtDate(exp.originalDate || exp.date)}</span>
+                            <span>{fmtDateNoYear(exp.originalDate || exp.date)}</span>
                             <span style={{ color: 'var(--text-3)', fontSize: 9 }}>•</span>
                             <span>{exp.category || 'General'}</span>
                             {exp.originalAmount && Math.abs(exp.originalAmount - Number(exp.amount || 0)) > 0.01 ? (
@@ -627,7 +627,7 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                                 marginTop: 2,
                               }}
                             >
-                              {isForgiven ? 'Waived' : isPartial ? 'Partially Settled' : 'Settled ✓'}
+                              {isForgiven ? 'Waived' : isPartial ? 'Partial' : 'Settled ✓'}
                             </span>
                           );
                         })()}

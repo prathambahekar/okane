@@ -3526,6 +3526,32 @@ export default function Settings({
                 </div>
               )}
 
+              {/* Okane Setup Card (Developer Mode) */}
+              {isDevMode && (settings.enableOkaneSetup ?? false) && (
+                <div
+                  className="card settings-summary-card"
+                  onClick={() => window.dispatchEvent(new CustomEvent('app-open-intro-carousel'))}
+                >
+                  <div className="settings-card-inner">
+                    <div className="settings-card-left">
+                      <div className="settings-card-icon">
+                        <Sliders size={19} />
+                      </div>
+                      <div className="settings-card-text">
+                        <h2 className="settings-card-title">Okane Setup</h2>
+                        <p className="settings-card-sub">
+                          Launch onboarding wizard
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="settings-card-right">
+                      <ChevronRight className="settings-card-arrow" size={18} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* App Version Summary Card */}
               {showAppInfo && (
                 <div className="card settings-summary-card" onClick={() => setShowVersionSheet(true)}>
@@ -3684,6 +3710,51 @@ export default function Settings({
                         const enabled = e.target.checked;
                         updateSettings({ enableDummyData: enabled });
                         showToast(enabled ? 'Sample Demo Data enabled' : 'Sample Demo Data disabled');
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 5. Okane Setup (Onboarding Wizard) */}
+                <div className="drawer-setting-card">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                    <div className="drawer-card-icon">
+                      <Sliders size={17} />
+                    </div>
+                    <div className="drawer-card-info">
+                      <div className="drawer-card-title">Okane Setup</div>
+                      <div className="drawer-card-sub">Onboarding setup carousel</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {isDevMode && (
+                      <button
+                        type="button"
+                        className="drawer-action-icon-btn"
+                        onClick={() => {
+                          setShowDevSheet(false);
+                          window.dispatchEvent(new CustomEvent('app-open-intro-carousel'));
+                        }}
+                        title="Launch Okane Setup"
+                      >
+                        <ArrowUpRight size={16} />
+                      </button>
+                    )}
+                    <Switch
+                      className="custom-toggle-switch"
+                      disabled={!isDevMode}
+                      checked={isDevMode && (settings.enableOkaneSetup ?? false)}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        updateSettings({
+                          enableOkaneSetup: enabled,
+                          ...(enabled ? { hasCompletedOnboarding: false } : {}),
+                        });
+                        if (enabled && typeof localStorage !== 'undefined') {
+                          localStorage.removeItem('okane_onboarding_completed');
+                        }
+                        showToast(enabled ? 'Okane Setup enabled' : 'Okane Setup disabled');
                       }}
                     />
                   </div>
