@@ -56,20 +56,35 @@ export function sanitizeDescription(raw: string, friends: Array<{ id: string; na
   return cleaned || raw.trim();
 }
 
-export function getFrequentTasks(db: AppDB): FrequentTaskItem[] {
+export interface FrequentTaskOptions {
+  maxDays?: number;
+  anchorDate?: string;
+  limit?: number;
+}
+
+export function getFrequentTasks(db: AppDB, options?: FrequentTaskOptions): FrequentTaskItem[] {
   const currency = db.settings?.currency || 'INR';
   const currSym = currencySymbol(currency);
   const defaultWalletId = db.settings?.defaultWalletId || db.wallets[0]?.id || '';
   const friends = db.friends || [];
 
-  // Determine reference date (latest expense date in DB or today)
+  // Determine anchor reference date (today, target date, or latest expense date in DB)
   const now = new Date();
+  const todayStr = (() => {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  })();
+
+  const targetDateStr = options?.anchorDate || todayStr;
+  let refTime = new Date(targetDateStr + 'T23:59:59').getTime();
+  if (isNaN(refTime)) {
+    refTime = now.getTime();
+  }
+
   const maxDateStr = (db.expenses || []).reduce((max, e) => (e.date && e.date > max ? e.date : max), '');
-  let refTime = now.getTime();
-  if (maxDateStr) {
-    const parsedMax = new Date(maxDateStr).getTime();
+  if (maxDateStr && !options?.anchorDate) {
+    const parsedMax = new Date(maxDateStr + 'T23:59:59').getTime();
     if (!isNaN(parsedMax)) {
-      // If dataset's latest date is significantly shifted from system clock, anchor to dataset's latest date
       if (Math.abs(now.getTime() - parsedMax) > 14 * 86400 * 1000) {
         refTime = parsedMax;
       } else {
@@ -78,25 +93,34 @@ export function getFrequentTasks(db: AppDB): FrequentTaskItem[] {
     }
   }
 
-  const cutoff60 = new Date(refTime - 60 * 86400 * 1000).toISOString().slice(0, 10);
+  // Window for "past 2-3 days": 3 calendar days
+  const maxDays = options?.maxDays ?? 3;
+  const cutoffTime = refTime - maxDays * 86400 * 1000;
+  const cutoffDateStr = new Date(cutoffTime).toISOString().slice(0, 10);
 
-  // Gather non-settlement candidate expenses from recent history
+  // Gather non-settlement candidate expenses strictly from the past 2-3 days window
   let candidates = (db.expenses || []).filter(e => {
     if (!e.date) return false;
     const d = (e.description || '').trim().toLowerCase();
     if (!d || d.length < 2) return false;
     if (d.startsWith('settling') || d.startsWith('repaid') || d.startsWith('debt repayment')) return false;
-    return e.date >= cutoff60;
+    return e.date >= cutoffDateStr;
   });
 
-  // Fallback to all non-settlement expenses if fewer than 4 recent ones
-  if (candidates.length < 4) {
-    candidates = (db.expenses || []).filter(e => {
-      const d = (e.description || '').trim().toLowerCase();
-      if (!d || d.length < 2) return false;
-      if (d.startsWith('settling') || d.startsWith('repaid') || d.startsWith('debt repayment')) return false;
-      return true;
-    });
+  // If no expenses exist in the past 2-3 days relative to clock/anchor,
+  // anchor to the latest active window in the database so recent activity is captured
+  if (candidates.length === 0 && maxDateStr) {
+    const latestParsed = new Date(maxDateStr + 'T23:59:59').getTime();
+    if (!isNaN(latestParsed)) {
+      const fallbackCutoff = new Date(latestParsed - maxDays * 86400 * 1000).toISOString().slice(0, 10);
+      candidates = (db.expenses || []).filter(e => {
+        if (!e.date) return false;
+        const d = (e.description || '').trim().toLowerCase();
+        if (!d || d.length < 2) return false;
+        if (d.startsWith('settling') || d.startsWith('repaid') || d.startsWith('debt repayment')) return false;
+        return e.date >= fallbackCutoff && e.date <= maxDateStr;
+      });
+    }
   }
 
   interface CandidateTransaction {
@@ -320,26 +344,24 @@ export function getFrequentTasks(db: AppDB): FrequentTaskItem[] {
     if (t.walletId) item.walletId = t.walletId;
   });
 
-  // Sort candidates by frequency and recency weighting
+  // Sort candidates strictly by frequency in the past 2-3 days, then recency
   const sortedKeys = Object.keys(statsMap).sort((a, b) => {
     const itemA = statsMap[a];
     const itemB = statsMap[b];
 
-    const timeA = new Date(itemA.latestDate).getTime() || 0;
-    const timeB = new Date(itemB.latestDate).getTime() || 0;
-
-    const daysAgoA = Math.max(0, (refTime - timeA) / (86400 * 1000));
-    const daysAgoB = Math.max(0, (refTime - timeB) / (86400 * 1000));
-
-    const recencyWeightA = daysAgoA <= 2 ? 4 : (daysAgoA <= 5 ? 2.5 : (daysAgoA <= 7 ? 1.5 : 0.8));
-    const recencyWeightB = daysAgoB <= 2 ? 4 : (daysAgoB <= 5 ? 2.5 : (daysAgoB <= 7 ? 1.5 : 0.8));
-
-    const scoreA = itemA.count * 10 * recencyWeightA;
-    const scoreB = itemB.count * 10 * recencyWeightB;
-
-    if (Math.abs(scoreB - scoreA) > 0.001) {
-      return scoreB - scoreA;
+    // Priority 1: Frequency in this 2-3 day period
+    if (itemB.count !== itemA.count) {
+      return itemB.count - itemA.count;
     }
+
+    const timeA = new Date(itemA.latestDate + 'T23:59:59').getTime() || 0;
+    const timeB = new Date(itemB.latestDate + 'T23:59:59').getTime() || 0;
+
+    // Priority 2: Recency (more recent transaction first)
+    if (timeB !== timeA) {
+      return timeB - timeA;
+    }
+
     return itemB.latestDate.localeCompare(itemA.latestDate);
   });
 
@@ -452,5 +474,6 @@ export function getFrequentTasks(db: AppDB): FrequentTaskItem[] {
     }
   });
 
-  return uniqueTasks.slice(0, 4);
+  const limit = options?.limit ?? 6;
+  return uniqueTasks.slice(0, limit);
 }

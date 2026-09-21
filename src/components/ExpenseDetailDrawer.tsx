@@ -21,6 +21,7 @@ import { renderWalletIcon } from './WalletIconRenderer';
 import { useStore } from '../store';
 import { friendBalance } from '../db';
 import { MarkdownNote } from './common/MarkdownNote';
+import { ContactAvatar } from './common/ContactAvatar';
 
 interface ExpenseDetailDrawerProps {
   ge: GroupedExpense;
@@ -994,42 +995,25 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               </div>
             )}
 
-            {/* Vendor / Store Section */}
-            {detectedVendor && (() => {
-              const vendorColor = (detectedVendor.color && detectedVendor.color !== '#6366f1')
-                ? detectedVendor.color
-                : 'var(--amber)';
-              const vendorBadgeStyle = getAvatarStyle(vendorColor);
-
-              return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 'var(--radius-md, 10px)',
-                      aspectRatio: '1 / 1',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      ...vendorBadgeStyle,
-                      flexShrink: 0,
-                      lineHeight: 1,
-                    }}
-                  >
-                    <Store size={17} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                    <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Vendor
-                    </span>
-                    <span style={{ fontSize: 'var(--fs-sm, 14px)', fontWeight: 650, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {detectedVendor.name}
-                    </span>
-                  </div>
+            {/* Paid To Section (Store or Person) */}
+            {detectedVendor && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                <ContactAvatar
+                  contact={detectedVendor}
+                  size={36}
+                  borderRadius="var(--radius-md, 10px)"
+                  fontSize="var(--fs-sm)"
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                  <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Paid To
+                  </span>
+                  <span style={{ fontSize: 'var(--fs-sm, 14px)', fontWeight: 650, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {detectedVendor.name}
+                  </span>
                 </div>
-              );
-            })()}
+              </div>
+            )}
 
             {/* Friends Categorized: "You Owe", "They Owe", "Participants" */}
             {categorizedFriends.length > 0 && (
@@ -1334,8 +1318,13 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                         };
                       }
 
-                      // Subtitle: Date taken (clean, no vendor repetition)
+                      // Subtitle: Date taken and contact attribution (clean, no vendor repetition)
                       const itemDate = fmtDate(item.originalDate || item.date);
+                      const itemSubtitle = isFriendContact && directFriend
+                        ? (item.type === 'by_friend' ? `Paid by ${directFriend.name} • ${itemDate}` : `${directFriend.name} • ${itemDate}`)
+                        : isMine && ge.items.length > 1
+                        ? `Your share • ${itemDate}`
+                        : itemDate;
 
                       // Amount and sign
                       const isSubDebit = item.type === 'personal' || item.type === 'by_friend';
@@ -1344,7 +1333,6 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
 
                       // Vendor avatar styling synced with above icon and contacts
                       const vendorColor = itemVendor?.color || detectedVendor?.color || directFriend?.color || '#f59e0b';
-                      const vendorAvatarStyle = getAvatarStyle(vendorColor);
 
                       return (
                         <motion.div
@@ -1390,22 +1378,16 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                 {friendInitial(directFriend.name, directFriend.avatarNumber)}
                               </span>
                             ) : isVendorItem ? (
-                              <span
+                              <ContactAvatar
+                                contact={itemVendor || detectedVendor || directFriend}
+                                size={36}
+                                borderRadius="var(--radius-sm, 8px)"
+                                fontSize={12}
                                 style={{
-                                  width: 36,
-                                  height: 36,
-                                  borderRadius: 'var(--radius-sm, 8px)',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  ...vendorAvatarStyle,
                                   boxShadow: `0 1px 3px ${vendorColor}22`,
                                   flexShrink: 0,
                                 }}
-                                title={itemVendor?.name || detectedVendor?.name || directFriend?.name || 'Vendor'}
-                              >
-                                <Store size={16} strokeWidth={2} />
-                              </span>
+                              />
                             ) : (() => {
                               const itemCatMeta = resolveCategoryMeta(item.category, categoriesMap.get(item.category), false);
                               return (
@@ -1476,7 +1458,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                                   letterSpacing: '0.1px',
                                 }}
                               >
-                                {itemDate}
+                                {itemSubtitle}
                               </span>
                             </div>
                           </div>

@@ -22,6 +22,7 @@ interface FriendSplitModalProps {
   db: AppDB;
   addFriend: (friend: { name: string; type: 'friend' | 'vendor' }) => { id: string; name: string };
   showToast: (msg: string) => void;
+  excludedFriendIds?: string[];
 }
 
 function CustomShareInputBox({
@@ -114,6 +115,7 @@ export function FriendSplitModal({
   db,
   addFriend,
   showToast,
+  excludedFriendIds,
 }: FriendSplitModalProps) {
   const s = db.settings;
   const [currentStep, setCurrentStep] = useState<'select_friends' | 'split_rules'>('select_friends');
@@ -140,6 +142,9 @@ export function FriendSplitModal({
 
   const filteredFriendsList = useMemo(() => {
     let list = db.friends;
+    if (excludedFriendIds && excludedFriendIds.length > 0) {
+      list = list.filter(f => !excludedFriendIds.includes(f.id));
+    }
     if (pickerTypeFilter !== 'all') {
       list = list.filter(f => (f.type || 'friend') === pickerTypeFilter);
     }
@@ -148,7 +153,7 @@ export function FriendSplitModal({
       list = list.filter(f => f.name.toLowerCase().includes(q));
     }
     return list;
-  }, [db.friends, pickerTypeFilter, pickerSearch]);
+  }, [db.friends, pickerTypeFilter, pickerSearch, excludedFriendIds]);
 
   const totalAmount = parseFloat(amount) || 0;
 

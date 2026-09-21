@@ -193,23 +193,23 @@
 .expense-date-card-body .mobile-expense-card:hover,
 [data-color-scheme="dark"] .expense-date-card-body .mobile-expense-card:hover,
 [data-theme="dark"] .expense-date-card-body .mobile-expense-card:hover {
-  background-color: var(--accent-soft) !important;
+  background-color: var(--surface2) !important;
   border-color: transparent !important;
   box-shadow: none !important;
-  transform: scale(1.008) !important;
+  transform: none !important;
 }
 
 :root:not([data-color-scheme="dark"]):not([data-theme="dark"]) .expense-date-card-body .mobile-expense-card:hover {
-  background: var(--surface2) !important;
+  background-color: var(--surface2) !important;
   border-color: transparent !important;
   box-shadow: none !important;
-  transform: scale(1.008) !important;
+  transform: none !important;
 }
 
 .expense-date-card-body .mobile-expense-card:active,
 [data-color-scheme="dark"] .expense-date-card-body .mobile-expense-card:active,
 [data-theme="dark"] .expense-date-card-body .mobile-expense-card:active {
-  background-color: var(--accent-soft) !important;
+  background-color: var(--surface3) !important;
   border-color: transparent !important;
   box-shadow: none !important;
   transform: scale(0.985) !important;
@@ -217,7 +217,7 @@
 }
 
 :root:not([data-color-scheme="dark"]):not([data-theme="dark"]) .expense-date-card-body .mobile-expense-card:active {
-  background: var(--surface2) !important;
+  background-color: var(--surface3) !important;
   border-color: transparent !important;
   box-shadow: none !important;
   transform: scale(0.985) !important;
@@ -462,22 +462,22 @@
 .modern-tx-row:hover td,
 [data-color-scheme="dark"] .modern-tx-row:hover td,
 [data-theme="dark"] .modern-tx-row:hover td {
-  background-color: var(--accent-soft);
+  background-color: var(--surface2);
 }
 
 :root:not([data-color-scheme="dark"]):not([data-theme="dark"]) .modern-tx-row:hover td {
-  background: var(--surface2);
+  background-color: var(--surface2);
 }
 
 .modern-tx-row:active td,
 [data-color-scheme="dark"] .modern-tx-row:active td,
 [data-theme="dark"] .modern-tx-row:active td {
-  background-color: var(--accent-soft);
+  background-color: var(--surface3);
   opacity: 1;
 }
 
 :root:not([data-color-scheme="dark"]):not([data-theme="dark"]) .modern-tx-row:active td {
-  background: var(--surface2);
+  background-color: var(--surface3);
   opacity: 1;
 }
 

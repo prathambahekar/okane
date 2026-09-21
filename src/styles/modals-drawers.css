@@ -324,6 +324,7 @@
   align-items: center;
   width: 100%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 [data-color-scheme="dark"] .modal.expense-drawer-modal .segment-control,
 [data-theme="dark"] .modal.expense-drawer-modal .segment-control {
@@ -337,6 +338,7 @@
 }
 .modal.expense-drawer-modal .segment-btn {
   flex: 1 1 0;
+  min-width: 0;
   min-height: 35px;
   height: 35px;
   padding: 4px 10px;

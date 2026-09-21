@@ -29,6 +29,7 @@ interface Props {
   defaultType?: ContactType;
   onClose: () => void;
   onSuccess?: (createdFriend: Friend) => void;
+  zIndex?: number;
 }
 
 interface CycleChoice {
@@ -92,7 +93,7 @@ const getCycleDisplayInfo = (cycle: string) => {
   };
 };
 
-export default function FriendModal({ friend, defaultType = 'friend', onClose, onSuccess }: Props) {
+export default function FriendModal({ friend, defaultType = 'friend', onClose, onSuccess, zIndex }: Props) {
   const { db, addFriend, updateFriend, showToast } = useStore();
   const [type, setType] = useState<ContactType>(friend?.type ?? defaultType);
   const [name, setName] = useState(friend?.name ?? '');
@@ -241,7 +242,7 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
   }, []);
 
   return createPortal(
-    <div className="modal-backdrop-motion">
+    <div className="modal-backdrop-motion" style={zIndex ? { zIndex } : undefined}>
       {/* Backdrop overlay */}
       <motion.div
         initial={{ opacity: 0 }}
