@@ -1328,11 +1328,11 @@
 .contact-type-switch {
   display: flex;
   align-items: center;
-  background-color: var(--bg);
+  background-color: var(--surface2);
   border: 1px solid var(--border) !important;
   border-radius: var(--radius-md);
-  padding: 4px;
-  gap: 4px;
+  padding: 3px;
+  gap: 3px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -1342,7 +1342,7 @@
 [data-color-scheme="dark"] .contact-type-switch,
 [data-theme="dark"] .expense-flow-switch,
 [data-theme="dark"] .contact-type-switch {
-  background-color: var(--surface2);
+  background-color: var(--surface);
   border: 1px solid var(--border) !important;
 }
 
@@ -1350,10 +1350,8 @@
 [data-color-scheme="light"] .contact-type-switch,
 [data-theme="light"] .expense-flow-switch,
 [data-theme="light"] .contact-type-switch {
-  background-color: var(--surface3);
+  background-color: var(--surface2);
   border: 1px solid var(--border) !important;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
 }
 
 .expense-flow-switch::-webkit-scrollbar,
@@ -1366,36 +1364,41 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 38px;
+  height: 36px;
   padding: 0 14px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm, 8px);
   border: 1px solid transparent !important;
   background: transparent;
-  color: var(--text-3);
+  color: var(--text-2);
   cursor: pointer;
   flex-shrink: 0;
-  transition: all 0.2s ease;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
 }
 
 .expense-flow-switch .flow-filter-btn:hover:not(.active) {
-  background-color: var(--accent-soft);
-  color: var(--text);
+  background-color: var(--accent-soft) !important;
+  color: var(--text) !important;
+}
+
+.expense-flow-switch .flow-filter-btn:active {
+  transform: scale(0.97);
 }
 
 .expense-flow-switch .flow-filter-btn.active {
-  background-color: var(--surface2) !important;
+  background-color: var(--surface) !important;
   border: 1px solid var(--border) !important;
   color: var(--text) !important;
   font-weight: 600;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow);
 }
 
-[data-color-scheme="light"] .expense-flow-switch .flow-filter-btn.active {
+[data-color-scheme="dark"] .expense-flow-switch .flow-filter-btn.active,
+[data-theme="dark"] .expense-flow-switch .flow-filter-btn.active {
   background-color: var(--surface2) !important;
-  border: 1px solid var(--border) !important;
+  border: 1px solid var(--border2) !important;
   color: var(--text) !important;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 .expense-flow-switch .flow-btn,
@@ -1405,20 +1408,29 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 8px 12px;
-  height: 38px;
-  border-radius: var(--radius-md);
+  padding: 7px 12px;
+  height: 36px;
+  border-radius: var(--radius-sm, 8px);
   font-size: var(--fs-sm);
   font-weight: 500;
-  border: none !important;
+  border: 1px solid transparent !important;
   background: transparent;
-  color: var(--text-3);
+  color: var(--text-2);
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.1s ease;
   white-space: nowrap;
   min-width: 0;
   user-select: none;
   box-sizing: border-box;
+}
+
+.expense-flow-switch .flow-btn:active,
+.contact-type-switch .type-btn:active {
+  transform: scale(0.97);
 }
 
 .contact-type-switch .type-btn .type-btn-top {
@@ -1429,7 +1441,7 @@
 .expense-flow-switch .flow-btn svg {
   flex-shrink: 0;
   color: inherit;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, opacity 0.15s ease;
 }
 
 .contact-type-switch .type-btn .type-label {
@@ -1454,20 +1466,16 @@
   flex-shrink: 0;
 }
 
-[data-color-scheme="light"] .flow-badge,
-[data-color-scheme="light"] .contact-type-switch .type-badge {
-  background-color: var(--accent-soft);
-  color: var(--text-3);
-}
-
+/* Inactive Tab State */
 .expense-flow-switch .flow-btn:not(.active),
 .contact-type-switch .type-btn:not(.active) {
   background-color: transparent !important;
-  border: none !important;
-  color: var(--text-3) !important;
+  border: 1px solid transparent !important;
+  color: var(--text-2) !important;
   box-shadow: none !important;
 }
 
+/* Hover on Inactive Tab */
 .expense-flow-switch .flow-btn:hover:not(.active),
 .contact-type-switch .type-btn:hover:not(.active) {
   background-color: var(--accent-soft) !important;
@@ -1479,50 +1487,49 @@
   color: var(--text) !important;
 }
 
-[data-color-scheme="light"] .expense-flow-switch .flow-btn:hover:not(.active),
-[data-color-scheme="light"] .contact-type-switch .type-btn:hover:not(.active) {
-  background-color: var(--accent-soft) !important;
-  color: var(--text) !important;
-}
-
+/* Active / Selected Tab State */
 .expense-flow-switch .flow-btn.active,
 .contact-type-switch .type-btn.active {
-  background-color: var(--surface2) !important;
+  background-color: var(--surface) !important;
   color: var(--text) !important;
   font-weight: 600;
   border: 1px solid var(--border) !important;
-  box-shadow: var(--shadow-sm) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-color-scheme="dark"] .expense-flow-switch .flow-btn.active,
+[data-color-scheme="dark"] .contact-type-switch .type-btn.active,
+[data-theme="dark"] .expense-flow-switch .flow-btn.active,
+[data-theme="dark"] .contact-type-switch .type-btn.active {
+  background-color: var(--surface2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border2) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-color-scheme="light"] .expense-flow-switch .flow-btn.active,
+[data-color-scheme="light"] .contact-type-switch .type-btn.active,
+[data-theme="light"] .expense-flow-switch .flow-btn.active,
+[data-theme="light"] .contact-type-switch .type-btn.active {
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
 
 .expense-flow-switch .flow-btn.active .flow-badge,
 .contact-type-switch .type-btn.active .type-badge {
-  background-color: var(--surface2);
+  background-color: var(--accent-soft);
   color: var(--text);
   font-weight: 600;
 }
 
-[data-color-scheme="light"] .expense-flow-switch .flow-btn.active,
-[data-color-scheme="light"] .contact-type-switch .type-btn.active {
-  background-color: var(--surface2) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
-  box-shadow: var(--shadow-sm) !important;
+.expense-flow-switch .flow-btn.flow-spent svg {
+  color: var(--debit) !important;
 }
 
-[data-color-scheme="light"] .expense-flow-switch .flow-btn.active .flow-badge,
-[data-color-scheme="light"] .contact-type-switch .type-btn.active .type-badge {
-  background-color: var(--accent-soft);
-  color: var(--text);
-}
-
-.expense-flow-switch .flow-btn.active svg,
-.contact-type-switch .type-btn.active svg {
-  color: var(--text) !important;
-}
-
-[data-color-scheme="light"] .expense-flow-switch .flow-btn.active svg,
-[data-color-scheme="light"] .contact-type-switch .type-btn.active svg {
-  color: var(--text) !important;
+.expense-flow-switch .flow-btn.flow-received svg {
+  color: var(--credit) !important;
 }
 
 .contact-filter-btn {

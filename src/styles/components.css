@@ -1154,6 +1154,12 @@ input[type="number"] {
   box-sizing: border-box;
 }
 
+[data-color-scheme="dark"] .app-segmented-group,
+[data-theme="dark"] .app-segmented-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
 /* Segmented Control Item */
 .app-segmented-item {
   flex: 1;
@@ -1164,8 +1170,8 @@ input[type="number"] {
   padding: 6px 12px;
   font-size: var(--fs-xs);
   font-weight: 500;
-  border-radius: 9px;
-  border: none;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text-2);
   cursor: pointer;
@@ -1175,15 +1181,28 @@ input[type="number"] {
 }
 
 .app-segmented-item:hover:not(.active) {
-  background: rgba(128, 128, 128, 0.08);
+  background: var(--accent-soft);
   color: var(--text);
+}
+
+.app-segmented-item:active {
+  transform: scale(0.97);
 }
 
 .app-segmented-item.active {
   background: var(--surface);
   color: var(--text);
-  font-weight: 650;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--border);
+  font-weight: 600;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-color-scheme="dark"] .app-segmented-item.active,
+[data-theme="dark"] .app-segmented-item.active {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 /* Counter Badge inside Segmented Items */
