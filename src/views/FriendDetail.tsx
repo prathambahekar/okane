@@ -152,6 +152,15 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
     return allExps.filter(e => !activeSet.has(e));
   }, [allExps, activeExps]);
 
+  const handleOpenTxDrawer = () => {
+    if (contactType === 'vendor' || (activeExps.length === 0 && settledExps.length > 0)) {
+      setTab('settled');
+    } else {
+      setTab('active');
+    }
+    setShowTxDrawer(true);
+  };
+
   const shown = useMemo(() => tab === 'active' ? activeExps : settledExps, [tab, activeExps, settledExps]);
 
   const [tabLimits, setTabLimits] = useState<Record<string, number>>({});
@@ -671,7 +680,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
 
                 <button
                   type="button"
-                  onClick={() => setShowTxDrawer(true)}
+                  onClick={handleOpenTxDrawer}
                   style={{
                     background: 'transparent',
                     border: 'none',
@@ -952,7 +961,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       boxShadow: tab === 'active' ? '0 2px 8px rgba(0, 0, 0, 0.25)' : 'none',
                     }}
                   >
-                    <span>Active</span>
+                    <span>{contactType === 'vendor' ? 'Unpaid / Open' : 'Active'}</span>
                     <span
                       style={{
                         fontSize: 'var(--fs-caption)',
@@ -988,7 +997,7 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                       boxShadow: tab === 'settled' ? '0 2px 8px rgba(0, 0, 0, 0.25)' : 'none',
                     }}
                   >
-                    <span>Settled</span>
+                    <span>{contactType === 'vendor' ? 'Paid / Done' : 'Settled'}</span>
                     <span
                       style={{
                         fontSize: 'var(--fs-caption)',
@@ -1149,7 +1158,8 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
       {showAddExp && (
         <ExpenseModal
           expense={{
-            friendId: friend.id,
+            friendId: contactType === 'friend' ? friend.id : undefined,
+            vendorId: contactType === 'vendor' || contactType === 'subscription' ? friend.id : undefined,
             type: contactType === 'friend' ? 'for_friend' : 'personal',
             category: friend.category || undefined,
             description: contactType === 'subscription' ? `${friend.name} Subscription` : contactType === 'vendor' ? `${friend.name}` : '',

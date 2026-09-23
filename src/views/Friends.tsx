@@ -938,8 +938,9 @@ export default function Friends({ onNavigate }: Props) {
       {addExpFriend && (
         <ExpenseModal
           expense={{
-            friendId: addExpFriend.id,
-            type: addExpFriend.type === 'friend' ? 'for_friend' : 'personal',
+            friendId: (addExpFriend.type || 'friend') === 'friend' ? addExpFriend.id : undefined,
+            vendorId: addExpFriend.type === 'vendor' || addExpFriend.type === 'subscription' ? addExpFriend.id : undefined,
+            type: (addExpFriend.type || 'friend') === 'friend' ? 'for_friend' : 'personal',
             category: addExpFriend.category || undefined,
             description: addExpFriend.type === 'subscription' ? `${addExpFriend.name} Subscription` : addExpFriend.type === 'vendor' ? `${addExpFriend.name}` : '',
             amount: addExpFriend.defaultAmount || undefined,

@@ -1739,9 +1739,8 @@ export function getDBCalculationCache(db: AppDB): DBCalculationCache {
       }
 
       const fb = getOrCreateFriendBal(vId);
-      if (e.status === 'unpaid' || !e.vendorSettled) {
-        const isVendorUnsettled = !e.vendorSettled && (!e.settled || e.type === 'for_friend' || e.type === 'personal');
-        if (isVendorUnsettled) {
+      if (e.status === 'unpaid') {
+        if (!e.vendorSettled) {
           if (isIncoming) fb.owedToMe += amt;
           else fb.owedByMe += amt;
         }
@@ -1854,10 +1853,10 @@ export function unsettledExpensesForFriend(db: AppDB, friendId: string): Expense
       if (matchesVendor && e.vendorSettled) return false;
 
       // Active debt for friend
-      if (matchesFriend && !e.settled) return true;
+      if (matchesFriend && !e.settled && (e.type !== 'personal' || e.status === 'unpaid')) return true;
 
       // Active debt for vendor
-      if (matchesVendor && !e.vendorSettled) return true;
+      if (matchesVendor && !e.vendorSettled && (e.status === 'unpaid' || e.type === 'by_friend')) return true;
 
       return false;
     })

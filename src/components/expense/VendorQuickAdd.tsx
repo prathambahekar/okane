@@ -560,7 +560,10 @@ export function VendorQuickAdd({
                   {/* Option 1: None (No recipient) */}
                   {(!searchQuery.trim() || 'none'.includes(searchQuery.toLowerCase().trim())) && (
                     <div
-                      onClick={() => setVendorId('')}
+                      onClick={() => {
+                        setVendorId('');
+                        setIsDrawerOpen(false);
+                      }}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -629,11 +632,8 @@ export function VendorQuickAdd({
                       <div
                         key={contact.id}
                         onClick={() => {
-                          if (isSel) {
-                            setVendorId('');
-                          } else {
-                            setVendorId(contact.id);
-                          }
+                          setVendorId(isSel ? '' : contact.id);
+                          setIsDrawerOpen(false);
                         }}
                         style={{
                           display: 'flex',

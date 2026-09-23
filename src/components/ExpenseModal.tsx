@@ -76,10 +76,15 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
   const initialSplitMode = (initialData?.splitMode === 'pay_debt' ? 'just_me' : initialData?.splitMode) ?? ((isGrp || (expense?.type === 'for_friend' && initialWhoPaid !== 'other'))
     ? 'for_friend'
     : 'just_me');
-  const initialFriendId = initialData?.friendId ?? byFriendItem?.friendId ?? forFriendItem?.friendId ?? expense?.friendId ?? '';
+  const rawFriendId = initialData?.friendId ?? byFriendItem?.friendId ?? forFriendItem?.friendId ?? expense?.friendId ?? '';
+  const friendContact = rawFriendId ? db.friends.find(f => f.id === rawFriendId) : null;
+  const isVendorContact = friendContact?.type === 'vendor';
+
+  const initialFriendId = isVendorContact ? '' : rawFriendId;
+  const initialVendorId = initialData?.vendorId ?? expense?.vendorId ?? grpItems.find(e => e.vendorId)?.vendorId ?? (isVendorContact ? rawFriendId : '');
 
   const initialIncomeMode = (initialData?.flow === 'in' || expense?.flow === 'in')
-    ? (initialData?.friendId || expense?.type === 'by_friend' || expense?.friendId ? 'friend' : 'direct')
+    ? (initialData?.friendId || expense?.type === 'by_friend' || (expense?.friendId && !isVendorContact) ? 'friend' : 'direct')
     : 'direct';
 
   const [isMobileScreen, setIsMobileScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 640);
@@ -101,7 +106,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
   const [splitMode, setSplitMode] = useState<'just_me' | 'for_friend' | 'pay_debt'>(initialSplitMode);
   const [flow, setFlow] = useState<ExpenseFlow>(initialData?.flow ?? expense?.flow ?? 'out');
   const [friendId, setFriendId] = useState(initialFriendId);
-  const [vendorId, setVendorId] = useState<string>(initialData?.vendorId ?? expense?.vendorId ?? grpItems.find(e => e.vendorId)?.vendorId ?? '');
+  const [vendorId, setVendorId] = useState<string>(initialVendorId);
   const [walletId, setWalletId] = useState(initialData?.walletId ?? expense?.walletId ?? s.defaultWalletId);
   const initialStatus = initialData?.status ?? expense?.status ?? (grpItems.find(e => e.status === 'unpaid')?.status) ?? s.defaultStatus;
   const [status, setStatus] = useState<ExpenseStatus>(initialStatus);
