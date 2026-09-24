@@ -43,7 +43,7 @@ interface Props {
 }
 
 export default function ExpenseModal({ expense, initialData, onClose, zIndex }: Props) {
-  const { db, addExpense, updateExpense, deleteExpense, addFriend, showToast } = useStore();
+  const { db, addExpense, updateExpense, deleteExpense, addFriend, recordSettlement, deleteSettlement, showToast } = useStore();
   const s = db.settings;
 
   const grpItems = expense?.groupId
@@ -821,18 +821,55 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
       if (calculatedType !== 'personal' && !friendId) { setError('Select a friend.'); return; }
       setError('');
 
+      const targetContactId = vendorId || (friendId && db.friends.find(f => f.id === friendId) ? friendId : '');
+      const targetContact = targetContactId ? db.friends.find(f => f.id === targetContactId) : null;
+      const isDirectContactPayment = Boolean(whoPaid === 'me' && targetContactId && selectedFriendIds.length === 0);
+
+      const stlId = (isDirectContactPayment && targetContact) ? (expense?.settlementId || uid('stl')) : null;
+      const expId = expense?.id || uid('exp');
+
+      // If editing an existing expense that had a previous settlement record, clean up the previous settlement
+      if (expense && expense.settlementId && isDirectContactPayment) {
+        deleteSettlement(expense.settlementId);
+      }
+
       const data: Partial<Expense> = {
+        id: expId,
         description: finalDesc,
         amount: totalAmt,
-        category, date, type: calculatedType,
+        category,
+        date,
+        type: calculatedType,
         flow,
-        friendId: friendId || null,
-        vendorId: vendorId || null,
+        friendId: targetContact?.type === 'friend' ? targetContactId : (friendId || null),
+        vendorId: targetContactId || null,
         walletId: whoPaid === 'other' ? '' : walletId,
         status: calculatedStatus,
+        settled: isDirectContactPayment ? true : (expense?.settled ?? false),
+        settlementId: stlId,
+        vendorSettled: isDirectContactPayment ? true : (expense?.vendorSettled ?? false),
+        vendorSettlementId: stlId,
         notes,
         groupId: null,
       };
+
+      if (isDirectContactPayment && targetContact && stlId) {
+        // Auto-settle any pending debts owed to this contact up to totalAmt
+        const pendingDebts = unsettledExpensesForFriend(db, targetContactId).filter(
+          e => e.id !== expId && (e.type === 'by_friend' || (e.vendorId === targetContactId && e.status === 'unpaid'))
+        );
+        const pendingDebtIds = pendingDebts.map(e => e.id);
+
+        recordSettlement(
+          targetContactId,
+          pendingDebtIds.length > 0 ? pendingDebtIds : [expId],
+          finalDesc || `Payment to ${targetContact.name}`,
+          walletId,
+          totalAmt,
+          date,
+          false
+        );
+      }
 
       if (expense) {
         if (expense.groupId) {
@@ -845,7 +882,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
         showToast('Expense updated');
       } else {
         addExpense(data);
-        showToast('Expense added');
+        showToast(isDirectContactPayment ? `Payment to ${targetContact?.name || 'contact'} recorded` : 'Expense added');
       }
     }
 

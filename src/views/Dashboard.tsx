@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, TrendingUp, TrendingDown, Users, ReceiptText, ArrowLeftRight, ArrowRight, Eye, EyeOff, Flame, CheckCircle2, ArrowUpRight, ArrowDownLeft, ChevronRight } from 'lucide-react';
+import { Plus, Users, ReceiptText, ArrowLeftRight, ArrowRight, Eye, EyeOff, CheckCircle2, ArrowUpRight, ArrowDownLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '../store';
 import { walletBalance, totalWalletBalance, expenseFlow, monthKey, allFriendBalances, unsettledExpensesForFriend } from '../db';
 import { fmtMoney, fmtDateNoYear, friendInitial, getAvatarStyle, groupExpenses, getGroupedExpenseAmount, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../utils';
@@ -15,6 +15,7 @@ import { renderWalletIcon } from '../components/WalletIconRenderer';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import { SmartExpenseMeta } from '../components/expenses/SmartExpenseMeta';
 import SettlementBadge from '../components/common/SettlementBadge';
+import QuickStatsWidget from '../components/QuickStatsWidget';
 
 interface Props {
   onNavigate: (v: ViewName, arg?: string) => void;
@@ -39,20 +40,24 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
 
   const totalBalance = useMemo(() => totalWalletBalance(db), [db]);
 
-  const { monthSpend, monthIncome } = useMemo(() => {
+  const { monthSpend, monthIncome, expenseCount, incomeCount } = useMemo(() => {
     let spend = 0;
     let income = 0;
+    let expCount = 0;
+    let incCount = 0;
     expenses.forEach(e => {
       if (monthKey(e.date) === thisKey && e.type === 'personal' && e.status !== 'unpaid' && e.category !== 'Transfer') {
         const amt = Number(e.amount) || 0;
         if (expenseFlow(e) === 'out') {
           spend += amt;
+          expCount++;
         } else if (expenseFlow(e) === 'in') {
           income += amt;
+          incCount++;
         }
       }
     });
-    return { monthSpend: spend, monthIncome: income };
+    return { monthSpend: spend, monthIncome: income, expenseCount: expCount, incomeCount: incCount };
   }, [expenses, thisKey]);
 
   const highestExpenseObj = useMemo<Expense | null>(() => {
@@ -184,7 +189,6 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
   }, [allGroupedExpenses, thisKey]);
 
   const monthName = now.toLocaleDateString(undefined, { month: 'long' });
-  const shortMonthName = now.toLocaleDateString(undefined, { month: 'short' });
 
   return (
     <div className="view-container">
@@ -298,129 +302,23 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             </div>
           </div>
 
-          {/* Stats Section: 4 Mini Metric Cards Grid */}
+          {/* Quick Stats Widget */}
           <div className="dashboard-hero-stats">
-            <div className="dashboard-stats-grid">
-              <div
-                className="dashboard-mini-stat dashboard-mini-stat-spend"
-                onClick={() => onNavigate('expenses')}
-                title={`View ${monthName} Expenses`}
-              >
-                <div className="dashboard-mini-stat-header">
-                  <div style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--debit-bg)',
-                    border: '1px solid var(--debit-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--debit)',
-                    flexShrink: 0
-                  }}>
-                    <TrendingDown size={12} />
-                  </div>
-                  <span>{shortMonthName} Spend</span>
-                </div>
-                <div className="dashboard-mini-stat-val" style={{ color: 'var(--debit)' }}>
-                  {fmtMoney(monthSpend, currency)}
-                </div>
-              </div>
-
-              <div
-                className="dashboard-mini-stat dashboard-mini-stat-income"
-                onClick={() => onNavigate('expenses')}
-                title={`View ${monthName} Income`}
-              >
-                <div className="dashboard-mini-stat-header">
-                  <div style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--credit-bg)',
-                    border: '1px solid var(--credit-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--credit)',
-                    flexShrink: 0
-                  }}>
-                    <TrendingUp size={12} />
-                  </div>
-                  <span>{shortMonthName} Income</span>
-                </div>
-                <div className="dashboard-mini-stat-val" style={{ color: 'var(--credit)' }}>
-                  {fmtMoney(monthIncome, currency)}
-                </div>
-              </div>
-
-              <div
-                className="dashboard-mini-stat dashboard-mini-stat-friends"
-                onClick={() => onNavigate('friends')}
-                title={netFriends > 0 ? 'Friends owe you in total (Click to view)' : netFriends < 0 ? 'You owe friends in total (Click to view)' : 'All balances settled (Click to view)'}
-              >
-                <div className="dashboard-mini-stat-header">
-                  <div style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 'var(--radius-sm)',
-                    background: netFriends > 0
-                      ? 'var(--credit-bg)'
-                      : netFriends < 0
-                      ? 'var(--debit-bg)'
-                      : 'var(--surface3)',
-                    border: `1px solid ${netFriends > 0 ? 'var(--credit-border)' : netFriends < 0 ? 'var(--debit-border)' : 'var(--border)'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: netFriends > 0 ? 'var(--credit)' : netFriends < 0 ? 'var(--debit)' : 'var(--text-2)',
-                    flexShrink: 0
-                  }}>
-                    <Users size={12} />
-                  </div>
-                  <span>Friends Net</span>
-                </div>
-                <div className="dashboard-mini-stat-val" style={{ color: netFriends > 0 ? 'var(--credit)' : netFriends < 0 ? 'var(--debit)' : 'var(--text)' }}>
-                  {fmtMoney(Math.abs(netFriends), currency)}
-                </div>
-              </div>
-
-              <div
-                className="dashboard-mini-stat dashboard-mini-stat-highest"
-                onClick={() => {
-                  if (highestExpenseGrouped) {
-                    setSelectedDetailGe(highestExpenseGrouped);
-                  } else {
-                    onNavigate('expenses');
-                  }
-                }}
-                title={highestExpenseObj ? `${highestExpenseObj.description || highestExpenseObj.category || 'Expense'} (${highestExpenseObj.category || 'Expense'}) - Click to view drawer` : 'Highest Expense'}
-              >
-                <div className="dashboard-mini-stat-header">
-                  <div style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--amber-bg)',
-                    border: '1px solid var(--amber-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--amber)',
-                    flexShrink: 0
-                  }}>
-                    <Flame size={12} />
-                  </div>
-                  <span>
-                    Highest Exp
-                  </span>
-                </div>
-                <div className="dashboard-mini-stat-val" style={{ color: 'var(--amber)' }}>
-                  {highestExpenseObj ? fmtMoney(highestExpenseObj.amount, currency) : fmtMoney(0, currency)}
-                </div>
-              </div>
-            </div>
+            <QuickStatsWidget
+              totalIncome={monthIncome}
+              totalExpenses={monthSpend}
+              incomeCount={incomeCount}
+              expenseCount={expenseCount}
+              currency={currency}
+              monthName={monthName}
+              year={now.getFullYear()}
+              isCardMasked={isCardMasked}
+              highestExpense={highestExpenseObj}
+              highestExpenseGrouped={highestExpenseGrouped}
+              netFriends={netFriends}
+              onNavigate={onNavigate}
+              onSelectDetailGe={setSelectedDetailGe}
+            />
           </div>
 
         </div>
