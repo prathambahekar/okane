@@ -346,8 +346,15 @@ export function parseLocallyClient(
   }
 
   if (matchedFriends.length === 0) {
-    const nameMatch = clean.match(/\b(?:for|with|by|from|to|and)\s+([A-Z][a-z]+)\b/);
-    if (nameMatch && nameMatch[1] && !['Me', 'My', 'Us', 'The', 'Cash', 'Bank', 'Card', 'Today', 'Yesterday', 'Tiffin', 'Coffee', 'Lunch'].includes(nameMatch[1])) {
+    const nonFriendWords = [
+      'Me', 'My', 'Us', 'The', 'Cash', 'Bank', 'Card', 'Today', 'Yesterday', 'Tomorrow',
+      'Tiffin', 'Coffee', 'Lunch', 'Dinner', 'Breakfast', 'Food', 'Groceries', 'Transport',
+      'Paid', 'Pay', 'Pays', 'Spent', 'Spend', 'Bought', 'Buy', 'Settle', 'Settled', 'Settlement',
+      'Store', 'Shop', 'Vendor', 'Account', 'Wallet', 'Upi', 'Bill', 'Rent', 'Expense'
+    ];
+    // Check patterns like: "paid to Rahul", "for Rahul", "to Rahul", "with Rahul", "paid Rahul 500"
+    const nameMatch = clean.match(/\b(?:for|with|by|from|to|and|paid|pay|gave|sent)\s+([A-Z][a-z]+)\b/);
+    if (nameMatch && nameMatch[1] && !nonFriendWords.map(w => w.toLowerCase()).includes(nameMatch[1].toLowerCase())) {
       matchedFriends.push(nameMatch[1]);
     }
   }
@@ -372,8 +379,16 @@ export function parseLocallyClient(
     ? new RegExp(`\\b(${foundFriendName}|friend|frnd|someone|he|she)\\s+(paid|pay|pays|bought|spent|gave|sent)\\b|\\bpaid\\s+by\\s+(${foundFriendName}|friend|frnd)\\b|\\b(${foundFriendName}|friend|frnd)\\s+pay\\s+(for\\s+it)?\\b|\\b(${foundFriendName})\\s+paid\\s+my\\b`, 'i')
     : /\b(alex|arman|friend|frnd|someone|he|she)\s+(paid|pay|pays|bought|spent|gave|sent)\b|\bpaid\s+by\s+\w+\b|\b(friend|frnd)\s+pay\s+(for\s+it)?\b/i;
 
-  const splitPattern = /\b(split|me\s+and|both\s+of\s+us|equal\s+split|half\s+half)\b/i;
-  const repayPattern = /\b(repaid|pay\s*back|settled|debt)\b/i;
+  const splitPattern = /\b(split|me\s+and|both\s+of\s+us|equal\s+split|half\s+half|with)\b/i;
+  const repayPattern = /\b(repaid|repay|pay\s*back|settled|settle|cleared\s*debt|cleared|debt)\b/i;
+
+  // Direct payment/settlement to contact pattern: "i paid 500 to rahul", "paid 200 to alex", "paid rahul 500", "i paid rahul", "settled with rahul"
+  const isPaidToContact = foundFriendName ? (
+    new RegExp(`\\b(i\\s+)?(paid|pay|pays|gave|give|sent|send|transferred|transfer|settled|settle|repaid|repay)\\s+(?:(?:rs\\.?|rupees|inr|\\$|₹)?\\s*\\d+(?:\\.\\d+)?\\s*(?:rs\\.?|rupees|inr|\\$|₹)?\\s*)?(?:to\\s+)?${foundFriendName}\\b`, 'i').test(lower) ||
+    new RegExp(`\\b(i\\s+)?(paid|pay|pays|gave|give|sent|send|transferred|transfer|settled|settle|repaid|repay)\\s+${foundFriendName}\\b`, 'i').test(lower) ||
+    new RegExp(`\\bto\\s+${foundFriendName}\\b`, 'i').test(lower) ||
+    new RegExp(`\\b(settled|settle|cleared)\\s+(?:debt\\s+)?(?:with\\s+)?${foundFriendName}\\b`, 'i').test(lower)
+  ) : false;
 
   if (isIncome && foundFriendName) {
     whoPaid = 'other';
@@ -383,16 +398,20 @@ export function parseLocallyClient(
     whoPaid = 'other';
     type = 'by_friend';
     splitMode = 'by_friend';
-  } else if (repayPattern.test(lower)) {
-    type = 'for_friend';
+  } else if (repayPattern.test(lower) || isPaidToContact) {
+    // User is paying/settling debt with contact
+    whoPaid = 'me';
+    type = 'by_friend';
     splitMode = 'pay_debt';
+    myShare = amount > 0 ? amount : null;
+    friendShare = 0;
   } else if (splitPattern.test(lower) && foundFriendName) {
     whoPaid = 'me';
     type = 'for_friend';
     splitMode = 'equal_split';
     myShare = amount > 0 ? Math.round((amount / 2) * 100) / 100 : null;
     friendShare = amount > 0 ? Math.round((amount / 2) * 100) / 100 : null;
-  } else if (foundFriendName && (lower.includes('for ') || lower.includes('paid for '))) {
+  } else if (foundFriendName && (lower.includes('for ') || lower.includes('paid for ') || lower.includes('bought for '))) {
     whoPaid = 'me';
     type = 'for_friend';
     splitMode = 'for_friend';
@@ -424,6 +443,8 @@ export function parseLocallyClient(
 
   if (isIncome) {
     category = 'Income';
+  } else if (splitMode === 'pay_debt' && foundFriendName) {
+    category = 'Settlement';
   } else if (foodKeywords.some(k => lower.includes(k))) {
     category = categories.find(c => c.toLowerCase().includes('food') || c.toLowerCase().includes('dining')) || 'Food & Dining';
   } else if (transportKeywords.some(k => lower.includes(k))) {
@@ -460,11 +481,13 @@ export function parseLocallyClient(
                .replace(/i\s+(paid|bought|spent|gave|got|received|split)\s+(for\s+)?/gi, '')
                .replace(/\b(paid|bought|spent|gave|got|received|my|friend|me|and|both|us|rs|rupees|inr|\$|\/-)\b/gi, '')
                .replace(/\b(\d+(?:\.\d+)?)\b/g, '')
-               .replace(/\b(for|on|via|from|by|with|using|in)\b/gi, ' ')
+               .replace(/\b(for|on|via|from|by|with|using|in|to)\b/gi, ' ')
                .replace(/\s+/g, ' ')
                .trim();
 
-  if (!title || title.length < 2) {
+  if (splitMode === 'pay_debt' && foundFriendName) {
+    title = isIncome ? `Settlement: Received from ${foundFriendName}` : `Settlement: Paid to ${foundFriendName}`;
+  } else if (!title || title.length < 2) {
     if (lower.includes('tiffin')) title = 'Tiffin';
     else if (lower.includes('poha')) title = 'Poha';
     else if (lower.includes('coffee')) title = 'Coffee';
@@ -521,8 +544,13 @@ export function parseLocallyClient(
   const friendLabel = foundFriendName ? ` with ${foundFriendName}` : '';
   const amtLabel = amount > 0 ? `${sym}${amount}` : 'amount';
 
+  let replyText = `I've drafted "${title}" for ${amtLabel} under ${category}${friendLabel} using ${matchedWallet}. Review and confirm below!`;
+  if (splitMode === 'pay_debt' && foundFriendName) {
+    replyText = `I've drafted a settlement payment of ${amtLabel} to ${foundFriendName} using ${matchedWallet}. Confirming will link with ${foundFriendName} and record the settlement.`;
+  }
+
   return {
-    reply: `I've drafted "${title}" for ${amtLabel} under ${category}${friendLabel} using ${matchedWallet}. Review and confirm below!`,
+    reply: replyText,
     actionType: 'add_expense',
     isOffline: true,
     draft: {
@@ -539,7 +567,7 @@ export function parseLocallyClient(
       walletName: matchedWallet,
       friendName: foundFriendName,
       friendNames: matchedFriends.length > 0 ? matchedFriends : (foundFriendName ? [foundFriendName] : []),
-      status: type === 'personal' ? 'paid' : 'unsettled',
+      status: 'paid',
       notes: 'Added via Max Assistant',
     },
   };

@@ -50,7 +50,7 @@ import {
 import { useStore } from '../store';
 import { currencySymbol, resolveCategoryMeta, getAvatarStyle as getAppAvatarStyle } from '../utils';
 import { parseLocallyClient } from '../nlp';
-import { uid, todayISO } from '../db';
+import { uid, todayISO, unsettledExpensesForFriend } from '../db';
 import type { ExpenseType, ExpenseFlow, Category, AppDB } from '../types';
 import CategoryIcon, { CategoryBadge } from './CategoryIcon';
 import type { ExpenseInitialData } from './ExpenseModal';
@@ -989,7 +989,7 @@ interface AIAssistantModalProps {
 export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AIAssistantModalProps) {
   const isMobile = useMediaQuery('(max-width: 640px)');
 
-  const { db, addExpense, addFriend, showToast } = useStore();
+  const { db, addExpense, addFriend, recordSettlement, showToast } = useStore();
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1367,12 +1367,13 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             category: d.category,
             type: d.type,
             flow: d.flow,
-            whoPaid: d.whoPaid === 'other' || d.type === 'by_friend' || d.splitMode === 'by_friend' ? 'other' : (d.whoPaid || 'me'),
+            whoPaid: d.splitMode === 'pay_debt' ? 'me' : (d.whoPaid === 'other' || d.type === 'by_friend' || d.splitMode === 'by_friend' ? 'other' : (d.whoPaid || 'me')),
             splitMode: (d.splitMode === 'for_friend' || d.splitMode === 'equal_split' || d.splitMode === 'custom_split') ? 'for_friend' : (d.splitMode === 'pay_debt' ? 'pay_debt' : 'just_me'),
             walletId: matchedWallet?.id,
             friendId: primaryFriendId,
             friendIds: resolvedFriendIds.length > 0 ? resolvedFriendIds : (primaryFriendId ? [primaryFriendId] : undefined),
             date: d.date || todayISO(),
+            status: 'paid',
             notes: d.notes || 'Added via Max Assistant',
           });
         } else {
@@ -1399,7 +1400,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
 
     const resolvedFriends = friendList.map(nameStr => {
       let fObj = friends.find(f => f.name.toLowerCase() === nameStr.toLowerCase());
-      if (!fObj && nameStr && (activeDraft.splitMode !== 'just_me' || activeDraft.type === 'by_friend' || activeDraft.whoPaid === 'other')) {
+      if (!fObj && nameStr) {
         fObj = addFriend({ name: nameStr, type: 'friend' });
       }
       return fObj;
@@ -1413,7 +1414,9 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
     const itemFlow = activeDraft.flow || 'out';
 
     const isFriendPaid = activeDraft.whoPaid === 'other' || activeDraft.type === 'by_friend' || activeDraft.splitMode === 'by_friend';
-    const mode = isFriendPaid ? 'by_friend' : (activeDraft.splitMode || (activeDraft.type === 'personal' ? 'just_me' : 'equal_split'));
+    const mode = activeDraft.splitMode === 'pay_debt'
+      ? 'pay_debt'
+      : (isFriendPaid ? 'by_friend' : (activeDraft.splitMode || (activeDraft.type === 'personal' ? 'just_me' : 'equal_split')));
 
     if (itemFlow === 'in') {
       addExpense({
@@ -1429,6 +1432,36 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
         notes: activeDraft.notes || 'Added via Max',
       });
       showToast(`Recorded Income: ${itemDesc} (${currSym}${totalAmt})`);
+    } else if (mode === 'pay_debt' || activeDraft.splitMode === 'pay_debt') {
+      const fObj = resolvedFriends[0];
+      if (fObj) {
+        const unsettledDebts = unsettledExpensesForFriend(db, fObj.id);
+        const debtsToSettle = unsettledDebts.filter(e => e.type === 'by_friend' || e.status === 'unpaid');
+        const settleIds = debtsToSettle.length > 0 ? debtsToSettle.map(e => e.id) : (unsettledDebts.length > 0 ? unsettledDebts.map(e => e.id) : []);
+
+        recordSettlement(
+          fObj.id,
+          settleIds,
+          activeDraft.notes || `Settlement: Paid to ${fObj.name}`,
+          itemWalletId,
+          totalAmt,
+          itemDate
+        );
+        showToast(`Settled ${currSym}${totalAmt} with ${fObj.name} & recorded in settlements`);
+      } else {
+        addExpense({
+          description: itemDesc,
+          amount: totalAmt,
+          category: itemCat || 'Settlement',
+          date: itemDate,
+          type: 'by_friend',
+          flow: 'out',
+          walletId: itemWalletId,
+          status: 'paid',
+          notes: activeDraft.notes || 'Added via Max',
+        });
+        showToast(`Recorded payment: ${itemDesc} (${currSym}${totalAmt})`);
+      }
     } else if (mode === 'equal_split' || mode === 'custom_split') {
       const numFriends = Math.max(1, resolvedFriends.length);
       const perPersonDefault = Math.round((totalAmt / (numFriends + 1)) * 100) / 100;

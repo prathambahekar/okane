@@ -43,7 +43,7 @@ interface Props {
 }
 
 export default function ExpenseModal({ expense, initialData, onClose, zIndex }: Props) {
-  const { db, addExpense, updateExpense, deleteExpense, addFriend, recordSettlement, deleteSettlement, showToast } = useStore();
+  const { db, addExpense, updateExpense, deleteExpense, addFriend, recordSettlement, showToast } = useStore();
   const s = db.settings;
 
   const grpItems = expense?.groupId
@@ -488,8 +488,24 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
       }
       setError('');
 
-      const targetType: ExpenseType = incomeMode === 'friend' ? 'for_friend' : 'personal';
+      const selectedF = db.friends.find(f => f.id === friendId);
       const isAutoSettling = autoSettle && selectedExpenseIds.length > 0;
+
+      if (incomeMode === 'friend' && !expense && isAutoSettling) {
+        recordSettlement(
+          friendId,
+          selectedExpenseIds,
+          notes || finalDesc || (selectedF ? `Repayment from ${selectedF.name}` : 'Repayment received'),
+          walletId,
+          totalAmt,
+          date
+        );
+        showToast(selectedF ? `Repayment of ${fmtMoney(totalAmt, s.currency)} recorded with ${selectedF.name}` : 'Repayment recorded');
+        onClose();
+        return;
+      }
+
+      const targetType: ExpenseType = incomeMode === 'friend' ? 'for_friend' : 'personal';
 
       const data: Partial<Expense> = {
         description: finalDesc,
@@ -553,41 +569,33 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
     // Outflow handling
     if (whoPaid === 'me' && splitMode === 'pay_debt') {
       if (!friendId) {
-        setError('Please select the friend you are paying back.');
+        setError('Please select the contact you are paying.');
         return;
       }
       setError('');
 
-      if (!expense && autoSettle && selectedExpenseIds.length > 0) {
-        let coverRemaining = totalAmt;
-        selectedExpenseIds.forEach(id => {
-          const item = db.expenses.find(ex => ex.id === id);
-          if (!item) return;
-          const amt = Number(item.amount) || 0;
-          if (coverRemaining >= amt) {
-            coverRemaining -= amt;
-            updateExpense(id, { settled: true });
-          } else if (coverRemaining > 0) {
-            const covered = Math.round(coverRemaining * 100) / 100;
-            const rem = Math.round((amt - covered) * 100) / 100;
-            coverRemaining = 0;
-            updateExpense(id, { amount: covered, settled: true });
-            addExpense({
-              ...item,
-              amount: rem,
-              description: item.description.includes('Remaining') ? item.description : `${item.description} (Remaining)`,
-              settled: false,
-              settlementId: null,
-            });
-          }
-        });
+      const selectedF = db.friends.find(f => f.id === friendId);
+      const isAutoSettling = autoSettle && selectedExpenseIds.length > 0;
+
+      if (!expense) {
+        // Record formal settlement in db.settlements and link contact + debts
+        recordSettlement(
+          friendId,
+          isAutoSettling ? selectedExpenseIds : [],
+          notes || finalDesc || (selectedF ? `Paid to ${selectedF.name}` : 'Settlement payment'),
+          walletId,
+          totalAmt,
+          date
+        );
+        showToast(selectedF ? `Settlement of ${fmtMoney(totalAmt, s.currency)} recorded with ${selectedF.name}` : 'Settlement recorded');
+        onClose();
+        return;
       }
 
-      const isAutoSettling = autoSettle && selectedExpenseIds.length > 0;
       const data: Partial<Expense> = {
         description: finalDesc,
         amount: totalAmt,
-        category: category || 'Bill Settlement',
+        category: category || 'Settlement',
         date,
         type: 'by_friend',
         flow: 'out',
@@ -600,19 +608,14 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
         groupId: null,
       };
 
-      if (expense) {
-        if (expense.groupId) {
-          const existing = db.expenses.filter(ex => ex.groupId === expense.groupId);
-          existing.forEach(ex => deleteExpense(ex.id));
-          addExpense(data);
-        } else {
-          updateExpense(expense.id, data);
-        }
-        showToast('Debt repayment updated');
-      } else {
+      if (expense.groupId) {
+        const existing = db.expenses.filter(ex => ex.groupId === expense.groupId);
+        existing.forEach(ex => deleteExpense(ex.id));
         addExpense(data);
-        showToast('Debt repayment recorded');
+      } else {
+        updateExpense(expense.id, data);
       }
+      showToast('Debt repayment updated');
       onClose();
       return;
     }
@@ -821,55 +824,18 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
       if (calculatedType !== 'personal' && !friendId) { setError('Select a friend.'); return; }
       setError('');
 
-      const targetContactId = vendorId || (friendId && db.friends.find(f => f.id === friendId) ? friendId : '');
-      const targetContact = targetContactId ? db.friends.find(f => f.id === targetContactId) : null;
-      const isDirectContactPayment = Boolean(whoPaid === 'me' && targetContactId && selectedFriendIds.length === 0);
-
-      const stlId = (isDirectContactPayment && targetContact) ? (expense?.settlementId || uid('stl')) : null;
-      const expId = expense?.id || uid('exp');
-
-      // If editing an existing expense that had a previous settlement record, clean up the previous settlement
-      if (expense && expense.settlementId && isDirectContactPayment) {
-        deleteSettlement(expense.settlementId);
-      }
-
       const data: Partial<Expense> = {
-        id: expId,
         description: finalDesc,
         amount: totalAmt,
-        category,
-        date,
-        type: calculatedType,
+        category, date, type: calculatedType,
         flow,
-        friendId: targetContact?.type === 'friend' ? targetContactId : (friendId || null),
-        vendorId: targetContactId || null,
+        friendId: friendId || null,
+        vendorId: vendorId || null,
         walletId: whoPaid === 'other' ? '' : walletId,
         status: calculatedStatus,
-        settled: isDirectContactPayment ? true : (expense?.settled ?? false),
-        settlementId: stlId,
-        vendorSettled: isDirectContactPayment ? true : (expense?.vendorSettled ?? false),
-        vendorSettlementId: stlId,
         notes,
         groupId: null,
       };
-
-      if (isDirectContactPayment && targetContact && stlId) {
-        // Auto-settle any pending debts owed to this contact up to totalAmt
-        const pendingDebts = unsettledExpensesForFriend(db, targetContactId).filter(
-          e => e.id !== expId && (e.type === 'by_friend' || (e.vendorId === targetContactId && e.status === 'unpaid'))
-        );
-        const pendingDebtIds = pendingDebts.map(e => e.id);
-
-        recordSettlement(
-          targetContactId,
-          pendingDebtIds.length > 0 ? pendingDebtIds : [expId],
-          finalDesc || `Payment to ${targetContact.name}`,
-          walletId,
-          totalAmt,
-          date,
-          false
-        );
-      }
 
       if (expense) {
         if (expense.groupId) {
@@ -882,7 +848,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
         showToast('Expense updated');
       } else {
         addExpense(data);
-        showToast(isDirectContactPayment ? `Payment to ${targetContact?.name || 'contact'} recorded` : 'Expense added');
+        showToast('Expense added');
       }
     }
 
