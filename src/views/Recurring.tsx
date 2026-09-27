@@ -641,14 +641,14 @@ export default function Recurring({ onNavigate, initialArg }: Props) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 80 }}>
-          {filteredRules.map((r) => {
+          {filteredRules.map((r, idx) => {
             const cat = db.settings?.categories?.find(c => c.name.toLowerCase() === r.category.toLowerCase());
             const linkedFriend = r.friendId ? db.friends?.find(f => f.id === r.friendId) : null;
             const wallet = r.walletId ? db.wallets?.find(w => w.id === r.walletId) : null;
 
             return (
               <AutopayCard
-                key={r.id}
+                key={`${r.id}-${idx}`}
                 rule={r}
                 category={cat}
                 linkedFriend={linkedFriend}

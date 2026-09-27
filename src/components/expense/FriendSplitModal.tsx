@@ -551,11 +551,11 @@ export function FriendSplitModal({
                       </div>
                     )}
 
-                    {filteredFriendsList.map(f => {
+                    {filteredFriendsList.map((f, idx) => {
                       const isSel = selectedFriendIds.includes(f.id);
                       return (
                         <div
-                          key={f.id}
+                          key={`${f.id}-${idx}`}
                           onClick={() => {
                             if (isSel) {
                               setSelectedFriendIds(prev => prev.filter(id => id !== f.id));
@@ -878,7 +878,7 @@ export function FriendSplitModal({
                       <span>Me</span>
                     </span>
                   )}
-                  {selectedFriendIds.map(fId => {
+                  {selectedFriendIds.map((fId, idx) => {
                     const friendObj = db.friends.find(f => f.id === fId);
                     const color = friendObj?.color || '#10b981';
                     const name = friendObj?.name || 'Friend';
@@ -887,7 +887,7 @@ export function FriendSplitModal({
 
                     return (
                       <span
-                        key={fId}
+                        key={`${fId}-${idx}`}
                         style={{
                           fontSize: 'var(--fs-caption)',
                           fontWeight: 600,
@@ -1047,14 +1047,14 @@ export function FriendSplitModal({
                 </div>
 
                 {/* Friends Rows */}
-                {selectedFriendIds.map(fId => {
+                {selectedFriendIds.map((fId, idx) => {
                   const friendObj = db.friends.find(f => f.id === fId);
                   const shareVal = getFriendShare(fId);
                   const currentCustomInput = customFriendShares[fId] ?? String(shareVal);
 
                   return (
                     <div
-                      key={fId}
+                      key={`${fId}-${idx}`}
                       style={{
                         display: 'flex',
                         alignItems: 'center',

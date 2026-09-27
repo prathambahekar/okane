@@ -626,11 +626,11 @@ export function VendorQuickAdd({
                   )}
 
                   {/* Contact Options */}
-                  {filteredList.map(contact => {
+                  {filteredList.map((contact, idx) => {
                     const isSel = vendorId === contact.id;
                     return (
                       <div
-                        key={contact.id}
+                        key={`${contact.id}-${idx}`}
                         onClick={() => {
                           setVendorId(isSel ? '' : contact.id);
                           setIsDrawerOpen(false);

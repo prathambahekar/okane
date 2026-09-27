@@ -585,9 +585,9 @@ export default function FriendDetail({ friendId, onNavigate }: Props) {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {connectedRules.map((r) => (
+                    {connectedRules.map((r, idx) => (
                       <div
-                        key={r.id}
+                        key={`${r.id}-${idx}`}
                         style={{
                           display: 'flex',
                           alignItems: 'center',

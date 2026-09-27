@@ -835,7 +835,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                     <span>Contacts & Vendors ({matchingContacts.length})</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {matchingContacts.map(f => {
+                    {matchingContacts.map((f, idx) => {
                       const bal = friendBalance(db, f.id);
                       const fType = f.type || 'friend';
                       const fColor = f.color || (fType === 'vendor' ? '#F59E0B' : fType === 'subscription' ? '#8B5CF6' : undefined);
@@ -843,7 +843,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
 
                       return (
                         <div
-                          key={f.id}
+                          key={`f-search-${f.id}-${idx}`}
                           onClick={() => {
                             handleClose();
                             onNavigate('friend-detail', f.id);
@@ -958,11 +958,11 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                     <span>Wallets ({matchingWallets.length})</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {matchingWallets.map(w => {
+                    {matchingWallets.map((w, idx) => {
                       const bal = walletBalance(db, w.id);
                       return (
                         <div
-                          key={w.id}
+                          key={`w-search-${w.id}-${idx}`}
                           onClick={() => setSelectedWallet(w)}
                           role="button"
                           tabIndex={0}
@@ -1035,7 +1035,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                     <span>Settlements ({matchingSettlements.length})</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {matchingSettlements.map(s => {
+                    {matchingSettlements.map((s, idx) => {
                       const friend = friendsMap.get(s.friendId);
                       const amtVal = Number(s.amount) || 0;
                       const isReceived = amtVal >= 0;
@@ -1046,7 +1046,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
 
                       return (
                         <div
-                          key={s.id}
+                          key={`s-search-${s.id}-${idx}`}
                           onClick={() => setSelectedSettlement(s)}
                           role="button"
                           tabIndex={0}
@@ -1133,9 +1133,9 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                     <span>Trips ({matchingTrips.length})</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {matchingTrips.map((t: Trip) => (
+                    {matchingTrips.map((t: Trip, idx: number) => (
                       <div
-                        key={t.id}
+                        key={`t-search-${t.id}-${idx}`}
                         onClick={() => {
                           handleClose();
                           onNavigate('split-trips', t.id);
@@ -1215,12 +1215,12 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                     <span>Recurring & Subscriptions ({matchingRecurring.length})</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {matchingRecurring.map(r => {
+                    {matchingRecurring.map((r, idx) => {
                       const rCatMeta = resolveCategoryMeta(r.category || 'Other', categoriesMap.get(r.category || 'Other'), false, categoriesMap);
 
                       return (
                         <div
-                          key={r.id}
+                          key={`r-search-${r.id}-${idx}`}
                           onClick={() => setSelectedRecurring(r)}
                           role="button"
                           tabIndex={0}
@@ -1304,7 +1304,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
                     <span>Settings & Preferences ({matchingSettings.length})</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {matchingSettings.map(s => {
+                    {matchingSettings.map((s, idx) => {
                       const IconComponent = s.icon;
                       const getSettingColor = (cat: string) => {
                         switch (cat) {
@@ -1322,7 +1322,7 @@ export default function ContextualSearchModal({ open, onClose, activeView, onNav
 
                       return (
                         <div
-                          key={s.id}
+                          key={`setting-search-${s.id}-${idx}`}
                           onClick={() => {
                             handleClose();
                             onNavigate('settings', s.id);

@@ -61,9 +61,9 @@ function ColorPickerSection({ color, onChangeColor }: { color: string; onChangeC
         width: '100%',
       }}
     >
-      {FRIEND_PALETTE.map(c => (
+      {FRIEND_PALETTE.map((c, idx) => (
         <button
-          key={c}
+          key={`${c}-${idx}`}
           type="button"
           className={`color-swatch-btn ${color === c ? 'selected' : ''}`}
           style={{
@@ -1849,8 +1849,8 @@ export default function Settings({
                             cursor: 'pointer'
                           }}
                         >
-                          {db.wallets.map(w => (
-                            <option key={w.id} value={w.id}>
+                          {db.wallets.map((w, idx) => (
+                            <option key={`${w.id}-${idx}`} value={w.id}>
                               {w.name}
                             </option>
                           ))}
@@ -2380,7 +2380,7 @@ export default function Settings({
                             padding: '4px 2px 14px',
                           }}
                         >
-                          {filteredIcons.map(({ id, label, Icon }) => {
+                          {filteredIcons.map(({ id, label, Icon }, idx) => {
                             const currentSelectedIcon = iconPickerTarget === 'add' ? newCatIcon : editIcon;
                             const currentColor = iconPickerTarget === 'add' ? newCatColor : editColor;
                             const isSelected = currentSelectedIcon === id;
@@ -2391,7 +2391,7 @@ export default function Settings({
 
                             return (
                               <button
-                                key={id}
+                                key={`${id}-${idx}`}
                                 type="button"
                                 onClick={() => {
                                   if (iconPickerTarget === 'add') {

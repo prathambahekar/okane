@@ -1127,10 +1127,10 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
     }
   }, [stopAudioAnalysis]);
 
-  const generateMsgId = () => {
+  const generateMsgId = useCallback(() => {
     msgCounterRef.current += 1;
-    return `msg_${msgCounterRef.current}`;
-  };
+    return `msg_${uid()}_${msgCounterRef.current}`;
+  }, []);
 
   const categories = (db.settings?.categories || []).map(c => c.name);
   const wallets = db.wallets || [];
@@ -2428,7 +2428,7 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                 multiple
                 freeSolo
                 size="small"
-                options={friends.map((f) => f.name)}
+                options={Array.from(new Set(friends.map((f) => f.name).filter(Boolean)))}
                 value={
                   activeDraft.friendNames && activeDraft.friendNames.length > 0
                     ? activeDraft.friendNames
@@ -2453,16 +2453,19 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
                   });
                 }}
                 renderTags={(value: readonly string[], getTagProps) =>
-                  value.map((option: string, index: number) => (
-                    <Chip
-                      variant="outlined"
-                      label={option}
-                      size="small"
-                      {...getTagProps({ index })}
-                      key={option}
-                      sx={{ borderRadius: 'var(--radius-xs)', fontSize: 'var(--fs-caption)' }}
-                    />
-                  ))
+                  value.map((option: string, index: number) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return (
+                      <Chip
+                        key={key || `tag-${option}-${index}`}
+                        variant="outlined"
+                        label={option}
+                        size="small"
+                        {...tagProps}
+                        sx={{ borderRadius: 'var(--radius-xs)', fontSize: 'var(--fs-caption)' }}
+                      />
+                    );
+                  })
                 }
                 renderInput={(params) => (
                   <TextField

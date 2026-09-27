@@ -354,11 +354,11 @@ export function SingleFriendPickerModal({
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 7 }}>
-              {filteredFriendsList.map((f: Friend) => {
+              {filteredFriendsList.map((f: Friend, idx: number) => {
                 const isSel = selectedFriendId === f.id;
                 return (
                   <div
-                    key={f.id}
+                    key={`${f.id}-${idx}`}
                     onClick={() => {
                       if (isSel) {
                         onSelectFriend('');

@@ -377,8 +377,8 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                     cursor: 'pointer',
                   }}
                 >
-                  {wallets.map(w => (
-                    <option key={w.id} value={w.id}>
+                  {wallets.map((w, idx) => (
+                    <option key={`from-w-${w.id}-${idx}`} value={w.id}>
                       {w.name} ({fmtMoney(walletBalance(db, w.id), currency)})
                     </option>
                   ))}
@@ -500,8 +500,8 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                     cursor: 'pointer',
                   }}
                 >
-                  {wallets.map(w => (
-                    <option key={w.id} value={w.id}>
+                  {wallets.map((w, idx) => (
+                    <option key={`to-w-${w.id}-${idx}`} value={w.id}>
                       {w.name} ({fmtMoney(walletBalance(db, w.id), currency)})
                     </option>
                   ))}

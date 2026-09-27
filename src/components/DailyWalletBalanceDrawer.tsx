@@ -756,14 +756,14 @@ export default function DailyWalletBalanceDrawer({
                   </div>
 
                   <div className="day-sheet-accounts-list">
-                    {visibleWalletBreakdown.map(wb => {
+                    {visibleWalletBreakdown.map((wb, idx) => {
                       const walletObj = wallets.find(w => w.id === wb.walletId);
                       const color = wb.walletColor || walletObj?.color || 'var(--accent)';
                       const iconKey = walletObj?.icon;
 
                       return (
                         <div
-                          key={wb.walletId}
+                          key={`wb-${wb.walletId}-${idx}`}
                           className="day-account-item-card is-single-account"
                           role="button"
                           tabIndex={0}
@@ -834,7 +834,7 @@ export default function DailyWalletBalanceDrawer({
 
               {selectedDayRecord.transactions.length > 0 ? (
                 <div className="day-sheet-tx-list">
-                  {selectedDayRecord.transactions.map(tx => {
+                  {selectedDayRecord.transactions.map((tx, idx) => {
                     const isCredit = tx.flow === 'in';
                     const cleanDesc = cleanExpenseDescription(tx.description);
                     const walletObj = wallets.find(w => w.id === tx.walletId) ||
@@ -886,7 +886,7 @@ export default function DailyWalletBalanceDrawer({
 
                     return (
                       <div
-                        key={tx.id}
+                        key={`tx-${tx.id}-${idx}`}
                         className="day-tx-item-card"
                         role="button"
                         tabIndex={0}
@@ -1609,12 +1609,12 @@ export default function DailyWalletBalanceDrawer({
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-              {displayedRecords.map(dayRow => {
+              {displayedRecords.map((dayRow, idx) => {
                 const isSelected = selectedDayDate === dayRow.dateStr;
 
                 return (
                   <button
-                    key={dayRow.dateStr}
+                    key={`day-${dayRow.dateStr}-${idx}`}
                     type="button"
                     onClick={() => setSelectedDayDate(dayRow.dateStr)}
                     style={{
@@ -1922,12 +1922,12 @@ export default function DailyWalletBalanceDrawer({
                     </span>
                   </button>
 
-                  {wallets.map(w => {
+                  {wallets.map((w, idx) => {
                     const isSelected = selectedWalletId === w.id;
                     const wColor = w.color || 'var(--accent)';
                     return (
                       <button
-                        key={w.id}
+                        key={`wal-pick-${w.id}-${idx}`}
                         type="button"
                         onClick={() => setSelectedWalletId(w.id)}
                         style={{

@@ -936,11 +936,11 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
                     <span>All Wallets</span>
                   </button>
 
-                  {wallets.map((w) => {
+                  {wallets.map((w, idx) => {
                     const isSelected = selectedWalletId === w.id;
                     return (
                       <button
-                        key={w.id}
+                        key={`${w.id}-${idx}`}
                         type="button"
                         onClick={() => setSelectedWalletId(isSelected ? null : w.id)}
                         style={{

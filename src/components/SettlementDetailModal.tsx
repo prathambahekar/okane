@@ -476,14 +476,14 @@ export default function SettlementDetailModal({ settlement, onClose, onUndo, zIn
                   paddingRight: 4,
                 }}
               >
-                {settledExpenses.map(exp => {
+                {settledExpenses.map((exp, idx) => {
                   if (!exp) return null;
                   const cat = categories.find(c => c && c.name === exp.category);
                   const isForFriend = exp.type === 'for_friend';
                   const catMeta = resolveCategoryMeta(exp.category, cat, false);
                   return (
                     <motion.div
-                      key={exp.id}
+                      key={`${exp.id}-${idx}`}
                       className="recent-expense-row-inside-card"
                       whileHover={{ backgroundColor: 'var(--surface3)' }}
                       whileTap={{ scale: 0.982, backgroundColor: 'var(--surface3)' }}

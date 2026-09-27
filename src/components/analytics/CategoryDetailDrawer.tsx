@@ -384,8 +384,8 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
                   }}
                 >
                   <option value="all">All Wallets</option>
-                  {wallets.map((w) => (
-                    <option key={w.id} value={w.id}>
+                  {wallets.map((w, idx) => (
+                    <option key={`${w.id}-${idx}`} value={w.id}>
                       {w.name}
                     </option>
                   ))}
@@ -443,11 +443,11 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {groupedDisplayExpenses.map((ge) => {
+              {groupedDisplayExpenses.map((ge, idx) => {
                 const w = wallets.find((wal) => wal.id === ge.walletId);
                 return (
                   <div
-                    key={ge.id}
+                    key={`${ge.id}-${idx}`}
                     className="expense-item"
                     style={{
                       display: 'flex',

@@ -760,8 +760,8 @@ export default function SettleModal({ friend, onClose }: Props) {
                           cursor: 'pointer',
                         }}
                       >
-                        {wallets.map(w => (
-                          <option key={w.id} value={w.id} style={{ background: 'var(--surface)', color: 'var(--text)' }}>
+                        {wallets.map((w, idx) => (
+                          <option key={`${w.id}-${idx}`} value={w.id} style={{ background: 'var(--surface)', color: 'var(--text)' }}>
                             {w.name}
                           </option>
                         ))}

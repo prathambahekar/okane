@@ -1474,7 +1474,7 @@ export default function SplitTrips({ initialArg }: Props) {
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {activeTripSummary.transactions.map((tx, idx) => (
-                              <div key={idx} className="split-settlement-card">
+                              <div key={`tx-${tx.fromMemberId}-${tx.toMemberId}-${idx}`} className="split-settlement-card">
                                 <div className="split-settlement-flow">
                                   <span
                                     className={`split-settlement-member ${
@@ -1525,7 +1525,7 @@ export default function SplitTrips({ initialArg }: Props) {
 
                             return (
                               <div
-                                key={member.id}
+                                key={`member-bal-${member.id}-${idx}`}
                                 className="split-member-card"
                                 onClick={() => setSelectedMemberForDetail(member)}
                               >
@@ -2077,8 +2077,8 @@ export default function SplitTrips({ initialArg }: Props) {
                 className="split-select"
                 style={{ width: '100%', height: 40, fontSize: 'var(--fs-sm)' }}
               >
-                {activeTrip.members.map(m => (
-                  <option key={m.id} value={m.id}>
+                {activeTrip.members.map((m, idx) => (
+                  <option key={`${m.id}-${idx}`} value={m.id}>
                     {m.name} {m.name.toLowerCase() === 'you' ? '(You)' : ''}
                   </option>
                 ))}
@@ -2133,11 +2133,11 @@ export default function SplitTrips({ initialArg }: Props) {
                 </div>
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {activeTrip.members.map(member => {
+                  {activeTrip.members.map((member, idx) => {
                     const isSelected = expSplitMembers.includes(member.id);
                     return (
                       <button
-                        key={member.id}
+                        key={`${member.id}-${idx}`}
                         type="button"
                         onClick={() => {
                           if (isSelected) {
@@ -2178,8 +2178,8 @@ export default function SplitTrips({ initialArg }: Props) {
                   Enter Each Member&apos;s Exact Share ({currSym})
                 </label>
 
-                {activeTrip.members.map(m => (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {activeTrip.members.map((m, idx) => (
+                  <div key={`${m.id}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text)', width: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {m.name}
                     </span>

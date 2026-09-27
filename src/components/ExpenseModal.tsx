@@ -1018,7 +1018,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                             <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                               {selectedFriends.slice(0, 2).map((fr, idx) => (
                                 <div
-                                  key={fr.id}
+                                  key={`${fr.id}-${idx}`}
                                   style={{
                                     ...getAvatarStyle(fr.color),
                                     width: 28,
@@ -1321,7 +1321,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                               <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                                 {selectedFriends.slice(0, 2).map((fr, idx) => (
                                   <div
-                                    key={fr.id}
+                                    key={`${fr.id}-${idx}`}
                                     style={{
                                       ...getAvatarStyle(fr.color),
                                       width: 28,
@@ -1705,7 +1705,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                           </label>
                         </div>
                         <select className="form-select" value={walletId} onChange={e => setWalletId(e.target.value)}>
-                          {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                          {db.wallets.map((w, idx) => <option key={`${w.id}-${idx}`} value={w.id}>{w.name}</option>)}
                         </select>
                       </div>
 
@@ -1840,7 +1840,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                             <label className="form-label" style={{ margin: 0, fontSize: 'var(--fs-caption)', fontWeight: 600 }}>Deposited To (Wallet)</label>
                           </div>
                           <select className="form-select" value={walletId} onChange={e => setWalletId(e.target.value)}>
-                            {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                            {db.wallets.map((w, idx) => <option key={`${w.id}-${idx}`} value={w.id}>{w.name}</option>)}
                           </select>
                         </div>
                         <div className="form-group">
@@ -1946,7 +1946,7 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                         <div className="form-group">
                           <label className="form-label">Deposited To (Wallet)</label>
                           <select className="form-select" value={walletId} onChange={e => setWalletId(e.target.value)}>
-                            {db.wallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                            {db.wallets.map((w, idx) => <option key={`${w.id}-${idx}`} value={w.id}>{w.name}</option>)}
                           </select>
                         </div>
                         <div className="form-group">

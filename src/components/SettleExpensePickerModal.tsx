@@ -1058,11 +1058,11 @@ export default function SettleExpensePickerModal({
                           You ({friendStats.personalCount})
                         </button>
                       )}
-                      {friendStats.friends.map(({ friend: f, count }) => {
+                      {friendStats.friends.map(({ friend: f, count }, idx) => {
                         const isActive = friendFilter === f.id;
                         return (
                           <button
-                            key={f.id}
+                            key={`${f.id}-${idx}`}
                             type="button"
                             onClick={() => setFriendFilter(f.id)}
                             style={{

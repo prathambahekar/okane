@@ -494,12 +494,12 @@ export const SettlementFilterDrawer: React.FC<Props> = ({
               </button>
 
               {/* Individual Friend Chips */}
-              {filteredFriendList.map(({ friend: f, count }) => {
+              {filteredFriendList.map(({ friend: f, count }, idx) => {
                 const isSelected = friendFilter === f.id;
                 const avatar = getAvatarStyle(f.color);
                 return (
                   <button
-                    key={f.id}
+                    key={`${f.id}-${idx}`}
                     type="button"
                     onClick={() => setFriendFilter(isSelected ? 'all' : f.id)}
                     style={{
