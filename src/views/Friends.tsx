@@ -622,7 +622,7 @@ export default function Friends({ onNavigate }: Props) {
                       </span>
                     ) : fType === 'friend' ? (
                       <span className="contact-balance-pill settled">
-                        Settled Up ✓
+                        Settled
                       </span>
                     ) : (
                       <span className="contact-balance-pill neutral">
@@ -720,7 +720,7 @@ export default function Friends({ onNavigate }: Props) {
                     </span>
                   ) : fType === 'friend' ? (
                     <span className="contact-balance-pill settled">
-                      Settled Up ✓
+                      Settled
                     </span>
                   ) : (
                     <span className="contact-balance-pill neutral">
@@ -808,7 +808,7 @@ export default function Friends({ onNavigate }: Props) {
                     </span>
                   ) : fType === 'friend' ? (
                     <span className="contact-balance-pill settled">
-                      Settled Up ✓
+                      Settled
                     </span>
                   ) : (
                     <span className="contact-balance-pill neutral">

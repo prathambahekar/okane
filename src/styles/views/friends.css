@@ -388,16 +388,24 @@
 }
 
 .contact-balance-pill.settled {
-  background-color: var(--accent-soft);
+  background: var(--surface2);
   color: var(--text-3);
   border: 1px solid var(--border);
-  font-weight: 550;
-  font-size: var(--fs-caption);
-  padding: 4px 10px;
+  font-weight: 600;
+  font-size: var(--fs-xs);
+  padding: 5px 11px;
 }
 
-[data-color-scheme="light"] .contact-balance-pill.settled {
-  background-color: var(--accent-soft);
+[data-color-scheme="dark"] .contact-balance-pill.settled,
+[data-theme="dark"] .contact-balance-pill.settled {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+[data-color-scheme="light"] .contact-balance-pill.settled,
+[data-theme="light"] .contact-balance-pill.settled {
+  background: rgba(0, 0, 0, 0.04);
   color: var(--text-3);
   border: 1px solid var(--border);
 }

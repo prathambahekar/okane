@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Layers, ChevronRight, ChevronDown, Search, X } from 'lucide-react';
+import { Layers, ChevronRight, ChevronDown, Search, X, Clock, ArrowUpRight, Users } from 'lucide-react';
 import { fmtMoney, type GroupedExpense, getGroupedExpenseAmount, type SpendingMode } from '../../utils';
 import CategoryIcon from '../CategoryIcon';
+import { renderWalletIcon } from '../WalletIconRenderer';
+import { useStore } from '../../store';
 import type { Category } from '../../types';
 
 export interface ItemBreakdownEntry {
@@ -23,6 +25,18 @@ interface ItemBreakdownCardProps {
   className?: string;
 }
 
+const formatTxDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  return d.toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    weekday: 'short',
+  });
+};
+
 export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
   expenses,
   currency,
@@ -31,6 +45,9 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
   onSelectExpense,
   className = '',
 }) => {
+  const { db } = useStore();
+  const wallets = db.wallets || [];
+
   const [selectedCatFilter, setSelectedCatFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedItemName, setExpandedItemName] = useState<string | null>(null);
@@ -298,7 +315,7 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
           No items found for this period.
         </div>
       ) : (
-        <div className="analytics-v2-category-list" style={{ gap: 2 }}>
+        <div className="analytics-v2-category-list" style={{ gap: 4 }}>
           {filteredItems.map((item, idx) => {
             const meta = getCatMeta(item.category);
             const isExpanded = expandedItemName === item.rawName;
@@ -329,9 +346,10 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
                   style={{
                     padding: '8px 8px',
                     borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
                   }}
                 >
-                  {/* Left: Beautiful icon in soft squircle + Name & Count */}
+                  {/* Left: Beautiful icon in soft squircle + Name & Minimal Count */}
                   <div className="analytics-v2-cat-left">
                     <div
                       className="analytics-v2-cat-icon-wrap"
@@ -350,9 +368,9 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
 
                     <div className="analytics-v2-cat-name-group">
                       <span className="analytics-v2-cat-name">{item.displayName}</span>
+                      {/* Minimal, easy to understand count: e.g. "2x • Food" or "1x" */}
                       <span className="analytics-v2-cat-count">
-                        {item.count} {item.count === 1 ? 'transaction' : 'transactions'}
-                        {selectedCatFilter === 'all' && ` • ${item.category}`}
+                        {item.count}x{selectedCatFilter === 'all' ? ` • ${item.category}` : ''}
                       </span>
                     </div>
                   </div>
@@ -381,66 +399,166 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
                   </div>
                 </div>
 
-                {/* Expanded Transactions for this item */}
+                {/* Refined & Beautiful Collapsible Transaction History Submenu */}
                 {isExpanded && (
                   <div
                     style={{
-                      margin: '2px 8px 8px 46px',
-                      padding: '8px 10px',
+                      margin: '2px 4px 8px 46px',
+                      padding: '10px 12px',
                       background: 'var(--surface2)',
                       borderRadius: 'var(--radius-md)',
                       border: '1px solid var(--border)',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 4,
+                      gap: 6,
+                      animation: 'popIn 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                   >
+                    {/* Submenu Header */}
                     <div
                       style={{
-                        fontSize: 'var(--fs-caption)',
-                        fontWeight: 700,
-                        color: 'var(--text-3)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.4px',
-                        marginBottom: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0 2px 2px',
                       }}
                     >
-                      Transaction History ({item.expenses.length})
-                    </div>
-                    {item.expenses.map((ge, eIdx) => (
-                      <div
-                        key={`${ge.id}-${eIdx}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectExpense?.(ge);
-                        }}
-                        role="button"
-                        tabIndex={0}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '6px 8px',
-                          borderRadius: 'var(--radius-xs)',
-                          background: 'var(--surface)',
-                          cursor: 'pointer',
-                          fontSize: 'var(--fs-xs)',
-                          color: 'var(--text-2)',
-                          transition: 'all 0.15s ease',
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.stopPropagation();
-                            onSelectExpense?.(ge);
-                          }
-                        }}
-                      >
-                        <span style={{ fontWeight: 550, color: 'var(--text)' }}>{ge.date}</span>
-                        <span style={{ fontWeight: 750, color: 'var(--debit)' }}>
-                          {fmtMoney(getGroupedExpenseAmount(ge, spendingMode), currency)}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <Clock size={11} style={{ color: 'var(--text-3)' }} />
+                        <span
+                          style={{
+                            fontSize: 'var(--fs-caption)',
+                            fontWeight: 700,
+                            color: 'var(--text-3)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.4px',
+                          }}
+                        >
+                          History • {item.expenses.length} {item.expenses.length === 1 ? 'entry' : 'entries'}
                         </span>
                       </div>
-                    ))}
+                      <span
+                        style={{
+                          fontSize: 'var(--fs-caption)',
+                          color: 'var(--text-3)',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Tap to view
+                      </span>
+                    </div>
+
+                    {/* Submenu Transaction List */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      {item.expenses.map((ge, eIdx) => {
+                        const wallet = wallets.find((w) => w.id === ge.walletId);
+                        const amt = getGroupedExpenseAmount(ge, spendingMode);
+
+                        return (
+                          <div
+                            key={`${ge.id}-${eIdx}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectExpense?.(ge);
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '7px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--surface)',
+                              border: '1px solid var(--border)',
+                              cursor: 'pointer',
+                              gap: 8,
+                              transition: 'all 0.15s ease',
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.stopPropagation();
+                                onSelectExpense?.(ge);
+                              }
+                            }}
+                          >
+                            {/* Left: Date + Wallet + Split Badges */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                              <span
+                                style={{
+                                  fontSize: 'var(--fs-xs)',
+                                  fontWeight: 650,
+                                  color: 'var(--text)',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {formatTxDate(ge.date)}
+                              </span>
+
+                              {/* Wallet badge */}
+                              {wallet && (
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    fontSize: 'var(--fs-caption)',
+                                    color: 'var(--text-2)',
+                                    background: 'var(--surface2)',
+                                    padding: '2px 6px',
+                                    borderRadius: 'var(--radius-xs)',
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: 130,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                  }}
+                                >
+                                  {renderWalletIcon(wallet.icon || wallet.name || 'cash', 12, wallet.color)}
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{wallet.name}</span>
+                                </span>
+                              )}
+
+                              {/* Split badge */}
+                              {ge.isSplit && (
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    color: 'var(--amber)',
+                                    background: 'var(--amber-bg)',
+                                    border: '1px solid var(--amber-border)',
+                                    padding: '1px 5px',
+                                    borderRadius: 'var(--radius-full)',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  <Users size={9} />
+                                  <span>Split</span>
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Right: Amount & Navigation Arrow */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                              <span
+                                style={{
+                                  fontSize: 'var(--fs-xs)',
+                                  fontWeight: 750,
+                                  color: 'var(--debit)',
+                                  fontVariantNumeric: 'tabular-nums',
+                                }}
+                              >
+                                {fmtMoney(amt, currency)}
+                              </span>
+                              <ArrowUpRight size={12} style={{ color: 'var(--text-3)', opacity: 0.6 }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
