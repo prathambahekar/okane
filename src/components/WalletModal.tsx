@@ -5,6 +5,8 @@ import { X, Wallet as WalletIcon, Plus, Check, CheckCircle2, RotateCcw } from 'l
 import { useStore } from '../store';
 import type { Wallet } from '../types';
 import { WALLET_PRESETS, renderWalletIcon, detectWalletPresetFromName } from './WalletIconRenderer';
+import { MathAmountInput } from './common/MathAmountInput';
+import { evaluateMathExpression } from '../utils/mathEvaluator';
 import { currencySymbol } from '../utils';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 import { showSoftKeyboard } from '../utils/keyboard';
@@ -87,10 +89,12 @@ export default function WalletModal({ wallet, onClose }: Props) {
 
     const matchedPreset = WALLET_PRESETS.find(p => p.id === selectedPresetId);
     const autoColor = matchedPreset?.color || wallet?.color || '#4285F4';
+    const evalOpening = evaluateMathExpression(openingBalance);
+    const finalOpening = Math.round((evalOpening.isValid && evalOpening.result !== null ? evalOpening.result : Number(openingBalance) || 0) * 100) / 100;
 
     const payload = {
       name: name.trim(),
-      openingBalance: Number(openingBalance) || 0,
+      openingBalance: finalOpening,
       color: autoColor,
       icon: selectedPresetId,
       isDefault,
@@ -213,6 +217,7 @@ export default function WalletModal({ wallet, onClose }: Props) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
+                  width: '100%',
                 }}
               >
                 <span
@@ -225,13 +230,12 @@ export default function WalletModal({ wallet, onClose }: Props) {
                 >
                   {currencySymbol(currency)}
                 </span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                <MathAmountInput
+                  isHero
                   value={openingBalance}
-                  onChange={e => setOpeningBalance(e.target.value)}
+                  onChange={setOpeningBalance}
                   placeholder="0"
+                  currency={currency}
                   style={{
                     fontSize: 'var(--fs-hero-sm)',
                     fontWeight: 'var(--fw-bold)',
@@ -241,9 +245,6 @@ export default function WalletModal({ wallet, onClose }: Props) {
                     outline: 'none',
                     padding: 0,
                     margin: 0,
-                    width: `${Math.max(1, (openingBalance || '0').length) * 16 + 6}px`,
-                    maxWidth: '180px',
-                    textAlign: 'left',
                     fontFamily: 'inherit',
                   }}
                 />

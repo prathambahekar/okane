@@ -30,6 +30,8 @@ import type { Trip, TripExpense, TripGroup, TripMember } from '../types';
 import { fmtMoney, currencySymbol, friendInitial } from '../utils';
 import { FRIEND_PALETTE } from '../db';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { MathAmountInput } from '../components/common/MathAmountInput';
+import { evaluateMathExpression } from '../utils/mathEvaluator';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 // Storage keys
@@ -718,7 +720,8 @@ export default function SplitTrips({ initialArg }: Props) {
     if (!activeTrip) return;
 
     const desc = expDesc.trim() || 'General Expense';
-    const numAmt = parseFloat(expAmount);
+    const evalAmt = evaluateMathExpression(expAmount);
+    const numAmt = evalAmt.isValid && evalAmt.result !== null ? evalAmt.result : parseFloat(expAmount);
     if (isNaN(numAmt) || numAmt <= 0) {
       showToast('Please enter a valid expense amount');
       return;
@@ -2041,16 +2044,32 @@ export default function SplitTrips({ initialArg }: Props) {
                 <label style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-2)', marginBottom: 6, display: 'block' }}>
                   Amount ({currSym})
                 </label>
-                <input
-                  type="number"
-                  step="any"
-                  required
-                  placeholder="0.00"
-                  value={expAmount}
-                  onChange={e => setExpAmount(e.target.value)}
-                  className="input-field"
-                  style={{ width: '100%', height: 40, fontSize: 'var(--fs-md)', fontWeight: 700 }}
-                />
+                <div
+                  style={{
+                    width: '100%',
+                    minHeight: 40,
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0 10px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <MathAmountInput
+                    placeholder="0.00"
+                    value={expAmount}
+                    onChange={setExpAmount}
+                    currency={currSym}
+                    style={{
+                      width: '100%',
+                      fontSize: 'var(--fs-md)',
+                      fontWeight: 700,
+                      color: 'var(--text)',
+                    }}
+                  />
+                </div>
               </div>
 
               <div>

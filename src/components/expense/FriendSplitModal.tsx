@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import { X, Search, Plus, Store, Check, ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { X, Search, Plus, Store, Check, ArrowLeft, ArrowRight, RotateCcw, Equal } from 'lucide-react';
 import type { AppDB } from '../../types';
 import { fmtMoney, currencySymbol, getAvatarStyle, friendInitial } from '../../utils';
 import { useBackButtonModal, BackPriority } from '../../utils/backHandler';
+import { evaluateMathExpression } from '../../utils/mathEvaluator';
 
 interface FriendSplitModalProps {
   isOpen: boolean;
@@ -35,6 +36,30 @@ function CustomShareInputBox({
   onChange: (val: string) => void;
 }) {
   const [isFocused, setIsFocused] = useState(false);
+  const rawString = String(value ?? '');
+  const evalResult = useMemo(() => evaluateMathExpression(rawString), [rawString]);
+
+  const commitEvaluation = useCallback(() => {
+    if (evalResult.hasOperator && evalResult.isValid && evalResult.result !== null) {
+      onChange(String(evalResult.result));
+    }
+  }, [evalResult, onChange]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === '=' || e.key === 'Enter') {
+      if (evalResult.hasOperator && evalResult.isValid && evalResult.result !== null) {
+        e.preventDefault();
+        commitEvaluation();
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (evalResult.hasOperator && evalResult.isValid && evalResult.result !== null) {
+      commitEvaluation();
+    }
+  };
 
   return (
     <div
@@ -49,11 +74,11 @@ function CustomShareInputBox({
         padding: '3px 8px',
         height: 30,
         minWidth: 72,
-        maxWidth: 95,
+        maxWidth: 110,
         flexShrink: 0,
         boxShadow: isFocused ? '0 0 0 2.5px var(--credit-bg)' : 'none',
         transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
-        cursor: 'text',
+        position: 'relative',
       }}
     >
       <span
@@ -68,19 +93,19 @@ function CustomShareInputBox({
         {currencySymbol(currency)}
       </span>
       <input
-        type="number"
-        step="0.01"
-        min="0"
-        value={value}
+        type="text"
+        inputMode="text"
+        value={rawString}
         onFocus={e => {
           setIsFocused(true);
           e.target.select();
         }}
-        onBlur={() => setIsFocused(false)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
         onChange={e => onChange(e.target.value)}
         placeholder="0"
         style={{
-          width: 48,
+          width: 58,
           textAlign: 'right',
           padding: 0,
           fontSize: 'var(--fs-sm)',
@@ -93,6 +118,38 @@ function CustomShareInputBox({
           caretColor: 'var(--credit)',
         }}
       />
+      {evalResult.hasOperator && evalResult.isValid && evalResult.result !== null && (
+        <button
+          type="button"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            commitEvaluation();
+          }}
+          title="Apply math result"
+          style={{
+            position: 'absolute',
+            top: -20,
+            right: 0,
+            background: 'var(--credit-bg)',
+            color: 'var(--credit)',
+            border: '1px solid var(--credit-border)',
+            borderRadius: 'var(--radius-full)',
+            padding: '1px 6px',
+            fontSize: '10px',
+            fontWeight: 750,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 2,
+            cursor: 'pointer',
+            zIndex: 10,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <Equal size={9} strokeWidth={3} />
+          {evalResult.result}
+        </button>
+      )}
     </div>
   );
 }

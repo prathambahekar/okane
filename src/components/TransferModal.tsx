@@ -7,6 +7,8 @@ import { walletBalance, todayISO } from '../db';
 import { fmtMoney, currencySymbol } from '../utils';
 import { NoteEditorModal } from './common/NoteEditorModal';
 import { renderWalletIcon } from './WalletIconRenderer';
+import { MathAmountInput } from './common/MathAmountInput';
+import { evaluateMathExpression } from '../utils/mathEvaluator';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 import { showSoftKeyboard } from '../utils/keyboard';
 
@@ -89,7 +91,8 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const numAmount = Number(amount);
+    const evalAmt = evaluateMathExpression(amount);
+    const numAmount = Math.round((evalAmt.isValid && evalAmt.result !== null ? evalAmt.result : Number(amount) || 0) * 100) / 100;
 
     if (!fromWalletId || !toWalletId) {
       setError('Please select both source and destination wallets.');
@@ -246,6 +249,7 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                   justifyContent: 'center',
                   gap: 6,
                   marginTop: 2,
+                  width: '100%',
                 }}
               >
                 <span
@@ -258,14 +262,13 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                 >
                   {currencySymbol(currency)}
                 </span>
-                <input
+                <MathAmountInput
                   ref={amountInputRef}
-                  type="number"
-                  min="0"
-                  step="any"
+                  isHero
                   value={amount}
-                  onChange={e => { setAmount(e.target.value); setError(''); }}
+                  onChange={val => { setAmount(val); setError(''); }}
                   placeholder="0"
+                  currency={currency}
                   style={{
                     fontSize: 'var(--fs-hero)',
                     fontWeight: 700,
@@ -275,9 +278,6 @@ export default function TransferModal({ isOpen, onClose, defaultFromWalletId, de
                     outline: 'none',
                     padding: 0,
                     margin: 0,
-                    width: `${Math.max(1, (amount || '0').length) * 18 + 8}px`,
-                    maxWidth: '220px',
-                    textAlign: 'left',
                     fontFamily: 'inherit',
                   }}
                 />

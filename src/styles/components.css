@@ -1345,3 +1345,76 @@ input[type="number"] {
   color: #c084fc;
 }
 
+/* ==========================================================================
+   Inline Math Calculator Amount Input Styles
+   ========================================================================== */
+
+.math-amount-container {
+  position: relative;
+  width: 100%;
+}
+
+.math-amount-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.math-amount-input {
+  font-family: inherit;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.math-amount-hero .math-amount-input {
+  font-size: var(--fs-hero);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.math-amount-hero.math-idle {
+  justify-content: center;
+}
+
+.math-amount-hero.math-idle .math-amount-input {
+  text-align: center;
+}
+
+.math-amount-hero.math-active {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.math-amount-hero.math-active .math-amount-input {
+  text-align: left;
+}
+
+.math-eval-pill {
+  animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.math-eval-pill:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.math-eval-pill:active {
+  transform: translateY(0);
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+

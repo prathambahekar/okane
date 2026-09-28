@@ -16,6 +16,8 @@ import {
 } from './expense';
 import { NoteEditorModal } from './common/NoteEditorModal';
 import { NotePreviewCard } from './common/NotePreviewCard';
+import { MathAmountInput } from './common/MathAmountInput';
+import { evaluateMathExpression } from '../utils/mathEvaluator';
 import { getFrequentTasks } from '../utils/frequentTasks';
 
 export interface ExpenseInitialData {
@@ -227,7 +229,8 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
   }, [whoPaid, setSplitMode]);
 
   const getFriendShare = useCallback((fId: string): number => {
-    const tot = Math.round((parseFloat(amount) || 0) * 100) / 100;
+    const evalAmt = evaluateMathExpression(amount);
+    const tot = Math.round((evalAmt.isValid && evalAmt.result !== null ? evalAmt.result : parseFloat(amount) || 0) * 100) / 100;
     const n = selectedFriendIds.length;
     if (n === 0 || tot <= 0) return 0;
 
@@ -251,7 +254,8 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
 
     // Custom mode
     if (customFriendShares[fId] !== undefined) {
-      const customVal = parseFloat(customFriendShares[fId]);
+      const evalCustom = evaluateMathExpression(customFriendShares[fId]);
+      const customVal = evalCustom.isValid && evalCustom.result !== null ? evalCustom.result : parseFloat(customFriendShares[fId]);
       return isNaN(customVal) ? 0 : Math.round(customVal * 100) / 100;
     }
 
@@ -275,7 +279,8 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
 
     if (targetMode === 'custom') {
       const n = selectedFriendIds.length;
-      const tot = Math.round((parseFloat(amount) || 0) * 100) / 100;
+      const evalAmt = evaluateMathExpression(amount);
+      const tot = Math.round((evalAmt.isValid && evalAmt.result !== null ? evalAmt.result : parseFloat(amount) || 0) * 100) / 100;
       const denom = (nextIncludeYou ? n + 1 : n) || 1;
       const equalVal = tot > 0 && denom > 0 ? String(Math.floor((tot * 100) / denom) / 100) : '0';
       setCustomFriendShares(prev => {
@@ -291,7 +296,8 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
   };
 
   const totalFriendsShare = useMemo(() => {
-    const tot = Math.round((parseFloat(amount) || 0) * 100) / 100;
+    const evalAmt = evaluateMathExpression(amount);
+    const tot = Math.round((evalAmt.isValid && evalAmt.result !== null ? evalAmt.result : parseFloat(amount) || 0) * 100) / 100;
     const n = selectedFriendIds.length;
     if (n === 0 || tot <= 0) return 0;
 
@@ -478,7 +484,8 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
     if (!finalDesc && flow === 'out') { setError('Description is required.'); return; }
     if (!finalDesc && flow === 'in') { setError('Income source or description is required.'); return; }
 
-    const totalAmt = Math.round((parseFloat(amount) || 0) * 100) / 100;
+    const evalTotal = evaluateMathExpression(amount);
+    const totalAmt = Math.round((evalTotal.isValid && evalTotal.result !== null ? evalTotal.result : parseFloat(amount) || 0) * 100) / 100;
     if (!amount || isNaN(totalAmt) || totalAmt <= 0) { setError('Enter a valid amount.'); return; }
 
     if (flow === 'in') {
@@ -935,18 +942,21 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                 </span>
                 <div className="hero-amount-input-wrap">
                   <span className="hero-currency-symbol">{currencySymbol(s.currency)}</span>
-                  <input
-                    className="hero-amount-input"
-                    type="number"
-                    min="0"
-                    step="0.01"
+                  <MathAmountInput
+                    isHero
                     value={amount}
-                    onChange={e => {
-                      setAmount(e.target.value);
+                    onChange={val => {
+                      setAmount(val);
                       if (!friendShare || friendShare === amount) {
-                        setFriendShare(e.target.value);
+                        setFriendShare(val);
                       }
                     }}
+                    onEvaluated={res => {
+                      if (!friendShare || friendShare === amount) {
+                        setFriendShare(String(res));
+                      }
+                    }}
+                    currency={s.currency}
                     placeholder="0.00"
                   />
                 </div>

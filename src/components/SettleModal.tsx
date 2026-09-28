@@ -8,6 +8,8 @@ import { expenseFlow, unsettledExpensesForFriend, todayISO } from '../db';
 import { fmtMoney, friendInitial, getAvatarStyle, currencySymbol } from '../utils';
 import SettleExpensePickerModal from './SettleExpensePickerModal';
 import { NoteEditorModal } from './common/NoteEditorModal';
+import { MathAmountInput } from './common/MathAmountInput';
+import { evaluateMathExpression } from '../utils/mathEvaluator';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 
 interface Props {
@@ -82,7 +84,8 @@ export default function SettleModal({ friend, onClose }: Props) {
   const net = owedToMe - owedByMe;
   const absNet = Math.abs(net);
 
-  const parsedCustom = parseFloat(customAmountStr);
+  const evalCustom = evaluateMathExpression(customAmountStr);
+  const parsedCustom = evalCustom.isValid && evalCustom.result !== null ? evalCustom.result : parseFloat(customAmountStr);
   const effectiveSettleAmt = isCustomMode && !isNaN(parsedCustom) && parsedCustom > 0 ? parsedCustom : absNet;
   const remainingBalance = Math.max(0, absNet - effectiveSettleAmt);
 
@@ -561,7 +564,7 @@ export default function SettleModal({ friend, onClose }: Props) {
                       border: '1px solid var(--border)',
                       borderRadius: 'var(--radius-md)',
                       padding: '0 14px',
-                      height: 44,
+                      minHeight: 44,
                       transition: 'all 0.15s ease',
                       gap: 8,
                     }}
@@ -577,14 +580,11 @@ export default function SettleModal({ friend, onClose }: Props) {
                     >
                       {currencySymbol(currency)}
                     </span>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      max={absNet}
+                    <MathAmountInput
                       placeholder="0.00"
                       value={customAmountStr}
-                      onChange={e => setCustomAmountStr(e.target.value)}
+                      onChange={setCustomAmountStr}
+                      currency={currency}
                       style={{
                         flex: 1,
                         minWidth: 0,
@@ -600,29 +600,6 @@ export default function SettleModal({ friend, onClose }: Props) {
                       }}
                       autoFocus
                     />
-                    {customAmountStr && (
-                      <button
-                        type="button"
-                        onClick={() => setCustomAmountStr('')}
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          border: 'none',
-                          color: 'var(--text-2)',
-                          cursor: 'pointer',
-                          width: 22,
-                          height: 22,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: 'var(--radius-full)',
-                          padding: 0,
-                          flexShrink: 0,
-                        }}
-                        title="Clear amount"
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
                   </div>
                 </div>
               )}

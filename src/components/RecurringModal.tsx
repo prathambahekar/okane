@@ -23,6 +23,8 @@ import { todayISO, computeNextDueDate } from '../db';
 import { currencySymbol, getAvatarStyle, friendInitial, fmtDate } from '../utils';
 import { POPULAR_SUBSCRIPTIONS, type SubscriptionPreset } from './BrandIcons';
 import { NoteEditorModal } from './common/NoteEditorModal';
+import { MathAmountInput } from './common/MathAmountInput';
+import { evaluateMathExpression } from '../utils/mathEvaluator';
 import { NotePreviewCard } from './common/NotePreviewCard';
 import { useBackButtonModal, BackPriority } from '../utils/backHandler';
 import { showSoftKeyboard } from '../utils/keyboard';
@@ -227,7 +229,8 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
     e.preventDefault();
     setError('');
 
-    const parsedAmt = parseFloat(amount);
+    const evalAmt = evaluateMathExpression(amount);
+    const parsedAmt = evalAmt.isValid && evalAmt.result !== null ? evalAmt.result : parseFloat(amount);
     if (!title.trim()) {
       setError('Please enter a title');
       return;
@@ -612,18 +615,15 @@ export default function RecurringModal({ rule, defaultKind = 'autopay', onClose 
                 <span className="hero-currency-symbol" style={{ color: 'var(--debit)' }}>
                   {currSym}
                 </span>
-                <input
-                  className="hero-amount-input"
-                  type="number"
-                  step="any"
-                  min="0"
-                  required
+                <MathAmountInput
+                  isHero
                   placeholder="0.00"
                   value={amount}
-                  onChange={e => {
-                    setAmount(e.target.value);
+                  onChange={val => {
+                    setAmount(val);
                     if (error) setError('');
                   }}
+                  currency={currSym}
                   autoFocus={!title}
                 />
               </div>

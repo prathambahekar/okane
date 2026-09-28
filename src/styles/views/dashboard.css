@@ -2,68 +2,14 @@
    Dashboard View Styles, Quick Stats Widget & Mini Stat Cards
    ========================================================================== */
 
-/* Quick Stats Widget Container & Header */
+/* Quick Stats Widget Container & Grid */
 .quick-stats-widget {
   display: flex;
   flex-direction: column;
-  gap: 10px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-}
-
-.quick-stats-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2px 2px;
-  min-width: 0;
-}
-
-.quick-stats-title-group {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-
-.quick-stats-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-xs, 6px);
-  background: var(--accent-soft);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.quick-stats-title {
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.2px;
-  white-space: nowrap;
-}
-
-.quick-stats-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.quick-stats-month-badge {
-  font-size: var(--fs-caption);
-  color: var(--text-2);
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  font-weight: 500;
-  letter-spacing: 0.1px;
 }
 
 /* Quick Stats Grid */
@@ -134,17 +80,16 @@
 .quick-stats-card-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   min-width: 0;
 }
 
 .quick-stats-card-label-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: var(--fs-caption);
+  gap: 8px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-2);
   white-space: nowrap;
@@ -154,8 +99,8 @@
 }
 
 .quick-stats-card-icon-box {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: var(--radius-xs, 6px);
   display: flex;
   align-items: center;
@@ -163,92 +108,16 @@
   flex-shrink: 0;
 }
 
-.quick-stats-nav-icon {
-  color: var(--text-3);
-  opacity: 0.4;
-  transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
-  flex-shrink: 0;
-}
-
-.quick-stats-card:hover .quick-stats-nav-icon {
-  opacity: 0.9;
-  color: var(--text);
-  transform: translate(1px, -1px);
-}
-
 .quick-stats-card-value {
-  font-size: var(--fs-lg);
-  font-weight: 750;
+  font-size: var(--fs-xl);
+  font-weight: 800;
   letter-spacing: -0.3px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
-  line-height: 1.2;
-}
-
-@media (min-width: 640px) {
-  .quick-stats-card-value {
-    font-size: var(--fs-xl);
-  }
-}
-
-.quick-stats-card-sub {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-  margin-top: 5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  gap: 6px;
-}
-
-/* Quick Stats Visual Cashflow Proportion Bar */
-.quick-stats-ratio-bar-wrap {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 7px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  box-sizing: border-box;
-}
-
-.quick-stats-ratio-labels {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: var(--fs-caption);
-  color: var(--text-3);
-  font-weight: 500;
-  letter-spacing: -0.1px;
-}
-
-.quick-stats-ratio-track {
-  width: 100%;
-  height: 5px;
-  background: var(--surface3);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  position: relative;
-  display: flex;
-}
-
-.quick-stats-ratio-fill-spend {
-  height: 100%;
-  background: var(--debit);
-  transition: width 0.35s ease;
-}
-
-.quick-stats-ratio-fill-saved {
-  height: 100%;
-  background: var(--credit);
-  transition: width 0.35s ease;
+  line-height: 1.15;
 }
 
 /* Dashboard Mini Stat Cards & Grid */

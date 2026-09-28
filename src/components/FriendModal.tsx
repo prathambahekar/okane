@@ -22,6 +22,8 @@ import { FRIEND_PALETTE } from '../db';
 import { getAvatarStyle } from '../utils';
 import { POPULAR_SUBSCRIPTIONS, detectBrandPreset } from './BrandIcons';
 import { NoteEditorModal } from './common/NoteEditorModal';
+import { MathAmountInput } from './common/MathAmountInput';
+import { evaluateMathExpression } from '../utils/mathEvaluator';
 import { showSoftKeyboard } from '../utils/keyboard';
 
 interface Props {
@@ -202,11 +204,14 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
       setError('A contact with this name already exists.'); return;
     }
 
+    const evalDef = evaluateMathExpression(defaultAmount);
+    const parsedDefaultAmt = evalDef.isValid && evalDef.result !== null ? evalDef.result : parseFloat(defaultAmount);
+
     const payload: Partial<Friend> = {
       name: name.trim(),
       type,
       category: type !== 'friend' ? category : undefined,
-      defaultAmount: type === 'subscription' && defaultAmount ? parseFloat(defaultAmount) : undefined,
+      defaultAmount: type === 'subscription' && !isNaN(parsedDefaultAmt) ? parsedDefaultAmt : undefined,
       billingCycle: type === 'subscription' ? billingCycle : undefined,
       website: website.trim(),
       notes: notes.trim(),
@@ -578,26 +583,32 @@ export default function FriendModal({ friend, defaultType = 'friend', onClose, o
                       >
                         Cost
                       </label>
-                      <input
-                        className="form-input"
+                      <div
                         style={{
                           width: '100%',
-                          height: 40,
+                          minHeight: 40,
                           borderRadius: 'var(--radius-md)',
-                          fontSize: 'var(--fs-base)',
-                          fontWeight: 500,
                           padding: '0 12px',
                           border: '1px solid var(--border)',
                           background: 'var(--surface2)',
-                          color: 'var(--text)',
-                          outline: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          boxSizing: 'border-box',
                         }}
-                        type="number"
-                        step="any"
-                        value={defaultAmount}
-                        onChange={e => setDefaultAmount(e.target.value)}
-                        placeholder="e.g. 649"
-                      />
+                      >
+                        <MathAmountInput
+                          value={defaultAmount}
+                          onChange={setDefaultAmount}
+                          currency={db.settings.currency}
+                          placeholder="e.g. 649"
+                          style={{
+                            width: '100%',
+                            fontSize: 'var(--fs-base)',
+                            fontWeight: 500,
+                            color: 'var(--text)',
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
 
