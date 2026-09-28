@@ -11,6 +11,7 @@ import AnalyticsHeader from '../components/analytics/AnalyticsHeader';
 import TotalSpendingCard, { type ChartDayData } from '../components/analytics/TotalSpendingCard';
 import CategoryDistributionCard from '../components/analytics/CategoryDistributionCard';
 import DailyExpenditureCard, { type DayExpenditureRow } from '../components/analytics/DailyExpenditureCard';
+import ItemBreakdownCard from '../components/analytics/ItemBreakdownCard';
 import CategoryIcon from '../components/CategoryIcon';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { renderWalletIcon } from '../components/WalletIconRenderer';
@@ -1081,6 +1082,17 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
           spendingMode={spendingMode}
           wallets={db.wallets}
           friends={db.friends}
+        />
+      </div>
+
+      {/* 4. Item Breakdown (Recurring / Frequent Items) */}
+      <div style={{ width: '100%', marginTop: 14 }}>
+        <ItemBreakdownCard
+          expenses={filteredExpenses}
+          currency={currency}
+          categorySettings={db.settings.categories}
+          spendingMode={spendingMode}
+          onSelectExpense={(ge) => setSelectedGroupExpense(ge)}
         />
       </div>
 
