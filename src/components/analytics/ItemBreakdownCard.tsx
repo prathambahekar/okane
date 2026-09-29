@@ -1,5 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { Layers, ChevronRight, ChevronDown, Search, X, Clock, ArrowUpRight, Users } from 'lucide-react';
+import {
+  Layers,
+  ChevronRight,
+  ChevronDown,
+  Search,
+  X,
+  TrendingUp,
+  Percent,
+  ArrowUpRight,
+  Users,
+  FileText,
+} from 'lucide-react';
 import { fmtMoney, type GroupedExpense, getGroupedExpenseAmount, type SpendingMode } from '../../utils';
 import CategoryIcon from '../CategoryIcon';
 import { renderWalletIcon } from '../WalletIconRenderer';
@@ -31,9 +42,10 @@ const formatTxDate = (dateStr: string) => {
   if (parts.length !== 3) return dateStr;
   const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
   return d.toLocaleDateString('en-US', {
+    weekday: 'short',
     day: 'numeric',
     month: 'short',
-    weekday: 'short',
+    year: 'numeric',
   });
 };
 
@@ -47,6 +59,7 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
 }) => {
   const { db } = useStore();
   const wallets = db.wallets || [];
+  const friends = db.friends || [];
 
   const [selectedCatFilter, setSelectedCatFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -140,6 +153,16 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
     };
   };
 
+  const getFriendNames = (ge: GroupedExpense) => {
+    if (!ge.friendIds || ge.friendIds.length === 0) return '';
+    const names = ge.friendIds
+      .map((id) => friends.find((f) => f.id === id)?.name)
+      .filter(Boolean);
+    if (names.length === 0) return '';
+    if (names.length <= 2) return names.join(', ');
+    return `${names[0]} +${names.length - 1}`;
+  };
+
   return (
     <div className={`analytics-v2-card ${className}`} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* 1. Header Row */}
@@ -187,12 +210,12 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: '100%',
-              height: 36,
+              height: 38,
               background: 'var(--surface2)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-full)',
-              paddingLeft: 34,
-              paddingRight: searchQuery ? 32 : 14,
+              paddingLeft: 36,
+              paddingRight: searchQuery ? 34 : 14,
               fontSize: 'var(--fs-sm)',
               color: 'var(--text)',
               outline: 'none',
@@ -219,13 +242,13 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
               }}
               title="Clear search"
             >
-              <X size={13} />
+              <X size={14} />
             </button>
           )}
         </div>
       )}
 
-      {/* 3. Category Filter Chips (Bigger, Comfortable Touch Targets) */}
+      {/* 3. Category Filter Chips */}
       {categoriesWithSpend.length > 1 && (
         <div
           style={{
@@ -299,7 +322,7 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
         </div>
       )}
 
-      {/* 4. Item List (Blending seamlessly with card background) */}
+      {/* 4. Item List */}
       {filteredItems.length === 0 ? (
         <div
           style={{
@@ -320,6 +343,9 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
             const meta = getCatMeta(item.category);
             const isExpanded = expandedItemName === item.rawName;
 
+            // Compute metrics
+            const avgAmount = item.totalAmount / (item.count || 1);
+
             return (
               <div
                 key={`${item.category}-${item.rawName}-${idx}`}
@@ -331,7 +357,7 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
                   transition: 'all 0.15s ease',
                 }}
               >
-                {/* Seamless item row matching image 2 style */}
+                {/* Seamless item row */}
                 <div
                   className="analytics-v2-cat-row"
                   onClick={() => setExpandedItemName(isExpanded ? null : item.rawName)}
@@ -349,7 +375,7 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
                     cursor: 'pointer',
                   }}
                 >
-                  {/* Left: Beautiful icon in soft squircle + Name & Minimal Count */}
+                  {/* Left: Icon squircle + Name & Count */}
                   <div className="analytics-v2-cat-left">
                     <div
                       className="analytics-v2-cat-icon-wrap"
@@ -368,7 +394,6 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
 
                     <div className="analytics-v2-cat-name-group">
                       <span className="analytics-v2-cat-name">{item.displayName}</span>
-                      {/* Minimal, easy to understand count: e.g. "2x • Food" or "1x" */}
                       <span className="analytics-v2-cat-count">
                         {item.count}x{selectedCatFilter === 'all' ? ` • ${item.category}` : ''}
                       </span>
@@ -387,72 +412,95 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        marginLeft: 2,
+                        marginLeft: 4,
                       }}
                     >
                       {isExpanded ? (
-                        <ChevronDown size={16} strokeWidth={2} />
+                        <ChevronDown size={16} strokeWidth={2.2} />
                       ) : (
-                        <ChevronRight size={16} strokeWidth={2} />
+                        <ChevronRight size={16} strokeWidth={2.2} />
                       )}
                     </span>
                   </div>
                 </div>
 
-                {/* Refined & Beautiful Collapsible Transaction History Submenu */}
+                {/* 🌟 Clean, Minimal & Mobile-Friendly Expanded Section */}
                 {isExpanded && (
                   <div
                     style={{
-                      margin: '2px 4px 8px 46px',
-                      padding: '10px 12px',
+                      marginTop: 4,
+                      marginBottom: 8,
+                      padding: '10px 10px',
                       background: 'var(--surface2)',
                       borderRadius: 'var(--radius-md)',
                       border: '1px solid var(--border)',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 6,
+                      gap: 8,
                       animation: 'popIn 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
+                      boxSizing: 'border-box',
+                      width: '100%',
+                      overflow: 'hidden',
                     }}
                   >
-                    {/* Submenu Header */}
+                    {/* Minimal Stats Strip (Clean, responsive pills without divider lines) */}
                     <div
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0 2px 2px',
+                        flexWrap: 'wrap',
+                        gap: 6,
+                        width: '100%',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <Clock size={11} style={{ color: 'var(--text-3)' }} />
-                        <span
-                          style={{
-                            fontSize: 'var(--fs-caption)',
-                            fontWeight: 700,
-                            color: 'var(--text-3)',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.4px',
-                          }}
-                        >
-                          History • {item.expenses.length} {item.expenses.length === 1 ? 'entry' : 'entries'}
-                        </span>
-                      </div>
-                      <span
+                      {/* Average Cost */}
+                      <div
                         style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          padding: '3px 8px',
+                          borderRadius: 'var(--radius-full)',
                           fontSize: 'var(--fs-caption)',
-                          color: 'var(--text-3)',
-                          fontWeight: 500,
+                          color: 'var(--text-2)',
                         }}
                       >
-                        Tap to view
-                      </span>
+                        <TrendingUp size={11} style={{ color: 'var(--text-3)' }} />
+                        <span>
+                          Avg: <strong style={{ color: 'var(--text)' }}>{fmtMoney(avgAmount, currency)}</strong>
+                        </span>
+                      </div>
+
+                      {/* Category Share */}
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          padding: '3px 8px',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: 'var(--fs-caption)',
+                          color: 'var(--text-2)',
+                        }}
+                      >
+                        <Percent size={11} style={{ color: meta.color }} />
+                        <span>
+                          <strong style={{ color: 'var(--text)' }}>{item.pctOfCategory.toFixed(0)}%</strong> of {item.category}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Submenu Transaction List */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {/* Transaction List (Fully responsive on mobile) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: '100%' }}>
                       {item.expenses.map((ge, eIdx) => {
                         const wallet = wallets.find((w) => w.id === ge.walletId);
                         const amt = getGroupedExpenseAmount(ge, spendingMode);
+                        const friendNames = getFriendNames(ge);
+                        const noteText = ge.items[0]?.notes || (ge.description !== item.displayName ? ge.description : '');
 
                         return (
                           <div
@@ -467,13 +515,16 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              padding: '7px 10px',
+                              padding: '8px 10px',
                               borderRadius: 'var(--radius-sm)',
                               background: 'var(--surface)',
                               border: '1px solid var(--border)',
                               cursor: 'pointer',
-                              gap: 8,
+                              gap: 10,
                               transition: 'all 0.15s ease',
+                              boxSizing: 'border-box',
+                              width: '100%',
+                              minWidth: 0,
                             }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
@@ -482,78 +533,144 @@ export const ItemBreakdownCard: React.FC<ItemBreakdownCardProps> = ({
                               }
                             }}
                           >
-                            {/* Left: Date + Wallet + Split Badges */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-                              <span
+                            {/* Left details: Date, Wallet badge, Split badges, Notes */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 3,
+                                minWidth: 0,
+                                flex: 1,
+                                overflow: 'hidden',
+                              }}
+                            >
+                              {/* Date row */}
+                              <div
                                 style={{
                                   fontSize: 'var(--fs-xs)',
                                   fontWeight: 650,
                                   color: 'var(--text)',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
                                   whiteSpace: 'nowrap',
                                 }}
                               >
                                 {formatTxDate(ge.date)}
-                              </span>
+                              </div>
 
-                              {/* Wallet badge */}
-                              {wallet && (
-                                <span
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                    fontSize: 'var(--fs-caption)',
-                                    color: 'var(--text-2)',
-                                    background: 'var(--surface2)',
-                                    padding: '2px 6px',
-                                    borderRadius: 'var(--radius-xs)',
-                                    whiteSpace: 'nowrap',
-                                    maxWidth: 130,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                  }}
-                                >
-                                  {renderWalletIcon(wallet.icon || wallet.name || 'cash', 12, wallet.color)}
-                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{wallet.name}</span>
-                                </span>
-                              )}
-
-                              {/* Split badge */}
-                              {ge.isSplit && (
-                                <span
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3,
-                                    fontSize: '10px',
-                                    fontWeight: 700,
-                                    color: 'var(--amber)',
-                                    background: 'var(--amber-bg)',
-                                    border: '1px solid var(--amber-border)',
-                                    padding: '1px 5px',
-                                    borderRadius: 'var(--radius-full)',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  <Users size={9} />
-                                  <span>Split</span>
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Right: Amount & Navigation Arrow */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                              <span
+                              {/* Metadata row */}
+                              <div
                                 style={{
-                                  fontSize: 'var(--fs-xs)',
-                                  fontWeight: 750,
-                                  color: 'var(--debit)',
-                                  fontVariantNumeric: 'tabular-nums',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  flexWrap: 'wrap',
+                                  minWidth: 0,
+                                  overflow: 'hidden',
                                 }}
                               >
-                                {fmtMoney(amt, currency)}
-                              </span>
-                              <ArrowUpRight size={12} style={{ color: 'var(--text-3)', opacity: 0.6 }} />
+                                {/* Wallet Badge */}
+                                {wallet && (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      fontSize: '11px',
+                                      color: 'var(--text-2)',
+                                      background: 'var(--surface2)',
+                                      border: '1px solid var(--border)',
+                                      padding: '1px 6px',
+                                      borderRadius: 'var(--radius-full)',
+                                      whiteSpace: 'nowrap',
+                                      maxWidth: 120,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                    }}
+                                  >
+                                    {renderWalletIcon(wallet.icon || wallet.name || 'cash', 11, wallet.color)}
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{wallet.name}</span>
+                                  </span>
+                                )}
+
+                                {/* Split badge with friend names */}
+                                {ge.isSplit && (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3,
+                                      fontSize: '11px',
+                                      fontWeight: 600,
+                                      color: 'var(--amber)',
+                                      background: 'var(--amber-bg)',
+                                      border: '1px solid var(--amber-border)',
+                                      padding: '1px 6px',
+                                      borderRadius: 'var(--radius-full)',
+                                      whiteSpace: 'nowrap',
+                                      maxWidth: 130,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                    }}
+                                  >
+                                    <Users size={9} />
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {friendNames ? `Split with ${friendNames}` : 'Split'}
+                                    </span>
+                                  </span>
+                                )}
+
+                                {/* Note preview */}
+                                {noteText && (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3,
+                                      fontSize: '11px',
+                                      color: 'var(--text-3)',
+                                      maxWidth: 130,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    <FileText size={9} />
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{noteText}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Right details: Amount & Click indicator */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                flexShrink: 0,
+                              }}
+                            >
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                <span
+                                  style={{
+                                    fontSize: 'var(--fs-sm)',
+                                    fontWeight: 750,
+                                    color: 'var(--debit)',
+                                    fontVariantNumeric: 'tabular-nums',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {fmtMoney(amt, currency)}
+                                </span>
+                                {ge.isSplit && spendingMode === 'all' && ge.personalShare > 0 && (
+                                  <span style={{ fontSize: '10px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>
+                                    Mine: {fmtMoney(ge.personalShare, currency)}
+                                  </span>
+                                )}
+                              </div>
+
+                              <ArrowUpRight size={13} style={{ color: 'var(--text-3)', opacity: 0.6 }} />
                             </div>
                           </div>
                         );
