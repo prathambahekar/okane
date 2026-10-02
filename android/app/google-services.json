@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "481189410730",
+    "project_id": "okanecaraxes",
+    "storage_bucket": "okanecaraxes.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:481189410730:android:9782c8062cb7236fe39dd3",
+        "android_client_info": {
+          "package_name": "com.okane.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlxQlQ96zR4D1xqRNvslo8IR-69KhsHXE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

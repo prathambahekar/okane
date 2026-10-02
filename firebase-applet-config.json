@@ -1,12 +1,12 @@
 {
-  "projectId": "seismic-force-m5fd2",
-  "appId": "1:513574717879:web:29e876863769ae94558032",
-  "apiKey": "AIzaSyATg3ue_z3D3JM-gyLXbW0bx621tOITaWs",
-  "authDomain": "seismic-force-m5fd2.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-okane-02a81698-63cd-462a-81d4-6c6883c18cd7",
-  "storageBucket": "seismic-force-m5fd2.firebasestorage.app",
-  "messagingSenderId": "513574717879",
-  "measurementId": "",
-  "oAuthClientId": "513574717879-86cp2japnuhv45m6vk94a83h9vbvq4cn.apps.googleusercontent.com",
+  "projectId": "okanecaraxes",
+  "appId": "1:481189410730:web:22e508e7a4485954e39dd3",
+  "apiKey": "AIzaSyDg4ekbF8rRLNBWMIV4uu_s7Yb2KZ_-fOQ",
+  "authDomain": "okanecaraxes.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "okanecaraxes.firebasestorage.app",
+  "messagingSenderId": "481189410730",
+  "measurementId": "G-SX97DFL4F9",
+  "oAuthClientId": "",
   "recaptchaSiteKey": ""
 }

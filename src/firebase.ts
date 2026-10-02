@@ -1,5 +1,15 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged, type User } from 'firebase/auth';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithCredential,
+  signOut as fbSignOut,
+  onAuthStateChanged,
+  type User,
+} from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { SocialLogin } from '@capgo/capacitor-social-login';
 import {
   getFirestore,
   doc,
@@ -17,8 +27,10 @@ import type { AppDB, Expense, Friend, Wallet, Settlement, RecurringRule } from '
 // 1. Initialize Firebase App
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// 2. Initialize Firestore with specific database ID (CRITICAL: Required for multi-database / AI Studio setup)
-export const firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const firestoreDb =
+  firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
+    ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+    : getFirestore(app);
 
 // 3. Initialize Firebase Authentication
 export const firebaseAuth = getAuth(app);
@@ -90,36 +102,83 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
+let isSocialLoginInitialized = false;
+
+export async function ensureSocialLoginInit(): Promise<void> {
+  if (isSocialLoginInitialized || !Capacitor.isNativePlatform()) return;
+  try {
+    await SocialLogin.initialize({
+      google: {
+        webClientId: firebaseConfig.oAuthClientId,
+        mode: 'online',
+      },
+    });
+    isSocialLoginInitialized = true;
+  } catch (e) {
+    console.warn('[SocialLogin] Initialize warning:', e);
+  }
+}
+
+if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+  ensureSocialLoginInit().catch(() => {});
+}
+
+async function recordUserProfile(user: User): Promise<void> {
+  const userRef = doc(firestoreDb, 'users', user.uid);
+  const userSnap = await getDoc(userRef).catch(() => null);
+  const nowIso = new Date().toISOString();
+  if (!userSnap || !userSnap.exists()) {
+    await setDoc(userRef, {
+      id: user.uid,
+      email: user.email || '',
+      displayName: user.displayName || '',
+      photoURL: user.photoURL || '',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    }).catch(err => {
+      console.warn('Failed creating initial user profile document:', err);
+    });
+  } else {
+    await setDoc(
+      userRef,
+      {
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+        updatedAt: nowIso,
+      },
+      { merge: true }
+    ).catch(() => {});
+  }
+}
+
 export async function signInWithGoogle(): Promise<User> {
   try {
-    const cred = await signInWithPopup(firebaseAuth, googleProvider);
-    // Record / update top-level user profile in Firestore
-    if (cred.user) {
-      const userRef = doc(firestoreDb, 'users', cred.user.uid);
-      const userSnap = await getDoc(userRef).catch(() => null);
-      const nowIso = new Date().toISOString();
-      if (!userSnap || !userSnap.exists()) {
-        await setDoc(userRef, {
-          id: cred.user.uid,
-          email: cred.user.email || '',
-          displayName: cred.user.displayName || '',
-          photoURL: cred.user.photoURL || '',
-          createdAt: nowIso,
-          updatedAt: nowIso,
-        }).catch(err => {
-          console.warn('Failed creating initial user profile document:', err);
-        });
-      } else {
-        await setDoc(
-          userRef,
-          {
-            displayName: cred.user.displayName || '',
-            photoURL: cred.user.photoURL || '',
-            updatedAt: nowIso,
-          },
-          { merge: true }
-        ).catch(() => {});
+    // 1. On Native Mobile (Android/iOS via Capacitor), use native system account dialog
+    if (Capacitor.isNativePlatform()) {
+      await ensureSocialLoginInit();
+      const loginRes = await SocialLogin.login({
+        provider: 'google',
+        options: {},
+      });
+
+      const resObj = loginRes?.result as { idToken?: string | null } | undefined;
+      const idToken = resObj?.idToken;
+      if (!idToken) {
+        throw new Error('Native Google sign-in was cancelled or returned no ID token.');
       }
+
+      const credential = GoogleAuthProvider.credential(idToken);
+      const cred = await signInWithCredential(firebaseAuth, credential);
+      if (cred.user) {
+        await recordUserProfile(cred.user);
+      }
+      return cred.user;
+    }
+
+    // 2. On Web / Desktop (Browser or Tauri), use web popup
+    const cred = await signInWithPopup(firebaseAuth, googleProvider);
+    if (cred.user) {
+      await recordUserProfile(cred.user);
     }
     return cred.user;
   } catch (error) {
@@ -130,6 +189,9 @@ export async function signInWithGoogle(): Promise<User> {
 
 export async function signOutUser(): Promise<void> {
   try {
+    if (Capacitor.isNativePlatform()) {
+      await SocialLogin.logout({ provider: 'google' }).catch(() => {});
+    }
     await fbSignOut(firebaseAuth);
   } catch (error) {
     console.error('Sign out error:', error);
@@ -246,6 +308,51 @@ export async function syncUserDataToFirestore(userId: string, data: AppDB): Prom
           settlementId: expense.settlementId || null,
           notes: expense.notes || '',
           createdAt: expense.createdAt || Date.now(),
+        },
+        { merge: true }
+      );
+      opCount++;
+    }
+
+    // Sync Settlements (recent 50)
+    for (const settlement of (data.settlements || []).slice(0, 50)) {
+      if (!settlement.id) continue;
+      const sRef = doc(firestoreDb, 'users', userId, 'settlements', settlement.id);
+      batch.set(
+        sRef,
+        {
+          id: settlement.id,
+          userId,
+          friendId: settlement.friendId,
+          amount: settlement.amount ?? 0,
+          date: settlement.date || new Date().toISOString().slice(0, 10),
+          note: settlement.note || '',
+          walletId: settlement.walletId || '',
+          createdAt: settlement.createdAt || Date.now(),
+        },
+        { merge: true }
+      );
+      opCount++;
+    }
+
+    // Sync Recurring Rules (recent 50)
+    for (const rule of (data.recurringRules || []).slice(0, 50)) {
+      if (!rule.id) continue;
+      const rRef = doc(firestoreDb, 'users', userId, 'recurringRules', rule.id);
+      batch.set(
+        rRef,
+        {
+          id: rule.id,
+          userId,
+          title: rule.title || 'Rule',
+          amount: rule.amount ?? 0,
+          category: rule.category || 'General',
+          walletId: rule.walletId || '',
+          type: rule.type || 'personal',
+          flow: rule.flow || 'out',
+          frequency: rule.frequency || 'monthly',
+          startDate: rule.startDate || new Date().toISOString().slice(0, 10),
+          nextDueDate: rule.nextDueDate || new Date().toISOString().slice(0, 10),
         },
         { merge: true }
       );

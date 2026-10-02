@@ -24,7 +24,6 @@ import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import ConfirmDialog from './ConfirmDialog';
-import type { AppDB } from '../types';
 
 interface DataManagementDrawerProps {
   isOpen: boolean;
@@ -37,7 +36,7 @@ export default function DataManagementDrawer({
   onClose,
   onOpenDummyModal,
 }: DataManagementDrawerProps) {
-  const { user, isSyncing, lastSyncTime, signInWithGoogle, signOut, syncToCloud, pullFromCloud } = useFirebase();
+  const { user, isSyncing, lastSyncTime, isAutoSyncActive, signInWithGoogle, signOut, syncToCloud, restoreFromCloud } = useFirebase();
   const { db, restoreDB, resetDB, showToast } = useStore();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -203,27 +202,10 @@ export default function DataManagementDrawer({
     setErrorMsg(null);
     setStatusMsg('Restoring...');
     try {
-      const cloudData = await pullFromCloud();
-      if (cloudData && (cloudData.expenses || cloudData.wallets || cloudData.friends)) {
-        const restoredDB: AppDB = {
-          version: cloudData.version || db.version || 3,
-          expenses: Array.isArray(cloudData.expenses) ? cloudData.expenses : [],
-          friends: Array.isArray(cloudData.friends) ? cloudData.friends : [],
-          wallets: Array.isArray(cloudData.wallets) && cloudData.wallets.length > 0 ? cloudData.wallets : db.wallets,
-          settlements: Array.isArray(cloudData.settlements) ? cloudData.settlements : [],
-          recurringRules: Array.isArray(cloudData.recurringRules) ? cloudData.recurringRules : [],
-          settings: {
-            ...db.settings,
-            ...(cloudData.settings || {}),
-          },
-          activeTrip: cloudData.activeTrip ?? db.activeTrip,
-          tripHistory: Array.isArray(cloudData.tripHistory) ? cloudData.tripHistory : db.tripHistory,
-          presetGroups: Array.isArray(cloudData.presetGroups) ? cloudData.presetGroups : db.presetGroups,
-        };
-        restoreDB(restoredDB);
-        const count = restoredDB.expenses.length;
-        setStatusMsg(`Restored ${count} records!`);
-        showToast(`Restored ${count} expenses from Cloud`);
+      const restored = await restoreFromCloud();
+      if (restored) {
+        setStatusMsg('Records restored successfully!');
+        showToast('Restored from Cloud');
         setTimeout(() => setStatusMsg(null), 3500);
       } else {
         setStatusMsg('No cloud backup found');
@@ -604,7 +586,7 @@ export default function DataManagementDrawer({
                 </button>
               </div>
 
-              {/* Status Note */}
+              {/* Auto-Sync Live Status Note */}
               <div
                 style={{
                   display: 'flex',
@@ -617,9 +599,15 @@ export default function DataManagementDrawer({
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <ShieldCheck size={13} color="var(--credit)" />
-                  <span>Cloud Active</span>
+                  <span>{isAutoSyncActive ? 'Auto-Sync Active' : 'Cloud Active'}</span>
                 </div>
-                <div>{formattedSyncTime ? `Synced at ${formattedSyncTime}` : 'Ready to sync'}</div>
+                <div>
+                  {isSyncing
+                    ? 'Syncing in background...'
+                    : formattedSyncTime
+                    ? `Synced at ${formattedSyncTime}`
+                    : 'Ready to sync'}
+                </div>
               </div>
             </div>
           ) : (
