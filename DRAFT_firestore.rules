@@ -1,0 +1,233 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net - Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() {
+      return request.resource.data;
+    }
+    function existing() {
+      return resource.data;
+    }
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isVerifiedUser() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+
+    // Entity Schema Validators
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['id', 'email'])
+        && data.keys().hasOnly(['id', 'email', 'displayName', 'photoURL', 'createdAt', 'updatedAt'])
+        && data.id == userId
+        && data.email is string && data.email.size() <= 256
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidExpense(data, userId) {
+      return data.keys().hasAll(['id', 'description', 'amount', 'category', 'date', 'type', 'flow', 'walletId'])
+        && data.keys().hasOnly(['id', 'userId', 'groupId', 'description', 'amount', 'category', 'date', 'type', 'flow', 'friendId', 'vendorId', 'walletId', 'status', 'settled', 'settlementId', 'notes', 'createdAt', 'updatedAt'])
+        && (!('userId' in data) || data.userId == userId)
+        && data.id is string && data.id.size() <= 128
+        && data.description is string && data.description.size() <= 256
+        && (data.amount is int || data.amount is float)
+        && data.category is string && data.category.size() <= 64
+        && data.date is string && data.date.size() <= 32
+        && (data.type == 'personal' || data.type == 'for_friend' || data.type == 'by_friend')
+        && (data.flow == 'in' || data.flow == 'out')
+        && data.walletId is string && data.walletId.size() <= 128
+        && (!('groupId' in data) || data.groupId == null || (data.groupId is string && data.groupId.size() <= 128))
+        && (!('friendId' in data) || data.friendId == null || (data.friendId is string && data.friendId.size() <= 128))
+        && (!('vendorId' in data) || data.vendorId == null || (data.vendorId is string && data.vendorId.size() <= 128))
+        && (!('status' in data) || (data.status == 'paid' || data.status == 'unpaid' || data.status == 'unsettled'))
+        && (!('settled' in data) || data.settled is bool)
+        && (!('settlementId' in data) || data.settlementId == null || (data.settlementId is string && data.settlementId.size() <= 128))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2048))
+        && (!('createdAt' in data) || (data.createdAt is int || data.createdAt is float));
+    }
+
+    function isValidFriend(data, userId) {
+      return data.keys().hasAll(['id', 'name', 'color', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'name', 'notes', 'color', 'createdAt', 'type', 'category', 'billingCycle', 'defaultAmount', 'website'])
+        && (!('userId' in data) || data.userId == userId)
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 128
+        && data.color is string && data.color.size() <= 32
+        && (data.createdAt is int || data.createdAt is float)
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2048))
+        && (!('type' in data) || (data.type == 'friend' || data.type == 'vendor' || data.type == 'subscription'))
+        && (!('category' in data) || (data.category is string && data.category.size() <= 64))
+        && (!('billingCycle' in data) || (data.billingCycle is string && data.billingCycle.size() <= 64))
+        && (!('defaultAmount' in data) || (data.defaultAmount is int || data.defaultAmount is float))
+        && (!('website' in data) || (data.website is string && data.website.size() <= 512));
+    }
+
+    function isValidWallet(data, userId) {
+      return data.keys().hasAll(['id', 'name', 'openingBalance', 'color'])
+        && data.keys().hasOnly(['id', 'userId', 'name', 'openingBalance', 'currentBalance', 'color', 'icon', 'minBalanceAlert', 'monthlySpendLimit', 'isDefault', 'isHidden', 'rulesNotes'])
+        && (!('userId' in data) || data.userId == userId)
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 128
+        && (data.openingBalance is int || data.openingBalance is float)
+        && data.color is string && data.color.size() <= 32
+        && (!('currentBalance' in data) || (data.currentBalance is int || data.currentBalance is float))
+        && (!('icon' in data) || (data.icon is string && data.icon.size() <= 64))
+        && (!('minBalanceAlert' in data) || (data.minBalanceAlert is int || data.minBalanceAlert is float))
+        && (!('monthlySpendLimit' in data) || (data.monthlySpendLimit is int || data.monthlySpendLimit is float))
+        && (!('isDefault' in data) || data.isDefault is bool)
+        && (!('isHidden' in data) || data.isHidden is bool)
+        && (!('rulesNotes' in data) || (data.rulesNotes is string && data.rulesNotes.size() <= 2048));
+    }
+
+    function isValidSettlement(data, userId) {
+      return data.keys().hasAll(['id', 'friendId', 'amount', 'date', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'friendId', 'amount', 'date', 'note', 'walletId', 'paymentMethod', 'originalTotal', 'remainingAmount', 'isForgiven', 'createdAt', 'expenseIds'])
+        && (!('userId' in data) || data.userId == userId)
+        && data.id is string && data.id.size() <= 128
+        && data.friendId is string && data.friendId.size() <= 128
+        && (data.amount is int || data.amount is float)
+        && data.date is string && data.date.size() <= 32
+        && (data.createdAt is int || data.createdAt is float)
+        && (!('note' in data) || (data.note is string && data.note.size() <= 1024))
+        && (!('walletId' in data) || (data.walletId is string && data.walletId.size() <= 128))
+        && (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 64))
+        && (!('originalTotal' in data) || (data.originalTotal is int || data.originalTotal is float))
+        && (!('remainingAmount' in data) || (data.remainingAmount is int || data.remainingAmount is float))
+        && (!('isForgiven' in data) || data.isForgiven is bool)
+        && (!('expenseIds' in data) || (data.expenseIds is list && data.expenseIds.size() <= 200));
+    }
+
+    function isValidRecurringRule(data, userId) {
+      return data.keys().hasAll(['id', 'title', 'kind', 'amount', 'category', 'walletId', 'frequency', 'startDate', 'status', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'title', 'kind', 'amount', 'category', 'walletId', 'type', 'flow', 'friendId', 'frequency', 'intervalValue', 'startDate', 'nextDueDate', 'autoDeduct', 'status', 'notes', 'createdAt'])
+        && (!('userId' in data) || data.userId == userId)
+        && data.id is string && data.id.size() <= 128
+        && data.title is string && data.title.size() <= 128
+        && (data.kind == 'autopay' || data.kind == 'quick_log')
+        && (data.amount is int || data.amount is float)
+        && data.category is string && data.category.size() <= 64
+        && data.walletId is string && data.walletId.size() <= 128
+        && (data.frequency == 'daily' || data.frequency == 'weekly' || data.frequency == 'monthly' || data.frequency == 'custom_days' || data.frequency == 'custom_months')
+        && data.startDate is string && data.startDate.size() <= 32
+        && (data.status == 'active' || data.status == 'paused')
+        && (data.createdAt is int || data.createdAt is float)
+        && (!('type' in data) || (data.type == 'personal' || data.type == 'for_friend' || data.type == 'by_friend'))
+        && (!('flow' in data) || (data.flow == 'in' || data.flow == 'out'))
+        && (!('friendId' in data) || data.friendId == null || (data.friendId is string && data.friendId.size() <= 128))
+        && (!('intervalValue' in data) || (data.intervalValue is int || data.intervalValue is float))
+        && (!('nextDueDate' in data) || (data.nextDueDate is string && data.nextDueDate.size() <= 32))
+        && (!('autoDeduct' in data) || data.autoDeduct is bool)
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1024));
+    }
+
+    function isValidSettings(data, userId) {
+      return data.keys().hasAll(['userId', 'currency'])
+        && data.keys().hasOnly(['id', 'userId', 'currency', 'defaultCategory', 'defaultStatus', 'defaultWalletId', 'colorMode', 'accent', 'spendingMode', 'updatedAt'])
+        && data.userId == userId
+        && data.currency is string && data.currency.size() <= 16
+        && (!('defaultCategory' in data) || (data.defaultCategory is string && data.defaultCategory.size() <= 64))
+        && (!('defaultStatus' in data) || (data.defaultStatus == 'paid' || data.defaultStatus == 'unpaid' || data.defaultStatus == 'unsettled'))
+        && (!('defaultWalletId' in data) || (data.defaultWalletId is string && data.defaultWalletId.size() <= 128))
+        && (!('colorMode' in data) || (data.colorMode == 'light' || data.colorMode == 'dark'))
+        && (!('accent' in data) || (data.accent is string && data.accent.size() <= 32))
+        && (!('spendingMode' in data) || (data.spendingMode == 'all' || data.spendingMode == 'me'))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // Top Level User Profiles
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false; // Deny broad user listings
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId)
+        && incoming().id == existing().id;
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Subcollection: Expenses
+      match /expenses/{expenseId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(expenseId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(expenseId)
+          && isValidExpense(incoming(), userId) && incoming().id == expenseId;
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(expenseId)
+          && isValidExpense(incoming(), userId)
+          && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(expenseId);
+      }
+
+      // Subcollection: Friends
+      match /friends/{friendId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(friendId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(friendId)
+          && isValidFriend(incoming(), userId) && incoming().id == friendId;
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(friendId)
+          && isValidFriend(incoming(), userId)
+          && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(friendId);
+      }
+
+      // Subcollection: Wallets
+      match /wallets/{walletId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(walletId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(walletId)
+          && isValidWallet(incoming(), userId) && incoming().id == walletId;
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(walletId)
+          && isValidWallet(incoming(), userId)
+          && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(walletId);
+      }
+
+      // Subcollection: Settlements
+      match /settlements/{settlementId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(settlementId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(settlementId)
+          && isValidSettlement(incoming(), userId) && incoming().id == settlementId;
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(settlementId)
+          && isValidSettlement(incoming(), userId)
+          && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(settlementId);
+      }
+
+      // Subcollection: Recurring Rules
+      match /recurringRules/{ruleId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(ruleId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(ruleId)
+          && isValidRecurringRule(incoming(), userId) && incoming().id == ruleId;
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(ruleId)
+          && isValidRecurringRule(incoming(), userId)
+          && incoming().id == existing().id;
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(ruleId);
+      }
+
+      // Subcollection: User Settings
+      match /settings/{settingId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(settingId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(settingId)
+          && isValidSettings(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(settingId)
+          && isValidSettings(incoming(), userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(settingId);
+      }
+    }
+  }
+}

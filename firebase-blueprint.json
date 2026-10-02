@@ -1,0 +1,481 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account profile document",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Firebase Auth user ID",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name",
+          "maxLength": 128
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User avatar photo URL",
+          "maxLength": 1024
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of account creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of profile update"
+        }
+      },
+      "required": ["id", "email"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Expense transaction item",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique expense identifier",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "groupId": {
+          "type": "string",
+          "description": "Optional group ID for multi-item splits",
+          "maxLength": 128
+        },
+        "description": {
+          "type": "string",
+          "description": "Expense title / vendor / item description",
+          "maxLength": 256
+        },
+        "amount": {
+          "type": "number",
+          "description": "Monetary transaction amount"
+        },
+        "category": {
+          "type": "string",
+          "description": "Expense category name",
+          "maxLength": 64
+        },
+        "date": {
+          "type": "string",
+          "description": "Transaction date ISO string",
+          "maxLength": 32
+        },
+        "type": {
+          "type": "string",
+          "description": "Expense ownership type",
+          "enum": ["personal", "for_friend", "by_friend"]
+        },
+        "flow": {
+          "type": "string",
+          "description": "Cash flow direction",
+          "enum": ["in", "out"]
+        },
+        "friendId": {
+          "type": "string",
+          "description": "Associated friend ID if applicable",
+          "maxLength": 128
+        },
+        "vendorId": {
+          "type": "string",
+          "description": "Associated vendor ID if applicable",
+          "maxLength": 128
+        },
+        "walletId": {
+          "type": "string",
+          "description": "Associated wallet ID",
+          "maxLength": 128
+        },
+        "status": {
+          "type": "string",
+          "description": "Settlement payment status",
+          "enum": ["paid", "unpaid", "unsettled"]
+        },
+        "settled": {
+          "type": "boolean",
+          "description": "Whether this debt or expense is settled"
+        },
+        "settlementId": {
+          "type": "string",
+          "description": "Associated settlement ID",
+          "maxLength": 128
+        },
+        "notes": {
+          "type": "string",
+          "description": "User notes or remarks",
+          "maxLength": 2048
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Timestamp ms when created"
+        }
+      },
+      "required": ["id", "description", "amount", "category", "date", "type", "flow", "walletId"]
+    },
+    "Friend": {
+      "title": "Friend",
+      "description": "Contact, friend, or vendor contact",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique contact ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Friend or vendor name",
+          "maxLength": 128
+        },
+        "notes": {
+          "type": "string",
+          "description": "Notes on contact",
+          "maxLength": 2048
+        },
+        "color": {
+          "type": "string",
+          "description": "Badge color hex code",
+          "maxLength": 32
+        },
+        "type": {
+          "type": "string",
+          "description": "Contact type",
+          "enum": ["friend", "vendor", "subscription"]
+        },
+        "category": {
+          "type": "string",
+          "description": "Default category name",
+          "maxLength": 64
+        },
+        "billingCycle": {
+          "type": "string",
+          "description": "Billing cycle recurrence",
+          "maxLength": 64
+        },
+        "defaultAmount": {
+          "type": "number",
+          "description": "Default billing amount"
+        },
+        "website": {
+          "type": "string",
+          "description": "Vendor website or URL",
+          "maxLength": 512
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Creation timestamp ms"
+        }
+      },
+      "required": ["id", "name", "color", "createdAt"]
+    },
+    "Wallet": {
+      "title": "Wallet",
+      "description": "Financial wallet or account",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique wallet identifier",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Wallet display name",
+          "maxLength": 128
+        },
+        "openingBalance": {
+          "type": "number",
+          "description": "Starting balance amount"
+        },
+        "currentBalance": {
+          "type": "number",
+          "description": "Current calculated balance"
+        },
+        "color": {
+          "type": "string",
+          "description": "Theme color hex code",
+          "maxLength": 32
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon identifier",
+          "maxLength": 64
+        },
+        "minBalanceAlert": {
+          "type": "number",
+          "description": "Threshold for low balance warning"
+        },
+        "monthlySpendLimit": {
+          "type": "number",
+          "description": "Monthly budget spend limit"
+        },
+        "isDefault": {
+          "type": "boolean",
+          "description": "Whether this is the primary payment wallet"
+        },
+        "isHidden": {
+          "type": "boolean",
+          "description": "Whether this wallet is archived/hidden"
+        },
+        "rulesNotes": {
+          "type": "string",
+          "description": "Wallet usage rules and notes",
+          "maxLength": 2048
+        }
+      },
+      "required": ["id", "name", "openingBalance", "color"]
+    },
+    "Settlement": {
+      "title": "Settlement",
+      "description": "Debt settlement and balance reconciliation record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique settlement ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "friendId": {
+          "type": "string",
+          "description": "Friend being settled with",
+          "maxLength": 128
+        },
+        "amount": {
+          "type": "number",
+          "description": "Settled payment amount"
+        },
+        "date": {
+          "type": "string",
+          "description": "Settlement date ISO string",
+          "maxLength": 32
+        },
+        "note": {
+          "type": "string",
+          "description": "Settlement notes",
+          "maxLength": 1024
+        },
+        "walletId": {
+          "type": "string",
+          "description": "Wallet used for payout/receipt",
+          "maxLength": 128
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Payment mode description",
+          "maxLength": 64
+        },
+        "isForgiven": {
+          "type": "boolean",
+          "description": "Whether the debt was forgiven"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Creation timestamp ms"
+        }
+      },
+      "required": ["id", "friendId", "amount", "date", "createdAt"]
+    },
+    "RecurringRule": {
+      "title": "RecurringRule",
+      "description": "Recurring autopay subscription or quick log template",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique recurring rule ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Rule label / name",
+          "maxLength": 128
+        },
+        "kind": {
+          "type": "string",
+          "description": "Rule kind",
+          "enum": ["autopay", "quick_log"]
+        },
+        "amount": {
+          "type": "number",
+          "description": "Recurring bill amount"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category name",
+          "maxLength": 64
+        },
+        "walletId": {
+          "type": "string",
+          "description": "Wallet to deduct from",
+          "maxLength": 128
+        },
+        "type": {
+          "type": "string",
+          "description": "Expense type",
+          "enum": ["personal", "for_friend", "by_friend"]
+        },
+        "flow": {
+          "type": "string",
+          "description": "Expense flow",
+          "enum": ["in", "out"]
+        },
+        "friendId": {
+          "type": "string",
+          "description": "Associated friend ID",
+          "maxLength": 128
+        },
+        "frequency": {
+          "type": "string",
+          "description": "Frequency interval",
+          "enum": ["daily", "weekly", "monthly", "custom_days", "custom_months"]
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date ISO string",
+          "maxLength": 32
+        },
+        "status": {
+          "type": "string",
+          "description": "Active or paused",
+          "enum": ["active", "paused"]
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes",
+          "maxLength": 1024
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Timestamp created ms"
+        }
+      },
+      "required": ["id", "title", "kind", "amount", "category", "walletId", "frequency", "startDate", "status", "createdAt"]
+    },
+    "UserSettings": {
+      "title": "UserSettings",
+      "description": "User preferences and settings configuration",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Document ID",
+          "maxLength": 64
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency code",
+          "maxLength": 16
+        },
+        "defaultCategory": {
+          "type": "string",
+          "description": "Default category name",
+          "maxLength": 64
+        },
+        "defaultStatus": {
+          "type": "string",
+          "description": "Default expense status",
+          "enum": ["paid", "unpaid", "unsettled"]
+        },
+        "defaultWalletId": {
+          "type": "string",
+          "description": "Default wallet ID",
+          "maxLength": 128
+        },
+        "colorMode": {
+          "type": "string",
+          "description": "Theme color mode",
+          "enum": ["light", "dark"]
+        },
+        "accent": {
+          "type": "string",
+          "description": "Theme accent preset",
+          "maxLength": 32
+        },
+        "spendingMode": {
+          "type": "string",
+          "description": "Spending calculation mode",
+          "enum": ["all", "me"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of update"
+        }
+      },
+      "required": ["userId", "currency"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Top-level user profile"
+    },
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "User's financial expenses and debts"
+    },
+    "/users/{userId}/friends/{friendId}": {
+      "schema": "Friend",
+      "description": "User's contacts, friends, and vendors"
+    },
+    "/users/{userId}/wallets/{walletId}": {
+      "schema": "Wallet",
+      "description": "User's payment wallets and accounts"
+    },
+    "/users/{userId}/settlements/{settlementId}": {
+      "schema": "Settlement",
+      "description": "User's debt settlement records"
+    },
+    "/users/{userId}/recurringRules/{ruleId}": {
+      "schema": "RecurringRule",
+      "description": "User's autopay and quick log recurring rules"
+    },
+    "/users/{userId}/settings/{settingId}": {
+      "schema": "UserSettings",
+      "description": "User's preferences and app configurations"
+    }
+  }
+}

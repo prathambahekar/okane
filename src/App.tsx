@@ -35,6 +35,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
+import { FirebaseProvider } from './context/FirebaseContext';
 import { useColorMode } from './theme';
 import type { ViewName } from './types';
 import { expenseFlow, overallBalance, todayISO, monthKey } from './db';
@@ -1752,7 +1753,9 @@ function AppInner() {
 export default function App() {
   return (
     <StoreProvider>
-      <AppInner />
+      <FirebaseProvider>
+        <AppInner />
+      </FirebaseProvider>
     </StoreProvider>
   );
 }

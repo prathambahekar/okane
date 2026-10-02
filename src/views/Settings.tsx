@@ -2,15 +2,15 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, Upload, FlaskConical, Trash2, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, ArrowUpRight, Sparkles, FileCode, Check, Database, Terminal, Download, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Send, Info, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet, Layout } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, FlaskConical, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, ArrowUpRight, Sparkles, FileCode, Check, Database, Terminal, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Info, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet, Layout, Download } from 'lucide-react';
 import { useStore } from '../store';
-import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, generateSQLDumpString, downloadFile, importSQLDumpString, seedSampleData, resetAndSeedSampleData } from '../db';
+import { useFirebase } from '../context/FirebaseContext';
+import DataManagementDrawer from '../components/DataManagementDrawer';
+import { CURRENCIES, DEFAULT_CATEGORIES, FRIEND_PALETTE, importSQLDumpString, seedSampleData, resetAndSeedSampleData } from '../db';
 import type { Category, AppDB, ViewName } from '../types';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Capacitor } from "@capacitor/core";
 import { NativeBiometric } from 'capacitor-native-biometric';
-import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
-import { Share } from "@capacitor/share";
 
 import CategoryIcon, { AVAILABLE_ICONS } from '../components/CategoryIcon';
 import PinSetupDrawer from '../components/PinSetupDrawer';
@@ -413,6 +413,8 @@ export default function Settings({
     );
   }, [currencySearchQuery]);
   const [showDataSheet, setShowDataSheet] = useState(false);
+  const [showFirebaseSheet, setShowFirebaseSheet] = useState(false);
+  const { user: firebaseUser } = useFirebase();
   const [showVersionSheet, setShowVersionSheet] = useState(false);
   const [showFeedbackSheet, setShowFeedbackSheet] = useState(false);
   const [showSecuritySheet, setShowSecuritySheet] = useState(false);
@@ -439,6 +441,7 @@ export default function Settings({
   }, { name: 'settings-categories' });
   useBackButtonModal(showCurrencySheet, () => setShowCurrencySheet(false), { name: 'settings-currency' });
   useBackButtonModal(showDataSheet, () => setShowDataSheet(false), { name: 'settings-data' });
+  useBackButtonModal(showFirebaseSheet, () => setShowFirebaseSheet(false), { name: 'settings-firebase' });
   useBackButtonModal(showVersionSheet, () => setShowVersionSheet(false), { name: 'settings-version' });
   useBackButtonModal(showFeedbackSheet, () => setShowFeedbackSheet(false), { name: 'settings-feedback' });
   useBackButtonModal(showSecuritySheet, () => {
@@ -504,7 +507,6 @@ export default function Settings({
     }
   };
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [exportModalOpen, setExportModalOpen] = useState(false);
   const handledArgRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -525,6 +527,9 @@ export default function Settings({
           'data-backup': () => setShowDataSheet(true),
           'data': () => setShowDataSheet(true),
           'backup': () => setShowDataSheet(true),
+          'firebase': () => setShowFirebaseSheet(true),
+          'cloud': () => setShowFirebaseSheet(true),
+          'cloud-sync': () => setShowFirebaseSheet(true),
           'advanced-features': () => setShowAdvancedSheet(true),
           'advanced': () => setShowAdvancedSheet(true),
           'security': () => setShowSecuritySheet(true),
@@ -850,244 +855,6 @@ export default function Settings({
     });
   };
 
-
-
-  const getExportContent = () => {
-    return {
-      content: generateSQLDumpString(db),
-      contentType: 'text/plain;charset=utf-8',
-      fileName: `okane-backup-${new Date().toISOString().slice(0, 10)}.db`,
-    };
-  };
-
-  const handleExportClick = () => {
-    const isMobile = window.innerWidth <= 768 || Capacitor.isNativePlatform() || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isMobile) {
-      setExportModalOpen(true);
-    } else {
-      handleSaveToStorage();
-    }
-  };
-
-  const handleImportClick = () => {
-    setShowDataSheet(false);
-    if (fileRef.current) {
-      fileRef.current.value = '';
-      fileRef.current.click();
-    }
-  };
-
-  const handleSaveToStorage = async () => {
-    const { content, contentType, fileName } = getExportContent();
-    try {
-      let savedToDevice = false;
-      let savedFolderLocation = 'Downloads/Okane';
-
-      // Native Mobile (Capacitor)
-      if (Capacitor.isNativePlatform()) {
-        try {
-          await Filesystem.requestPermissions();
-        } catch {
-          // ignore permission errors if already granted or unsupported
-        }
-
-        // Method A: Try ExternalStorage Download/Okane (Standard Android Downloads folder)
-        if (Capacitor.getPlatform() === 'android') {
-          try {
-            // First ensure Okane folder exists
-            try {
-              await Filesystem.mkdir({
-                path: 'Download/Okane',
-                directory: Directory.ExternalStorage,
-                recursive: true,
-              });
-            } catch { /* directory may already exist */ }
-
-            await Filesystem.writeFile({
-              path: `Download/Okane/${fileName}`,
-              data: content,
-              directory: Directory.ExternalStorage,
-              encoding: Encoding.UTF8,
-              recursive: true,
-            });
-            savedToDevice = true;
-            savedFolderLocation = 'Downloads/Okane';
-          } catch (e) {
-            console.warn('Direct Download/Okane write failed, trying Documents/Okane:', e);
-          }
-        }
-
-        // Method B: Try Documents/Okane directory
-        if (!savedToDevice) {
-          try {
-            try {
-              await Filesystem.mkdir({
-                path: 'Okane',
-                directory: Directory.Documents,
-                recursive: true,
-              });
-            } catch { /* directory may already exist */ }
-
-            await Filesystem.writeFile({
-              path: `Okane/${fileName}`,
-              data: content,
-              directory: Directory.Documents,
-              encoding: Encoding.UTF8,
-              recursive: true,
-            });
-            savedToDevice = true;
-            savedFolderLocation = 'Documents/Okane';
-          } catch (e) {
-            console.warn('Documents/Okane write failed, trying direct Documents:', e);
-          }
-        }
-
-        // Method C: Root of Documents or Data directory
-        if (!savedToDevice) {
-          try {
-            await Filesystem.writeFile({
-              path: fileName,
-              data: content,
-              directory: Directory.Documents,
-              encoding: Encoding.UTF8,
-              recursive: true,
-            });
-            savedToDevice = true;
-            savedFolderLocation = 'Documents';
-          } catch (e) {
-            console.warn('Documents root write failed:', e);
-          }
-        }
-      }
-
-      // Desktop File System Access API (lets user pick/save directly into their desired folder, defaulting to an Okane backup filename)
-      if (typeof window !== 'undefined' && 'showSaveFilePicker' in window && !Capacitor.isNativePlatform()) {
-        try {
-          const fileHandle = await (window as unknown as {
-            showSaveFilePicker: (options?: {
-              suggestedName?: string;
-              types?: Array<{
-                description: string;
-                accept: Record<string, string[]>;
-              }>;
-            }) => Promise<{
-              createWritable: () => Promise<{
-                write: (data: string | Blob) => Promise<void>;
-                close: () => Promise<void>;
-              }>;
-              name?: string;
-            }>;
-          }).showSaveFilePicker({
-            suggestedName: fileName,
-            types: [
-              {
-                description: 'Okane Database Backup (.db)',
-                accept: { 'text/plain': ['.db', '.sql'] },
-              },
-            ],
-          });
-
-          if (fileHandle) {
-            const writable = await fileHandle.createWritable();
-            await writable.write(content);
-            await writable.close();
-            setExportModalOpen(false);
-            showToast(`Backup saved to ${fileHandle.name || fileName}!`);
-            return;
-          }
-        } catch (pickerErr) {
-          // If the user cancelled the dialog, just exit cleanly
-          if ((pickerErr as Error).name === 'AbortError') {
-            setExportModalOpen(false);
-            return;
-          }
-          console.warn('showSaveFilePicker failed or was rejected, falling back to browser download:', pickerErr);
-        }
-      }
-
-      // Universal browser blob download (triggers browser download manager on Web/PWA/Android Chrome)
-      const downloaded = downloadFile(content, fileName, contentType);
-      setExportModalOpen(false);
-
-      if (savedToDevice) {
-        showToast(`Backup saved to ${savedFolderLocation}/${fileName}!`);
-      } else if (downloaded) {
-        showToast(`Saved ${fileName} to Downloads/Okane!`);
-      } else {
-        showToast('Backup exported successfully.');
-      }
-    } catch (err) {
-      console.error('Save to storage error:', err);
-      showToast('Failed to save backup file.');
-    }
-  };
-
-  const handleShareToApps = async () => {
-    const { content, contentType, fileName } = getExportContent();
-    try {
-      // 1. Native Mobile (Capacitor)
-      if (Capacitor.isNativePlatform()) {
-        try {
-          await Filesystem.requestPermissions();
-        } catch {
-          // ignore
-        }
-
-        const result = await Filesystem.writeFile({
-          path: fileName,
-          data: content,
-          directory: Directory.Cache,
-          encoding: Encoding.UTF8,
-          recursive: true,
-        });
-
-        await Share.share({
-          title: 'Okane Backup',
-          text: 'My Okane data backup file',
-          url: result.uri,
-          dialogTitle: 'Share Backup to Apps',
-        });
-
-        setExportModalOpen(false);
-        showToast('Share sheet opened!');
-        return;
-      }
-
-      // 2. Web Share API (Mobile Web Browsers: Chrome on Android, Safari on iOS)
-      if (navigator.share) {
-        try {
-          const blob = new Blob([content], { type: contentType });
-          const fileObj = new File([blob], fileName, { type: contentType });
-
-          if (navigator.canShare && navigator.canShare({ files: [fileObj] })) {
-            await navigator.share({
-              title: 'Okane Backup',
-              text: 'My Okane data backup file',
-              files: [fileObj],
-            });
-            setExportModalOpen(false);
-            showToast('Shared successfully!');
-            return;
-          }
-        } catch (shareErr) {
-          if ((shareErr as Error).name === 'AbortError') {
-            setExportModalOpen(false);
-            return;
-          }
-          console.warn('Web Share API file share failed, using fallback download:', shareErr);
-        }
-      }
-
-      // Download fallback for desktop browsers
-      downloadFile(content, fileName, contentType);
-      setExportModalOpen(false);
-      showToast(`Backup saved to Downloads (${fileName})!`);
-    } catch (err) {
-      console.error('Share to apps failed:', err);
-      showToast('Failed to share backup file.');
-    }
-  };
-
   const processImportText = (textToImport: string): boolean => {
     let text = textToImport;
     // Strip UTF-8 BOM if present
@@ -1241,7 +1008,8 @@ export default function Settings({
   const showGeneralSection = showAppearance || showPreferences || showCategories;
 
   const showData = matches(['data', 'data management', 'storage', 'backup', 'restore', 'export', 'import', 'reset', 'clear', 'json', 'csv', 'dummy', 'sample', 'seed', 'demo']);
-  const showDataSection = showData;
+  const showFirebase = matches(['firebase', 'cloud', 'sync', 'google', 'login', 'account', 'backup', 'firestore']);
+  const showDataSection = showData || showFirebase;
 
   const showSecurity = matches(['security', 'privacy', 'pin', 'biometric', 'fingerprint', 'lock', 'face id']);
   const showAdvanced = matches(['advanced', 'features', 'ai assistant', 'gemini', 'autopay', 'recurring', 'trips', 'splits', 'dummy', 'sample']);
@@ -2903,107 +2671,54 @@ export default function Settings({
             <div className="settings-section-label">Data & Storage</div>
 
             <div className="settings-section-grid">
-              {/* Data Summary Card */}
-              {showData && (
-                <div className="card settings-summary-card" onClick={() => setShowDataSheet(true)}>
-                  <div className="settings-card-inner">
-                    <div className="settings-card-left">
-                      <div className="settings-card-icon">
-                        <Database size={19} />
-                      </div>
-                      <div className="settings-card-text">
-                        <h2 className="settings-card-title">Data Management</h2>
-                        <p className="settings-card-sub">
-                          Backup & restore
-                        </p>
-                      </div>
+              {/* Merged Data Management Card */}
+              <div className="card settings-summary-card" onClick={() => setShowDataSheet(true)}>
+                <div className="settings-card-inner">
+                  <div className="settings-card-left">
+                    <div className="settings-card-icon">
+                      <Database size={19} />
                     </div>
-
-                    <div className="settings-card-right">
-                      <ChevronRight className="settings-card-arrow" size={18} />
+                    <div className="settings-card-text">
+                      <h2 className="settings-card-title">Data Management</h2>
+                      <p className="settings-card-sub">
+                        {firebaseUser ? (firebaseUser.email || 'Cloud synced & local') : 'Local backup & cloud sync'}
+                      </p>
                     </div>
                   </div>
+
+                  <div className="settings-card-right">
+                    <span
+                      style={{
+                        fontSize: 'var(--fs-xs)',
+                        fontWeight: 600,
+                        padding: '3px 8px',
+                        borderRadius: 'var(--radius-full)',
+                        background: firebaseUser ? 'rgba(16, 185, 129, 0.1)' : 'var(--surface2)',
+                        color: firebaseUser ? '#10b981' : 'var(--text-3)',
+                        border: '1px solid',
+                        borderColor: firebaseUser ? 'rgba(16, 185, 129, 0.25)' : 'var(--border)',
+                        marginRight: 4,
+                      }}
+                    >
+                      {firebaseUser ? 'Synced' : 'Local'}
+                    </span>
+                    <ChevronRight className="settings-card-arrow" size={18} />
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Bottom Sheet Drawer Modal for Data */}
-        {showDataSheet && createPortal(
-          <div className="sheet-backdrop" onClick={() => setShowDataSheet(false)}>
-            <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
-              {/* Drag Handle */}
-              <div className="sheet-drag-handle" />
-
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div className="drawer-header-icon">
-                    <Database size={20} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                      Data
-                    </h3>
-                    <p className="drawer-header-sub">
-                      Export, import, or manage local storage
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="drawer-close-btn"
-                  onClick={() => setShowDataSheet(false)}
-                  title="Close"
-                >
-                  <X size={17} />
-                </button>
-              </div>
-
-              {/* Action Buttons Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: (settings.enableDummyData ?? false) ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: 10, marginBottom: 10 }}>
-                <button type="button" className="data-action-card" onClick={() => { setShowDataSheet(false); handleExportClick(); }}>
-                  <div className="data-action-icon-wrap">
-                    <Download size={25} strokeWidth={2.1} />
-                  </div>
-                  <span className="data-action-label">Export</span>
-                  <span className="data-action-sub">Save backup</span>
-                </button>
-
-                <button type="button" className="data-action-card" onClick={handleImportClick}>
-                  <div className="data-action-icon-wrap">
-                    <Upload size={25} strokeWidth={2.1} />
-                  </div>
-                  <span className="data-action-label">Import</span>
-                  <span className="data-action-sub">Restore file</span>
-                </button>
-
-                {(settings.enableDummyData ?? false) && (
-                  <button type="button" className="data-action-card" onClick={() => { setShowDataSheet(false); setShowDummyModal(true); }}>
-                    <div className="data-action-icon-wrap">
-                      <Sparkles size={25} strokeWidth={2.1} />
-                    </div>
-                    <span className="data-action-label">Dummy Data</span>
-                    <span className="data-action-sub">Add records</span>
-                  </button>
-                )}
-              </div>
-
-              <div className="data-reset-row" onClick={() => { setShowDataSheet(false); setShowReset(true); }} role="button" tabIndex={0}>
-                <div className="data-reset-left">
-                  <div className="data-reset-icon-wrap">
-                    <Trash2 size={15} />
-                  </div>
-                  <div className="data-reset-title">Reset all data</div>
-                </div>
-                <ChevronRight size={15} className="data-reset-arrow" />
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
+        {/* Unified Data & Storage Management Drawer */}
+        <DataManagementDrawer
+          isOpen={showDataSheet || showFirebaseSheet}
+          onClose={() => {
+            setShowDataSheet(false);
+            setShowFirebaseSheet(false);
+          }}
+          onOpenDummyModal={() => setShowDummyModal(true)}
+        />
 
         {/* Bottom Sheet Drawer Modal for Report Bug / Suggest Feature */}
         {showFeedbackSheet && createPortal(
@@ -4206,100 +3921,6 @@ export default function Settings({
               >
                 Cancel
               </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Export Options Modal */}
-      {exportModalOpen && createPortal(
-        <div
-          className="sheet-backdrop"
-          onClick={() => setExportModalOpen(false)}
-        >
-          <div
-            className="sheet-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Drag Handle */}
-            <div className="sheet-drag-handle" />
-
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="drawer-header-icon">
-                  <Download size={20} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.01em' }}>
-                    Export Backup
-                  </h3>
-                  <p className="drawer-header-sub">
-                    Save or share your backup file (.db)
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="drawer-close-btn"
-                onClick={() => setExportModalOpen(false)}
-                title="Close"
-              >
-                <X size={17} />
-              </button>
-            </div>
-
-            {/* Export Method Options */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 8 }}>
-              {/* Option 1: Save to Storage */}
-              <div
-                className="drawer-setting-card"
-                onClick={handleSaveToStorage}
-                role="button"
-                tabIndex={0}
-                style={{ cursor: 'pointer' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div className="drawer-card-icon">
-                    <Download size={19} />
-                  </div>
-                  <div className="drawer-card-info">
-                    <div className="drawer-card-title">
-                      Export to Storage
-                    </div>
-                    <div className="drawer-card-sub">
-                      Save to local storage
-                    </div>
-                  </div>
-                </div>
-                <ChevronRight size={17} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-              </div>
-
-              {/* Option 2: Share to Apps */}
-              <div
-                className="drawer-setting-card"
-                onClick={handleShareToApps}
-                role="button"
-                tabIndex={0}
-                style={{ cursor: 'pointer' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                  <div className="drawer-card-icon">
-                    <Send size={18} />
-                  </div>
-                  <div className="drawer-card-info">
-                    <div className="drawer-card-title">
-                      Share to Apps
-                    </div>
-                    <div className="drawer-card-sub">
-                      Share with other apps
-                    </div>
-                  </div>
-                </div>
-                <ChevronRight size={17} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-              </div>
             </div>
           </div>
         </div>,
