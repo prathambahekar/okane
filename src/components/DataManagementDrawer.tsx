@@ -36,7 +36,18 @@ export default function DataManagementDrawer({
   onClose,
   onOpenDummyModal,
 }: DataManagementDrawerProps) {
-  const { user, isSyncing, lastSyncTime, isAutoSyncActive, signInWithGoogle, signOut, syncToCloud, restoreFromCloud } = useFirebase();
+  const {
+    user,
+    isSyncing,
+    syncError,
+    clearSyncError,
+    lastSyncTime,
+    isAutoSyncActive,
+    signInWithGoogle,
+    signOut,
+    syncToCloud,
+    restoreFromCloud,
+  } = useFirebase();
   const { db, restoreDB, resetDB, showToast } = useStore();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -184,6 +195,7 @@ export default function DataManagementDrawer({
 
   const handleUploadCloud = async () => {
     setErrorMsg(null);
+    clearSyncError();
     setStatusMsg('Backing up...');
     try {
       await syncToCloud(db);
@@ -200,6 +212,7 @@ export default function DataManagementDrawer({
   const handleRestoreFromCloud = async () => {
     setShowRestoreConfirm(false);
     setErrorMsg(null);
+    clearSyncError();
     setStatusMsg('Restoring...');
     try {
       const restored = await restoreFromCloud();
@@ -598,17 +611,108 @@ export default function DataManagementDrawer({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <ShieldCheck size={13} color="var(--credit)" />
+                  <ShieldCheck size={13} color={syncError ? 'var(--debit, #ef4444)' : 'var(--credit)'} />
                   <span>{isAutoSyncActive ? 'Auto-Sync Active' : 'Cloud Active'}</span>
                 </div>
                 <div>
-                  {isSyncing
-                    ? 'Syncing in background...'
-                    : formattedSyncTime
-                    ? `Synced at ${formattedSyncTime}`
-                    : 'Ready to sync'}
+                  {isSyncing ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--accent, #6366f1)' }}>
+                      <RefreshCw size={11} className="spin" />
+                      Syncing in background...
+                    </span>
+                  ) : syncError ? (
+                    <span style={{ color: 'var(--debit, #ef4444)', fontWeight: 600 }}>
+                      Sync issue
+                    </span>
+                  ) : formattedSyncTime ? (
+                    `Synced at ${formattedSyncTime}`
+                  ) : (
+                    'Ready to sync'
+                  )}
                 </div>
               </div>
+
+              {/* Sync Error Details Banner if error occurs */}
+              {syncError && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    padding: '9px 11px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.22)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#ef4444', fontWeight: 650, fontSize: 'var(--fs-xs)' }}>
+                      <AlertCircle size={14} />
+                      <span>Sync Interrupted</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearSyncError}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-3)',
+                        cursor: 'pointer',
+                        padding: '0 2px',
+                        fontSize: '13px',
+                        lineHeight: 1,
+                      }}
+                      title="Dismiss"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-2)', lineHeight: 1.45 }}>
+                    {syncError}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={handleUploadCloud}
+                      disabled={isSyncing}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--surface)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text)',
+                        cursor: isSyncing ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      Retry Backup
+                    </button>
+                    {syncError.includes('Firebase Console') && (
+                      <a
+                        href="https://console.firebase.google.com"
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'rgba(99, 102, 241, 0.12)',
+                          border: '1px solid rgba(99, 102, 241, 0.25)',
+                          color: 'var(--accent, #6366f1)',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        Firebase Console
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div

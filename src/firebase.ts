@@ -14,7 +14,6 @@ import {
   getFirestore,
   doc,
   getDoc,
-  getDocFromServer,
   setDoc,
   deleteDoc,
   getDocs,
@@ -35,17 +34,60 @@ export const firestoreDb =
 // 3. Initialize Firebase Authentication
 export const firebaseAuth = getAuth(app);
 
-// 4. Validate connection to Firestore on initialization
-async function testConnection() {
+// 4. Utility: Promise with timeout to prevent hanging when offline or API is disabled
+export async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number = 8000,
+  errorMessage: string = 'Operation timed out'
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(errorMessage));
+    }, ms);
+  });
   try {
-    await getDocFromServer(doc(firestoreDb, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration.');
-    }
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
-testConnection().catch(() => {});
+
+// 5. Utility: Parse raw Firestore / network errors into user-friendly messages
+export function formatFirebaseErrorMessage(err: unknown): string {
+  if (!err) return 'Unknown error';
+  const rawMsg = err instanceof Error ? err.message : String(err);
+
+  let message = rawMsg;
+  try {
+    const parsed = JSON.parse(rawMsg);
+    if (parsed && typeof parsed.error === 'string') {
+      message = parsed.error;
+    }
+  } catch {
+    // raw string
+  }
+
+  if (
+    message.includes('Cloud Firestore API has not been used') ||
+    message.includes('api/firestore.googleapis.com')
+  ) {
+    return 'Firestore API is disabled for project "okanecaraxes". Please open Google Cloud Console or Firebase Console to enable Cloud Firestore.';
+  }
+  if (message.includes('client is offline') || message.includes('unavailable')) {
+    return 'Firestore is unreachable or offline. Please check your internet connection or verify Firestore database exists in Firebase Console.';
+  }
+  if (message.includes('timed out') || message.includes('timeout')) {
+    return 'Cloud sync timed out. Firestore did not respond in time.';
+  }
+  if (message.includes('Missing or insufficient permissions') || message.includes('PERMISSION_DENIED')) {
+    return 'Permission denied by Firestore security rules or database not created.';
+  }
+  if (message.includes('quota') || message.includes('RESOURCE_EXHAUSTED')) {
+    return 'Firestore quota exceeded. Please try again later.';
+  }
+  return message.length > 140 ? message.slice(0, 140) + '...' : message;
+}
 
 // 5. Hardened Error Handlers
 export const OperationType = {
@@ -124,30 +166,42 @@ if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
 }
 
 async function recordUserProfile(user: User): Promise<void> {
-  const userRef = doc(firestoreDb, 'users', user.uid);
-  const userSnap = await getDoc(userRef).catch(() => null);
-  const nowIso = new Date().toISOString();
-  if (!userSnap || !userSnap.exists()) {
-    await setDoc(userRef, {
-      id: user.uid,
-      email: user.email || '',
-      displayName: user.displayName || '',
-      photoURL: user.photoURL || '',
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    }).catch(err => {
-      console.warn('Failed creating initial user profile document:', err);
-    });
-  } else {
-    await setDoc(
-      userRef,
-      {
-        displayName: user.displayName || '',
-        photoURL: user.photoURL || '',
-        updatedAt: nowIso,
-      },
-      { merge: true }
-    ).catch(() => {});
+  try {
+    const userRef = doc(firestoreDb, 'users', user.uid);
+    const userSnap = await withTimeout(getDoc(userRef), 4000, 'Profile fetch').catch(() => null);
+    const nowIso = new Date().toISOString();
+    if (!userSnap || !userSnap.exists()) {
+      await withTimeout(
+        setDoc(userRef, {
+          id: user.uid,
+          email: user.email || '',
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || '',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        }),
+        4000,
+        'Profile create'
+      ).catch(err => {
+        console.warn('Failed creating initial user profile document:', err);
+      });
+    } else {
+      await withTimeout(
+        setDoc(
+          userRef,
+          {
+            displayName: user.displayName || '',
+            photoURL: user.photoURL || '',
+            updatedAt: nowIso,
+          },
+          { merge: true }
+        ),
+        4000,
+        'Profile update'
+      ).catch(() => {});
+    }
+  } catch (err) {
+    console.warn('recordUserProfile error (non-fatal):', err);
   }
 }
 
@@ -209,158 +263,169 @@ export async function syncUserDataToFirestore(userId: string, data: AppDB): Prom
   const path = `users/${userId}/data/ledger`;
 
   try {
-    // 1. Save Full Ledger Snapshot for atomic and reliable 1-step restores
+    // 1. Save Full Ledger Snapshot for atomic and reliable 1-step restores (with 10s timeout)
     const ledgerRef = doc(firestoreDb, 'users', userId, 'data', 'ledger');
     const cleanData: AppDB = JSON.parse(JSON.stringify(data));
-    await setDoc(
-      ledgerRef,
-      {
-        id: 'ledger',
-        userId,
-        version: cleanData.version || 3,
-        expenses: cleanData.expenses || [],
-        friends: cleanData.friends || [],
-        wallets: cleanData.wallets || [],
-        settlements: cleanData.settlements || [],
-        recurringRules: cleanData.recurringRules || [],
-        settings: cleanData.settings || {},
-        activeTrip: cleanData.activeTrip || null,
-        tripHistory: cleanData.tripHistory || [],
-        presetGroups: cleanData.presetGroups || [],
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true }
+    await withTimeout(
+      setDoc(
+        ledgerRef,
+        {
+          id: 'ledger',
+          userId,
+          version: cleanData.version || 3,
+          expenses: cleanData.expenses || [],
+          friends: cleanData.friends || [],
+          wallets: cleanData.wallets || [],
+          settlements: cleanData.settlements || [],
+          recurringRules: cleanData.recurringRules || [],
+          settings: cleanData.settings || {},
+          activeTrip: cleanData.activeTrip || null,
+          tripHistory: cleanData.tripHistory || [],
+          presetGroups: cleanData.presetGroups || [],
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      ),
+      10000,
+      'Cloud sync timed out'
     );
 
-    // 2. Also populate subcollections for granular query access
-    const batch = writeBatch(firestoreDb);
-    let opCount = 0;
+    // 2. Also populate subcollections for granular query access (safe, non-blocking)
+    try {
+      const batch = writeBatch(firestoreDb);
+      let opCount = 0;
 
-    // Sync Wallets
-    for (const wallet of (data.wallets || []).slice(0, 50)) {
-      if (!wallet.id) continue;
-      const wRef = doc(firestoreDb, 'users', userId, 'wallets', wallet.id);
-      batch.set(
-        wRef,
-        {
-          id: wallet.id,
-          userId,
-          name: wallet.name || 'Wallet',
-          openingBalance: wallet.openingBalance ?? 0,
-          currentBalance: wallet.currentBalance ?? 0,
-          color: wallet.color || '#6366f1',
-          icon: wallet.icon || 'wallet',
-          minBalanceAlert: wallet.minBalanceAlert ?? 0,
-          monthlySpendLimit: wallet.monthlySpendLimit ?? 0,
-          isDefault: Boolean(wallet.isDefault),
-          isHidden: Boolean(wallet.isHidden),
-          rulesNotes: wallet.rulesNotes || '',
-        },
-        { merge: true }
-      );
-      opCount++;
-    }
+      // Sync Wallets
+      for (const wallet of (data.wallets || []).slice(0, 50)) {
+        if (!wallet.id) continue;
+        const wRef = doc(firestoreDb, 'users', userId, 'wallets', wallet.id);
+        batch.set(
+          wRef,
+          {
+            id: wallet.id,
+            userId,
+            name: wallet.name || 'Wallet',
+            openingBalance: wallet.openingBalance ?? 0,
+            currentBalance: wallet.currentBalance ?? 0,
+            color: wallet.color || '#6366f1',
+            icon: wallet.icon || 'wallet',
+            minBalanceAlert: wallet.minBalanceAlert ?? 0,
+            monthlySpendLimit: wallet.monthlySpendLimit ?? 0,
+            isDefault: Boolean(wallet.isDefault),
+            isHidden: Boolean(wallet.isHidden),
+            rulesNotes: wallet.rulesNotes || '',
+          },
+          { merge: true }
+        );
+        opCount++;
+      }
 
-    // Sync Friends / Contacts
-    for (const friend of (data.friends || []).slice(0, 100)) {
-      if (!friend.id) continue;
-      const fRef = doc(firestoreDb, 'users', userId, 'friends', friend.id);
-      batch.set(
-        fRef,
-        {
-          id: friend.id,
-          userId,
-          name: friend.name || 'Friend',
-          notes: friend.notes || '',
-          color: friend.color || '#6366f1',
-          createdAt: friend.createdAt || Date.now(),
-          type: friend.type || 'friend',
-          category: friend.category || '',
-          billingCycle: friend.billingCycle || '',
-          defaultAmount: friend.defaultAmount ?? 0,
-          website: friend.website || '',
-        },
-        { merge: true }
-      );
-      opCount++;
-    }
+      // Sync Friends / Contacts
+      for (const friend of (data.friends || []).slice(0, 100)) {
+        if (!friend.id) continue;
+        const fRef = doc(firestoreDb, 'users', userId, 'friends', friend.id);
+        batch.set(
+          fRef,
+          {
+            id: friend.id,
+            userId,
+            name: friend.name || 'Friend',
+            notes: friend.notes || '',
+            color: friend.color || '#6366f1',
+            createdAt: friend.createdAt || Date.now(),
+            type: friend.type || 'friend',
+            category: friend.category || '',
+            billingCycle: friend.billingCycle || '',
+            defaultAmount: friend.defaultAmount ?? 0,
+            website: friend.website || '',
+          },
+          { merge: true }
+        );
+        opCount++;
+      }
 
-    // Sync Expenses (recent 200)
-    for (const expense of (data.expenses || []).slice(0, 200)) {
-      if (!expense.id) continue;
-      const eRef = doc(firestoreDb, 'users', userId, 'expenses', expense.id);
-      batch.set(
-        eRef,
-        {
-          id: expense.id,
-          userId,
-          description: expense.description || 'Expense',
-          amount: expense.amount ?? 0,
-          category: expense.category || 'General',
-          date: expense.date || new Date().toISOString().slice(0, 10),
-          type: expense.type || 'personal',
-          flow: expense.flow || 'out',
-          friendId: expense.friendId || null,
-          vendorId: expense.vendorId || null,
-          walletId: expense.walletId || '',
-          status: expense.status || 'paid',
-          settled: Boolean(expense.settled),
-          settlementId: expense.settlementId || null,
-          notes: expense.notes || '',
-          createdAt: expense.createdAt || Date.now(),
-        },
-        { merge: true }
-      );
-      opCount++;
-    }
+      // Sync Expenses (recent 200)
+      for (const expense of (data.expenses || []).slice(0, 200)) {
+        if (!expense.id) continue;
+        const eRef = doc(firestoreDb, 'users', userId, 'expenses', expense.id);
+        batch.set(
+          eRef,
+          {
+            id: expense.id,
+            userId,
+            description: expense.description || 'Expense',
+            amount: expense.amount ?? 0,
+            category: expense.category || 'General',
+            date: expense.date || new Date().toISOString().slice(0, 10),
+            type: expense.type || 'personal',
+            flow: expense.flow || 'out',
+            friendId: expense.friendId || null,
+            vendorId: expense.vendorId || null,
+            walletId: expense.walletId || '',
+            status: expense.status || 'paid',
+            settled: Boolean(expense.settled),
+            settlementId: expense.settlementId || null,
+            notes: expense.notes || '',
+            createdAt: expense.createdAt || Date.now(),
+          },
+          { merge: true }
+        );
+        opCount++;
+      }
 
-    // Sync Settlements (recent 50)
-    for (const settlement of (data.settlements || []).slice(0, 50)) {
-      if (!settlement.id) continue;
-      const sRef = doc(firestoreDb, 'users', userId, 'settlements', settlement.id);
-      batch.set(
-        sRef,
-        {
-          id: settlement.id,
-          userId,
-          friendId: settlement.friendId,
-          amount: settlement.amount ?? 0,
-          date: settlement.date || new Date().toISOString().slice(0, 10),
-          note: settlement.note || '',
-          walletId: settlement.walletId || '',
-          createdAt: settlement.createdAt || Date.now(),
-        },
-        { merge: true }
-      );
-      opCount++;
-    }
+      // Sync Settlements (recent 50)
+      for (const settlement of (data.settlements || []).slice(0, 50)) {
+        if (!settlement.id) continue;
+        const sRef = doc(firestoreDb, 'users', userId, 'settlements', settlement.id);
+        batch.set(
+          sRef,
+          {
+            id: settlement.id,
+            userId,
+            friendId: settlement.friendId,
+            amount: settlement.amount ?? 0,
+            date: settlement.date || new Date().toISOString().slice(0, 10),
+            note: settlement.note || '',
+            walletId: settlement.walletId || '',
+            createdAt: settlement.createdAt || Date.now(),
+          },
+          { merge: true }
+        );
+        opCount++;
+      }
 
-    // Sync Recurring Rules (recent 50)
-    for (const rule of (data.recurringRules || []).slice(0, 50)) {
-      if (!rule.id) continue;
-      const rRef = doc(firestoreDb, 'users', userId, 'recurringRules', rule.id);
-      batch.set(
-        rRef,
-        {
-          id: rule.id,
-          userId,
-          title: rule.title || 'Rule',
-          amount: rule.amount ?? 0,
-          category: rule.category || 'General',
-          walletId: rule.walletId || '',
-          type: rule.type || 'personal',
-          flow: rule.flow || 'out',
-          frequency: rule.frequency || 'monthly',
-          startDate: rule.startDate || new Date().toISOString().slice(0, 10),
-          nextDueDate: rule.nextDueDate || new Date().toISOString().slice(0, 10),
-        },
-        { merge: true }
-      );
-      opCount++;
-    }
+      // Sync Recurring Rules (recent 50, ensure kind, status, createdAt for firestore.rules)
+      for (const rule of (data.recurringRules || []).slice(0, 50)) {
+        if (!rule.id) continue;
+        const rRef = doc(firestoreDb, 'users', userId, 'recurringRules', rule.id);
+        batch.set(
+          rRef,
+          {
+            id: rule.id,
+            userId,
+            title: rule.title || 'Rule',
+            kind: rule.kind || 'quick_log',
+            amount: rule.amount ?? 0,
+            category: rule.category || 'General',
+            walletId: rule.walletId || '',
+            type: rule.type || 'personal',
+            flow: rule.flow || 'out',
+            frequency: rule.frequency || 'monthly',
+            startDate: rule.startDate || new Date().toISOString().slice(0, 10),
+            status: rule.status || 'active',
+            createdAt: rule.createdAt || Date.now(),
+            nextDueDate: rule.nextDueDate || new Date().toISOString().slice(0, 10),
+          },
+          { merge: true }
+        );
+        opCount++;
+      }
 
-    if (opCount > 0) {
-      await batch.commit();
+      if (opCount > 0) {
+        await withTimeout(batch.commit(), 8000, 'Subcollections batch timed out');
+      }
+    } catch (subErr) {
+      console.warn('[CloudSync] Subcollection sync warning (ledger snapshot succeeded):', subErr);
     }
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
@@ -371,11 +436,11 @@ export async function fetchUserDataFromFirestore(userId: string): Promise<AppDB 
   if (!userId) throw new Error('Cannot fetch without authenticated user ID');
 
   try {
-    // 1. First attempt direct snapshot document load
+    // 1. First attempt direct snapshot document load with 8s timeout
     const ledgerRef = doc(firestoreDb, 'users', userId, 'data', 'ledger');
     let ledgerSnap = null;
     try {
-      ledgerSnap = await getDoc(ledgerRef);
+      ledgerSnap = await withTimeout(getDoc(ledgerRef), 8000, 'Cloud restore timed out');
     } catch (docErr) {
       console.warn('Direct ledger document fetch error, falling back:', docErr);
     }
@@ -396,20 +461,24 @@ export async function fetchUserDataFromFirestore(userId: string): Promise<AppDB 
       };
     }
 
-    // 2. Fallback to subcollections
+    // 2. Fallback to subcollections with 8s timeout
     const expensesCol = collection(firestoreDb, 'users', userId, 'expenses');
     const friendsCol = collection(firestoreDb, 'users', userId, 'friends');
     const walletsCol = collection(firestoreDb, 'users', userId, 'wallets');
     const settlementsCol = collection(firestoreDb, 'users', userId, 'settlements');
     const recurringCol = collection(firestoreDb, 'users', userId, 'recurringRules');
 
-    const [expSnap, friendSnap, walletSnap, settleSnap, recSnap] = await Promise.all([
-      getDocs(expensesCol).catch(() => null),
-      getDocs(friendsCol).catch(() => null),
-      getDocs(walletsCol).catch(() => null),
-      getDocs(settlementsCol).catch(() => null),
-      getDocs(recurringCol).catch(() => null),
-    ]);
+    const [expSnap, friendSnap, walletSnap, settleSnap, recSnap] = await withTimeout(
+      Promise.all([
+        getDocs(expensesCol).catch(() => null),
+        getDocs(friendsCol).catch(() => null),
+        getDocs(walletsCol).catch(() => null),
+        getDocs(settlementsCol).catch(() => null),
+        getDocs(recurringCol).catch(() => null),
+      ]),
+      8000,
+      'Subcollections fetch timed out'
+    );
 
     const expenses: Expense[] = expSnap ? expSnap.docs.map(d => d.data() as Expense) : [];
     const friends: Friend[] = friendSnap ? friendSnap.docs.map(d => d.data() as Friend) : [];

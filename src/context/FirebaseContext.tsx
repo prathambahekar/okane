@@ -8,6 +8,7 @@ import {
   signOutUser as fbSignOutUser,
   syncUserDataToFirestore,
   fetchUserDataFromFirestore,
+  formatFirebaseErrorMessage,
 } from '../firebase';
 import type { AppDB } from '../types';
 import { useStore } from '../store';
@@ -40,6 +41,8 @@ export interface FirebaseContextType {
   user: User | null;
   authLoading: boolean;
   isSyncing: boolean;
+  syncError: string | null;
+  clearSyncError: () => void;
   lastSyncTime: Date | null;
   isAutoSyncActive: boolean;
   signInWithGoogle: () => Promise<User | null>;
@@ -56,6 +59,8 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(firebaseAuth.currentUser);
   const [authLoading, setAuthLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const clearSyncError = useCallback(() => setSyncError(null), []);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(() => {
     try {
       const stored = localStorage.getItem('okane_last_firebase_sync');
@@ -110,6 +115,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const performRestore = useCallback(async (targetUid: string) => {
     try {
       setIsSyncing(true);
+      setSyncError(null);
       const cloudData = await fetchUserDataFromFirestore(targetUid);
       const currentDb = latestDbRef.current;
 
@@ -165,6 +171,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
 
         const now = new Date();
         setLastSyncTime(now);
+        setSyncError(null);
         try {
           localStorage.setItem('okane_last_firebase_sync', now.toISOString());
         } catch {
@@ -178,6 +185,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         await syncUserDataToFirestore(targetUid, currentDb);
         const now = new Date();
         setLastSyncTime(now);
+        setSyncError(null);
         lastSyncedFingerprintRef.current = getDbFingerprint(currentDb);
         try {
           localStorage.setItem('okane_last_firebase_sync', now.toISOString());
@@ -189,6 +197,8 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.warn('[CloudSync] Restore on login failed:', err);
+      const friendly = formatFirebaseErrorMessage(err);
+      setSyncError(friendly);
     } finally {
       setIsSyncing(false);
     }
@@ -239,6 +249,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         await syncUserDataToFirestore(user.uid, freshDb);
         const now = new Date();
         setLastSyncTime(now);
+        setSyncError(null);
         lastSyncedFingerprintRef.current = getDbFingerprint(freshDb);
         try {
           localStorage.setItem('okane_last_firebase_sync', now.toISOString());
@@ -248,6 +259,10 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         console.log('[CloudSync] Background auto-upload completed successfully.');
       } catch (err) {
         console.warn('[CloudSync] Background auto-upload to cloud failed:', err);
+        const friendly = formatFirebaseErrorMessage(err);
+        setSyncError(friendly);
+        // Avoid rapid retry storm
+        lastSyncedFingerprintRef.current = currentFingerprint;
       } finally {
         setIsSyncing(false);
       }
@@ -263,6 +278,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = useCallback(async (): Promise<User | null> => {
     try {
       setIsSyncing(true);
+      setSyncError(null);
       const loggedUser = await fbSignInWithGoogle();
       setUser(loggedUser);
       if (loggedUser) {
@@ -272,6 +288,8 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       return loggedUser;
     } catch (err) {
       console.error('Firebase Google sign-in failed:', err);
+      const friendly = formatFirebaseErrorMessage(err);
+      setSyncError(friendly);
       throw err;
     } finally {
       setIsSyncing(false);
@@ -286,6 +304,8 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       }
       checkedRestoreUserRef.current = null;
       lastSyncedFingerprintRef.current = '';
+      setSyncError(null);
+      setIsSyncing(false);
       await fbSignOutUser();
       setUser(null);
     } catch (err) {
@@ -298,10 +318,12 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     if (!user) return false;
     const targetDb = appDb || latestDbRef.current;
     setIsSyncing(true);
+    setSyncError(null);
     try {
       await syncUserDataToFirestore(user.uid, targetDb);
       const now = new Date();
       setLastSyncTime(now);
+      setSyncError(null);
       lastSyncedFingerprintRef.current = getDbFingerprint(targetDb);
       try {
         localStorage.setItem('okane_last_firebase_sync', now.toISOString());
@@ -311,7 +333,9 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       return true;
     } catch (err) {
       console.error('Sync to Firestore failed:', err);
-      throw err;
+      const friendly = formatFirebaseErrorMessage(err);
+      setSyncError(friendly);
+      throw new Error(friendly);
     } finally {
       setIsSyncing(false);
     }
@@ -320,10 +344,12 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const pullFromCloud = useCallback(async (): Promise<Partial<AppDB> | null> => {
     if (!user) return null;
     setIsSyncing(true);
+    setSyncError(null);
     try {
       const data = await fetchUserDataFromFirestore(user.uid);
       const now = new Date();
       setLastSyncTime(now);
+      setSyncError(null);
       try {
         localStorage.setItem('okane_last_firebase_sync', now.toISOString());
       } catch {
@@ -332,7 +358,9 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       return data;
     } catch (err) {
       console.error('Fetch from Firestore failed:', err);
-      throw err;
+      const friendly = formatFirebaseErrorMessage(err);
+      setSyncError(friendly);
+      throw new Error(friendly);
     } finally {
       setIsSyncing(false);
     }
@@ -340,8 +368,15 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
 
   const restoreFromCloud = useCallback(async (): Promise<boolean> => {
     if (!user) return false;
-    await performRestore(user.uid);
-    return true;
+    setSyncError(null);
+    try {
+      await performRestore(user.uid);
+      return true;
+    } catch (err) {
+      const friendly = formatFirebaseErrorMessage(err);
+      setSyncError(friendly);
+      throw new Error(friendly);
+    }
   }, [user, performRestore]);
 
   return (
@@ -350,6 +385,8 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         user,
         authLoading,
         isSyncing,
+        syncError,
+        clearSyncError,
         lastSyncTime,
         isAutoSyncActive: Boolean(user),
         signInWithGoogle,
