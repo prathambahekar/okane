@@ -420,6 +420,62 @@ export function importSQLDumpString(sqlText: string): AppDB {
   return db;
 }
 
+export function parseBackupContent(rawText: string): AppDB {
+  let text = rawText;
+  if (text.charCodeAt(0) === 0xFEFF) {
+    text = text.slice(1);
+  }
+  text = text.trim();
+
+  if (!text) {
+    throw new Error('Backup data is empty.');
+  }
+
+  if (text.startsWith('SQLite format 3')) {
+    throw new Error('Selected file is a binary SQLite database. Okane expects an Okane .db/.sql text dump or .json backup file.');
+  }
+
+  // 1. Try parsing JSON first if content looks like JSON
+  if (text.startsWith('{') || text.startsWith('[')) {
+    try {
+      const data = JSON.parse(text) as Record<string, unknown>;
+      const friendsList = Array.isArray(data.friends)
+        ? data.friends
+        : (Array.isArray(data.contacts) ? data.contacts : []);
+
+      if (Array.isArray(data.contacts) && (!Array.isArray(data.friends) || data.friends.length === 0)) {
+        data.friends = data.contacts;
+      }
+
+      if (data.expenses || data.settings || data.wallets) {
+        data.friends = friendsList;
+        return data as unknown as AppDB;
+      }
+    } catch {
+      // Fall through to SQL dump
+    }
+  }
+
+  // 2. Try SQL dump parse
+  try {
+    return importSQLDumpString(text);
+  } catch (sqlErr) {
+    // 3. Fallback: Try regex extraction for JSON object if prefixed with comments or headers
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+        if (data.expenses || data.settings || data.wallets) {
+          return data as unknown as AppDB;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    throw sqlErr;
+  }
+}
+
 export function computeNextDueDate(currentDateISO: string, frequency: FrequencyType, intervalValue: number = 1): string {
   const parts = currentDateISO.split('-').map(Number);
   const y = parts[0] || new Date().getFullYear();

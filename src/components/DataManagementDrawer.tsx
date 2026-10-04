@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useFirebase } from '../context/FirebaseContext';
 import { useStore } from '../store';
-import { generateSQLDumpString, downloadFile, importSQLDumpString } from '../db';
+import { generateSQLDumpString, downloadFile, parseBackupContent } from '../db';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -149,22 +149,59 @@ export default function DataManagementDrawer({
     setExportModalOpen(false);
   };
 
-  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const text = evt.target?.result as string;
-        if (!text) throw new Error('File is empty');
-        const restored = importSQLDumpString(text);
-        restoreDB(restored);
-        showToast('Backup restored successfully!');
-      } catch (err) {
-        showToast('Import failed: ' + (err instanceof Error ? err.message : 'Invalid file'));
+
+    try {
+      let text = '';
+
+      // Method 1: Modern Blob.prototype.text() Promise API
+      if (typeof file.text === 'function') {
+        try {
+          text = await file.text();
+        } catch (textErr) {
+          console.warn('file.text() failed, trying FileReader fallback...', textErr);
+        }
       }
-    };
-    reader.readAsText(file);
+
+      // Method 2: FileReader readAsText fallback
+      if (!text) {
+        text = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve((ev.target?.result as string) || '');
+          reader.onerror = (err) => reject(err);
+          reader.readAsText(file);
+        });
+      }
+
+      // Method 3: FileReader readAsArrayBuffer + TextDecoder fallback
+      if (!text) {
+        const buf = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve((ev.target?.result as ArrayBuffer) || new ArrayBuffer(0));
+          reader.onerror = (err) => reject(err);
+          reader.readAsArrayBuffer(file);
+        });
+        if (buf && buf.byteLength > 0) {
+          text = new TextDecoder('utf-8').decode(buf);
+        }
+      }
+
+      const restored = parseBackupContent(text);
+      restoreDB(restored);
+      showToast('Backup restored successfully!');
+    } catch (err) {
+      console.error('Import error:', err);
+      showToast('Import failed: ' + (err instanceof Error ? err.message : 'Invalid backup file'));
+    } finally {
+      if (fileRef.current) {
+        fileRef.current.value = '';
+      }
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
   };
 
   // Cloud Actions
@@ -248,11 +285,19 @@ export default function DataManagementDrawer({
           padding: '18px 18px calc(20px + env(safe-area-inset-bottom, 0px)) 18px',
         }}
       >
+        {/* Hidden file input without restrictive accept so Android does not gray out .db files */}
         <input
           ref={fileRef}
           type="file"
-          accept=".db,.sql,.txt,.json"
-          style={{ display: 'none' }}
+          style={{
+            position: 'fixed',
+            top: -10000,
+            left: -10000,
+            opacity: 0,
+            width: 1,
+            height: 1,
+            pointerEvents: 'none',
+          }}
           onChange={handleImportFile}
         />
 
