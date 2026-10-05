@@ -159,6 +159,7 @@ export interface Settings {
   enableDummyData?: boolean; // Toggle dummy/sample data generation options (default: false)
   enableOkaneSetup?: boolean; // Developer switch: Enable initial onboarding setup flow (default: false)
   hasCompletedOnboarding?: boolean; // First launch introductory carousel status
+  amountInputMode?: 'num-only' | 'math'; // Amount keyboard mode: num-only (number keypad) or math (default: 'num-only')
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';

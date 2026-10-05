@@ -94,7 +94,8 @@ function CustomShareInputBox({
       </span>
       <input
         type="text"
-        inputMode="text"
+        inputMode="decimal"
+        pattern="[0-9]*[.,]?[0-9]*"
         value={rawString}
         onFocus={e => {
           setIsFocused(true);
@@ -102,7 +103,10 @@ function CustomShareInputBox({
         }}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => {
+          const val = e.target.value.replace(/,/g, '.').replace(/[^0-9.+*\\/()-]/g, '');
+          onChange(val);
+        }}
         placeholder="0"
         style={{
           width: 58,

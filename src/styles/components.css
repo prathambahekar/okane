@@ -1418,3 +1418,149 @@ input[type="number"] {
   }
 }
 
+/* Num-Only Key Badge & Mode Controls */
+.math-mode-key-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface3);
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.math-mode-key-badge:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.math-mode-key-badge.is-num-only {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Accessory toolbar shown when amount input is focused */
+.math-amount-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+  animation: mathToolbarFadeIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mathToolbarFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.math-toolbar-modes {
+  display: flex;
+  align-items: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 2px;
+  gap: 2px;
+}
+
+.math-toolbar-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  line-height: 1.2;
+}
+
+.math-toolbar-mode-btn.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 750;
+}
+
+.math-toolbar-keys {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.math-key-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.math-key-btn:hover {
+  background: var(--surface3);
+  border-color: var(--accent);
+}
+
+.math-key-btn:active {
+  transform: scale(0.92);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.math-key-btn.op-key {
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  background: var(--surface3);
+}
+
+.math-key-btn.inc-key {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.math-key-btn.clear-key {
+  color: var(--debit);
+  background: var(--debit-bg);
+  border-color: var(--debit-border);
+}
+

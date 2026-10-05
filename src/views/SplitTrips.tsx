@@ -2205,6 +2205,8 @@ export default function SplitTrips({ initialArg }: Props) {
                     <input
                       type="number"
                       step="any"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]*"
                       placeholder="0.00"
                       value={expCustomSplits[m.id] || ''}
                       onChange={e => setExpCustomSplits({ ...expCustomSplits, [m.id]: e.target.value })}
