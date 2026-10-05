@@ -12,6 +12,8 @@ import TotalSpendingCard, { type ChartDayData } from '../components/analytics/To
 import CategoryDistributionCard from '../components/analytics/CategoryDistributionCard';
 import DailyExpenditureCard, { type DayExpenditureRow } from '../components/analytics/DailyExpenditureCard';
 import ItemBreakdownCard from '../components/analytics/ItemBreakdownCard';
+import CategoryBudgetsCard from '../components/analytics/CategoryBudgetsCard';
+import BudgetSetupDrawer from '../components/analytics/BudgetSetupDrawer';
 import CategoryIcon from '../components/CategoryIcon';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { renderWalletIcon } from '../components/WalletIconRenderer';
@@ -62,6 +64,8 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  const [showBudgetDrawer, setShowBudgetDrawer] = useState(false);
+  const [budgetDrawerCategory, setBudgetDrawerCategory] = useState<string | null>(null);
 
   const selectedCategory = useMemo(() => {
     return selectedCategories.length === 1 ? selectedCategories[0] : null;
@@ -1085,7 +1089,20 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
         />
       </div>
 
-      {/* 4. Item Breakdown (Recurring / Frequent Items) */}
+      {/* 4. Category Budgets & Spending Limits */}
+      <div style={{ width: '100%', marginTop: 14 }}>
+        <CategoryBudgetsCard
+          db={db}
+          activeMonthStr={activeMonthStr}
+          onOpenBudgetDrawer={(catName) => {
+            setBudgetDrawerCategory(catName || null);
+            setShowBudgetDrawer(true);
+          }}
+          onOpenCategoryDrawer={(catName) => setInspectCategoryName(catName)}
+        />
+      </div>
+
+      {/* 5. Item Breakdown (Recurring / Frequent Items) */}
       <div style={{ width: '100%', marginTop: 14 }}>
         <ItemBreakdownCard
           expenses={filteredExpenses}
@@ -1164,6 +1181,18 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
         totalDaysInPeriod={totalDaysInPeriod}
         isCurrentPeriod={isCurrentPeriod}
       />
+
+      {/* Budget Setup Drawer */}
+      {showBudgetDrawer && (
+        <BudgetSetupDrawer
+          isOpen={showBudgetDrawer}
+          onClose={() => {
+            setShowBudgetDrawer(false);
+            setBudgetDrawerCategory(null);
+          }}
+          initialCategoryName={budgetDrawerCategory}
+        />
+      )}
 
       {/* Confirmation Delete Dialog */}
       {deletingId && (

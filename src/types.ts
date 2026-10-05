@@ -2,6 +2,8 @@ export interface Category {
   name: string;
   color: string;
   icon?: string;
+  budget?: number; // Monthly spending limit / budget in active currency
+  monthlyBudget?: number; // Optional alias
 }
 
 export interface Wallet {
@@ -159,6 +161,8 @@ export interface Settings {
   enableDummyData?: boolean; // Toggle dummy/sample data generation options (default: false)
   enableOkaneSetup?: boolean; // Developer switch: Enable initial onboarding setup flow (default: false)
   hasCompletedOnboarding?: boolean; // First launch introductory carousel status
+  overallMonthlyBudget?: number; // Optional overall total monthly budget
+  categoryBudgets?: Record<string, number>; // Optional direct category name to budget mapping
 }
 
 export type RecurringKind = 'autopay' | 'quick_log';

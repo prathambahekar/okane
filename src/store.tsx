@@ -106,6 +106,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       loaded.settings.autoUnlockOnFace = false;
       saveDB(loaded);
     }
+    // Ensure all advanced features are off by default
+    if (typeof localStorage !== 'undefined' && !localStorage.getItem('okane_adv_features_default_off_v1')) {
+      localStorage.setItem('okane_adv_features_default_off_v1', 'true');
+      loaded.settings.enableAIAssistant = false;
+      loaded.settings.enableAutopay = false;
+      loaded.settings.enableSplitTrips = false;
+      loaded.settings.enableDevSQLConsole = false;
+      saveDB(loaded);
+    }
     return loaded;
   });
   const [, setUndoStack] = useState<UndoEntry[]>([]);

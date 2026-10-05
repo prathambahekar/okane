@@ -46,6 +46,7 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
   headerAction,
   className = '',
   interactive = true,
+  period = 'month',
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [prevSelectedDate, setPrevSelectedDate] = useState(selectedDate);
@@ -72,6 +73,7 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
     return {
       color: found?.color || '#8B5CF6',
       icon: found?.icon || 'Tag',
+      budget: found?.budget || found?.monthlyBudget,
     };
   };
 
@@ -210,11 +212,45 @@ export const CategoryDistributionCard: React.FC<CategoryDistributionCardProps> =
                       />
                     </div>
 
-                    {/* Name & Count */}
+                    {/* Name & Count & Budget Tag */}
                     <div className="analytics-v2-cat-name-group">
-                      <span className="analytics-v2-cat-name">{item.cat}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span className="analytics-v2-cat-name">{item.cat}</span>
+                        {meta.budget && meta.budget > 0 && period === 'month' && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '1px 5px',
+                              borderRadius: 'var(--radius-full)',
+                              background:
+                                item.amount > meta.budget
+                                  ? 'var(--debit-bg)'
+                                  : item.amount >= meta.budget * 0.75
+                                  ? 'var(--amber-bg)'
+                                  : 'var(--surface2)',
+                              color:
+                                item.amount > meta.budget
+                                  ? 'var(--debit)'
+                                  : item.amount >= meta.budget * 0.75
+                                  ? 'var(--amber)'
+                                  : 'var(--text-3)',
+                              border: `1px solid ${
+                                item.amount > meta.budget
+                                  ? 'var(--debit-border)'
+                                  : item.amount >= meta.budget * 0.75
+                                  ? 'var(--amber-border)'
+                                  : 'var(--border)'
+                              }`,
+                            }}
+                          >
+                            {Math.round((item.amount / meta.budget) * 100)}% of limit
+                          </span>
+                        )}
+                      </div>
                       <span className="analytics-v2-cat-count">
                         {item.count} {item.count === 1 ? 'transaction' : 'transactions'}
+                        {meta.budget && meta.budget > 0 && ` • Limit: ${fmtMoney(meta.budget, currency)}`}
                       </span>
                     </div>
                   </div>

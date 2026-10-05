@@ -16,6 +16,7 @@ import DesktopSearchBar from '../components/DesktopSearchBar';
 import { SmartExpenseMeta } from '../components/expenses/SmartExpenseMeta';
 import SettlementBadge from '../components/common/SettlementBadge';
 import QuickStatsWidget from '../components/QuickStatsWidget';
+import DashboardBudgetsWidget from '../components/dashboard/DashboardBudgetsWidget';
 
 interface Props {
   onNavigate: (v: ViewName, arg?: string) => void;
@@ -702,6 +703,11 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
             hideShowMore={true}
             interactive={false}
           />
+        </div>
+
+        {/* Category Budgets & Spending Limits Widget */}
+        <div className="dashboard-budgets-section" style={{ gridColumn: '1 / -1', minWidth: 0, width: '100%' }}>
+          <DashboardBudgetsWidget onNavigate={onNavigate} />
         </div>
       </div>
 

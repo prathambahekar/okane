@@ -319,11 +319,11 @@ function AppInner() {
   }, [db.settings?.colorMode, db.settings?.accent, db.settings?.customAccentColor, mode, accent, customColor, setMode, setAccent, setCustomColor, updateSettings]);
 
   const isDevMode = db.settings?.devMode ?? true;
-  const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? true);
-  const enableAIAssistant = db.settings?.enableAIAssistant ?? true;
+  const enableDevSQLConsole = isDevMode && (db.settings?.enableDevSQLConsole ?? false);
+  const enableAIAssistant = db.settings?.enableAIAssistant ?? false;
   const searchLocation = db.settings?.searchLocation ?? 'topbar';
-  const enableSplitTrips = db.settings?.enableSplitTrips ?? true;
-  const enableAutopay = db.settings?.enableAutopay ?? true;
+  const enableSplitTrips = db.settings?.enableSplitTrips ?? false;
+  const enableAutopay = db.settings?.enableAutopay ?? false;
 
   useEffect(() => {
     if (view === 'split-trips' && !enableSplitTrips) {

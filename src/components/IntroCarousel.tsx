@@ -105,9 +105,9 @@ export const IntroCarousel: React.FC<IntroCarouselProps> = ({
   const [passcodePin, setPasscodePin] = useState(() => db.settings?.securityPin || '');
 
   // Advanced Features
-  const [enableAI, setEnableAI] = useState(() => db.settings?.enableAIAssistant ?? true);
-  const [enableSubs, setEnableSubs] = useState(() => db.settings?.enableAutopay ?? true);
-  const [enableTrips, setEnableTrips] = useState(() => db.settings?.enableSplitTrips ?? true);
+  const [enableAI, setEnableAI] = useState(() => db.settings?.enableAIAssistant ?? false);
+  const [enableSubs, setEnableSubs] = useState(() => db.settings?.enableAutopay ?? false);
+  const [enableTrips, setEnableTrips] = useState(() => db.settings?.enableSplitTrips ?? false);
 
   const touchStartXRef = useRef<number | null>(null);
 

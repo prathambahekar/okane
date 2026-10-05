@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { X, RotateCcw, TrendingDown, TrendingUp, User, Users, HeartHandshake, Sparkles, Feather, ChevronDown, Store, Plus, Pencil } from 'lucide-react';
+import { X, RotateCcw, TrendingDown, TrendingUp, User, Users, HeartHandshake, Sparkles, Feather, ChevronDown, Store, Plus, Pencil, Target } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus, Friend } from '../types';
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
 import { currencySymbol, fmtMoney, getAvatarStyle, friendInitial } from '../utils';
 import { detectCategoryFromText } from '../utils/categoryDetector';
 import { showSoftKeyboard } from '../utils/keyboard';
+import { calculateCategoryBudgetStatus, getCategoryBudget } from '../utils/budget';
 import {
   FriendSplitModal,
   DebtSettlementWidget,
@@ -364,6 +365,45 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
     }
     return list.slice(0, 6);
   }, [db, date]);
+
+  // Real-time Category Budget status and spending limit insight
+  const categoryBudgetStatus = useMemo(() => {
+    if (flow !== 'out' || !category) return null;
+    const catBudget = getCategoryBudget(category, s);
+    if (!catBudget || catBudget <= 0) return null;
+
+    const targetMonth = date ? date.substring(0, 7) : undefined;
+    const baseStatus = calculateCategoryBudgetStatus(category, db, targetMonth);
+    if (!baseStatus) return null;
+
+    const mathEval = evaluateMathExpression(amount);
+    const parsedAmount = Math.max(0, mathEval.result ?? (parseFloat(amount) || 0));
+
+    // If editing existing expense in same category & month, subtract original amount to calculate net addition
+    const isSameCategoryAndMonth =
+      expense &&
+      expense.category === category &&
+      (expense.date || '').substring(0, 7) === (date || '').substring(0, 7);
+    const originalAmt = isSameCategoryAndMonth ? Number(expense.amount) || 0 : 0;
+    const netAdded = Math.max(0, parsedAmount - originalAmt);
+
+    const projectedSpent = baseStatus.spent + netAdded;
+    const projectedRemaining = baseStatus.budget - projectedSpent;
+    const projectedPercent = Math.round((projectedSpent / baseStatus.budget) * 100);
+    const willExceed = projectedSpent > baseStatus.budget;
+
+    return {
+      budget: baseStatus.budget,
+      currentSpent: baseStatus.spent,
+      projectedSpent,
+      projectedRemaining,
+      projectedPercent,
+      willExceed,
+      alreadyExceeded: baseStatus.isOverBudget,
+      remainingBefore: baseStatus.remaining,
+      percentBefore: baseStatus.percent,
+    };
+  }, [flow, category, s, date, db, amount, expense]);
 
   const toggleSelectExpense = (expId: string) => {
     const isSelected = selectedExpenseIds.includes(expId);
@@ -1694,6 +1734,82 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
                       >
                         {s.categories.map((c, idx) => <option key={`${c.name}-${idx}`} value={c.name}>{c.name}</option>)}
                       </select>
+
+                      {/* Live Category Budget Insight */}
+                      {categoryBudgetStatus && (
+                        <div
+                          style={{
+                            marginTop: 6,
+                            padding: '6px 9px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: categoryBudgetStatus.willExceed
+                              ? 'var(--debit-bg)'
+                              : categoryBudgetStatus.projectedPercent >= 80
+                              ? 'var(--amber-bg)'
+                              : 'var(--surface2)',
+                            border: `1px solid ${
+                              categoryBudgetStatus.willExceed
+                                ? 'var(--debit-border)'
+                                : categoryBudgetStatus.projectedPercent >= 80
+                                ? 'var(--amber-border)'
+                                : 'var(--border)'
+                            }`,
+                            fontSize: 'var(--fs-caption)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 3.5,
+                            animation: 'fadein 0.15s ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                            <span
+                              style={{
+                                fontWeight: 650,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3.5,
+                                color: categoryBudgetStatus.willExceed
+                                  ? 'var(--debit)'
+                                  : categoryBudgetStatus.projectedPercent >= 80
+                                  ? 'var(--amber)'
+                                  : 'var(--text-2)',
+                              }}
+                            >
+                              <Target size={11} strokeWidth={2.4} />
+                              {categoryBudgetStatus.willExceed
+                                ? `⚠️ Over limit by ${fmtMoney(Math.abs(categoryBudgetStatus.projectedRemaining), s.currency)}`
+                                : `${categoryBudgetStatus.projectedPercent}% used · ${fmtMoney(categoryBudgetStatus.projectedRemaining, s.currency)} left`}
+                            </span>
+                            <span style={{ color: 'var(--text-3)', fontVariantNumeric: 'tabular-nums' }}>
+                              Limit: {fmtMoney(categoryBudgetStatus.budget, s.currency)}
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              height: 3,
+                              width: '100%',
+                              borderRadius: 'var(--radius-full)',
+                              background: 'rgba(0,0,0,0.06)',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div
+                              style={{
+                                height: '100%',
+                                width: `${Math.min(100, categoryBudgetStatus.projectedPercent)}%`,
+                                borderRadius: 'var(--radius-full)',
+                                background: categoryBudgetStatus.willExceed
+                                  ? 'var(--debit)'
+                                  : categoryBudgetStatus.projectedPercent >= 80
+                                  ? 'var(--amber)'
+                                  : 'var(--credit)',
+                                transition: 'width 0.2s ease',
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="form-group">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

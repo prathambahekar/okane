@@ -10,6 +10,8 @@ import {
   Layers,
   ChevronRight,
   Sparkles,
+  Target,
+  Sliders,
 } from 'lucide-react';
 import { useStore } from '../../store';
 import { fmtMoney, groupExpenses, getGroupedExpenseAmount, resolveCategoryMeta, type GroupedExpense } from '../../utils';
@@ -18,6 +20,8 @@ import { useBackButtonModal, BackPriority } from '../../utils/backHandler';
 import CategoryIcon from '../CategoryIcon';
 import { ExpenseDetailDrawer } from '../ExpenseDetailDrawer';
 import { renderWalletIcon } from '../WalletIconRenderer';
+import { calculateCategoryBudgetStatus } from '../../utils/budget';
+import { BudgetSetupDrawer } from './BudgetSetupDrawer';
 
 interface CategoryDetailDrawerProps {
   isOpen: boolean;
@@ -48,6 +52,13 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWalletFilter, setSelectedWalletFilter] = useState<string>('all');
   const [selectedGroupExpense, setSelectedGroupExpense] = useState<GroupedExpense | null>(null);
+  const [showBudgetSetup, setShowBudgetSetup] = useState(false);
+
+  // Category Budget status calculation
+  const budgetStatus = useMemo(() => {
+    if (!categoryName) return null;
+    return calculateCategoryBudgetStatus(categoryName, db, activeMonthStr);
+  }, [categoryName, db, activeMonthStr]);
 
   // Back button handling
   useBackButtonModal(isOpen, onClose, { priority: BackPriority.DRAWER });
@@ -279,6 +290,114 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Monthly Budget & Spending Limit Card */}
+          <div
+            style={{
+              background: 'var(--surface)',
+              border: budgetStatus && budgetStatus.isOverBudget ? '1px solid var(--debit-border)' : '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '14px 16px',
+              marginBottom: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 'var(--radius-sm)',
+                    background: budgetStatus ? (budgetStatus.isOverBudget ? 'var(--debit-bg)' : 'var(--accent-soft)') : 'var(--surface2)',
+                    color: budgetStatus ? (budgetStatus.isOverBudget ? 'var(--debit)' : 'var(--accent)') : 'var(--text-3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Target size={15} strokeWidth={2.4} />
+                </span>
+                <div>
+                  <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text)' }}>
+                    Monthly Spending Limit
+                  </div>
+                  <div style={{ fontSize: 'var(--fs-caption)', color: 'var(--text-3)' }}>
+                    {budgetStatus ? `${fmtMoney(totalSpent, currency)} / ${fmtMoney(budgetStatus.budget, currency)}` : 'No budget configured'}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowBudgetSetup(true)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-full)',
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface2)',
+                  color: 'var(--text)',
+                  fontSize: 'var(--fs-xs)',
+                  fontWeight: 650,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Sliders size={12} strokeWidth={2.2} />
+                <span>{budgetStatus ? 'Edit Limit' : '+ Set Limit'}</span>
+              </button>
+            </div>
+
+            {budgetStatus ? (
+              <>
+                {/* Progress Bar */}
+                <div
+                  style={{
+                    height: 7,
+                    width: '100%',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--surface3)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${Math.min(100, budgetStatus.percent)}%`,
+                      borderRadius: 'var(--radius-full)',
+                      background: budgetStatus.isOverBudget
+                        ? 'var(--debit)'
+                        : budgetStatus.percent >= 75
+                        ? 'var(--amber)'
+                        : catMeta.color || 'var(--credit)',
+                      transition: 'width 0.3s ease',
+                    }}
+                  />
+                </div>
+
+                {/* Progress Details */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 'var(--fs-caption)' }}>
+                  <span style={{ fontWeight: 650, color: budgetStatus.isOverBudget ? 'var(--debit)' : budgetStatus.percent >= 75 ? 'var(--amber)' : 'var(--credit)' }}>
+                    {budgetStatus.isOverBudget
+                      ? `⚠️ Over budget by ${fmtMoney(Math.abs(budgetStatus.remaining), currency)}`
+                      : `${budgetStatus.percent}% used · ${fmtMoney(budgetStatus.remaining, currency)} remaining`}
+                  </span>
+                  <span style={{ color: 'var(--text-3)' }}>
+                    Pacing: ~{fmtMoney(budgetStatus.projectedMonthEnd, currency)}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)', lineHeight: 1.4 }}>
+                Set a monthly spending limit for {categoryName} to track your progress and get pacing alerts.
+              </div>
+            )}
           </div>
 
           {/* Key Metric Highlights Grid */}
@@ -526,6 +645,15 @@ export const CategoryDetailDrawer: React.FC<CategoryDetailDrawerProps> = ({
           wallets={db.wallets}
           categories={db.settings.categories}
           settlements={db.settlements}
+        />
+      )}
+
+      {/* Budget Setup Drawer */}
+      {showBudgetSetup && (
+        <BudgetSetupDrawer
+          isOpen={showBudgetSetup}
+          onClose={() => setShowBudgetSetup(false)}
+          initialCategoryName={categoryName}
         />
       )}
     </div>,

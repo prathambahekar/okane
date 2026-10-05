@@ -619,7 +619,7 @@ export default function Settings({
     buildNumber: "108",
     updateChannel: "release",
     autoCheckUpdates: true,
-    enableAIAssistant: true,
+    enableAIAssistant: false,
     defaultCurrency: "INR",
     lastUpdated: "2026-08-05"
   });
@@ -3037,7 +3037,7 @@ export default function Settings({
 
                   <Switch
                     className="custom-toggle-switch"
-                    checked={settings.enableAIAssistant ?? true}
+                    checked={settings.enableAIAssistant ?? false}
                     onChange={(e) => {
                       const enabled = e.target.checked;
                       updateSettings({ enableAIAssistant: enabled });
@@ -3059,7 +3059,7 @@ export default function Settings({
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {(settings.enableAutopay ?? true) && onNavigate && (
+                    {(settings.enableAutopay ?? false) && onNavigate && (
                       <button
                         type="button"
                         className="drawer-action-icon-btn"
@@ -3071,7 +3071,7 @@ export default function Settings({
                     )}
                     <Switch
                       className="custom-toggle-switch"
-                      checked={settings.enableAutopay ?? true}
+                      checked={settings.enableAutopay ?? false}
                       onChange={(e) => {
                         const enabled = e.target.checked;
                         updateSettings({ enableAutopay: enabled });
@@ -3094,7 +3094,7 @@ export default function Settings({
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {(settings.enableSplitTrips ?? true) && onNavigate && (
+                    {(settings.enableSplitTrips ?? false) && onNavigate && (
                       <button
                         type="button"
                         className="drawer-action-icon-btn"
@@ -3106,7 +3106,7 @@ export default function Settings({
                     )}
                     <Switch
                       className="custom-toggle-switch"
-                      checked={settings.enableSplitTrips ?? true}
+                      checked={settings.enableSplitTrips ?? false}
                       onChange={(e) => {
                         const enabled = e.target.checked;
                         updateSettings({ enableSplitTrips: enabled });
@@ -3371,7 +3371,7 @@ export default function Settings({
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {isDevMode && (settings.enableDevSQLConsole ?? true) && onNavigate && (
+                    {isDevMode && (settings.enableDevSQLConsole ?? false) && onNavigate && (
                       <button
                         type="button"
                         className="drawer-action-icon-btn"
@@ -3384,7 +3384,7 @@ export default function Settings({
                     <Switch
                       className="custom-toggle-switch"
                       disabled={!isDevMode}
-                      checked={isDevMode && (settings.enableDevSQLConsole ?? true)}
+                      checked={isDevMode && (settings.enableDevSQLConsole ?? false)}
                       onChange={(e) => {
                         const enabled = e.target.checked;
                         updateSettings({ enableDevSQLConsole: enabled });
