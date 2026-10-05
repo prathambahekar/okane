@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useColorMode } from '../theme';
 import Switch from '@mui/material/Switch';
-import { Plus, X, RotateCcw, Tag, FlaskConical, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, ArrowUpRight, Sparkles, FileCode, Check, Database, Terminal, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Info, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet, Layout, Download, Hash } from 'lucide-react';
+import { Plus, X, RotateCcw, Tag, FlaskConical, ChevronRight, ChevronDown, Edit2, Palette, ExternalLink, ArrowUpRight, Sparkles, FileCode, Check, Database, Terminal, RefreshCw, ArrowUpCircle, CheckCircle2, History, GitCommit, Plane, Info, MessageSquarePlus, Bug, Lightbulb, GitPullRequest, Sliders, Moon, Sun, ShieldCheck, Fingerprint, Lock, KeyRound, Smartphone, EyeOff, Eye, ArrowLeft, Search, ScanFace, Keyboard as KeyboardIcon, Coins, Wallet, Layout, Download } from 'lucide-react';
 import { useStore } from '../store';
 import { useFirebase } from '../context/FirebaseContext';
 import DataManagementDrawer from '../components/DataManagementDrawer';
@@ -1677,91 +1677,6 @@ export default function Settings({
                     onClick={(e) => e.stopPropagation()}
                     color="primary"
                   />
-                </div>
-
-                {/* Amount Keypad Preference: Num-Only (Default) vs Math */}
-                <div
-                  onClick={() => {
-                    const currentMode = settings.amountInputMode ?? 'num-only';
-                    const nextVal = currentMode === 'num-only' ? 'math' : 'num-only';
-                    localStorage.setItem('okane_amount_input_mode', nextVal);
-                    updateSettings({ amountInputMode: nextVal });
-                    showToast(nextVal === 'num-only' ? 'Number-only keypad active' : 'Math calculator keyboard active');
-                  }}
-                  className="drawer-setting-card"
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-                    <div className="drawer-card-icon">
-                      <Hash size={18} />
-                    </div>
-                    <div className="drawer-card-info">
-                      <div className="drawer-card-title">
-                        Amount Keyboard Mode
-                      </div>
-                      <div className="drawer-card-sub">
-                        {(settings.amountInputMode ?? 'num-only') === 'num-only'
-                          ? 'Number-only keypad (0-9 & decimal)'
-                          : 'Math expression calculator keyboard'}
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      background: 'var(--surface3)',
-                      borderRadius: 'var(--radius-full)',
-                      padding: 2,
-                      border: '1px solid var(--border)',
-                    }}
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        localStorage.setItem('okane_amount_input_mode', 'num-only');
-                        updateSettings({ amountInputMode: 'num-only' });
-                        showToast('Number-only keypad active');
-                      }}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 'var(--radius-full)',
-                        border: 'none',
-                        background: (settings.amountInputMode ?? 'num-only') === 'num-only' ? 'var(--surface)' : 'transparent',
-                        color: (settings.amountInputMode ?? 'num-only') === 'num-only' ? 'var(--accent)' : 'var(--text-3)',
-                        fontWeight: (settings.amountInputMode ?? 'num-only') === 'num-only' ? 700 : 500,
-                        fontSize: 'var(--fs-xs)',
-                        cursor: 'pointer',
-                        boxShadow: (settings.amountInputMode ?? 'num-only') === 'num-only' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      Num Only
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        localStorage.setItem('okane_amount_input_mode', 'math');
-                        updateSettings({ amountInputMode: 'math' });
-                        showToast('Math calculator keyboard active');
-                      }}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 'var(--radius-full)',
-                        border: 'none',
-                        background: (settings.amountInputMode ?? 'num-only') === 'math' ? 'var(--surface)' : 'transparent',
-                        color: (settings.amountInputMode ?? 'num-only') === 'math' ? 'var(--accent)' : 'var(--text-3)',
-                        fontWeight: (settings.amountInputMode ?? 'num-only') === 'math' ? 700 : 500,
-                        fontSize: 'var(--fs-xs)',
-                        cursor: 'pointer',
-                        boxShadow: (settings.amountInputMode ?? 'num-only') === 'math' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      Math
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
