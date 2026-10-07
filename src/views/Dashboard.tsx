@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Users, ReceiptText, ArrowLeftRight, ArrowRight, Eye, EyeOff, CheckCircle2, ArrowUpRight, ArrowDownLeft, ChevronRight } from 'lucide-react';
+import { Plus, Users, ReceiptText, ArrowLeftRight, ArrowRight, Eye, EyeOff, CheckCircle2, ArrowUpRight, ArrowDownLeft, ChevronRight, Camera } from 'lucide-react';
 import { useStore } from '../store';
 import { walletBalance, totalWalletBalance, expenseFlow, monthKey, allFriendBalances, unsettledExpensesForFriend } from '../db';
 import { fmtMoney, fmtDateNoYear, friendInitial, getAvatarStyle, groupExpenses, getGroupedExpenseAmount, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../utils';
@@ -197,9 +197,20 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
         <div>
           <h1 className="page-title">Dashboard</h1>
         </div>
-        <DesktopSearchBar placeholder="Search expenses, contacts, wallets..." defaultTab="all" />
-        <div className="desktop-only" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button className="btn btn-primary desktop-only" onClick={onAddExpense}>
+        <div className="desktop-search-filter-wrap desktop-only">
+          <DesktopSearchBar placeholder="Search expenses, contacts, wallets..." defaultTab="all" />
+        </div>
+        <div className="page-header-actions desktop-only" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => window.dispatchEvent(new CustomEvent('app-open-scan-receipt'))}
+            title="Scan bill or receipt with OCR"
+          >
+            <Camera size={15} />
+            <span>Scan Bill</span>
+          </button>
+          <button className="btn btn-primary" onClick={onAddExpense}>
             <Plus size={16} />
             <span>Add Expense</span>
           </button>

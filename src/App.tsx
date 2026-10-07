@@ -33,6 +33,7 @@ import {
   Search,
   Filter,
   ChevronRight,
+  Camera,
 } from 'lucide-react';
 import { StoreProvider, useStore } from './store';
 import { FirebaseProvider } from './context/FirebaseContext';
@@ -59,6 +60,7 @@ import Toast from './components/Toast';
 import NotificationBell from './components/NotificationBell';
 import FloatingSearchButton from './components/FloatingSearchButton';
 import ContextualSearchModal, { type SearchTab } from './components/ContextualSearchModal';
+import ScanReceiptModal from './components/ScanReceiptModal';
 import SecurityLockModal from './components/SecurityLockModal';
 import IntroCarousel from './components/IntroCarousel';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -77,6 +79,7 @@ function AppInner() {
   const [viewHistory, setViewHistory] = useState<Array<{ view: ViewName; arg?: string; friendDetailId?: string }>>([]);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [addExpenseInitialData, setAddExpenseInitialData] = useState<ExpenseInitialData | null>(null);
+  const [showScanReceiptModal, setShowScanReceiptModal] = useState(false);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchInitialQuery, setSearchInitialQuery] = useState('');
@@ -95,6 +98,14 @@ function AppInner() {
     }
     return false;
   });
+
+  useEffect(() => {
+    const handleOpenScanReceipt = () => {
+      setShowScanReceiptModal(true);
+    };
+    window.addEventListener('app-open-scan-receipt', handleOpenScanReceipt);
+    return () => window.removeEventListener('app-open-scan-receipt', handleOpenScanReceipt);
+  }, []);
 
   useEffect(() => {
     const handleOpenIntro = () => {
@@ -141,6 +152,7 @@ function AppInner() {
   // Modal / Drawer back button handling
   useBackButtonModal(moreOpen, () => setMoreOpen(false), { priority: BackPriority.DRAWER });
   useBackButtonModal(showSearchModal, () => setShowSearchModal(false), { priority: BackPriority.MODAL });
+  useBackButtonModal(showScanReceiptModal, () => setShowScanReceiptModal(false), { priority: BackPriority.MODAL });
   useBackButtonModal(showAIAssistant, () => setShowAIAssistant(false), { priority: BackPriority.MODAL });
   useBackButtonModal(showIntroCarousel, () => setShowIntroCarousel(false), { priority: BackPriority.MODAL });
 
@@ -1130,6 +1142,32 @@ function AppInner() {
                     </button>
                   )}
 
+                  <button
+                    type="button"
+                    id="topbar-scan-btn"
+                    className="btn-icon topbar-scan-btn"
+                    onClick={() => setShowScanReceiptModal(true)}
+                    style={{
+                      position: 'relative',
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      background: 'transparent',
+                      border: '1px solid transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--text)',
+                      flexShrink: 0,
+                      transition: 'transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease',
+                    }}
+                    title="Scan Bill / Receipt (OCR)"
+                    aria-label="Scan Bill"
+                  >
+                    <Camera size={19} />
+                  </button>
+
                   <NotificationBell onNavigate={navigate} />
                 </>
               )}
@@ -1708,6 +1746,18 @@ function AppInner() {
             onClose={() => {
               setShowAddExpense(false);
               setAddExpenseInitialData(null);
+            }}
+          />
+        )}
+        {showScanReceiptModal && (
+          <ScanReceiptModal
+            key="scan-receipt-modal"
+            open={showScanReceiptModal}
+            onClose={() => setShowScanReceiptModal(false)}
+            onOpenAddExpense={(initialData) => {
+              setAddExpenseInitialData(initialData || null);
+              setShowAddExpense(true);
+              setShowScanReceiptModal(false);
             }}
           />
         )}

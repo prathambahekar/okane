@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { AnimatePresence } from 'motion/react';
-import { Plus, ArrowUpRight, ArrowDownLeft, ReceiptText, Filter, X, Layers, RotateCcw } from 'lucide-react';
+import { Plus, ArrowUpRight, ArrowDownLeft, ReceiptText, Filter, X, Layers, RotateCcw, Camera } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, GroupedExpense } from '../types';
 import { cleanExpenseDescription, getGroupSettlementStatus, groupExpenses } from '../utils';
@@ -363,6 +363,15 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
           </button>
         </div>
         <div className="page-header-actions desktop-only" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => window.dispatchEvent(new CustomEvent('app-open-scan-receipt'))}
+            title="Scan bill or receipt with OCR"
+          >
+            <Camera size={15} />
+            <span>Scan Bill</span>
+          </button>
           <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
             <Plus size={16} /> Add Expense
           </button>
@@ -547,10 +556,21 @@ export default function Expenses({ initialArg, onClearViewArg }: { initialArg?: 
                 Clear Filters
               </button>
             ) : (
-              <button className="empty-state-btn" onClick={() => setShowAdd(true)}>
-                <Plus size={16} strokeWidth={2.2} />
-                <span>Add Expense</span>
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => window.dispatchEvent(new CustomEvent('app-open-scan-receipt'))}
+                  style={{ borderRadius: 'var(--radius-md)', padding: '9px 16px', fontSize: 'var(--fs-sm)' }}
+                >
+                  <Camera size={16} strokeWidth={2} />
+                  <span>Scan Bill</span>
+                </button>
+                <button className="empty-state-btn" onClick={() => setShowAdd(true)}>
+                  <Plus size={16} strokeWidth={2.2} />
+                  <span>Add Expense</span>
+                </button>
+              </div>
             )}
           </div>
         </div>

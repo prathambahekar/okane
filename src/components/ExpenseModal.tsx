@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { X, RotateCcw, TrendingDown, TrendingUp, User, Users, HeartHandshake, Sparkles, Feather, ChevronDown, Store, Plus, Pencil, Target } from 'lucide-react';
+import { X, RotateCcw, TrendingDown, TrendingUp, User, Users, HeartHandshake, Sparkles, Feather, ChevronDown, Store, Plus, Pencil, Target, Camera } from 'lucide-react';
 import { useStore } from '../store';
 import type { Expense, ExpenseType, ExpenseFlow, ExpenseStatus, Friend } from '../types';
 import { todayISO, uid, friendBalance, unsettledExpensesForFriend } from '../db';
@@ -954,22 +954,50 @@ export default function ExpenseModal({ expense, initialData, onClose, zIndex }: 
               </button>
             </div>
           )}
-          <button
-            type="button"
-            className="btn-icon"
-            onClick={onClose}
-            aria-label="Close dialog"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 'var(--radius-full)',
-              display: 'grid',
-              placeItems: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            <X size={18} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {!expense && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  window.dispatchEvent(new CustomEvent('app-open-scan-receipt'));
+                }}
+                className="btn-icon"
+                title="Scan bill or receipt with OCR"
+                aria-label="Scan bill or receipt with OCR"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 'var(--radius-full)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                <Camera size={16} />
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={onClose}
+              aria-label="Close dialog"
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 'var(--radius-full)',
+                display: 'grid',
+                placeItems: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="expense-modal-form">

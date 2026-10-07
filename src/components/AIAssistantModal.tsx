@@ -46,6 +46,7 @@ import {
   ChevronRight,
   Layers as LayersIcon,
   Receipt as ReceiptIcon,
+  Camera,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { currencySymbol, resolveCategoryMeta, getAvatarStyle as getAppAvatarStyle } from '../utils';
@@ -2768,6 +2769,31 @@ export default function AIAssistantModal({ open, onClose, onOpenAddExpense }: AI
             },
           }}
         />
+
+        <Tooltip title="Scan Bill / Receipt with OCR">
+          <IconButton
+            onClick={() => {
+              onClose();
+              window.dispatchEvent(new CustomEvent('app-open-scan-receipt'));
+            }}
+            size="small"
+            aria-label="Scan Bill or Receipt"
+            sx={{
+              color: 'var(--text-2)',
+              p: 0,
+              width: 34,
+              height: 34,
+              borderRadius: 'var(--radius-full)',
+              transition: 'all 0.15s ease',
+              '&:hover': {
+                color: 'var(--text)',
+                bgcolor: 'var(--surface3)',
+              },
+            }}
+          >
+            <Camera size={18} />
+          </IconButton>
+        </Tooltip>
 
         <Tooltip title={isListening ? 'Stop mic' : 'Speak to Max'}>
           <IconButton

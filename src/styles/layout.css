@@ -509,10 +509,12 @@
   margin-top: 2px;
 }
 .page-header-actions {
-  display: flex;
-  align-items: center;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap !important;
+  flex-shrink: 0;
 }
 
 
@@ -536,8 +538,7 @@
     padding: 0 !important;
     height: 0 !important;
   }
-  .page-header.wallets-page-header,
-  .page-header:has(.page-header-actions) {
+  .page-header.wallets-page-header {
     display: flex !important;
     height: auto !important;
     margin-bottom: 10px !important;
@@ -607,6 +608,15 @@
 
 @media (min-width: 1025px) {
   .desktop-only { display: block !important; }
+  .page-header-actions.desktop-only,
+  div.page-header-actions.desktop-only,
+  .desktop-only.page-header-actions,
+  div.desktop-only.page-header-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+  }
   button.desktop-only, .btn.desktop-only { display: inline-flex !important; }
   table.desktop-only { display: table !important; }
 }
@@ -752,11 +762,12 @@
     display: flex !important;
     align-items: center;
     gap: 8px;
-    margin: 0 auto;
-    max-width: 490px;
-    width: 100%;
-    justify-content: center;
-    transform: translateX(-16px);
+    margin: 0 12px;
+    max-width: 440px;
+    width: auto;
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    transform: none;
   }
 
   .desktop-search-filter-wrap .desktop-search-pill {
@@ -769,12 +780,12 @@
     display: flex !important;
     align-items: center;
     gap: 10px;
-    height: 40px;
+    height: 38px;
     width: 100%;
-    max-width: 440px;
-    min-width: 140px;
-    margin: 0 auto;
-    transform: translateX(-24px);
+    max-width: 420px;
+    min-width: 160px;
+    margin: 0 16px;
+    transform: none;
     padding: 0 16px;
     border-radius: var(--radius-full);
     background: var(--surface2);
@@ -785,7 +796,7 @@
     transition: all 0.18s ease;
     outline: none;
     user-select: none;
-    flex-shrink: 1;
+    flex: 1 1 auto;
   }
 
 @keyframes modalPopIn {
