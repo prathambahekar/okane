@@ -684,10 +684,31 @@ export default function ScanReceiptModal({
     }
   };
 
+  // Escape key handler to close drawer
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        stopCamera();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose, stopCamera]);
+
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 bg-black/75 backdrop-blur-md animate-fadeIn">
+    <div
+      className="fixed inset-0 z-[99999] flex items-end justify-center bg-black/75 backdrop-blur-md animate-fadeIn"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          stopCamera();
+          onClose();
+        }
+      }}
+    >
       {/* Hidden File Input for Device Files Manager */}
       <input
         ref={fileInputRef}
@@ -702,61 +723,85 @@ export default function ScanReceiptModal({
       />
 
       <motion.div
-        initial={{ y: '100%', opacity: 0.5 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: '100%', opacity: 0 }}
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="relative w-full max-w-lg max-h-[94vh] flex flex-col rounded-t-3xl sm:rounded-3xl bg-[#0d0f12] text-white border border-white/10 shadow-2xl overflow-hidden font-sans"
-        style={{ background: '#0e1116' }}
+        className="relative w-full max-w-xl max-h-[92vh] max-h-[92dvh] flex flex-col rounded-t-[32px] bg-[#0c0e12] text-white border-t border-x border-white/10 shadow-[0_-16px_50px_rgba(0,0,0,0.85)] overflow-hidden font-sans"
+        style={{ background: '#0c0e12' }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Drawer Drag Indicator */}
-        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-2.5 mb-1 sm:hidden shrink-0" />
+        <div className="w-12 h-1.5 bg-white/25 hover:bg-white/40 rounded-full mx-auto mt-3 mb-2 shrink-0 cursor-grab transition-colors" />
 
-        {/* Top Cinema HUD Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-black/40">
+        {/* Top Drawer Menu Header */}
+        <div className="flex items-center justify-between px-5 py-2.5 border-b border-white/10 bg-black/50 shrink-0">
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${isCameraActive ? 'bg-red-500/15 border-red-500/30 text-red-400' : 'bg-white/10 border-white/20 text-white/70'} border text-[11px] font-mono font-bold tracking-wider uppercase`}>
-              <span className={`w-2 h-2 rounded-full ${isCameraActive ? 'bg-red-500 animate-pulse' : 'bg-amber-400'}`} />
-              <span>{isCameraActive ? 'REC • AI SCAN' : 'STANDBY • OCR'}</span>
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+              <Camera size={16} />
             </div>
-
-            {step !== 'review' && step !== 'scanning' && (
-              <div className="hidden xs:flex items-center gap-1 bg-white/5 p-0.5 rounded-xl border border-white/10 text-xs">
-                <button
-                  onClick={() => {
-                    setStep('camera');
-                  }}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all ${
-                    step === 'camera' ? 'bg-white/20 text-white shadow-xs' : 'text-white/60 hover:text-white'
-                  }`}
-                >
-                  Lens
-                </button>
-                <button
-                  onClick={() => {
-                    stopCamera();
-                    setStep('files');
-                  }}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all ${
-                    step === 'files' ? 'bg-white/20 text-white shadow-xs' : 'text-white/60 hover:text-white'
-                  }`}
-                >
-                  Files
-                </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white tracking-tight">Receipt Scanner</span>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${isCameraActive ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/10 text-white/70 border border-white/15'} text-[10px] font-mono font-bold tracking-wider uppercase`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isCameraActive ? 'bg-red-500 animate-pulse' : 'bg-amber-400'}`} />
+                  {isCameraActive ? 'REC • LENS' : 'AI OCR'}
+                </span>
               </div>
-            )}
+              <span className="text-[11px] text-white/50 block">Drawer Menu • Movie Camera & Files</span>
+            </div>
           </div>
 
           <button
+            type="button"
             onClick={() => {
               stopCamera();
               onClose();
             }}
             className="w-8 h-8 rounded-full grid place-items-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            title="Close Drawer"
+            aria-label="Close Drawer"
           >
             <X size={18} />
           </button>
         </div>
+
+        {/* Drawer Menu Navigation Switch */}
+        {step !== 'review' && step !== 'scanning' && (
+          <div className="px-5 pt-3 pb-2 border-b border-white/5 bg-black/20 shrink-0">
+            <div className="grid grid-cols-2 p-1 rounded-xl bg-white/5 border border-white/10 text-xs gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('camera');
+                }}
+                className={`flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all ${
+                  step === 'camera'
+                    ? 'bg-white/20 text-white shadow-xs'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                <Camera size={15} />
+                <span>Movie Camera</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  stopCamera();
+                  setStep('files');
+                }}
+                className={`flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-all ${
+                  step === 'files'
+                    ? 'bg-white/20 text-white shadow-xs'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                <FolderOpen size={15} />
+                <span>Device Files</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Modal / Drawer Content Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
