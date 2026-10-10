@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Users, ReceiptText, ArrowLeftRight, ArrowRight, Eye, EyeOff, CheckCircle2, ArrowUpRight, ArrowDownLeft, ChevronRight, Camera } from 'lucide-react';
+import { Plus, Users, ReceiptText, ArrowLeftRight, ArrowRight, Eye, EyeOff, CheckCircle2, ArrowUpRight, ArrowDownLeft, ChevronRight, Camera, Calendar } from 'lucide-react';
 import { useStore } from '../store';
 import { walletBalance, totalWalletBalance, expenseFlow, monthKey, allFriendBalances, unsettledExpensesForFriend } from '../db';
 import { fmtMoney, fmtDateNoYear, friendInitial, getAvatarStyle, groupExpenses, getGroupedExpenseAmount, resolveCategoryMeta, cleanSettlementDescription, type GroupedExpense } from '../utils';
@@ -204,6 +204,15 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
           <button
             type="button"
             className="btn btn-secondary"
+            onClick={() => onNavigate('analytics', 'monthly-report')}
+            title="Open Monthly Report"
+          >
+            <Calendar size={15} />
+            <span>Monthly Report</span>
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
             onClick={() => window.dispatchEvent(new CustomEvent('app-open-scan-receipt'))}
             title="Scan bill or receipt with OCR"
           >
@@ -256,9 +265,31 @@ export default function Dashboard({ onNavigate, onAddExpense }: Props) {
                     </button>
                   )}
                 </div>
-                <span className="badge pill-chip" style={{ fontSize: 'var(--fs-caption)', padding: '2px 8px' }}>
-                  {`${visibleWallets.length} ${visibleWallets.length === 1 ? 'Wallet' : 'Wallets'}`}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('analytics', 'monthly-report')}
+                    className="badge pill-chip"
+                    style={{
+                      fontSize: 'var(--fs-caption)',
+                      padding: '3px 8px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      cursor: 'pointer',
+                      background: 'var(--accent-soft)',
+                      color: 'var(--text)',
+                      border: 'none',
+                    }}
+                    title="View detailed monthly financial report"
+                  >
+                    <Calendar size={11} />
+                    <span>Monthly Report</span>
+                  </button>
+                  <span className="badge pill-chip" style={{ fontSize: 'var(--fs-caption)', padding: '2px 8px' }}>
+                    {`${visibleWallets.length} ${visibleWallets.length === 1 ? 'Wallet' : 'Wallets'}`}
+                  </span>
+                </div>
               </div>
 
               <div

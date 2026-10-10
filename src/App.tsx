@@ -554,7 +554,7 @@ function AppInner() {
         return <Recurring onNavigate={navigate} initialArg={viewArg} onClearViewArg={clearViewArg} />;
       case 'settlements': return <Settlements initialArg={viewArg} onClearViewArg={clearViewArg} />;
       case 'split-trips': return <SplitTrips initialArg={viewArg} onClearViewArg={clearViewArg} />;
-      case 'analytics': return <Analytics onNavigate={navigate} />;
+      case 'analytics': return <Analytics onNavigate={navigate} initialArg={viewArg} onClearViewArg={clearViewArg} />;
       case 'settings':
         return (
           <Settings

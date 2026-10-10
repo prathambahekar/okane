@@ -7,6 +7,8 @@ import ExpenseDetailDrawer from '../components/ExpenseDetailDrawer';
 import DailyWalletBalanceDrawer from '../components/DailyWalletBalanceDrawer';
 import CategoryDetailDrawer from '../components/analytics/CategoryDetailDrawer';
 import PacingComparisonDrawer from '../components/analytics/PacingComparisonDrawer';
+import MonthlyReportDrawer from '../components/analytics/MonthlyReportDrawer';
+import MonthlyReportCard from '../components/analytics/MonthlyReportCard';
 import AnalyticsHeader from '../components/analytics/AnalyticsHeader';
 import TotalSpendingCard, { type ChartDayData } from '../components/analytics/TotalSpendingCard';
 import CategoryDistributionCard from '../components/analytics/CategoryDistributionCard';
@@ -46,9 +48,11 @@ function getMonday(d: Date): Date {
 
 interface AnalyticsProps {
   onNavigate?: (v: ViewName) => void;
+  initialArg?: string;
+  onClearViewArg?: () => void;
 }
 
-export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
+export default function Analytics({ onNavigate, initialArg, onClearViewArg }: AnalyticsProps = {}) {
   const { db, deleteExpense, showToast } = useStore();
   const { expenses, wallets, settings: { currency } } = db;
   const spendingMode = db.settings?.spendingMode || 'all';
@@ -177,6 +181,23 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
   const [showDailyBalanceDrawer, setShowDailyBalanceDrawer] = useState(false);
   const [inspectCategoryName, setInspectCategoryName] = useState<string | null>(null);
   const [showPacingDrawer, setShowPacingDrawer] = useState(false);
+  const [showMonthlyReportDrawer, setShowMonthlyReportDrawer] = useState<boolean>(() => {
+    return initialArg === 'monthly-report';
+  });
+
+  const [prevInitialArg, setPrevInitialArg] = useState(initialArg);
+  if (initialArg !== prevInitialArg) {
+    setPrevInitialArg(initialArg);
+    if (initialArg === 'monthly-report') {
+      setShowMonthlyReportDrawer(true);
+    }
+  }
+
+  useEffect(() => {
+    if (initialArg === 'monthly-report') {
+      onClearViewArg?.();
+    }
+  }, [initialArg, onClearViewArg]);
 
   useBackButtonModal(showFilterDrawer, () => setShowFilterDrawer(false), { priority: BackPriority.DIALOG });
 
@@ -689,6 +710,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
           onResetDate={handleResetDate}
           isCurrentPeriod={isCurrentPeriod}
           onNavigate={onNavigate}
+          onOpenMonthlyReport={() => setShowMonthlyReportDrawer(true)}
         />
 
         {/* 2. Card 1: Total Spending Overview & Interactive Visual Bar Chart */}
@@ -1089,7 +1111,15 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
         />
       </div>
 
-      {/* 4. Category Budgets & Spending Limits */}
+      {/* 4. Minimal Monthly Report Card */}
+      <div style={{ width: '100%', marginTop: 14 }}>
+        <MonthlyReportCard
+          onOpenReportDrawer={() => setShowMonthlyReportDrawer(true)}
+          selectedMonth={activeMonthStr}
+        />
+      </div>
+
+      {/* 5. Category Budgets & Spending Limits */}
       <div style={{ width: '100%', marginTop: 14 }}>
         <CategoryBudgetsCard
           db={db}
@@ -1102,7 +1132,7 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
         />
       </div>
 
-      {/* 5. Item Breakdown (Recurring / Frequent Items) */}
+      {/* 6. Item Breakdown (Recurring / Frequent Items) */}
       <div style={{ width: '100%', marginTop: 14 }}>
         <ItemBreakdownCard
           expenses={filteredExpenses}
@@ -1193,6 +1223,13 @@ export default function Analytics({ onNavigate }: AnalyticsProps = {}) {
           initialCategoryName={budgetDrawerCategory}
         />
       )}
+
+      {/* Monthly Report Drawer */}
+      <MonthlyReportDrawer
+        isOpen={showMonthlyReportDrawer}
+        onClose={() => setShowMonthlyReportDrawer(false)}
+        initialMonth={activeMonthStr}
+      />
 
       {/* Confirmation Delete Dialog */}
       {deletingId && (

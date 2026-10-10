@@ -18,6 +18,7 @@ interface AnalyticsHeaderProps {
   onOpenCalendar?: () => void;
   isCurrentPeriod?: boolean;
   onNavigate?: (v: ViewName) => void;
+  onOpenMonthlyReport?: () => void;
 }
 
 export const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({
@@ -29,66 +30,93 @@ export const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({
   onResetDate,
   onOpenCalendar,
   isCurrentPeriod = false,
+  onNavigate,
+  onOpenMonthlyReport,
 }) => {
   return (
     <div style={{ width: '100%' }}>
       {/* Nav bar: Left-aligned grouped controls with refined gap */}
-      <div className="analytics-v2-nav-bar">
-        {/* Week / Month Segmented Switch (Accent color for selected) */}
-        <div className="analytics-v2-segmented" role="tablist" aria-label="Period selector">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={period === 'week'}
-            onClick={() => setPeriod('week')}
-            className={`analytics-v2-segment-btn ${period === 'week' ? 'active' : ''}`}
-          >
-            Week
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={period === 'month'}
-            onClick={() => setPeriod('month')}
-            className={`analytics-v2-segment-btn ${period === 'month' ? 'active' : ''}`}
-          >
-            Month
-          </button>
+      <div className="analytics-v2-nav-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {/* Week / Month Segmented Switch (Accent color for selected) */}
+          <div className="analytics-v2-segmented" role="tablist" aria-label="Period selector">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={period === 'week'}
+              onClick={() => setPeriod('week')}
+              className={`analytics-v2-segment-btn ${period === 'week' ? 'active' : ''}`}
+            >
+              Week
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={period === 'month'}
+              onClick={() => setPeriod('month')}
+              className={`analytics-v2-segment-btn ${period === 'month' ? 'active' : ''}`}
+            >
+              Month
+            </button>
+          </div>
+
+          {/* Date Range Navigation Capsule: [ < ] [ 📅 Sep 14 – 20 ] [ > ] */}
+          <div className="analytics-v2-date-capsule" aria-label="Date range navigation">
+            <button
+              type="button"
+              onClick={onPrevDate}
+              className="analytics-v2-arrow-btn"
+              aria-label="Previous period"
+              title="Previous period"
+            >
+              <ChevronLeft size={16} strokeWidth={2.4} />
+            </button>
+
+            <button
+              type="button"
+              onClick={onOpenCalendar || onResetDate}
+              className="analytics-v2-date-label-btn"
+              title="Open calendar to pick specific day, week, month, or year"
+            >
+              <Calendar size={15} className="analytics-v2-date-icon" strokeWidth={2.2} />
+              <span className="analytics-v2-date-text">{dateRangeLabel}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onNextDate}
+              disabled={isCurrentPeriod}
+              className="analytics-v2-arrow-btn"
+              aria-label="Next period"
+              title={isCurrentPeriod ? 'Current period' : 'Next period'}
+            >
+              <ChevronRight size={16} strokeWidth={2.4} />
+            </button>
+          </div>
         </div>
 
-        {/* Date Range Navigation Capsule: [ < ] [ 📅 Sep 14 – 20 ] [ > ] */}
-        <div className="analytics-v2-date-capsule" aria-label="Date range navigation">
+        {(onOpenMonthlyReport || onNavigate) && (
           <button
             type="button"
-            onClick={onPrevDate}
-            className="analytics-v2-arrow-btn"
-            aria-label="Previous period"
-            title="Previous period"
+            className="btn btn-secondary"
+            onClick={() => onOpenMonthlyReport ? onOpenMonthlyReport() : onNavigate?.('analytics')}
+            title="Open minimal Monthly Report drawer"
+            style={{
+              padding: '6px 12px',
+              fontSize: 'var(--fs-xs)',
+              fontWeight: 600,
+              borderRadius: 'var(--radius-full)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              height: 36,
+              cursor: 'pointer',
+            }}
           >
-            <ChevronLeft size={16} strokeWidth={2.4} />
+            <Calendar size={14} />
+            <span>Monthly Report</span>
           </button>
-
-          <button
-            type="button"
-            onClick={onOpenCalendar || onResetDate}
-            className="analytics-v2-date-label-btn"
-            title="Open calendar to pick specific day, week, month, or year"
-          >
-            <Calendar size={15} className="analytics-v2-date-icon" strokeWidth={2.2} />
-            <span className="analytics-v2-date-text">{dateRangeLabel}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onNextDate}
-            disabled={isCurrentPeriod}
-            className="analytics-v2-arrow-btn"
-            aria-label="Next period"
-            title={isCurrentPeriod ? 'Current period' : 'Next period'}
-          >
-            <ChevronRight size={16} strokeWidth={2.4} />
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );

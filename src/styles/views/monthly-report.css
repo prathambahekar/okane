@@ -1,0 +1,56 @@
+/* ==========================================================================
+   Okane Minimal Monthly Report Drawer & Card Styles
+   Synchronized with OG Okane design system and tokens.
+   Anti-split lines: Uses modular cards, subtle surface contrasts, and gaps.
+   Android-optimized: Zero horizontal overflows, fluid wraps, safe paddings.
+   ========================================================================== */
+
+.monthly-report-drawer-panel {
+  width: 100%;
+  max-width: 500px;
+  background: var(--surface);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+  .monthly-report-drawer-panel {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    max-height: 94vh;
+  }
+}
+
+/* Hover effects on the Statistics in-page card */
+.monthly-report-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.monthly-report-diff-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.monthly-report-diff-badge.favorable {
+  background: var(--credit-bg);
+  border: 1px solid var(--credit-border);
+  color: var(--credit);
+}
+
+.monthly-report-diff-badge.unfavorable {
+  background: var(--debit-bg);
+  border: 1px solid var(--debit-border);
+  color: var(--debit);
+}
